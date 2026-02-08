@@ -1,0 +1,94 @@
+hoko/
+├── README.md
+├── .gitignore
+│
+├── client/                         # Frontend (React + Vite + Tailwind + PWA)
+│   ├── package.json
+│   ├── vite.config.js
+│   ├── .env.example
+│   │
+│   ├── public/
+│   │   ├── manifest.json
+│   │   ├── service-worker.js
+│   │   ├── icon-192.png
+│   │   └── icon-512.png
+│   │
+│   └── src/
+│       ├── App.jsx
+│       ├── main.jsx
+│       ├── index.css
+│       │
+│       ├── components/
+│       │   ├── NotificationBell.jsx
+│       │   ├── OfferModal.jsx
+│       │   ├── ReviewModal.jsx
+│       │   └── charts/
+│       │       ├── KPIBarChart.jsx
+│       │       ├── CityChart.jsx
+│       │       └── CategoryPie.jsx
+│       │
+│       ├── context/
+│       │   └── NotificationContext.jsx
+│       │
+│       ├── services/
+│       │   ├── api.js
+│       │   └── socket.js
+│       │
+│       ├── utils/
+│       │   └── push.js
+│       │
+│       └── pages/
+│           ├── Welcome.jsx
+│           ├── Auth.jsx
+│           ├── CityDashboard.jsx
+│           │
+│           ├── Buyer/
+│           │   ├── RequirementForm.jsx
+│           │   ├── MyPosts.jsx
+│           │   ├── OffersReceived.jsx
+│           │   └── OfferList.jsx
+│           │
+│           ├── Seller/
+│           │   ├── SellerRegister.jsx
+│           │   ├── SellerProfile.jsx
+│           │   └── SellerDashboard.jsx
+│           │
+│           └── Admin/
+│               ├── AdminDashboard.jsx
+│               └── AdminAnalytics.jsx
+│
+├── server/                         # Backend (Node.js + Express + MongoDB + Redis)
+│   ├── package.json
+│   ├── server.js
+│   ├── .env.example
+│   │
+│   ├── config/
+│   │   └── redis.js
+│   │
+│   ├── middleware/
+│   │   ├── auth.js
+│   │   ├── sellerOnly.js
+│   │   ├── adminOnly.js
+│   │   └── rateLimit.js
+│   │
+│   ├── models/
+│   │   ├── User.js
+│   │   ├── Requirement.js
+│   │   ├── Offer.js
+│   │   ├── Review.js
+│   │   └── PushSubscription.js
+│   │
+│   ├── routes/
+│   │   ├── auth.js
+│   │   ├── buyer.js
+│   │   ├── seller.js
+│   │   ├── dashboard.js
+│   │   ├── admin.js
+│   │   └── adminAnalytics.js
+│   │
+│   └── utils/
+│       ├── otpStore.js
+│       ├── push.js
+│       └── sendPush.js
+│
+└── hoko.zip                        # (Optional) Generated ZIP for sharing
