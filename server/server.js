@@ -86,10 +86,10 @@ socket.on(
 }); 
 /* -------------------- DATABASE -------------------- */
 
-// mongoose
-//   .connect(process.env.MONGO_URI)
-//   .then(() => console.log("✅ MongoDB connected"))
-//   .catch(err => console.error("❌ MongoDB error:", err));
+mongoose
+  .connect(process.env.MONGO_URI, { serverSelectionTimeoutMS: 5000 })  // Add timeout for reliability
+  .then(() => console.log("MongoDB connected"))
+  .catch(err => console.error("MongoDB error:", err));
 
 
 /* -------------------- ROUTES -------------------- */
