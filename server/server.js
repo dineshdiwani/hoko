@@ -23,8 +23,9 @@ app.use(helmet());
 const { Server } = require("socket.io");
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173",
-    methods: ["GET", "POST"]
+    origin: process.env.CLIENT_URL || "http://localhost:5173",  // Add .env var for prod
+    methods: ["GET", "POST"],
+    credentials: true  // If using auth cookies/JWT
   }
 });
 
