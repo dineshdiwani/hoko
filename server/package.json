@@ -6,6 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js"
+    "dev": "concurrently \"npm run dev --prefix client\" \"npm run dev --prefix server\"",
+     "install-all": "npm install && npm install --prefix client && npm install --prefix server"
   },
   "dependencies": {
     "axios": "^1.6.0",
@@ -24,6 +26,7 @@
   },
   "devDependencies": {
     "nodemon": "^3.1.0"
+    "concurrently": "^8.2.2"  // Install this: npm i -D concurrently
   }
 }
 
