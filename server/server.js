@@ -23,11 +23,11 @@ app.use(helmet());
 const { Server } = require("socket.io");
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173",
-    methods: ["GET", "POST"]
+    origin: process.env.CLIENT_URL || "http://localhost:5173",  // Add .env var for prod
+    methods: ["GET", "POST"],
+    credentials: true  // If using auth cookies/JWT
   }
 });
-
 app.set("io", io);
 
 io.on("connection", (socket) => {
@@ -85,10 +85,10 @@ socket.on(
 }); 
 /* -------------------- DATABASE -------------------- */
 
-// mongoose
-//   .connect(process.env.MONGO_URI)
-//   .then(() => console.log("✅ MongoDB connected"))
-//   .catch(err => console.error("❌ MongoDB error:", err));
+mongoose
+  .connect(process.env.MONGO_URI, { serverSelectionTimeoutMS: 5000 })  // Add timeout for reliability
+  .then(() => console.log("MongoDB connected"))
+  .catch(err => console.error("MongoDB error:", err));
 
 
 /* -------------------- ROUTES -------------------- */
