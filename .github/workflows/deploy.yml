@@ -1,28 +1,27 @@
-name: Deploy To VPS
+ on:
+    push:
+      branches:
+        - main
+    workflow_dispatch:
 
-on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:
+  jobs:
+    deploy:
+      runs-on: ubuntu-latest
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      steps:
+        - name: Checkout
+          uses: actions/checkout@v4
 
-      - name: Setup SSH key
+        - name: Prepare SSH key
           run: |
             echo "${{ secrets.DEPLOY_SSH_KEY_B64 }}" | base64 -d > /tmp/deploy_key
             chmod 600 /tmp/deploy_key
 
-      - name: Deploy
+        - name: Deploy
           env:
             DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
             DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
             DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
           run: |
-            ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" \
-              "cd '$DEPLOY_PATH' && bash scripts/deploy.sh '${{ github.ref_name }}'"
+            ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "cd '$DEPLOY_PATH'
+  && bash scripts/deploy.sh '${{ github.ref_name }}'"
