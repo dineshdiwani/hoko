@@ -7,19 +7,14 @@ export function NotificationProvider({ userId, children }) {
   const [notifications, setNotifications] = useState([]);
 
   useEffect(() => {
-    if (userId) socket.emit("register", userId);
+    if (userId) socket.emit("join", userId);
 
-    socket.on("new-offer", data => {
-      setNotifications(prev => [data, ...prev]);
-    });
-
-    socket.on("new-requirement", data => {
-      setNotifications(prev => [data, ...prev]);
+    socket.on("notification", (data) => {
+      setNotifications((prev) => [data, ...prev]);
     });
 
     return () => {
-      socket.off("new-offer");
-      socket.off("new-requirement");
+      socket.off("notification");
     };
   }, [userId]);
 

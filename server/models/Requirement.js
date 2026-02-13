@@ -23,7 +23,18 @@ const requirementSchema = new mongoose.Schema(
       required: true
     },
 
+    // Client compatibility
+    product: {
+      type: String
+    },
+
     brand: {
+      type: String
+    },
+    makeBrand: {
+      type: String
+    },
+    typeModel: {
       type: String
     },
 
@@ -47,9 +58,76 @@ const requirementSchema = new mongoose.Schema(
 
     image: {
       type: String
+    },
+
+    moderation: {
+      removed: { type: Boolean, default: false },
+      removedAt: { type: Date, default: null },
+      removedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Admin",
+        default: null
+      },
+      reason: { type: String, default: "" },
+      flagged: { type: Boolean, default: false },
+      flaggedAt: { type: Date, default: null },
+      flaggedReason: { type: String, default: "" }
+    },
+
+    chatDisabled: { type: Boolean, default: false },
+    chatDisabledReason: { type: String, default: "" },
+
+    reverseAuction: {
+      active: {
+        type: Boolean,
+        default: false
+      },
+      lowestPrice: {
+        type: Number,
+        default: null
+      },
+      targetPrice: {
+        type: Number,
+        default: null
+      },
+      startedAt: {
+        type: Date,
+        default: null
+      },
+      updatedAt: {
+        type: Date,
+        default: null
+      },
+      closedAt: {
+        type: Date,
+        default: null
+      }
+    },
+
+    // Compatibility fields used by client fallbacks
+    reverseAuctionActive: {
+      type: Boolean,
+      default: false
+    },
+    currentLowestPrice: {
+      type: Number,
+      default: null
     }
   },
   { timestamps: true }
 );
+
+requirementSchema.pre("validate", function (next) {
+  if (this.category) {
+    this.category = String(this.category).toLowerCase().trim();
+  }
+  if (!this.productName && this.product) {
+    this.productName = this.product;
+  }
+  if (!this.product && this.productName) {
+    this.product = this.productName;
+  }
+  next();
+});
 
 module.exports = mongoose.model("Requirement", requirementSchema);

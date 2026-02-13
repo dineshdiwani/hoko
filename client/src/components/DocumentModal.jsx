@@ -1,26 +1,34 @@
 import { useEffect, useState } from "react";
-import api from "../utils/api";
+import api, { getAssetBaseUrl } from "../services/api";
 
-export default function DocumentModal({ open, onClose, sellerId }) {
+export default function DocumentModal({
+  open,
+  onClose,
+  sellerId,
+  buyerId
+}) {
   const [docs, setDocs] = useState([]);
+  const baseUrl = getAssetBaseUrl();
 
   useEffect(() => {
-    if (!open || !sellerId) return;
+    if (!open || !sellerId || !buyerId) return;
 
     api
-      .get(`/chat/documents`, { params: { sellerId } })
+      .get("/chat-files/list", {
+        params: { from: buyerId, to: sellerId }
+      })
       .then((res) => setDocs(res.data || []))
       .catch(() => setDocs([]));
-  }, [open, sellerId]);
+  }, [open, sellerId, buyerId]);
 
   if (!open) return null;
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-      <div className="bg-white w-96 rounded shadow p-4">
+      <div className="bg-white w-full max-w-lg rounded-2xl shadow-xl p-4 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-3">
           <h2 className="font-semibold">Shared Documents</h2>
-          <button onClick={onClose}>✖</button>
+          <button onClick={onClose}>Close</button>
         </div>
 
         {docs.length === 0 ? (
@@ -29,34 +37,24 @@ export default function DocumentModal({ open, onClose, sellerId }) {
           </p>
         ) : (
           <ul className="space-y-2">
-            {docs.map((doc, i) => (
-              <li
-                key={i}
-                className="flex justify-between items-center border p-2 rounded"
-              >
-                <a
-                  href={doc.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-blue-600 underline text-sm"
+            {docs.map((filename, i) => {
+              const url = `${baseUrl}/uploads/chat/${filename}`;
+              return (
+                <li
+                  key={`${filename}-${i}`}
+                  className="flex justify-between items-center border p-2 rounded"
                 >
-                  {doc.name}
-                </a>
-
-                <button
-                  className="text-red-600 text-xs"
-                  onClick={() =>
-                    api.delete(`/chat/documents/${doc._id}`).then(() =>
-                      setDocs((prev) =>
-                        prev.filter((d) => d._id !== doc._id)
-                      )
-                    )
-                  }
-                >
-                  Delete
-                </button>
-              </li>
-            ))}
+                  <a
+                    href={url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-blue-600 underline text-sm break-all"
+                  >
+                    {filename}
+                  </a>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>

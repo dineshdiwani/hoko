@@ -1,0 +1,224 @@
+To get a **Meta WhatsApp Business Cloud API account** and an **approved message template**, follow this complete step-by-step guide:
+
+---
+
+## ✅ PART 1: Create WhatsApp Business Cloud API Account
+
+### 1️⃣ Create a Meta Business Account
+
+Go to **Meta Business Manager**
+👉 [https://business.facebook.com/](https://business.facebook.com/)
+
+* Sign in with your Facebook account
+* Click **Create Account**
+* Enter business name, email, and details
+
+---
+
+### 2️⃣ Verify Your Business (Recommended for Production)
+
+Inside Business Manager:
+
+* Go to **Security Center**
+* Click **Start Verification**
+* Upload:
+
+  * Business registration certificate
+  * Utility bill or address proof
+  * Business website
+
+⏳ Approval usually takes 1–5 business days.
+
+---
+
+### 3️⃣ Set Up WhatsApp Business Account (WABA)
+
+1. Go to **Meta for Developers**
+   👉 [https://developers.facebook.com/](https://developers.facebook.com/)
+
+2. Click **My Apps → Create App**
+
+3. Select **Business** as app type
+
+4. Add the product → **WhatsApp**
+
+Meta will automatically:
+
+* Create a WhatsApp Business Account (WABA)
+* Generate a test phone number
+* Provide a temporary access token
+
+---
+
+### 4️⃣ Add Your Own Phone Number
+
+Inside WhatsApp settings:
+
+* Click **Phone Numbers**
+* Add your business phone number
+* Verify via OTP (SMS or call)
+
+⚠️ The number must:
+
+* Not be linked to regular WhatsApp
+* Not be linked to WhatsApp Business App
+
+---
+
+### 5️⃣ Get Permanent Access Token
+
+For production:
+
+* Go to **System Users**
+* Create a System User
+* Assign assets (WABA + App)
+* Generate **permanent access token**
+
+---
+
+## ✅ PART 2: Create & Get WhatsApp Template Approved
+
+WhatsApp requires approved templates for sending business-initiated messages.
+
+---
+
+### 1️⃣ Go to Message Templates Section
+
+Inside:
+**Business Manager → WhatsApp Accounts → Message Templates**
+
+---
+
+### 2️⃣ Click “Create Template”
+
+Choose:
+
+* Category:
+
+  * Marketing
+  * Utility
+  * Authentication
+* Language
+* Template name
+
+---
+
+### 3️⃣ Write Template Content
+
+Example:
+
+**Template Name:** order_confirmation
+**Category:** Utility
+
+**Body:**
+
+```
+Hello {{1}},  
+Your order {{2}} has been confirmed.  
+Delivery date: {{3}}  
+Thank you for shopping with us!
+```
+
+✔️ Use placeholders like:
+
+* `{{1}}` for customer name
+* `{{2}}` for order ID
+
+---
+
+### 4️⃣ Submit for Approval
+
+Click **Submit**
+
+⏳ Approval Time:
+
+* Usually 5 minutes to 24 hours
+* Marketing templates may take longer
+
+You’ll get:
+
+* Approved
+* Rejected (with reason)
+
+---
+
+## ✅ PART 3: Send Template Message via API
+
+After approval:
+
+Use this API endpoint:
+
+```
+POST https://graph.facebook.com/v18.0/PHONE_NUMBER_ID/messages
+```
+
+Headers:
+
+```
+Authorization: Bearer YOUR_ACCESS_TOKEN
+Content-Type: application/json
+```
+
+Body Example:
+
+```json
+{
+  "messaging_product": "whatsapp",
+  "to": "CUSTOMER_PHONE_NUMBER",
+  "type": "template",
+  "template": {
+    "name": "order_confirmation",
+    "language": {
+      "code": "en"
+    },
+    "components": [
+      {
+        "type": "body",
+        "parameters": [
+          { "type": "text", "text": "John" },
+          { "type": "text", "text": "12345" },
+          { "type": "text", "text": "Feb 15" }
+        ]
+      }
+    ]
+  }
+}
+```
+
+---
+
+## 💰 Pricing Info
+
+* You pay per **conversation**
+* Pricing depends on country & category (Marketing is higher)
+
+Check official pricing here:
+[https://developers.facebook.com/docs/whatsapp/pricing](https://developers.facebook.com/docs/whatsapp/pricing)
+
+---
+
+## 🚀 Alternative (Easier Option)
+
+If you don’t want to manage API yourself, use official WhatsApp BSPs like:
+
+* Twilio
+* 360dialog
+* Gupshup
+* MessageBird
+
+They handle:
+
+* Setup
+* Hosting
+* Template approvals
+* Webhooks
+
+---
+
+If you want, tell me:
+
+* Are you using it for OTP, marketing, or customer support?
+* Do you want direct Cloud API or through a provider?
+* Which country is your business in?
+
+I can give you a more specific setup guide.

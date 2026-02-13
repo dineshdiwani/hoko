@@ -63,7 +63,6 @@ hoko/
 │   ├── .env.example
 │   │
 │   ├── config/
-│   │   └── redis.js
 │   │
 │   ├── middleware/
 │   │   ├── auth.js

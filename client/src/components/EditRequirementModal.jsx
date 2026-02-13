@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "../services/api";
+import { confirmDialog } from "../utils/dialogs";
 
 export default function EditRequirementModal({
   open,
@@ -23,7 +24,8 @@ export default function EditRequirementModal({
   };
 
   const deletePost = async () => {
-    if (!confirm("Delete this post?")) return;
+    const confirmed = await confirmDialog("Delete this post?");
+    if (!confirmed) return;
     await api.delete(`/buyer/requirement/${form._id}`);
     alert("Post deleted");
     onUpdated();

@@ -1,16 +1,26 @@
 const express = require("express");
 const ChatMessage = require("../models/ChatMessage");
+const auth = require("../middleware/auth");
 
 const router = express.Router();
 
-router.get("/history", async (req, res) => {
-  const { user1, user2 } = req.query;
+router.get("/history", auth, async (req, res) => {
+  const { requirementId, userId } = req.query;
 
   try {
+    if (!requirementId || !userId) {
+      return res.status(400).json({ message: "Missing data" });
+    }
+    if (String(req.user._id) !== String(userId)) {
+      return res.status(403).json({ message: "Not allowed" });
+    }
+
     const messages = await ChatMessage.find({
+      requirementId,
+      "moderation.removed": { $ne: true },
       $or: [
-        { from: user1, to: user2 },
-        { from: user2, to: user1 },
+        { fromUserId: userId },
+        { toUserId: userId }
       ],
     }).sort({ createdAt: 1 });
 

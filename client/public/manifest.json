@@ -1,10 +1,11 @@
 {
-  "name": "HOKO",
+  "name": "HOKO Marketplace",
   "short_name": "HOKO",
+  "description": "Reverse auction marketplace for buyers & sellers",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#2563eb",
+  "theme_color": "#4f46e5",
   "icons": [
     {
       "src": "/icon-192.png",

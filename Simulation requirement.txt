@@ -1,0 +1,40 @@
+Here’s what’s still needed to run the app locally on a laptop for testing, plus how to simulate what you don’t have.
+  Local run checklist
+
+  1. Install deps
+  - server: npm install
+
+  2. Environment
+  - server/.env.development exists already. Confirm:
+      - JWT_SECRET, OTP_SECRET, ADMIN_JWT_SECRET are set.
+      - FAST2SMS_API_KEY can be empty for dev fallback.
+
+
+  - Start local MongoDB:
+      - mongod (or via Docker/Service)
+  4. Redis (required because rate limiter uses Redis)
+  - Start Redis:
+  - If Redis isn’t running, OTP send rate-limiter will fail.
+
+  5. Start servers
+
+  - Server: npm run dev from server/
+  - Client: npm run dev from client/
+
+  Simulation options if missing infra
+
+  - SMS: leave FAST2SMS_API_KEY empty in dev. OTP is logged to server console (fallback).
+  - MongoDB: can use a free Atlas connection string temporarily.
+  - Redis: if not available, I can add a fallback in dev to in-memory rate limiting (so Redis not required).
+
+  Potential missing pieces to verify
+
+  - Admin auth: test /admin/login with ADMIN_USER/ADMIN_PASS.
+  - Socket events: ensure client can connect to server origin; check CORS in server/server.js.
+  - Uploads: chat files path requires writable server/uploads and is served.
+
+  If you want, I can:
+
+  1. Add a dev fallback for rate-limiting without Redis.
+  2. Add a one-command start:dev root script to run client+server together.
+  3. Run a smoke test script on your machine (with your approval).

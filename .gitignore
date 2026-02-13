@@ -9,6 +9,13 @@ yarn-error.log*
 .env.local
 .env.production
 .env.development
+.env.*.local
+client/.env
+client/.env.local
+client/.env.production
+server/.env
+server/.env.development
+server/.env.production
 
 # build outputs
 dist/
@@ -21,3 +28,10 @@ Thumbs.db
 # logs
 logs/
 *.log
+server/*.log
+client/*.log
+
+# secrets and local data
+client_secret*.json
+server/client_secret*.json
+server/uploads/

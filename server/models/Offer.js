@@ -21,6 +21,35 @@ const offerSchema = new mongoose.Schema(
 
     message: {
       type: String
+    },
+
+    viewedByBuyer: {
+      type: Boolean,
+      default: false
+    },
+
+    declinedAuction: {
+      type: Boolean,
+      default: false
+    },
+
+    respondedToAuction: {
+      type: Boolean,
+      default: false
+    },
+
+    moderation: {
+      removed: { type: Boolean, default: false },
+      removedAt: { type: Date, default: null },
+      removedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Admin",
+        default: null
+      },
+      reason: { type: String, default: "" },
+      flagged: { type: Boolean, default: false },
+      flaggedAt: { type: Date, default: null },
+      flaggedReason: { type: String, default: "" }
     }
   },
   { timestamps: true }
