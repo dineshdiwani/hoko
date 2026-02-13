@@ -21,5 +21,8 @@ on:
             DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
             DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
           run: |
-            ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "cd '$DEPLOY_PATH'
-  && bash scripts/deploy.sh '${{ github.ref_name }}'"
+    ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "cd '$DEPLOY_PATH' 
+    
+    && bash
+  
+  scripts/deploy.sh '${{ github.ref_name }}'"
