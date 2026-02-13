@@ -35,3 +35,6 @@ client/*.log
 client_secret*.json
 server/client_secret*.json
 server/uploads/
+.ssh/
+deploy_key
+deploy_key.pub
