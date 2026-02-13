@@ -1,3 +1,39 @@
-# React + TypeScript + Vite
+# Hoko Deployment
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## One-time VPS setup
+
+Run these on your VPS:
+
+```bash
+cd /var/www/hoko
+npm i -g pm2
+pm2 startup
+```
+
+Add your app environment file at `/var/www/hoko/.env` with production values.
+
+## GitHub Actions secrets
+
+In GitHub repo settings -> Secrets and variables -> Actions, add:
+
+- `DEPLOY_HOST`: VPS public IP (example: `84.32.84.32`)
+- `DEPLOY_USER`: SSH user (example: `root`)
+- `DEPLOY_PATH`: app path on server (example: `/var/www/hoko`)
+- `DEPLOY_SSH_KEY`: private SSH key content used by GitHub Actions
+
+## Auto deploy
+
+On every push to `main`, workflow `.github/workflows/deploy.yml` will:
+
+1. SSH to VPS
+2. Pull latest code
+3. Install dependencies
+4. Build client (`client/dist`)
+5. Restart server via PM2
+
+Manual deploy command on VPS:
+
+```bash
+cd /var/www/hoko
+bash scripts/deploy.sh main
+```
