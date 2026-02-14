@@ -565,3 +565,13 @@
 .animate-fade-in {
   animation: fadeInUp 0.6s ease-out both;
 }
+
+#credential_picker_container,
+#credential_picker_iframe,
+iframe[src*="accounts.google.com/gsi/"],
+div[id*="credential_picker"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}

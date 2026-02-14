@@ -4,6 +4,22 @@ import App from "./App";
 import "./index.css";
 import { showAlert } from "./utils/dialogs";
 
+function removeGoogleOneTapUi() {
+  const selectors = [
+    "#credential_picker_container",
+    "#credential_picker_iframe",
+    "iframe[src*='accounts.google.com/gsi/']",
+    "div[id*='credential_picker']"
+  ];
+  selectors.forEach((selector) => {
+    document.querySelectorAll(selector).forEach((node) => {
+      if (node && node.parentNode) {
+        node.parentNode.removeChild(node);
+      }
+    });
+  });
+}
+
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <App />
@@ -35,5 +51,25 @@ if (typeof window !== "undefined" && "caches" in window) {
         Promise.all(keys.map((key) => caches.delete(key)))
       )
       .catch(() => {});
+  });
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("load", () => {
+    try {
+      window.google?.accounts?.id?.cancel?.();
+      window.google?.accounts?.id?.disableAutoSelect?.();
+    } catch (_) {}
+    removeGoogleOneTapUi();
+    const observer = new MutationObserver(() => {
+      removeGoogleOneTapUi();
+      try {
+        window.google?.accounts?.id?.cancel?.();
+      } catch (_) {}
+    });
+    observer.observe(document.documentElement, {
+      childList: true,
+      subtree: true
+    });
   });
 }
