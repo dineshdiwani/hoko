@@ -132,7 +132,8 @@ export default function UserLogin({ role = "buyer" }) {
         email,
         password,
         role: currentRole,
-        city
+        city,
+        acceptTerms: acceptedTerms
       })
       .then(() => {
         setStep("OTP");
@@ -200,7 +201,7 @@ export default function UserLogin({ role = "buyer" }) {
         otp,
         role: currentRole,
         city,
-        acceptTerms: authMode === "SIGNUP" ? acceptedTerms : false
+        acceptTerms: acceptedTerms
       })
       .then(async (res) => {
         const user = res.data.user || {};
