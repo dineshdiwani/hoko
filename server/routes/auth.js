@@ -291,7 +291,10 @@ router.post("/google", async (req, res) => {
     });
     payload = ticket.getPayload();
   } catch (err) {
-    return res.status(401).json({ message: "Invalid Google token" });
+    console.error("Google token verify failed:", err?.message || err);
+    return res.status(401).json({
+      message: "Invalid Google token or client ID mismatch"
+    });
   }
 
   const email = normalizeEmail(payload?.email);

@@ -428,6 +428,8 @@ export default function UserLogin({ role = "buyer" }) {
       .catch((err) => {
         alert(
           err?.response?.data?.message ||
+            err?.response?.data?.error ||
+            err?.message ||
             "Google login failed."
         );
       })
