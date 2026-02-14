@@ -104,12 +104,11 @@ export default function UserLogin({ role = "buyer" }) {
       return;
     }
 
-    if (!acceptedTerms) {
-      alert("Please accept the Terms & Conditions");
-      return;
-    }
-
     if (authMode === "SIGNUP") {
+      if (!acceptedTerms) {
+        alert("Please accept the Terms & Conditions");
+        return;
+      }
       if (password !== confirmPassword) {
         alert("Passwords do not match");
         return;
@@ -132,8 +131,7 @@ export default function UserLogin({ role = "buyer" }) {
         email,
         password,
         role: currentRole,
-        city,
-        acceptTerms: acceptedTerms
+        city
       })
       .then(() => {
         setStep("OTP");
@@ -185,7 +183,7 @@ export default function UserLogin({ role = "buyer" }) {
 
   function verifyOtp() {
     setSubmitted(true);
-    if (!acceptedTerms) {
+    if (authMode === "SIGNUP" && !acceptedTerms) {
       alert("Please accept the Terms & Conditions");
       return;
     }
@@ -201,7 +199,7 @@ export default function UserLogin({ role = "buyer" }) {
         otp,
         role: currentRole,
         city,
-        acceptTerms: acceptedTerms
+        acceptTerms: authMode === "SIGNUP" ? acceptedTerms : false
       })
       .then(async (res) => {
         const user = res.data.user || {};
@@ -420,20 +418,6 @@ export default function UserLogin({ role = "buyer" }) {
       .finally(() => setLoading(false));
   }
 
-  function handleGooglePromptError(error) {
-    const reason =
-      error?.getNotDisplayedReason?.() ||
-      error?.getSkippedReason?.() ||
-      error?.type ||
-      error?.message ||
-      "";
-    if (reason) {
-      alert(`Google One Tap unavailable: ${reason}`);
-      return;
-    }
-    alert("Google login failed to initialize.");
-  }
-
   return (
     <div className="page">
       <div className="page-shell">
@@ -551,7 +535,7 @@ export default function UserLogin({ role = "buyer" }) {
                       setAcceptedTerms(e.target.checked)
                     }
                     className="mt-1"
-                    required
+                    required={authMode === "SIGNUP"}
                   />
                   <span>
                     I accept the{" "}
@@ -577,7 +561,22 @@ export default function UserLogin({ role = "buyer" }) {
                   onSuccess={(credential) => {
                     handleGoogleLogin(credential);
                   }}
-                  onError={handleGooglePromptError}
+                  onError={() =>
+                    alert("Google login failed to initialize.")
+                  }
+                  oneTap
+                  disabled={!city || !acceptedTerms}
+                  onDisabledClick={() => {
+                    if (!city && !acceptedTerms) {
+                      alert("Please select city and accept Terms & Conditions first.");
+                      return;
+                    }
+                    if (!city) {
+                      alert("Please select your city first.");
+                      return;
+                    }
+                    alert("Please accept the Terms & Conditions first.");
+                  }}
                 />
 
                 {authMode === "LOGIN" ? (
