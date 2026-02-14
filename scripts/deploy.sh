@@ -12,10 +12,30 @@ git fetch origin "$BRANCH"
 git checkout "$BRANCH"
 git pull --ff-only origin "$BRANCH"
 
+install_deps() {
+  local target="$1"
+  local label="$2"
+  if [ -f "$target/package-lock.json" ] || [ "$target" = "." -a -f "package-lock.json" ]; then
+    echo "[deploy] Installing $label with npm ci"
+    if [ "$target" = "." ]; then
+      npm ci || { echo "[deploy] npm ci failed for $label; falling back to npm install"; npm install; }
+    else
+      npm ci --prefix "$target" || { echo "[deploy] npm ci failed for $label; falling back to npm install"; npm install --prefix "$target"; }
+    fi
+  else
+    echo "[deploy] package-lock.json missing for $label; using npm install"
+    if [ "$target" = "." ]; then
+      npm install
+    else
+      npm install --prefix "$target"
+    fi
+  fi
+}
+
 echo "[deploy] Installing dependencies"
-npm ci
-npm ci --prefix server
-npm ci --prefix client
+install_deps "." "root"
+install_deps "server" "server"
+install_deps "client" "client"
 
 echo "[deploy] Building client"
 GOOGLE_CLIENT_ID_BUILD="${VITE_GOOGLE_CLIENT_ID:-}"
