@@ -583,24 +583,10 @@ export default function UserLogin({ role = "buyer" }) {
                   }}
                   onError={(error) => {
                     const reason =
-                      error?.getNotDisplayedReason?.() ||
-                      error?.getSkippedReason?.() ||
                       error?.message ||
                       "Google login failed to initialize.";
-                    const nonFatalReasons = new Set([
-                      "tap_out",
-                      "issuing_failed",
-                      "auto_cancel",
-                      "cancel_called",
-                      "suppressed_by_user",
-                      "user_cancel"
-                    ]);
-                    if (nonFatalReasons.has(String(reason))) {
-                      return;
-                    }
                     alert(reason);
                   }}
-                  oneTap={false}
                   disabled={!city || !acceptedTerms}
                   onDisabledClick={() => {
                     if (!city && !acceptedTerms) {

@@ -3,7 +3,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 export default function GoogleLoginButton({
   onSuccess,
   onError,
-  oneTap = false,
   disabled = false,
   onDisabledClick
 }) {
@@ -102,21 +101,11 @@ export default function GoogleLoginButton({
       window.google?.accounts?.id?.cancel();
       return;
     }
-    if (oneTap) {
-      window.google.accounts.id.prompt((notification) => {
-        if (
-          notification?.isNotDisplayed?.() ||
-          notification?.isSkippedMoment?.()
-        ) {
-          onErrorRef.current?.(notification);
-        }
-      });
-    }
 
     return () => {
       window.google?.accounts?.id?.cancel();
     };
-  }, [scriptLoaded, initializeGoogle, renderGoogleButton, disabled, oneTap]);
+  }, [scriptLoaded, initializeGoogle, renderGoogleButton, disabled]);
 
   return (
     <div className={`w-full mt-3 relative ${disabled ? "opacity-70" : ""}`}>
