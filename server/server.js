@@ -202,25 +202,22 @@ mongoose
   })
   .then(async () => {
     console.log("MongoDB connected");
-    const dropMobileIndex =
-      String(process.env.DEV_DROP_MOBILE_INDEX || "").toLowerCase() === "true";
-    if (dropMobileIndex) {
-      try {
-        const indexes = await mongoose.connection
+    // Drop legacy unique index on mobile to avoid duplicate-null signup failures.
+    try {
+      const indexes = await mongoose.connection
+        .db
+        .collection("users")
+        .indexes();
+      const hasMobileIndex = indexes.some((i) => i.name === "mobile_1");
+      if (hasMobileIndex) {
+        await mongoose.connection
           .db
           .collection("users")
-          .indexes();
-        const hasMobileIndex = indexes.some((i) => i.name === "mobile_1");
-        if (hasMobileIndex) {
-          await mongoose.connection
-            .db
-            .collection("users")
-            .dropIndex("mobile_1");
-          console.log("Dropped users.mobile_1 index (dev)");
-        }
-      } catch (err) {
-        console.warn("Index drop skipped:", err.message);
+          .dropIndex("mobile_1");
+        console.log("Dropped legacy users.mobile_1 index");
       }
+    } catch (err) {
+      console.warn("Legacy index cleanup skipped:", err.message);
     }
   })
   .catch((err) => console.error("MongoDB error:", err));
