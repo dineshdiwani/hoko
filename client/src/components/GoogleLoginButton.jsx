@@ -3,7 +3,6 @@ import { useEffect } from "react";
 export default function GoogleLoginButton({
   onSuccess,
   onError,
-  text = "Continue with Google",
   disabled = false
 }) {
   useEffect(() => {
@@ -58,5 +57,5 @@ export default function GoogleLoginButton({
     };
   }, [onSuccess, onError, disabled]);
 
-  return <div className="sr-only">{text}</div>;
+  return null;
 }

@@ -566,7 +566,6 @@ export default function UserLogin({ role = "buyer" }) {
                   onError={() =>
                     alert("Google login failed to initialize.")
                   }
-                  disabled={!city || !acceptedTerms}
                 />
 
                 {authMode === "LOGIN" ? (

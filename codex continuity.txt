@@ -1,0 +1,50 @@
+ Pick up with this exact checklist tomorrow:
+
+  1. SSH and go to app dir:
+
+  ssh root@72.60.203.244
+  cd /var/www/hoko/server
+
+  2. Verify process is up:
+
+  pm2 status hoko-api
+  pm2 logs hoko-api --lines 50 --nostream
+
+  3. Verify API + DB quickly:
+
+  curl -sS http://127.0.0.1:5000/api/meta/options | head
+
+  4. If not running:
+
+  pm2 restart hoko-api --update-env
+
+  5. If still failing, first checks:
+
+  pm2 logs hoko-api --lines 200 --nostream
+  grep -n '^MONGO_URI=' .env
+
+  Also keep this incident note:
+
+  - Root issue today: missing module + Atlas IP allowlist not including server IP.
+  - Fixed by ensuring dependency load path was safe and allowing 72.60.203.244/32 in Atlas.
+
+
+› Run /review on my current changes
+
+140226
+
+ - Goal: keep only Google One Tap login UI (top card with account photo/email), remove inline Google button completely.
+  - Done in code: client/src/components/GoogleLoginButton.jsx now uses only google.accounts.id.prompt() and no renderButton().
+  - UserLogin still mounts GoogleLoginButton with disabled={!city || !acceptedTerms}; this controls when One Tap prompt appears.
+  - Important: if old/duplicate Google UI appears, it’s browser cache/service-worker, not source. Verify in Incognito first.
+  - Deploy checklist:
+      1. git push origin main
+      2. On server: cd /var/www/hoko && git pull origin main
+      3. cd /var/www/hoko/client && npm run build
+      4. sudo systemctl reload nginx
+  - If blank/old UI persists:
+      1. DevTools -> Application -> Service Workers -> Unregister
+      2. Clear site data
+      3. Hard refresh.
+  - Known unrelated risk: backend 502 can still happen if hoko-api not listening on :5000 (check pm2 logs hoko-api, ss -ltnp |
+    grep :5000).

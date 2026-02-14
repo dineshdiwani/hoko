@@ -1,7 +1,6 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
-const { OAuth2Client } = require("google-auth-library");
 const User = require("../models/User");
 const router = express.Router();
 const { setOtp, verifyOtp } = require("../utils/otpStore");
@@ -23,9 +22,21 @@ const OTP_TTL_MS =
   Number(process.env.OTP_TTL_MINUTES || 5) * 60 * 1000;
 const OTP_MAX_ATTEMPTS = Number(process.env.OTP_MAX_ATTEMPTS || 5);
 
-const googleClient = new OAuth2Client(
-  process.env.GOOGLE_CLIENT_ID
-);
+let googleClient = null;
+let googleAuthInitError = null;
+
+function getGoogleClient() {
+  if (googleClient) return googleClient;
+  if (googleAuthInitError) return null;
+  try {
+    const { OAuth2Client } = require("google-auth-library");
+    googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+    return googleClient;
+  } catch (err) {
+    googleAuthInitError = err;
+    return null;
+  }
+}
 
 /* -------- LOGIN (SEND OTP) -------- */
 router.post("/login", otpSendLimiter, async (req, res) => {
@@ -265,9 +276,16 @@ router.post("/google", async (req, res) => {
       .json({ message: "Google login not configured" });
   }
 
+  const client = getGoogleClient();
+  if (!client) {
+    return res.status(500).json({
+      message: "Google login temporarily unavailable"
+    });
+  }
+
   let payload;
   try {
-    const ticket = await googleClient.verifyIdToken({
+    const ticket = await client.verifyIdToken({
       idToken: credential,
       audience: process.env.GOOGLE_CLIENT_ID
     });
