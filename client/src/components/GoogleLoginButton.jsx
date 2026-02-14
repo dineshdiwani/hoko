@@ -5,6 +5,7 @@ export default function GoogleLoginButton({
   onError,
   text = "Continue with Google",
   oneTap = false,
+  showButton = true,
   disabled = false,
   onDisabledClick
 }) {
@@ -27,17 +28,20 @@ export default function GoogleLoginButton({
             onError?.(response);
           }
         },
-        auto_select: false,
-        use_fedcm_for_prompt: false
+        auto_select: false
       });
-      buttonRef.current.innerHTML = "";
-      window.google.accounts.id.renderButton(buttonRef.current, {
-        theme: "outline",
-        size: "large",
-        text: "continue_with",
-        shape: "pill",
-        width: "360"
-      });
+      if (showButton) {
+        buttonRef.current.innerHTML = "";
+        window.google.accounts.id.renderButton(buttonRef.current, {
+          theme: "outline",
+          size: "large",
+          text: "continue_with",
+          shape: "pill",
+          width: "360"
+        });
+      } else {
+        buttonRef.current.innerHTML = "";
+      }
       if (oneTap && !disabled) {
         window.google.accounts.id.prompt();
       }
@@ -66,7 +70,7 @@ export default function GoogleLoginButton({
     script.onload = initAndRender;
     script.onerror = onError;
     document.body.appendChild(script);
-  }, [onSuccess, onError, oneTap, disabled]);
+  }, [onSuccess, onError, oneTap, showButton, disabled]);
 
   return (
     <div className={`w-full mt-3 relative ${disabled ? "opacity-70" : ""}`}>
