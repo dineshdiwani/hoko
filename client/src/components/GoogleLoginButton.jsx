@@ -3,12 +3,15 @@ import { useCallback, useEffect, useRef, useState } from "react";
 export default function GoogleLoginButton({
   onSuccess,
   onError,
-  disabled = false
+  oneTap = false,
+  disabled = false,
+  onDisabledClick
 }) {
   const initializedRef = useRef(false);
   const buttonHostRef = useRef(null);
   const onSuccessRef = useRef(onSuccess);
   const onErrorRef = useRef(onError);
+  const [scriptLoaded, setScriptLoaded] = useState(false);
   const [googleReady, setGoogleReady] = useState(false);
 
   useEffect(() => {
@@ -40,6 +43,10 @@ export default function GoogleLoginButton({
       });
       initializedRef.current = true;
     }
+    return true;
+  }, []);
+
+  const renderGoogleButton = useCallback(() => {
     if (buttonHostRef.current) {
       buttonHostRef.current.innerHTML = "";
       window.google.accounts.id.renderButton(buttonHostRef.current, {
@@ -50,20 +57,23 @@ export default function GoogleLoginButton({
         logo_alignment: "left",
         width: 360
       });
+      return true;
     }
-    setGoogleReady(true);
-    return true;
+    return false;
   }, []);
 
   useEffect(() => {
-    if (initializeGoogle()) return;
+    if (window.google?.accounts?.id) {
+      setScriptLoaded(true);
+      return;
+    }
 
     const existing = document.querySelector("script[data-google-identity]");
     if (existing) {
       existing.addEventListener(
         "load",
         () => {
-          initializeGoogle();
+          setScriptLoaded(true);
         },
         { once: true }
       );
@@ -75,11 +85,38 @@ export default function GoogleLoginButton({
     script.async = true;
     script.defer = true;
     script.dataset.googleIdentity = "true";
-    script.onload = () => initializeGoogle();
+    script.onload = () => setScriptLoaded(true);
     script.onerror = () =>
       onErrorRef.current?.(new Error("Failed to load Google script"));
     document.body.appendChild(script);
-  }, [initializeGoogle]);
+  }, []);
+
+  useEffect(() => {
+    if (!scriptLoaded) return;
+    if (!initializeGoogle()) return;
+
+    const rendered = renderGoogleButton();
+    setGoogleReady(rendered);
+
+    if (disabled) {
+      window.google?.accounts?.id?.cancel();
+      return;
+    }
+    if (oneTap) {
+      window.google.accounts.id.prompt((notification) => {
+        if (
+          notification?.isNotDisplayed?.() ||
+          notification?.isSkippedMoment?.()
+        ) {
+          onErrorRef.current?.(notification);
+        }
+      });
+    }
+
+    return () => {
+      window.google?.accounts?.id?.cancel();
+    };
+  }, [scriptLoaded, initializeGoogle, renderGoogleButton, disabled, oneTap]);
 
   return (
     <div className={`w-full mt-3 relative ${disabled ? "opacity-70" : ""}`}>
@@ -92,11 +129,7 @@ export default function GoogleLoginButton({
       {disabled && (
         <button
           type="button"
-          onClick={() =>
-            onErrorRef.current?.(
-              new Error("Select city and accept terms first")
-            )
-          }
+          onClick={() => onDisabledClick?.()}
           className="absolute inset-0 w-full h-full rounded-xl cursor-not-allowed bg-transparent"
           aria-label="Complete city and terms before Google login"
           title="Select city and accept terms first"

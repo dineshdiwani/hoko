@@ -557,9 +557,6 @@ export default function UserLogin({ role = "buyer" }) {
                   {loading ? "Sending OTP..." : "Send OTP"}
                 </button>
 
-                <p className="mt-3 text-xs text-gray-500">
-                  Google Login UI v3
-                </p>
                 <GoogleLoginButton
                   onSuccess={(credential) => {
                     handleGoogleLogin(credential);
