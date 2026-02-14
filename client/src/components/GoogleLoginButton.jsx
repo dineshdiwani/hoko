@@ -5,7 +5,6 @@ export default function GoogleLoginButton({
   onError,
   text = "Continue with Google",
   oneTap = false,
-  showButton = true,
   disabled = false,
   onDisabledClick
 }) {
@@ -32,22 +31,16 @@ export default function GoogleLoginButton({
         },
         auto_select: false
       });
-      if (showButton) {
-        buttonRef.current.innerHTML = "";
-        window.google.accounts.id.renderButton(buttonRef.current, {
-          theme: "outline",
-          size: "large",
-          text: "continue_with",
-          shape: "pill",
-          width: "360"
-        });
-        setIsRendered(true);
-      } else {
-        setIsRendered(false);
-      }
-      if (oneTap && !disabled) {
-        window.google.accounts.id.prompt();
-      }
+      buttonRef.current.innerHTML = "";
+      window.google.accounts.id.renderButton(buttonRef.current, {
+        theme: "outline",
+        size: "large",
+        text: "continue_with",
+        shape: "pill",
+        width: "360"
+      });
+      setIsRendered(true);
+      // Intentionally skip One Tap prompt to avoid duplicate/FedCM overlays.
     }
 
     if (window.google?.accounts?.id) {
@@ -78,12 +71,12 @@ export default function GoogleLoginButton({
         window.google.accounts.id.cancel();
       }
     };
-  }, [onSuccess, onError, oneTap, showButton, disabled]);
+  }, [onSuccess, onError, oneTap, disabled]);
 
   return (
     <div className={`w-full mt-3 relative ${disabled ? "opacity-70" : ""}`}>
-      <div ref={buttonRef} className={isRendered && showButton ? "" : "hidden"} />
-      {!isRendered && showButton && (
+      <div ref={buttonRef} className={isRendered ? "" : "hidden"} />
+      {!isRendered && (
         <button
           type="button"
           onClick={() => {
