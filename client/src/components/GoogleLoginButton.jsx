@@ -34,8 +34,7 @@ export default function GoogleLoginButton({
             }
           },
           auto_select: false,
-          itp_support: true,
-          use_fedcm_for_prompt: true
+          itp_support: true
         });
         initializedRef.current = true;
       }
@@ -76,7 +75,23 @@ export default function GoogleLoginButton({
       }
     }
 
+    function handleVisibilityOrFocus() {
+      if (!disabled && document.visibilityState === "visible") {
+        initAndPrompt();
+      }
+    }
+    window.addEventListener("focus", handleVisibilityOrFocus);
+    document.addEventListener(
+      "visibilitychange",
+      handleVisibilityOrFocus
+    );
+
     return () => {
+      window.removeEventListener("focus", handleVisibilityOrFocus);
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityOrFocus
+      );
       if (window.google?.accounts?.id) {
         window.google.accounts.id.cancel();
       }
