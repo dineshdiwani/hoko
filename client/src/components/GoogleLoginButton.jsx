@@ -27,7 +27,8 @@ export default function GoogleLoginButton({
             onError?.(response);
           }
         },
-        auto_select: false
+        auto_select: false,
+        use_fedcm_for_prompt: false
       });
       buttonRef.current.innerHTML = "";
       window.google.accounts.id.renderButton(buttonRef.current, {
