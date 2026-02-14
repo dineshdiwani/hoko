@@ -6,8 +6,8 @@ export default function GoogleLoginButton({
   disabled = false
 }) {
   const initializedRef = useRef(false);
+  const buttonHostRef = useRef(null);
   const [googleReady, setGoogleReady] = useState(false);
-  const [busy, setBusy] = useState(false);
 
   const initializeGoogle = useCallback(() => {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -30,6 +30,17 @@ export default function GoogleLoginButton({
         auto_select: false
       });
       initializedRef.current = true;
+    }
+    if (buttonHostRef.current) {
+      buttonHostRef.current.innerHTML = "";
+      window.google.accounts.id.renderButton(buttonHostRef.current, {
+        theme: "outline",
+        size: "large",
+        text: "continue_with",
+        shape: "rectangular",
+        logo_alignment: "left",
+        width: 360
+      });
     }
     setGoogleReady(true);
     return true;
@@ -61,46 +72,25 @@ export default function GoogleLoginButton({
     document.body.appendChild(script);
   }, [initializeGoogle, onError]);
 
-  function handleClick() {
-    if (disabled || busy) return;
-    setBusy(true);
-
-    const ready = initializeGoogle();
-    if (!ready) {
-      setBusy(false);
-      onError?.(new Error("Google not ready yet. Try again."));
-      return;
-    }
-
-    window.google.accounts.id.prompt((notification) => {
-      setBusy(false);
-      if (
-        notification?.isNotDisplayed?.() ||
-        notification?.isSkippedMoment?.()
-      ) {
-        onError?.(notification);
-      }
-    });
-  }
-
   return (
-    <button
-      type="button"
-      onClick={handleClick}
-      disabled={disabled || busy}
-      className={`w-full mt-3 rounded-xl border px-4 py-3 text-sm font-semibold shadow-none transition ${
-        disabled
-          ? "border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed"
-          : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
-      }`}
-      aria-label="Continue with Google"
-      title={disabled ? "Select city and accept terms first" : "Continue with Google"}
-    >
-      {busy
-        ? "Opening Google..."
-        : googleReady
-        ? "Continue with Google"
-        : "Continue with Google (loading...)"}
-    </button>
+    <div className={`w-full mt-3 relative ${disabled ? "opacity-70" : ""}`}>
+      <div ref={buttonHostRef} className="flex justify-center" />
+      {!googleReady && (
+        <div className="text-xs text-gray-500 text-center mt-2">
+          Loading Google login...
+        </div>
+      )}
+      {disabled && (
+        <button
+          type="button"
+          onClick={() =>
+            onError?.(new Error("Select city and accept terms first"))
+          }
+          className="absolute inset-0 w-full h-full rounded-xl cursor-not-allowed bg-transparent"
+          aria-label="Complete city and terms before Google login"
+          title="Select city and accept terms first"
+        />
+      )}
+    </div>
   );
 }
