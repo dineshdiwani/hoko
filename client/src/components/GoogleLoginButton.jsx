@@ -7,12 +7,19 @@ export default function GoogleLoginButton({
 }) {
   const initializedRef = useRef(false);
   const buttonHostRef = useRef(null);
+  const onSuccessRef = useRef(onSuccess);
+  const onErrorRef = useRef(onError);
   const [googleReady, setGoogleReady] = useState(false);
+
+  useEffect(() => {
+    onSuccessRef.current = onSuccess;
+    onErrorRef.current = onError;
+  }, [onSuccess, onError]);
 
   const initializeGoogle = useCallback(() => {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
     if (!clientId) {
-      onError?.(new Error("Missing VITE_GOOGLE_CLIENT_ID"));
+      onErrorRef.current?.(new Error("Missing VITE_GOOGLE_CLIENT_ID"));
       return false;
     }
     if (!window.google?.accounts?.id) return false;
@@ -22,9 +29,11 @@ export default function GoogleLoginButton({
         client_id: clientId,
         callback: (response) => {
           if (response?.credential) {
-            onSuccess?.(response.credential);
+            onSuccessRef.current?.(response.credential);
           } else {
-            onError?.(response || new Error("Missing Google credential"));
+            onErrorRef.current?.(
+              response || new Error("Missing Google credential")
+            );
           }
         },
         auto_select: false
@@ -44,7 +53,7 @@ export default function GoogleLoginButton({
     }
     setGoogleReady(true);
     return true;
-  }, [onSuccess, onError]);
+  }, []);
 
   useEffect(() => {
     if (initializeGoogle()) return;
@@ -68,9 +77,9 @@ export default function GoogleLoginButton({
     script.dataset.googleIdentity = "true";
     script.onload = () => initializeGoogle();
     script.onerror = () =>
-      onError?.(new Error("Failed to load Google script"));
+      onErrorRef.current?.(new Error("Failed to load Google script"));
     document.body.appendChild(script);
-  }, [initializeGoogle, onError]);
+  }, [initializeGoogle]);
 
   return (
     <div className={`w-full mt-3 relative ${disabled ? "opacity-70" : ""}`}>
@@ -84,7 +93,9 @@ export default function GoogleLoginButton({
         <button
           type="button"
           onClick={() =>
-            onError?.(new Error("Select city and accept terms first"))
+            onErrorRef.current?.(
+              new Error("Select city and accept terms first")
+            )
           }
           className="absolute inset-0 w-full h-full rounded-xl cursor-not-allowed bg-transparent"
           aria-label="Complete city and terms before Google login"
