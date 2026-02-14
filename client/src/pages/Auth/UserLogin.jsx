@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getSession, setSession } from "../../services/storage";
 import { fetchOptions } from "../../services/options";
@@ -53,6 +53,16 @@ export default function UserLogin({ role = "buyer" }) {
     ? localStorage.getItem("post_login_redirect") || "/seller/dashboard"
     : "/buyer/dashboard";
   const loginIntent = localStorage.getItem("login_intent_role") || "buyer";
+  const cityRef = useRef(city);
+  const acceptedTermsRef = useRef(acceptedTerms);
+
+  useEffect(() => {
+    cityRef.current = city;
+  }, [city]);
+
+  useEffect(() => {
+    acceptedTermsRef.current = acceptedTerms;
+  }, [acceptedTerms]);
 
   useEffect(() => {
     const session = getSession();
@@ -325,7 +335,11 @@ export default function UserLogin({ role = "buyer" }) {
   }
 
   function handleGoogleLogin(credential) {
-    if (!city) {
+    const selectedCity = cityRef.current || city;
+    const hasAcceptedTerms =
+      acceptedTermsRef.current || acceptedTerms;
+
+    if (!selectedCity) {
       alert(
         isSeller
           ? "City missing. Please register again."
@@ -337,7 +351,7 @@ export default function UserLogin({ role = "buyer" }) {
       return;
     }
 
-    if (!acceptedTerms) {
+    if (!hasAcceptedTerms) {
       alert("Please accept the Terms & Conditions");
       return;
     }
@@ -347,19 +361,21 @@ export default function UserLogin({ role = "buyer" }) {
       .post("/auth/google", {
         credential,
         role: currentRole,
-        city,
-        acceptTerms: acceptedTerms
+        city: selectedCity,
+        acceptTerms: hasAcceptedTerms
       })
       .then(async (res) => {
         const user = res.data.user || {};
-        const profile = isSeller ? await applySellerProfile(city) : null;
+        const profile = isSeller
+          ? await applySellerProfile(selectedCity)
+          : null;
 
         setSession({
           _id: user._id,
           role: currentRole,
           roles: user.roles,
           email: user.email,
-          city: user.city || city,
+          city: user.city || selectedCity,
           name: buildDisplayName(user, currentRole, profile),
           picture: user.picture,
           preferredCurrency: user.preferredCurrency || "INR",
@@ -367,7 +383,7 @@ export default function UserLogin({ role = "buyer" }) {
         });
 
         localStorage.removeItem("post_login_redirect");
-        if (acceptedTerms) {
+        if (hasAcceptedTerms) {
           localStorage.setItem(
             "terms_accepted_at",
             new Date().toISOString()
