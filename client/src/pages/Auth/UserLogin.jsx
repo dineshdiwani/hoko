@@ -104,11 +104,12 @@ export default function UserLogin({ role = "buyer" }) {
       return;
     }
 
+    if (!acceptedTerms) {
+      alert("Please accept the Terms & Conditions");
+      return;
+    }
+
     if (authMode === "SIGNUP") {
-      if (!acceptedTerms) {
-        alert("Please accept the Terms & Conditions");
-        return;
-      }
       if (password !== confirmPassword) {
         alert("Passwords do not match");
         return;
@@ -183,7 +184,7 @@ export default function UserLogin({ role = "buyer" }) {
 
   function verifyOtp() {
     setSubmitted(true);
-    if (authMode === "SIGNUP" && !acceptedTerms) {
+    if (!acceptedTerms) {
       alert("Please accept the Terms & Conditions");
       return;
     }
@@ -535,7 +536,7 @@ export default function UserLogin({ role = "buyer" }) {
                       setAcceptedTerms(e.target.checked)
                     }
                     className="mt-1"
-                    required={authMode === "SIGNUP"}
+                    required
                   />
                   <span>
                     I accept the{" "}
