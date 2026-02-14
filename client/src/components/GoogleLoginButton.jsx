@@ -83,8 +83,14 @@ export default function GoogleLoginButton({
             }
             onError?.(new Error("Google login failed to initialize"));
           }}
-          className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700"
+          className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 flex items-center justify-center gap-2"
         >
+          <span
+            aria-hidden="true"
+            className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-200 text-xs font-bold text-slate-700"
+          >
+            G
+          </span>
           Continue with Google
         </button>
       )}
