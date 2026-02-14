@@ -42,7 +42,7 @@ export default function GoogleLoginButton({
       } else {
         buttonRef.current.innerHTML = "";
       }
-      if (oneTap && !disabled) {
+      if (oneTap && (!disabled || !showButton)) {
         window.google.accounts.id.prompt();
       }
     }
