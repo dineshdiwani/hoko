@@ -3,9 +3,9 @@ import { useNavigate } from "react-router-dom";
 import api from "../../utils/adminApi";
 
 /* Charts */
-import KPIBarChart from "../../components/charts/KPIBarChart";
-import CityChart from "../../components/charts/CityChart";
-import CategoryPie from "../../components/charts/CategoryPie";
+import KPIBarChart from "../../components/Charts/KPIBarChart";
+import CityChart from "../../components/Charts/CityChart";
+import CategoryPie from "../../components/Charts/CategoryPie";
 
 export default function AdminAnalytics() {
   const [overview, setOverview] = useState(null);
