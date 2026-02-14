@@ -16,6 +16,8 @@ export default function GoogleLoginButton({
 
     function initAndRender() {
       if (!window.google || !buttonRef.current) return;
+      // Clear any previously shown One Tap/FedCM prompt from cached sessions.
+      window.google.accounts.id.cancel();
       window.google.accounts.id.initialize({
         client_id: clientId,
         callback: (response) => {
