@@ -4,8 +4,6 @@ export default function GoogleLoginButton({
   onSuccess,
   onError,
   text = "Continue with Google",
-  oneTap = false,
-  showButton = true,
   disabled = false,
   onDisabledClick
 }) {
@@ -16,9 +14,7 @@ export default function GoogleLoginButton({
     if (!clientId) return;
 
     function initAndRender() {
-      if (!window.google) return;
-      // Clear any previously shown One Tap/FedCM prompt from cached sessions.
-      window.google.accounts.id.cancel();
+      if (!window.google || !buttonRef.current) return;
       window.google.accounts.id.initialize({
         client_id: clientId,
         callback: (response) => {
@@ -30,21 +26,14 @@ export default function GoogleLoginButton({
         },
         auto_select: false
       });
-      if (showButton && buttonRef.current) {
-        buttonRef.current.innerHTML = "";
-        window.google.accounts.id.renderButton(buttonRef.current, {
-          theme: "outline",
-          size: "large",
-          text: "continue_with",
-          shape: "pill",
-          width: "360"
-        });
-      } else if (buttonRef.current) {
-        buttonRef.current.innerHTML = "";
-      }
-      if (oneTap && !disabled) {
-        window.google.accounts.id.prompt();
-      }
+      buttonRef.current.innerHTML = "";
+      window.google.accounts.id.renderButton(buttonRef.current, {
+        theme: "outline",
+        size: "large",
+        text: "continue_with",
+        shape: "pill",
+        width: "360"
+      });
     }
 
     if (window.google?.accounts?.id) {
@@ -70,17 +59,7 @@ export default function GoogleLoginButton({
     script.onload = initAndRender;
     script.onerror = onError;
     document.body.appendChild(script);
-
-    return () => {
-      if (window.google?.accounts?.id) {
-        window.google.accounts.id.cancel();
-      }
-    };
-  }, [onSuccess, onError, oneTap, showButton, disabled]);
-
-  if (!showButton) {
-    return null;
-  }
+  }, [onSuccess, onError, disabled]);
 
   return (
     <div className={`w-full mt-3 relative ${disabled ? "opacity-70" : ""}`}>
