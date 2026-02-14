@@ -553,7 +553,7 @@ export default function UserLogin({ role = "buyer" }) {
 
                 <button
                   onClick={sendLoginOtp}
-                  disabled={loading}
+                  disabled={loading || !acceptedTerms}
                   className="w-full py-3 rounded-xl btn-brand font-semibold mt-3"
                 >
                   {loading ? "Sending OTP..." : "Send OTP"}
