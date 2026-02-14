@@ -21,13 +21,21 @@ const localDevOrigins = [
   "http://localhost:4173",
   "http://127.0.0.1:4173"
 ];
+const productionDefaultOrigins = [
+  "https://hokoapp.in",
+  "https://www.hokoapp.in"
+];
 const configuredClientOrigins = String(process.env.CLIENT_URL || "")
   .split(",")
   .map((value) => value.trim())
   .filter(Boolean);
-const allowedOrigins = isProduction
-  ? configuredClientOrigins
-  : Array.from(new Set([...localDevOrigins, ...configuredClientOrigins]));
+const allowedOrigins = Array.from(
+  new Set(
+    isProduction
+      ? [...productionDefaultOrigins, ...configuredClientOrigins]
+      : [...localDevOrigins, ...productionDefaultOrigins, ...configuredClientOrigins]
+  )
+);
 
 const corsOptions = {
   origin(origin, callback) {
