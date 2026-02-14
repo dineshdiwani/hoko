@@ -1,79 +1,52 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export default function GoogleLoginButton({
   onSuccess,
   onError,
-  text = "Continue with Google",
-  oneTap = false,
-  disabled = false,
-  onDisabledClick
+  disabled = false
 }) {
-  const buttonRef = useRef(null);
-  const [hasRenderedGoogleButton, setHasRenderedGoogleButton] =
-    useState(false);
-  const [configError, setConfigError] = useState("");
+  const initializedRef = useRef(false);
+  const [googleReady, setGoogleReady] = useState(false);
+  const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
+  const initializeGoogle = useCallback(() => {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
     if (!clientId) {
-      const err = "Missing VITE_GOOGLE_CLIENT_ID";
-      setConfigError(err);
-      onError?.(new Error(err));
-      return;
+      onError?.(new Error("Missing VITE_GOOGLE_CLIENT_ID"));
+      return false;
     }
+    if (!window.google?.accounts?.id) return false;
 
-    function initAndRender() {
-      if (!window.google || !buttonRef.current) return;
-      setConfigError("");
+    if (!initializedRef.current) {
       window.google.accounts.id.initialize({
         client_id: clientId,
         callback: (response) => {
           if (response?.credential) {
             onSuccess?.(response.credential);
           } else {
-            onError?.(response);
+            onError?.(response || new Error("Missing Google credential"));
           }
         },
         auto_select: false
       });
-      buttonRef.current.innerHTML = "";
-      window.google.accounts.id.renderButton(buttonRef.current, {
-        theme: "outline",
-        size: "large",
-        text: "continue_with",
-        shape: "pill",
-        width: "360"
-      });
-      requestAnimationFrame(() => {
-        const rendered =
-          Boolean(buttonRef.current) &&
-          buttonRef.current.childElementCount > 0;
-        setHasRenderedGoogleButton(rendered);
-      });
-      if (oneTap && !disabled) {
-        window.google.accounts.id.prompt((notification) => {
-          if (
-            notification?.isNotDisplayed?.() ||
-            notification?.isSkippedMoment?.()
-          ) {
-            onError?.(notification);
-          }
-        });
-      }
+      initializedRef.current = true;
     }
+    setGoogleReady(true);
+    return true;
+  }, [onSuccess, onError]);
 
-    if (window.google?.accounts?.id) {
-      initAndRender();
-      return;
-    }
+  useEffect(() => {
+    if (initializeGoogle()) return;
 
-    const existing = document.querySelector(
-      "script[data-google-identity]"
-    );
+    const existing = document.querySelector("script[data-google-identity]");
     if (existing) {
-      existing.addEventListener("load", initAndRender, {
-        once: true
-      });
+      existing.addEventListener(
+        "load",
+        () => {
+          initializeGoogle();
+        },
+        { once: true }
+      );
       return;
     }
 
@@ -82,52 +55,52 @@ export default function GoogleLoginButton({
     script.async = true;
     script.defer = true;
     script.dataset.googleIdentity = "true";
-    script.onload = initAndRender;
-    script.onerror = () => {
-      const err = "Failed to load Google script";
-      setConfigError(err);
-      setHasRenderedGoogleButton(false);
-      onError?.(new Error(err));
-    };
+    script.onload = () => initializeGoogle();
+    script.onerror = () =>
+      onError?.(new Error("Failed to load Google script"));
     document.body.appendChild(script);
-  }, [onSuccess, onError, oneTap, disabled]);
+  }, [initializeGoogle, onError]);
+
+  function handleClick() {
+    if (disabled || busy) return;
+    setBusy(true);
+
+    const ready = initializeGoogle();
+    if (!ready) {
+      setBusy(false);
+      onError?.(new Error("Google not ready yet. Try again."));
+      return;
+    }
+
+    window.google.accounts.id.prompt((notification) => {
+      setBusy(false);
+      if (
+        notification?.isNotDisplayed?.() ||
+        notification?.isSkippedMoment?.()
+      ) {
+        onError?.(notification);
+      }
+    });
+  }
 
   return (
-    <div className={`w-full mt-3 relative ${disabled ? "opacity-70" : ""}`}>
-      <div ref={buttonRef} className={hasRenderedGoogleButton ? "" : "hidden"} />
-      {!hasRenderedGoogleButton && (
-        <button
-          type="button"
-          className="w-full rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 shadow-none"
-          onClick={() => {
-            if (disabled) {
-              onDisabledClick?.();
-              return;
-            }
-            if (configError) {
-              onError?.(new Error(configError));
-              return;
-            }
-            onError?.(
-              new Error(
-                "Google button is still loading. Please wait a moment and try again."
-              )
-            );
-          }}
-        >
-          Continue with Google
-        </button>
-      )}
-      {disabled && (
-        <button
-          type="button"
-          onClick={onDisabledClick}
-          className="absolute inset-0 w-full h-full rounded-xl cursor-not-allowed"
-          aria-label="Complete city and terms before Google login"
-          title="Select city and accept terms first"
-        />
-      )}
-      <div className="sr-only">{text}</div>
-    </div>
+    <button
+      type="button"
+      onClick={handleClick}
+      disabled={disabled || busy}
+      className={`w-full mt-3 rounded-xl border px-4 py-3 text-sm font-semibold shadow-none transition ${
+        disabled
+          ? "border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed"
+          : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+      }`}
+      aria-label="Continue with Google"
+      title={disabled ? "Select city and accept terms first" : "Continue with Google"}
+    >
+      {busy
+        ? "Opening Google..."
+        : googleReady
+        ? "Continue with Google"
+        : "Continue with Google (loading...)"}
+    </button>
   );
 }

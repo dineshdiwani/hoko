@@ -561,9 +561,14 @@ export default function UserLogin({ role = "buyer" }) {
                   onSuccess={(credential) => {
                     handleGoogleLogin(credential);
                   }}
-                  onError={() =>
-                    alert("Google login failed to initialize.")
-                  }
+                  onError={(error) => {
+                    const reason =
+                      error?.getNotDisplayedReason?.() ||
+                      error?.getSkippedReason?.() ||
+                      error?.message ||
+                      "Google login failed to initialize.";
+                    alert(reason);
+                  }}
                   oneTap
                   disabled={!city || !acceptedTerms}
                   onDisabledClick={() => {
