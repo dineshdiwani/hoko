@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function GoogleLoginButton({
   onSuccess,
@@ -9,13 +9,21 @@ export default function GoogleLoginButton({
   onDisabledClick
 }) {
   const buttonRef = useRef(null);
+  const [isReady, setIsReady] = useState(false);
+  const [configError, setConfigError] = useState("");
 
   useEffect(() => {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-    if (!clientId) return;
+    if (!clientId) {
+      const err = "Missing VITE_GOOGLE_CLIENT_ID";
+      setConfigError(err);
+      onError?.(new Error(err));
+      return;
+    }
 
     function initAndRender() {
       if (!window.google || !buttonRef.current) return;
+      setConfigError("");
       window.google.accounts.id.initialize({
         client_id: clientId,
         callback: (response) => {
@@ -35,8 +43,16 @@ export default function GoogleLoginButton({
         shape: "pill",
         width: "360"
       });
+      setIsReady(true);
       if (oneTap && !disabled) {
-        window.google.accounts.id.prompt();
+        window.google.accounts.id.prompt((notification) => {
+          if (
+            notification?.isNotDisplayed?.() ||
+            notification?.isSkippedMoment?.()
+          ) {
+            onError?.(notification);
+          }
+        });
       }
     }
 
@@ -61,13 +77,40 @@ export default function GoogleLoginButton({
     script.defer = true;
     script.dataset.googleIdentity = "true";
     script.onload = initAndRender;
-    script.onerror = onError;
+    script.onerror = () => {
+      const err = "Failed to load Google script";
+      setConfigError(err);
+      onError?.(new Error(err));
+    };
     document.body.appendChild(script);
   }, [onSuccess, onError, oneTap, disabled]);
 
   return (
     <div className={`w-full mt-3 relative ${disabled ? "opacity-70" : ""}`}>
-      <div ref={buttonRef} />
+      <div ref={buttonRef} className={isReady ? "" : "hidden"} />
+      {!isReady && (
+        <button
+          type="button"
+          className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-semibold text-gray-700 shadow-none"
+          onClick={() => {
+            if (disabled) {
+              onDisabledClick?.();
+              return;
+            }
+            if (configError) {
+              onError?.(new Error(configError));
+              return;
+            }
+            onError?.(
+              new Error(
+                "Google button is still loading. Please wait a moment and try again."
+              )
+            );
+          }}
+        >
+          Continue with Google
+        </button>
+      )}
       {disabled && (
         <button
           type="button"

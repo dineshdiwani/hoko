@@ -37,3 +37,25 @@ Manual deploy command on VPS:
 cd /var/www/hoko
 bash scripts/deploy.sh main
 ```
+
+## Google Login Setup (From Zero)
+
+1. Create OAuth Client in Google Cloud Console:
+   - Type: `Web application`
+   - Add `Authorized JavaScript origins`:
+     - `https://www.hokoapp.in`
+     - `https://hokoapp.in` (if used)
+     - `http://localhost:5173` (local Vite)
+
+2. Set environment variables:
+   - Server `.env`: `GOOGLE_CLIENT_ID=<your-web-client-id>`
+   - Client build var: `VITE_GOOGLE_CLIENT_ID=<same-client-id>`
+
+3. Deploy:
+   - `bash scripts/deploy.sh main`
+   - Deploy script injects `VITE_GOOGLE_CLIENT_ID` from server `.env` if needed.
+
+4. Verify:
+   - Open `/buyer/login` or `/seller/login`
+   - Google button should be visible
+   - If One Tap is blocked by browser/session policy, button login should still work
