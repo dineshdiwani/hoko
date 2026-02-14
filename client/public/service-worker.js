@@ -1,8 +1,6 @@
-const CACHE_NAME = "hoko-v1";
+const CACHE_NAME = "hoko-v2";
 
 const STATIC_ASSETS = [
-  "/",
-  "/index.html",
   "/manifest.json",
   "/icon-192.png",
   "/icon-512.png"
@@ -39,6 +37,14 @@ self.addEventListener("fetch", (event) => {
       fetch(request).catch(() =>
         caches.match(request)
       )
+    );
+    return;
+  }
+
+  // Network-first for navigations so new deploys are reflected.
+  if (request.mode === "navigate") {
+    event.respondWith(
+      fetch(request).catch(() => caches.match("/index.html"))
     );
     return;
   }
