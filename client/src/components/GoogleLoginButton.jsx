@@ -8,6 +8,7 @@ export default function GoogleLoginButton({
   const onSuccessRef = useRef(onSuccess);
   const onErrorRef = useRef(onError);
   const initializedRef = useRef(false);
+  const buttonHostRef = useRef(null);
 
   useEffect(() => {
     onSuccessRef.current = onSuccess;
@@ -36,6 +37,19 @@ export default function GoogleLoginButton({
           auto_select: false,
           itp_support: true
         });
+        if (buttonHostRef.current) {
+          buttonHostRef.current.innerHTML = "";
+          window.google.accounts.id.renderButton(
+            buttonHostRef.current,
+            {
+              theme: "outline",
+              size: "large",
+              shape: "rectangular",
+              text: "continue_with",
+              width: 320
+            }
+          );
+        }
         initializedRef.current = true;
       }
       if (disabled) {
@@ -98,5 +112,9 @@ export default function GoogleLoginButton({
     };
   }, [disabled]);
 
-  return null;
+  return (
+    <div className="mt-3 flex justify-center">
+      <div ref={buttonHostRef} />
+    </div>
+  );
 }
