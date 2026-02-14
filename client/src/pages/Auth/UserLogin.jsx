@@ -114,11 +114,12 @@ export default function UserLogin({ role = "buyer" }) {
       return;
     }
 
+    if (!acceptedTerms) {
+      alert("Please accept the Terms & Conditions");
+      return;
+    }
+
     if (authMode === "SIGNUP") {
-      if (!acceptedTerms) {
-        alert("Please accept the Terms & Conditions");
-        return;
-      }
       if (password !== confirmPassword) {
         alert("Passwords do not match");
         return;
@@ -141,7 +142,8 @@ export default function UserLogin({ role = "buyer" }) {
         email,
         password,
         role: currentRole,
-        city
+        city,
+        acceptTerms: acceptedTerms
       })
       .then(() => {
         setStep("OTP");
@@ -193,7 +195,7 @@ export default function UserLogin({ role = "buyer" }) {
 
   function verifyOtp() {
     setSubmitted(true);
-    if (authMode === "SIGNUP" && !acceptedTerms) {
+    if (!acceptedTerms) {
       alert("Please accept the Terms & Conditions");
       return;
     }
@@ -209,7 +211,7 @@ export default function UserLogin({ role = "buyer" }) {
         otp,
         role: currentRole,
         city,
-        acceptTerms: authMode === "SIGNUP" ? acceptedTerms : false
+        acceptTerms: acceptedTerms
       })
       .then(async (res) => {
         const user = res.data.user || {};
@@ -553,7 +555,7 @@ export default function UserLogin({ role = "buyer" }) {
                       setAcceptedTerms(e.target.checked)
                     }
                     className="mt-1"
-                    required={authMode === "SIGNUP"}
+                    required
                   />
                   <span>
                     I accept the{" "}
