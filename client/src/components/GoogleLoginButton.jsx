@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function GoogleLoginButton({
   onSuccess,
@@ -9,10 +9,14 @@ export default function GoogleLoginButton({
   onDisabledClick
 }) {
   const buttonRef = useRef(null);
+  const [isRendered, setIsRendered] = useState(false);
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
   useEffect(() => {
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-    if (!clientId) return;
+    if (!clientId) {
+      setIsRendered(false);
+      return;
+    }
 
     function initAndRender() {
       if (!window.google || !buttonRef.current) return;
@@ -35,6 +39,7 @@ export default function GoogleLoginButton({
         shape: "pill",
         width: "360"
       });
+      setIsRendered(true);
       if (oneTap && !disabled) {
         window.google.accounts.id.prompt();
       }
@@ -67,7 +72,22 @@ export default function GoogleLoginButton({
 
   return (
     <div className={`w-full mt-3 relative ${disabled ? "opacity-70" : ""}`}>
-      <div ref={buttonRef} />
+      <div ref={buttonRef} className={isRendered ? "" : "hidden"} />
+      {!isRendered && (
+        <button
+          type="button"
+          onClick={() => {
+            if (!clientId) {
+              onError?.(new Error("Google login is not configured"));
+              return;
+            }
+            onError?.(new Error("Google login failed to initialize"));
+          }}
+          className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700"
+        >
+          Continue with Google
+        </button>
+      )}
       {disabled && (
         <button
           type="button"
