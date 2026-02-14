@@ -15,8 +15,25 @@ window.alert = showAlert;
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker
-      .register("/service-worker.js", { updateViaCache: "none" })
-      .then((registration) => registration.update())
+      .getRegistrations()
+      .then((registrations) =>
+        Promise.all(
+          registrations.map((registration) =>
+            registration.unregister()
+          )
+        )
+      )
+      .catch(() => {});
+  });
+}
+
+if (typeof window !== "undefined" && "caches" in window) {
+  window.addEventListener("load", () => {
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(keys.map((key) => caches.delete(key)))
+      )
       .catch(() => {});
   });
 }
