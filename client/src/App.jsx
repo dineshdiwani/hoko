@@ -13,7 +13,6 @@ import BuyerDashboard from "./pages/Buyer/Dashboard";
 import RequirementForm from "./pages/Buyer/RequirementForm";
 import OfferList from "./pages/Buyer/OfferList";
 import BuyerProfile from "./pages/Buyer/Profile";
-import MyPosts from "./pages/Buyer/MyPosts";
 import BuyerSettings from "./pages/Buyer/Settings";
 
 import SellerDashboard from "./pages/Seller/Dashboard";
@@ -90,7 +89,7 @@ function AppShell() {
           path="/buyer/my-posts"
           element={
             requireBuyer() ? (
-              <MyPosts />
+              <Navigate to="/buyer/dashboard" replace />
             ) : (
               <Navigate to="/buyer/login" replace />
             )
