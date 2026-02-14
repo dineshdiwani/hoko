@@ -16,7 +16,7 @@ export default function GoogleLoginButton({
     if (!clientId) return;
 
     function initAndRender() {
-      if (!window.google || !buttonRef.current) return;
+      if (!window.google) return;
       // Clear any previously shown One Tap/FedCM prompt from cached sessions.
       window.google.accounts.id.cancel();
       window.google.accounts.id.initialize({
@@ -30,7 +30,7 @@ export default function GoogleLoginButton({
         },
         auto_select: false
       });
-      if (showButton) {
+      if (showButton && buttonRef.current) {
         buttonRef.current.innerHTML = "";
         window.google.accounts.id.renderButton(buttonRef.current, {
           theme: "outline",
@@ -39,10 +39,10 @@ export default function GoogleLoginButton({
           shape: "pill",
           width: "360"
         });
-      } else {
+      } else if (buttonRef.current) {
         buttonRef.current.innerHTML = "";
       }
-      if (oneTap && (!disabled || !showButton)) {
+      if (oneTap && !disabled) {
         window.google.accounts.id.prompt();
       }
     }
@@ -70,7 +70,17 @@ export default function GoogleLoginButton({
     script.onload = initAndRender;
     script.onerror = onError;
     document.body.appendChild(script);
+
+    return () => {
+      if (window.google?.accounts?.id) {
+        window.google.accounts.id.cancel();
+      }
+    };
   }, [onSuccess, onError, oneTap, showButton, disabled]);
+
+  if (!showButton) {
+    return null;
+  }
 
   return (
     <div className={`w-full mt-3 relative ${disabled ? "opacity-70" : ""}`}>

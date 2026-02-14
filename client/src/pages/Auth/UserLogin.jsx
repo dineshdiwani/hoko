@@ -566,19 +566,9 @@ export default function UserLogin({ role = "buyer" }) {
                   onError={() =>
                     alert("Google login failed to initialize.")
                   }
-                  oneTap={false}
-                  disabled={!city || !acceptedTerms}
-                  onDisabledClick={() => {
-                    if (!city && !acceptedTerms) {
-                      alert("Please select city and accept Terms & Conditions first.");
-                      return;
-                    }
-                    if (!city) {
-                      alert("Please select your city first.");
-                      return;
-                    }
-                    alert("Please accept the Terms & Conditions first.");
-                  }}
+                  oneTap
+                  showButton={false}
+                  disabled={false}
                 />
 
                 {authMode === "LOGIN" ? (
