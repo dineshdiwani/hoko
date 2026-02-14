@@ -1,30 +1,55 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 export default function GoogleLoginButton({
   onSuccess,
   onError,
   disabled = false
 }) {
+  const onSuccessRef = useRef(onSuccess);
+  const onErrorRef = useRef(onError);
+  const initializedRef = useRef(false);
+
+  useEffect(() => {
+    onSuccessRef.current = onSuccess;
+    onErrorRef.current = onError;
+  }, [onSuccess, onError]);
+
   useEffect(() => {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-    if (!clientId) return;
+    if (!clientId) {
+      onErrorRef.current?.(new Error("Missing VITE_GOOGLE_CLIENT_ID"));
+      return;
+    }
 
     function initAndPrompt() {
       if (!window.google?.accounts?.id) return;
-      window.google.accounts.id.cancel();
-      window.google.accounts.id.initialize({
-        client_id: clientId,
-        callback: (response) => {
-          if (response?.credential) {
-            onSuccess?.(response.credential);
-          } else {
-            onError?.(response);
+      if (!initializedRef.current) {
+        window.google.accounts.id.initialize({
+          client_id: clientId,
+          callback: (response) => {
+            if (response?.credential) {
+              onSuccessRef.current?.(response.credential);
+            } else {
+              onErrorRef.current?.(response);
+            }
+          },
+          auto_select: false,
+          itp_support: true,
+          use_fedcm_for_prompt: true
+        });
+        initializedRef.current = true;
+      }
+      if (disabled) {
+        window.google.accounts.id.cancel();
+      } else {
+        window.google.accounts.id.prompt((notification) => {
+          if (
+            notification?.isNotDisplayed?.() ||
+            notification?.isSkippedMoment?.()
+          ) {
+            onErrorRef.current?.(notification);
           }
-        },
-        auto_select: false
-      });
-      if (!disabled) {
-        window.google.accounts.id.prompt();
+        });
       }
     }
 
@@ -45,7 +70,8 @@ export default function GoogleLoginButton({
         script.defer = true;
         script.dataset.googleIdentity = "true";
         script.onload = initAndPrompt;
-        script.onerror = onError;
+        script.onerror = () =>
+          onErrorRef.current?.(new Error("Failed to load Google GSI script"));
         document.body.appendChild(script);
       }
     }
@@ -55,7 +81,7 @@ export default function GoogleLoginButton({
         window.google.accounts.id.cancel();
       }
     };
-  }, [onSuccess, onError, disabled]);
+  }, [disabled]);
 
   return null;
 }

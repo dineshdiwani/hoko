@@ -420,6 +420,20 @@ export default function UserLogin({ role = "buyer" }) {
       .finally(() => setLoading(false));
   }
 
+  function handleGooglePromptError(error) {
+    const reason =
+      error?.getNotDisplayedReason?.() ||
+      error?.getSkippedReason?.() ||
+      error?.type ||
+      error?.message ||
+      "";
+    if (reason) {
+      alert(`Google One Tap unavailable: ${reason}`);
+      return;
+    }
+    alert("Google login failed to initialize.");
+  }
+
   return (
     <div className="page">
       <div className="page-shell">
@@ -563,9 +577,7 @@ export default function UserLogin({ role = "buyer" }) {
                   onSuccess={(credential) => {
                     handleGoogleLogin(credential);
                   }}
-                  onError={() =>
-                    alert("Google login failed to initialize.")
-                  }
+                  onError={handleGooglePromptError}
                 />
 
                 {authMode === "LOGIN" ? (
