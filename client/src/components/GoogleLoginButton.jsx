@@ -40,7 +40,9 @@ export default function GoogleLoginButton({
         width: "360"
       });
       setIsRendered(true);
-      // Intentionally skip One Tap prompt to avoid duplicate/FedCM overlays.
+      if (oneTap && !disabled) {
+        window.google.accounts.id.prompt();
+      }
     }
 
     if (window.google?.accounts?.id) {
@@ -66,11 +68,6 @@ export default function GoogleLoginButton({
     script.onload = initAndRender;
     script.onerror = onError;
     document.body.appendChild(script);
-    return () => {
-      if (window.google?.accounts?.id) {
-        window.google.accounts.id.cancel();
-      }
-    };
   }, [onSuccess, onError, oneTap, disabled]);
 
   return (
