@@ -600,7 +600,7 @@ export default function UserLogin({ role = "buyer" }) {
                     }
                     alert(reason);
                   }}
-                  oneTap
+                  oneTap={false}
                   disabled={!city || !acceptedTerms}
                   onDisabledClick={() => {
                     if (!city && !acceptedTerms) {
