@@ -566,7 +566,7 @@ export default function UserLogin({ role = "buyer" }) {
                   onError={() =>
                     alert("Google login failed to initialize.")
                   }
-                  oneTap
+                  oneTap={false}
                   disabled={!city || !acceptedTerms}
                   onDisabledClick={() => {
                     if (!city && !acceptedTerms) {
