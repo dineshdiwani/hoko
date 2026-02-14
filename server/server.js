@@ -29,18 +29,36 @@ const configuredClientOrigins = String(process.env.CLIENT_URL || "")
   .split(",")
   .map((value) => value.trim())
   .filter(Boolean);
+const configuredCorsOrigins = String(process.env.CORS_ORIGIN || "")
+  .split(",")
+  .map((value) => value.trim())
+  .filter(Boolean);
 const allowedOrigins = Array.from(
   new Set(
     isProduction
-      ? [...productionDefaultOrigins, ...configuredClientOrigins]
-      : [...localDevOrigins, ...productionDefaultOrigins, ...configuredClientOrigins]
+      ? [
+          ...productionDefaultOrigins,
+          ...configuredClientOrigins,
+          ...configuredCorsOrigins
+        ]
+      : [
+          ...localDevOrigins,
+          ...productionDefaultOrigins,
+          ...configuredClientOrigins,
+          ...configuredCorsOrigins
+        ]
   )
 );
 
+function isAllowedOrigin(origin) {
+  if (!origin) return true;
+  if (allowedOrigins.includes(origin)) return true;
+  return /^https:\/\/(www\.)?hokoapp\.in$/i.test(origin);
+}
+
 const corsOptions = {
   origin(origin, callback) {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) {
+    if (isAllowedOrigin(origin)) {
       return callback(null, true);
     }
     return callback(new Error("CORS origin not allowed"));
