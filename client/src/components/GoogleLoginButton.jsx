@@ -9,7 +9,8 @@ export default function GoogleLoginButton({
   onDisabledClick
 }) {
   const buttonRef = useRef(null);
-  const [isReady, setIsReady] = useState(false);
+  const [hasRenderedGoogleButton, setHasRenderedGoogleButton] =
+    useState(false);
   const [configError, setConfigError] = useState("");
 
   useEffect(() => {
@@ -43,7 +44,12 @@ export default function GoogleLoginButton({
         shape: "pill",
         width: "360"
       });
-      setIsReady(true);
+      requestAnimationFrame(() => {
+        const rendered =
+          Boolean(buttonRef.current) &&
+          buttonRef.current.childElementCount > 0;
+        setHasRenderedGoogleButton(rendered);
+      });
       if (oneTap && !disabled) {
         window.google.accounts.id.prompt((notification) => {
           if (
@@ -80,6 +86,7 @@ export default function GoogleLoginButton({
     script.onerror = () => {
       const err = "Failed to load Google script";
       setConfigError(err);
+      setHasRenderedGoogleButton(false);
       onError?.(new Error(err));
     };
     document.body.appendChild(script);
@@ -87,11 +94,11 @@ export default function GoogleLoginButton({
 
   return (
     <div className={`w-full mt-3 relative ${disabled ? "opacity-70" : ""}`}>
-      <div ref={buttonRef} className={isReady ? "" : "hidden"} />
-      {!isReady && (
+      <div ref={buttonRef} className={hasRenderedGoogleButton ? "" : "hidden"} />
+      {!hasRenderedGoogleButton && (
         <button
           type="button"
-          className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-semibold text-gray-700 shadow-none"
+          className="w-full rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 shadow-none"
           onClick={() => {
             if (disabled) {
               onDisabledClick?.();
