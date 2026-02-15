@@ -67,7 +67,9 @@ export default function ChatModal({
   const messagesEndRef = useRef(null);
 
   const session = getSession();
-  const buyerId = session?._id;
+  const currentUserId =
+    session?._id || session?.userId || session?.id || null;
+  const peerUserId = sellerId ? String(sellerId) : null;
 
   const groupedMessages = useMemo(() => {
     const groups = [];
@@ -90,9 +92,9 @@ export default function ChatModal({
   }, [messages, open]);
 
   useEffect(() => {
-    if (!open || !sellerId || !buyerId || !requirementId) return;
+    if (!open || !peerUserId || !currentUserId || !requirementId) return;
 
-    socket.emit("join", buyerId);
+    socket.emit("join", currentUserId);
     let cancelled = false;
 
     async function loadHistory() {
@@ -101,13 +103,13 @@ export default function ChatModal({
         const res = await api.get("/chat/history", {
           params: {
             requirementId,
-            userId: buyerId,
-            peerId: sellerId
+            userId: currentUserId,
+            peerId: peerUserId
           }
         });
         if (cancelled) return;
         const history = Array.isArray(res.data) ? res.data : [];
-        setMessages(history.map((m) => toMessageShape(m, buyerId)));
+        setMessages(history.map((m) => toMessageShape(m, currentUserId)));
       } catch {
         if (!cancelled) {
           console.warn("Chat history unavailable");
@@ -124,12 +126,12 @@ export default function ChatModal({
       const sameRequirement =
         String(incoming?.requirementId) === String(requirementId);
       const samePair =
-        String(incoming?.fromUserId) === String(sellerId) &&
-        String(incoming?.toUserId) === String(buyerId);
+        String(incoming?.fromUserId) === String(peerUserId) &&
+        String(incoming?.toUserId) === String(currentUserId);
       if (!sameRequirement || !samePair) return;
 
       setMessages((prev) => {
-        const nextMsg = toMessageShape(incoming, buyerId);
+        const nextMsg = toMessageShape(incoming, currentUserId);
         if (nextMsg.id && prev.some((m) => String(m.id) === String(nextMsg.id))) {
           return prev;
         }
@@ -138,20 +140,20 @@ export default function ChatModal({
 
       socket.emit("mark_messages_read", {
         requirementId,
-        readerUserId: buyerId,
-        peerUserId: sellerId
+        readerUserId: currentUserId,
+        peerUserId: peerUserId
       });
     };
 
     const onMessagesRead = (payload) => {
       const sameRequirement =
         String(payload?.requirementId) === String(requirementId);
-      const readByPeer = String(payload?.byUserId) === String(sellerId);
+      const readByPeer = String(payload?.byUserId) === String(peerUserId);
       if (!sameRequirement || !readByPeer) return;
 
       setMessages((prev) =>
         prev.map((m) => {
-          if (!m.fromSelf || String(m.toUserId) !== String(sellerId)) return m;
+          if (!m.fromSelf || String(m.toUserId) !== String(peerUserId)) return m;
           return {
             ...m,
             isRead: true,
@@ -167,8 +169,8 @@ export default function ChatModal({
 
     socket.emit("mark_messages_read", {
       requirementId,
-      readerUserId: buyerId,
-      peerUserId: sellerId
+      readerUserId: currentUserId,
+      peerUserId: peerUserId
     });
 
     return () => {
@@ -176,7 +178,7 @@ export default function ChatModal({
       socket.off("receive_message", onReceiveMessage);
       socket.off("messages_read", onMessagesRead);
     };
-  }, [open, sellerId, buyerId, requirementId]);
+  }, [open, peerUserId, currentUserId, requirementId]);
 
   useEffect(() => {
     if (!open) return;
@@ -227,7 +229,7 @@ export default function ChatModal({
   }
 
   async function uploadFiles(fileList) {
-    if (!buyerId || !sellerId) {
+    if (!currentUserId || !peerUserId) {
       alert("Chat users not ready yet.");
       return;
     }
@@ -250,8 +252,8 @@ export default function ChatModal({
       for (const file of valid) {
         const formData = new FormData();
         formData.append("file", file);
-        formData.append("from", buyerId);
-        formData.append("to", sellerId);
+        formData.append("from", currentUserId);
+        formData.append("to", peerUserId);
         await api.post("/chat-files/upload", formData, {
           headers: { "Content-Type": "multipart/form-data" }
         });
@@ -274,8 +276,8 @@ export default function ChatModal({
       tempId,
       message: trimmed,
       requirementId,
-      fromUserId: buyerId,
-      toUserId: sellerId,
+      fromUserId: currentUserId,
+      toUserId: peerUserId,
       createdAt: new Date().toISOString(),
       isRead: false,
       readAt: null,
@@ -289,8 +291,8 @@ export default function ChatModal({
     socket.emit(
       "send_message",
       {
-        fromUserId: buyerId,
-        toUserId: sellerId,
+        fromUserId: currentUserId,
+        toUserId: peerUserId,
         requirementId,
         message: trimmed,
         tempId
@@ -305,7 +307,7 @@ export default function ChatModal({
           return;
         }
 
-        const saved = toMessageShape(result.message || {}, buyerId);
+        const saved = toMessageShape(result.message || {}, currentUserId);
         setMessages((prev) =>
           prev.map((m) => {
             if (m.tempId !== tempId) return m;
