@@ -1,12 +1,16 @@
 const express = require("express");
+const multer = require("multer");
+const XLSX = require("xlsx");
 const User = require("../models/User");
 const Requirement = require("../models/Requirement");
 const Offer = require("../models/Offer");
 const ChatMessage = require("../models/ChatMessage");
 const Report = require("../models/Report");
 const PlatformSettings = require("../models/PlatformSettings");
+const WhatsAppContact = require("../models/WhatsAppContact");
 const AdminAuditLog = require("../models/AdminAuditLog");
 const adminAuth = require("../middleware/adminAuth");
+const { normalizeE164 } = require("../utils/sendWhatsApp");
 const {
   buildOptionsResponse,
   DEFAULT_CITIES,
@@ -14,12 +18,63 @@ const {
   DEFAULT_UNITS,
   DEFAULT_CURRENCIES,
   DEFAULT_NOTIFICATIONS,
+  DEFAULT_WHATSAPP_CAMPAIGN,
   DEFAULT_MODERATION_RULES,
   DEFAULT_TERMS_CONTENT
 } = require("../config/platformDefaults");
 const router = require("express").Router();
 const jwt = require("jsonwebtoken");
 const Admin = require("../models/Admin");
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }
+});
+
+function normalizeText(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function toDigits(value) {
+  return String(value || "").replace(/\D/g, "");
+}
+
+function parseWhatsAppContactsFromWorkbook(buffer) {
+  const workbook = XLSX.read(buffer, { type: "buffer" });
+  const firstSheetName = workbook.SheetNames?.[0];
+  if (!firstSheetName) return [];
+  const sheet = workbook.Sheets[firstSheetName];
+  const rows = XLSX.utils.sheet_to_json(sheet, {
+    header: 1,
+    blankrows: false,
+    defval: ""
+  });
+
+  const contacts = [];
+  for (let index = 1; index < rows.length; index += 1) {
+    const row = rows[index] || [];
+    const firmName = String(row[0] || "").trim();
+    const city = String(row[1] || "").trim();
+    const countryCodeRaw = toDigits(row[2]);
+    const mobileRaw = toDigits(row[3]);
+    if (!city || !countryCodeRaw || !mobileRaw) {
+      continue;
+    }
+    const mobileE164 = normalizeE164(`${countryCodeRaw}${mobileRaw}`);
+    if (!mobileE164) continue;
+    contacts.push({
+      firmName,
+      city,
+      cityNormalized: normalizeText(city),
+      countryCode: `+${countryCodeRaw}`,
+      mobileNumber: mobileRaw,
+      mobileE164,
+      active: true,
+      source: "admin_excel"
+    });
+  }
+
+  return contacts;
+}
 
 
 router.post("/login", async (req, res) => {
@@ -374,6 +429,10 @@ router.put("/options", adminAuth, async (req, res) => {
     units: Array.isArray(payload.units) ? payload.units : (current?.units || DEFAULT_UNITS),
     currencies: Array.isArray(payload.currencies) ? payload.currencies : (current?.currencies || DEFAULT_CURRENCIES),
     notifications: payload.notifications || current?.notifications || DEFAULT_NOTIFICATIONS,
+    whatsAppCampaign:
+      payload.whatsAppCampaign ||
+      current?.whatsAppCampaign ||
+      DEFAULT_WHATSAPP_CAMPAIGN,
     moderationRules: payload.moderationRules || current?.moderationRules || DEFAULT_MODERATION_RULES,
     termsAndConditions: payload.termsAndConditions || current?.termsAndConditions || {
       content: DEFAULT_TERMS_CONTENT
@@ -393,5 +452,112 @@ router.put("/options", adminAuth, async (req, res) => {
   });
   res.json(doc);
 });
+
+router.get("/whatsapp/contacts", adminAuth, async (req, res) => {
+  const city = String(req.query.city || "").trim().toLowerCase();
+  const query = city ? { cityNormalized: city } : {};
+  const contacts = await WhatsAppContact.find(query)
+    .sort({ updatedAt: -1 })
+    .limit(1000);
+  res.json(contacts);
+});
+
+router.get("/whatsapp/contacts/summary", adminAuth, async (req, res) => {
+  const [total, cityRows] = await Promise.all([
+    WhatsAppContact.countDocuments({ active: true }),
+    WhatsAppContact.aggregate([
+      { $match: { active: true } },
+      { $group: { _id: "$city", count: { $sum: 1 } } },
+      { $sort: { _id: 1 } }
+    ])
+  ]);
+  res.json({
+    total,
+    cities: cityRows.map((row) => ({
+      city: row._id,
+      count: row.count
+    }))
+  });
+});
+
+router.delete("/whatsapp/contacts/:id", adminAuth, async (req, res) => {
+  const deleted = await WhatsAppContact.findByIdAndDelete(req.params.id);
+  if (!deleted) {
+    return res.status(404).json({ message: "Contact not found" });
+  }
+  await logAdminAction(req.admin, "delete_whatsapp_contact", "whatsapp_contact", req.params.id);
+  res.json({ success: true });
+});
+
+router.post(
+  "/whatsapp/contacts/upload",
+  adminAuth,
+  upload.single("file"),
+  async (req, res) => {
+    if (!req.file?.buffer) {
+      return res.status(400).json({ message: "Excel file required" });
+    }
+
+    const mode = String(req.body?.mode || "replace").toLowerCase();
+    let parsedContacts = [];
+    try {
+      parsedContacts = parseWhatsAppContactsFromWorkbook(req.file.buffer);
+    } catch {
+      return res.status(400).json({
+        message: "Invalid Excel file. Please upload a valid .xls or .xlsx file."
+      });
+    }
+    if (!parsedContacts.length) {
+      return res.status(400).json({
+        message:
+          "No valid rows found. Expected columns: Firm Name, City, Country Code, Mobile Number"
+      });
+    }
+
+    if (mode !== "append") {
+      await WhatsAppContact.deleteMany({});
+    }
+
+    let inserted = 0;
+    let updated = 0;
+    const errors = [];
+
+    for (const contact of parsedContacts) {
+      try {
+        const result = await WhatsAppContact.findOneAndUpdate(
+          { mobileE164: contact.mobileE164 },
+          contact,
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+        if (result?.createdAt && result?.updatedAt && result.createdAt.getTime() === result.updatedAt.getTime()) {
+          inserted += 1;
+        } else {
+          updated += 1;
+        }
+      } catch (err) {
+        errors.push({
+          mobileE164: contact.mobileE164,
+          error: err?.message || "Failed to save contact"
+        });
+      }
+    }
+
+    await logAdminAction(req.admin, "upload_whatsapp_contacts", "whatsapp_contact", "bulk", {
+      mode,
+      parsed: parsedContacts.length,
+      inserted,
+      updated,
+      failed: errors.length
+    });
+
+    res.json({
+      parsed: parsedContacts.length,
+      inserted,
+      updated,
+      failed: errors.length,
+      errors: errors.slice(0, 30)
+    });
+  }
+);
 
 module.exports = router;

@@ -28,6 +28,11 @@ export default function AdminDashboard() {
       cities: [],
       categories: []
     },
+    whatsAppCampaign: {
+      enabled: false,
+      cities: [],
+      categories: []
+    },
     moderationRules: {
       enabled: true,
       keywords: [],
@@ -45,9 +50,12 @@ export default function AdminDashboard() {
     chats: []
   });
   const [expandedUsers, setExpandedUsers] = useState(new Set());
-  const [notificationCity, setNotificationCity] = useState("");
-  const [notificationCategories, setNotificationCategories] = useState([]);
   const [notificationFile, setNotificationFile] = useState(null);
+  const [whatsAppSummary, setWhatsAppSummary] = useState({
+    total: 0,
+    cities: []
+  });
+  const [uploadingWhatsApp, setUploadingWhatsApp] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -65,6 +73,10 @@ export default function AdminDashboard() {
           ...prev.notifications,
           ...(data.notifications || {})
         },
+        whatsAppCampaign: {
+          ...prev.whatsAppCampaign,
+          ...(data.whatsAppCampaign || {})
+        },
         moderationRules: {
           ...prev.moderationRules,
           ...(data.moderationRules || {})
@@ -74,6 +86,9 @@ export default function AdminDashboard() {
           ...(data.termsAndConditions || {})
         }
       }));
+    });
+    api.get("/admin/whatsapp/contacts/summary").then(res => {
+      setWhatsAppSummary(res.data || { total: 0, cities: [] });
     });
     api.get("/admin/moderation/queue").then(res => setModerationQueue(res.data));
   }, []);
@@ -240,14 +255,6 @@ export default function AdminDashboard() {
     });
   };
 
-  const toggleNotificationCategory = (cat) => {
-    setNotificationCategories((prev) =>
-      prev.includes(cat)
-        ? prev.filter((c) => c !== cat)
-        : [...prev, cat]
-    );
-  };
-
   const handleNotificationFile = (event) => {
     const file = event.target.files?.[0] || null;
     if (!file) {
@@ -262,6 +269,32 @@ export default function AdminDashboard() {
       return;
     }
     setNotificationFile(file);
+  };
+
+  const uploadWhatsAppContacts = async () => {
+    if (!notificationFile) return;
+    const formData = new FormData();
+    formData.append("file", notificationFile);
+    formData.append("mode", "replace");
+    try {
+      setUploadingWhatsApp(true);
+      const res = await api.post("/admin/whatsapp/contacts/upload", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data"
+        }
+      });
+      const stats = res.data || {};
+      alert(
+        `Upload complete. Parsed: ${stats.parsed || 0}, Inserted: ${stats.inserted || 0}, Updated: ${stats.updated || 0}, Failed: ${stats.failed || 0}`
+      );
+      setNotificationFile(null);
+      const summary = await api.get("/admin/whatsapp/contacts/summary");
+      setWhatsAppSummary(summary.data || { total: 0, cities: [] });
+    } catch (err) {
+      alert(err?.response?.data?.message || "Failed to upload WhatsApp contacts");
+    } finally {
+      setUploadingWhatsApp(false);
+    }
   };
 
   const toggleOptionNotificationCity = (city) => {
@@ -290,6 +323,38 @@ export default function AdminDashboard() {
         ...prev,
         notifications: {
           ...prev.notifications,
+          categories: next
+        }
+      };
+    });
+  };
+
+  const toggleWhatsAppCity = (city) => {
+    setOptions((prev) => {
+      const current = prev.whatsAppCampaign?.cities || [];
+      const next = current.includes(city)
+        ? current.filter((c) => c !== city)
+        : [...current, city];
+      return {
+        ...prev,
+        whatsAppCampaign: {
+          ...prev.whatsAppCampaign,
+          cities: next
+        }
+      };
+    });
+  };
+
+  const toggleWhatsAppCategory = (cat) => {
+    setOptions((prev) => {
+      const current = prev.whatsAppCampaign?.categories || [];
+      const next = current.includes(cat)
+        ? current.filter((c) => c !== cat)
+        : [...current, cat];
+      return {
+        ...prev,
+        whatsAppCampaign: {
+          ...prev.whatsAppCampaign,
           categories: next
         }
       };
@@ -419,46 +484,9 @@ export default function AdminDashboard() {
 
         <div className="mt-8">
           <h2 className="text-lg font-bold mb-3">
-            Template Notification (Excel Only)
+            WhatsApp Broadcast Contacts
           </h2>
           <div className="bg-white border rounded-2xl p-3 space-y-4">
-            <div>
-              <label className="text-sm text-gray-600">City</label>
-              <select
-                className="w-full border rounded-lg px-3 py-2 text-sm mt-2"
-                value={notificationCity}
-                onChange={(e) => setNotificationCity(e.target.value)}
-              >
-                <option value="">Select city</option>
-                {(options.cities || []).map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <p className="text-sm text-gray-600 mb-2">
-                Categories (select)
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {(options.categories || []).map((cat) => (
-                  <label
-                    key={cat}
-                    className="flex items-center gap-2 text-xs text-gray-700 border rounded-lg px-3 py-2"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={notificationCategories.includes(cat)}
-                      onChange={() => toggleNotificationCategory(cat)}
-                    />
-                    {cat}
-                  </label>
-                ))}
-              </div>
-            </div>
-
             <div>
               <label className="text-sm text-gray-600">Excel File</label>
               <input
@@ -468,15 +496,33 @@ export default function AdminDashboard() {
                 className="mt-2 block w-full text-sm"
               />
               <p className="text-xs text-gray-500 mt-1">
-                Only .xls / .xlsx supported. WhatsApp send logic will be added later.
+                Columns required in order: A Firm Name, B City, C Mobile Country Code, D Mobile Number.
               </p>
             </div>
 
+            <div className="text-xs text-gray-600">
+              <p>
+                Active WhatsApp contacts:{" "}
+                <span className="font-semibold">{whatsAppSummary.total || 0}</span>
+              </p>
+              {Array.isArray(whatsAppSummary.cities) &&
+                whatsAppSummary.cities.length > 0 && (
+                  <p className="mt-1">
+                    City breakdown:{" "}
+                    {whatsAppSummary.cities
+                      .slice(0, 10)
+                      .map((row) => `${row.city} (${row.count})`)
+                      .join(", ")}
+                  </p>
+                )}
+            </div>
+
             <button
+              onClick={uploadWhatsAppContacts}
               className="btn-primary w-auto px-3 py-2 text-sm rounded-lg"
-              disabled={!notificationFile}
+              disabled={!notificationFile || uploadingWhatsApp}
             >
-              Save Template Input
+              {uploadingWhatsApp ? "Uploading..." : "Upload Excel Contacts"}
             </button>
           </div>
         </div>
@@ -532,6 +578,66 @@ export default function AdminDashboard() {
                       type="checkbox"
                       checked={(options.notifications?.categories || []).includes(cat)}
                       onChange={() => toggleOptionNotificationCategory(cat)}
+                    />
+                    {cat}
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-8">
+          <h2 className="text-lg font-bold mb-3">WhatsApp Campaign Controls</h2>
+          <div className="bg-white border rounded-2xl p-3 space-y-4">
+            <label className="flex items-center gap-2 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={options.whatsAppCampaign?.enabled ?? false}
+                onChange={(e) =>
+                  setOptions((prev) => ({
+                    ...prev,
+                    whatsAppCampaign: {
+                      ...prev.whatsAppCampaign,
+                      enabled: e.target.checked
+                    }
+                  }))
+                }
+              />
+              Enable WhatsApp campaign when buyer posts
+            </label>
+
+            <div>
+              <p className="text-sm text-gray-600 mb-2">Cities</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {(options.cities || []).map((city) => (
+                  <label
+                    key={`wa-${city}`}
+                    className="flex items-center gap-2 text-xs text-gray-700 border rounded-lg px-3 py-2"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={(options.whatsAppCampaign?.cities || []).includes(city)}
+                      onChange={() => toggleWhatsAppCity(city)}
+                    />
+                    {city}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p className="text-sm text-gray-600 mb-2">Categories</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {(options.categories || []).map((cat) => (
+                  <label
+                    key={`wa-cat-${cat}`}
+                    className="flex items-center gap-2 text-xs text-gray-700 border rounded-lg px-3 py-2"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={(options.whatsAppCampaign?.categories || []).includes(cat)}
+                      onChange={() => toggleWhatsAppCategory(cat)}
                     />
                     {cat}
                   </label>

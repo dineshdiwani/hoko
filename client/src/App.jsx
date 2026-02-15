@@ -20,6 +20,7 @@ import SellerRegister from "./pages/Seller/Register";
 import SellerLogin from "./pages/Seller/Login";
 import SellerProfile from "./pages/Seller/SellerProfile";
 import SellerSettings from "./pages/Seller/Settings";
+import SellerDeepLink from "./pages/Seller/SellerDeepLink";
 
 import AdminLogin from "./pages/Admin/Login";
 import AdminDashboard from "./pages/Admin/AdminDashboard";
@@ -142,6 +143,10 @@ function AppShell() {
         {/* Seller */}
         <Route path="/seller/register" element={<SellerRegister />} />
         <Route path="/seller/login" element={<SellerLogin />} />
+        <Route
+          path="/seller/deeplink/:requirementId"
+          element={<SellerDeepLink />}
+        />
 
         <Route
           path="/seller/dashboard"

@@ -26,6 +26,8 @@ export default function SellerRegister() {
   });
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const postLoginRedirect =
+    localStorage.getItem("post_login_redirect") || "/seller/dashboard";
 
   const [cities, setCities] = useState([
     "Mumbai",
@@ -124,7 +126,8 @@ export default function SellerRegister() {
           token: switchRes.data.token
         });
         alert("Seller registered successfully!");
-        navigate("/seller/dashboard");
+        localStorage.removeItem("login_intent_role");
+        navigate(postLoginRedirect);
       })
       .catch((err) => {
         alert(

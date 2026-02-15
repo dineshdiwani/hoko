@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import api from "../../services/api";
 import socket from "../../services/socket";
 import { fetchNotifications } from "../../services/notifications";
@@ -15,6 +15,7 @@ import { confirmDialog } from "../../utils/dialogs";
 
 export default function SellerDashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
   const session = getSession();
   const menuRef = useRef(null);
 
@@ -109,6 +110,35 @@ export default function SellerDashboard() {
     }
     load();
   }, [selectedCity]);
+
+  useEffect(() => {
+    if (loading || !requirements.length) return;
+    const params = new URLSearchParams(location.search);
+    const openRequirement = String(params.get("openRequirement") || "").trim();
+    if (!openRequirement) return;
+
+    const targetRequirement = requirements.find(
+      (req) => String(req._id) === openRequirement
+    );
+    if (targetRequirement) {
+      setActiveRequirement(targetRequirement);
+    } else {
+      setActiveRequirement({
+        _id: openRequirement,
+        product: "Requirement",
+        productName: "Requirement"
+      });
+    }
+    const nextParams = new URLSearchParams(location.search);
+    nextParams.delete("openRequirement");
+    navigate(
+      {
+        pathname: location.pathname,
+        search: nextParams.toString()
+      },
+      { replace: true }
+    );
+  }, [loading, requirements, location.pathname, location.search, navigate]);
 
   useEffect(() => {
     let mounted = true;

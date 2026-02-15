@@ -162,6 +162,11 @@ const DEFAULT_NOTIFICATIONS = {
   cities: [],
   categories: []
 };
+const DEFAULT_WHATSAPP_CAMPAIGN = {
+  enabled: false,
+  cities: [],
+  categories: []
+};
 
 const DEFAULT_MODERATION_RULES = {
   enabled: true,
@@ -183,6 +188,7 @@ function buildOptionsResponse(doc) {
     units: mergeUnique(doc?.units, DEFAULT_UNITS),
     currencies: mergeUnique(doc?.currencies, DEFAULT_CURRENCIES),
     notifications: doc?.notifications || DEFAULT_NOTIFICATIONS,
+    whatsAppCampaign: doc?.whatsAppCampaign || DEFAULT_WHATSAPP_CAMPAIGN,
     moderationRules: doc?.moderationRules || DEFAULT_MODERATION_RULES,
     termsAndConditions: doc?.termsAndConditions || {
       content: DEFAULT_TERMS_CONTENT
@@ -197,6 +203,7 @@ module.exports = {
   DEFAULT_UNITS,
   DEFAULT_CURRENCIES,
   DEFAULT_NOTIFICATIONS,
+  DEFAULT_WHATSAPP_CAMPAIGN,
   DEFAULT_MODERATION_RULES,
   mergeUnique,
   buildOptionsResponse

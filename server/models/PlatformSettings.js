@@ -11,6 +11,11 @@ const platformSettingsSchema = new mongoose.Schema(
       cities: [{ type: String }],
       categories: [{ type: String }]
     },
+    whatsAppCampaign: {
+      enabled: { type: Boolean, default: false },
+      cities: [{ type: String }],
+      categories: [{ type: String }]
+    },
     moderationRules: {
       enabled: { type: Boolean, default: true },
       keywords: [{ type: String }],

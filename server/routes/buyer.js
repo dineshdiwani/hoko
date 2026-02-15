@@ -10,6 +10,7 @@ const User = require("../models/User");
 const Notification = require("../models/Notification");
 const { getModerationRules, checkTextForFlags } = require("../utils/moderation");
 const sendPush = require("../utils/sendPush");
+const { triggerWhatsAppCampaignForRequirement } = require("../services/whatsAppCampaign");
 const auth = require("../middleware/auth");
 const buyerOnly = require("../middleware/buyerOnly");
 
@@ -109,6 +110,18 @@ router.post("/requirement", auth, buyerOnly, async (req, res) => {
       : undefined
   });
   res.json(requirement);
+
+  setImmediate(async () => {
+    try {
+      await triggerWhatsAppCampaignForRequirement(requirement);
+    } catch (err) {
+      console.warn(
+        "WhatsApp campaign trigger failed for requirement",
+        requirement?._id,
+        err?.message || err
+      );
+    }
+  });
 });
 
 /**
