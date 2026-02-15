@@ -113,35 +113,37 @@ export default function AdminDashboard() {
     setChats(Array.isArray(responseMap.chats) ? responseMap.chats : []);
     setReports(Array.isArray(responseMap.reports) ? responseMap.reports : []);
 
-    const data = responseMap.options || {};
-    const nextCities = Array.isArray(data.cities) ? data.cities : [];
-    const nextCategories = Array.isArray(data.categories) ? data.categories : [];
-    const nextUnits = Array.isArray(data.units) ? data.units : [];
-    const nextCurrencies = Array.isArray(data.currencies) ? data.currencies : [];
-    setOptions((prev) => ({
-      ...prev,
-      ...data,
-      notifications: {
-        ...prev.notifications,
-        ...(data.notifications || {})
-      },
-      whatsAppCampaign: {
-        ...prev.whatsAppCampaign,
-        ...(data.whatsAppCampaign || {})
-      },
-      moderationRules: {
-        ...prev.moderationRules,
-        ...(data.moderationRules || {})
-      },
-      termsAndConditions: {
-        ...prev.termsAndConditions,
-        ...(data.termsAndConditions || {})
-      }
-    }));
-    setCitiesText(nextCities.join(", "));
-    setCategoriesText(nextCategories.join(", "));
-    setUnitsText(nextUnits.join(", "));
-    setCurrenciesText(nextCurrencies.join(", "));
+    if (responseMap.options) {
+      const data = responseMap.options;
+      const nextCities = Array.isArray(data.cities) ? data.cities : [];
+      const nextCategories = Array.isArray(data.categories) ? data.categories : [];
+      const nextUnits = Array.isArray(data.units) ? data.units : [];
+      const nextCurrencies = Array.isArray(data.currencies) ? data.currencies : [];
+      setOptions((prev) => ({
+        ...prev,
+        ...data,
+        notifications: {
+          ...prev.notifications,
+          ...(data.notifications || {})
+        },
+        whatsAppCampaign: {
+          ...prev.whatsAppCampaign,
+          ...(data.whatsAppCampaign || {})
+        },
+        moderationRules: {
+          ...prev.moderationRules,
+          ...(data.moderationRules || {})
+        },
+        termsAndConditions: {
+          ...prev.termsAndConditions,
+          ...(data.termsAndConditions || {})
+        }
+      }));
+      setCitiesText(nextCities.join(", "));
+      setCategoriesText(nextCategories.join(", "));
+      setUnitsText(nextUnits.join(", "));
+      setCurrenciesText(nextCurrencies.join(", "));
+    }
     setWhatsAppSummary(responseMap.whatsAppSummary || { total: 0, cities: [] });
     setCampaignRuns(Array.isArray(responseMap.campaignRuns) ? responseMap.campaignRuns : []);
     setContacts(Array.isArray(responseMap.contacts) ? responseMap.contacts : []);
@@ -250,11 +252,18 @@ export default function AdminDashboard() {
   };
 
   const saveOptions = async () => {
+    const nextCities = parseOptionList(citiesText);
+    const nextCategories = parseOptionList(categoriesText);
+    const nextUnits = parseOptionList(unitsText);
+    if (!nextCities.length || !nextCategories.length || !nextUnits.length) {
+      alert("Cities, categories, and units cannot be empty");
+      return;
+    }
     const payload = {
       ...options,
-      cities: parseOptionList(citiesText),
-      categories: parseOptionList(categoriesText),
-      units: parseOptionList(unitsText),
+      cities: nextCities,
+      categories: nextCategories,
+      units: nextUnits,
       currencies: parseOptionList(currenciesText)
     };
     await api.put("/admin/options", payload);

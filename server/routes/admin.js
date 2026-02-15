@@ -655,10 +655,25 @@ router.put("/options", adminAuth, requireAdminPermission("options.manage"), asyn
   const payload = req.body || {};
   const current = await PlatformSettings.findOne().lean();
 
+  const nextCities = uniqueNormalizedList(
+    Array.isArray(payload.cities) ? payload.cities : (current?.cities || DEFAULT_CITIES)
+  );
+  const nextCategories = uniqueNormalizedList(
+    Array.isArray(payload.categories) ? payload.categories : (current?.categories || DEFAULT_CATEGORIES)
+  );
+  const nextUnits = uniqueNormalizedList(
+    Array.isArray(payload.units) ? payload.units : (current?.units || DEFAULT_UNITS)
+  );
+  if (!nextCities.length || !nextCategories.length || !nextUnits.length) {
+    return res.status(400).json({
+      message: "Cities, categories, and units cannot be empty"
+    });
+  }
+
   const next = {
-    cities: uniqueNormalizedList(Array.isArray(payload.cities) ? payload.cities : (current?.cities || DEFAULT_CITIES)),
-    categories: uniqueNormalizedList(Array.isArray(payload.categories) ? payload.categories : (current?.categories || DEFAULT_CATEGORIES)),
-    units: uniqueNormalizedList(Array.isArray(payload.units) ? payload.units : (current?.units || DEFAULT_UNITS)),
+    cities: nextCities,
+    categories: nextCategories,
+    units: nextUnits,
     currencies: uniqueNormalizedList(Array.isArray(payload.currencies) ? payload.currencies : (current?.currencies || DEFAULT_CURRENCIES)),
     notifications: payload.notifications || current?.notifications || DEFAULT_NOTIFICATIONS,
     whatsAppCampaign:
@@ -827,6 +842,12 @@ router.delete("/options/:type", adminAuth, requireAdminPermission("options.manag
   const next = existing.filter(
     (entry) => String(entry || "").trim().toLowerCase() !== value.toLowerCase()
   );
+  if (["cities", "categories", "units"].includes(type) && next.length === 0) {
+    return res.status(409).json({
+      message: `Cannot remove the last ${type.slice(0, -1)} option`,
+      inUse
+    });
+  }
   const updated = await PlatformSettings.findOneAndUpdate(
     {},
     { [field]: next },
