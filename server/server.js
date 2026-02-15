@@ -15,6 +15,9 @@ dotenv.config();
 const app = express();
 const server = http.createServer(app);
 const isProduction = process.env.NODE_ENV === "production";
+// Behind Nginx/PM2 in production, trust the first proxy hop so req.ip works
+// correctly for express-rate-limit and auth logging.
+app.set("trust proxy", isProduction ? 1 : false);
 const localDevOrigins = [
   "http://localhost:5173",
   "http://127.0.0.1:5173",
