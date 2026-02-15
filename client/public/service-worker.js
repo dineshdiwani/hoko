@@ -1,4 +1,4 @@
-const CACHE_NAME = "hoko-pwa-v2";
+const CACHE_NAME = "hoko-pwa-v3";
 const APP_SHELL = ["/", "/index.html", "/manifest.json", "/icon-192.png", "/icon-512.png"];
 
 self.addEventListener("install", (event) => {
@@ -22,6 +22,7 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
+  const url = new URL(request.url);
 
   if (request.mode === "navigate") {
     event.respondWith(
@@ -30,7 +31,29 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (new URL(request.url).origin !== self.location.origin) return;
+  if (url.origin !== self.location.origin) return;
+
+  // Always go to network for API calls to avoid stale admin/dashboard data.
+  if (url.pathname.startsWith("/api/")) {
+    event.respondWith(fetch(request));
+    return;
+  }
+
+  // Keep JS/CSS fresh after deploys; fallback to cache only if offline.
+  if (request.destination === "script" || request.destination === "style") {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response && response.status === 200 && response.type === "basic") {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          }
+          return response;
+        })
+        .catch(() => caches.match(request))
+    );
+    return;
+  }
 
   event.respondWith(
     caches.match(request).then(

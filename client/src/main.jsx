@@ -14,6 +14,23 @@ window.alert = showAlert;
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/service-worker.js").catch(() => {});
+    navigator.serviceWorker
+      .register("/service-worker.js")
+      .then((registration) => {
+        registration.update().catch(() => {});
+        registration.addEventListener("updatefound", () => {
+          const nextWorker = registration.installing;
+          if (!nextWorker) return;
+          nextWorker.addEventListener("statechange", () => {
+            if (
+              nextWorker.state === "installed" &&
+              navigator.serviceWorker.controller
+            ) {
+              window.location.reload();
+            }
+          });
+        });
+      })
+      .catch(() => {});
   });
 }

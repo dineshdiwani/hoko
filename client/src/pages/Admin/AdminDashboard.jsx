@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../utils/adminApi";
 import { confirmDialog } from "../../utils/dialogs";
@@ -56,42 +56,87 @@ export default function AdminDashboard() {
     cities: []
   });
   const [uploadingWhatsApp, setUploadingWhatsApp] = useState(false);
+  const [citiesText, setCitiesText] = useState("");
+  const [categoriesText, setCategoriesText] = useState("");
+  const [unitsText, setUnitsText] = useState("");
+  const [currenciesText, setCurrenciesText] = useState("");
   const navigate = useNavigate();
 
-  useEffect(() => {
-    api.get("/admin/users").then(res => setUsers(res.data));
-    api.get("/admin/requirements").then(res => setRequirements(res.data));
-    api.get("/admin/offers").then(res => setOffers(res.data));
-    api.get("/admin/chats").then(res => setChats(res.data));
-    api.get("/admin/reports").then(res => setReports(res.data));
-    api.get("/admin/options").then(res => {
-      const data = res.data || {};
-      setOptions((prev) => ({
-        ...prev,
-        ...data,
-        notifications: {
-          ...prev.notifications,
-          ...(data.notifications || {})
-        },
-        whatsAppCampaign: {
-          ...prev.whatsAppCampaign,
-          ...(data.whatsAppCampaign || {})
-        },
-        moderationRules: {
-          ...prev.moderationRules,
-          ...(data.moderationRules || {})
-        },
-        termsAndConditions: {
-          ...prev.termsAndConditions,
-          ...(data.termsAndConditions || {})
-        }
-      }));
-    });
-    api.get("/admin/whatsapp/contacts/summary").then(res => {
-      setWhatsAppSummary(res.data || { total: 0, cities: [] });
-    });
-    api.get("/admin/moderation/queue").then(res => setModerationQueue(res.data));
+  const parseOptionList = (value) =>
+    String(value || "")
+      .split(/[\n,;]+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+  const loadDashboardData = useCallback(async () => {
+    const [
+      usersRes,
+      requirementsRes,
+      offersRes,
+      chatsRes,
+      reportsRes,
+      optionsRes,
+      whatsAppSummaryRes,
+      moderationQueueRes
+    ] = await Promise.all([
+      api.get("/admin/users"),
+      api.get("/admin/requirements"),
+      api.get("/admin/offers"),
+      api.get("/admin/chats"),
+      api.get("/admin/reports"),
+      api.get("/admin/options"),
+      api.get("/admin/whatsapp/contacts/summary"),
+      api.get("/admin/moderation/queue")
+    ]);
+
+    setUsers(usersRes.data || []);
+    setRequirements(requirementsRes.data || []);
+    setOffers(offersRes.data || []);
+    setChats(chatsRes.data || []);
+    setReports(reportsRes.data || []);
+
+    const data = optionsRes.data || {};
+    const nextCities = Array.isArray(data.cities) ? data.cities : [];
+    const nextCategories = Array.isArray(data.categories) ? data.categories : [];
+    const nextUnits = Array.isArray(data.units) ? data.units : [];
+    const nextCurrencies = Array.isArray(data.currencies) ? data.currencies : [];
+    setOptions((prev) => ({
+      ...prev,
+      ...data,
+      notifications: {
+        ...prev.notifications,
+        ...(data.notifications || {})
+      },
+      whatsAppCampaign: {
+        ...prev.whatsAppCampaign,
+        ...(data.whatsAppCampaign || {})
+      },
+      moderationRules: {
+        ...prev.moderationRules,
+        ...(data.moderationRules || {})
+      },
+      termsAndConditions: {
+        ...prev.termsAndConditions,
+        ...(data.termsAndConditions || {})
+      }
+    }));
+    setCitiesText(nextCities.join(", "));
+    setCategoriesText(nextCategories.join(", "));
+    setUnitsText(nextUnits.join(", "));
+    setCurrenciesText(nextCurrencies.join(", "));
+    setWhatsAppSummary(whatsAppSummaryRes.data || { total: 0, cities: [] });
+    setModerationQueue(
+      moderationQueueRes.data || {
+        requirements: [],
+        offers: [],
+        chats: []
+      }
+    );
   }, []);
+
+  useEffect(() => {
+    loadDashboardData().catch(() => {});
+  }, [loadDashboardData]);
 
   const toggleSellerApproval = async (sellerId, approved) => {
     await api.post("/admin/seller/approve", {
@@ -99,18 +144,19 @@ export default function AdminDashboard() {
       approved
     });
     alert("Seller status updated");
-    window.location.reload();
+    await loadDashboardData();
   };
 
   const toggleUserBlock = async (userId, blocked) => {
     await api.post("/admin/user/block", { userId, blocked });
     alert(blocked ? "User blocked" : "User unblocked");
-    window.location.reload();
+    await loadDashboardData();
   };
 
   const forceLogoutUser = async (userId) => {
     await api.post("/admin/user/force-logout", { userId });
     alert("User logged out");
+    await loadDashboardData();
   };
 
   const toggleUserChat = async (userId, disabled) => {
@@ -118,11 +164,7 @@ export default function AdminDashboard() {
       userId,
       disabled
     });
-    setUsers((prev) =>
-      prev.map((u) =>
-        u._id === userId ? { ...u, chatDisabled: disabled } : u
-      )
-    );
+    await loadDashboardData();
   };
 
   const deleteRequirement = async (id) => {
@@ -132,38 +174,14 @@ export default function AdminDashboard() {
       removed: true,
       reason: "Removed by admin"
     });
-    setRequirements((prev) =>
-      prev.map((r) =>
-        r._id === id
-          ? {
-              ...r,
-              moderation: {
-                ...(r.moderation || {}),
-                removed: true
-              }
-            }
-          : r
-      )
-    );
+    await loadDashboardData();
   };
 
   const restoreRequirement = async (id) => {
     await api.post(`/admin/requirement/${id}/moderate`, {
       removed: false
     });
-    setRequirements((prev) =>
-      prev.map((r) =>
-        r._id === id
-          ? {
-              ...r,
-              moderation: {
-                ...(r.moderation || {}),
-                removed: false
-              }
-            }
-          : r
-      )
-    );
+    await loadDashboardData();
   };
 
   const toggleRequirementChat = async (requirementId, disabled) => {
@@ -171,11 +189,7 @@ export default function AdminDashboard() {
       requirementId,
       disabled
     });
-    setRequirements((prev) =>
-      prev.map((r) =>
-        r._id === requirementId ? { ...r, chatDisabled: disabled } : r
-      )
-    );
+    await loadDashboardData();
   };
 
   const moderateOffer = async (offer, removed) => {
@@ -186,19 +200,7 @@ export default function AdminDashboard() {
       removed,
       reason
     });
-    setOffers((prev) =>
-      prev.map((o) =>
-        o._id === offer._id
-          ? {
-              ...o,
-              moderation: {
-                ...(o.moderation || {}),
-                removed
-              }
-            }
-          : o
-      )
-    );
+    await loadDashboardData();
   };
 
   const moderateChat = async (chat, removed) => {
@@ -209,19 +211,7 @@ export default function AdminDashboard() {
       removed,
       reason
     });
-    setChats((prev) =>
-      prev.map((c) =>
-        c._id === chat._id
-          ? {
-              ...c,
-              moderation: {
-                ...(c.moderation || {}),
-                removed
-              }
-            }
-          : c
-      )
-    );
+    await loadDashboardData();
   };
 
   const updateReportStatus = async (report, status) => {
@@ -236,11 +226,20 @@ export default function AdminDashboard() {
     setReports((prev) =>
       prev.map((r) => (r._id === report._id ? res.data : r))
     );
+    await loadDashboardData();
   };
 
   const saveOptions = async () => {
-    await api.put("/admin/options", options);
+    const payload = {
+      ...options,
+      cities: parseOptionList(citiesText),
+      categories: parseOptionList(categoriesText),
+      units: parseOptionList(unitsText),
+      currencies: parseOptionList(currenciesText)
+    };
+    await api.put("/admin/options", payload);
     alert("Options updated");
+    await loadDashboardData();
   };
 
   const toggleUserDetails = (userId) => {
@@ -288,8 +287,7 @@ export default function AdminDashboard() {
         `Upload complete. Parsed: ${stats.parsed || 0}, Inserted: ${stats.inserted || 0}, Updated: ${stats.updated || 0}, Failed: ${stats.failed || 0}`
       );
       setNotificationFile(null);
-      const summary = await api.get("/admin/whatsapp/contacts/summary");
-      setWhatsAppSummary(summary.data || { total: 0, cities: [] });
+      await loadDashboardData();
     } catch (err) {
       alert(err?.response?.data?.message || "Failed to upload WhatsApp contacts");
     } finally {
@@ -377,12 +375,20 @@ export default function AdminDashboard() {
         <div className="flex flex-col gap-4 md:flex-row md:justify-between md:items-center mb-6">
           <h1 className="page-hero">Admin Dashboard</h1>
 
-          <button
-            onClick={() => navigate("/admin/analytics")}
-            className="btn-primary w-auto px-3 py-2 text-sm rounded-lg"
-          >
-            View Analytics
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => loadDashboardData().catch(() => {})}
+              className="px-3 py-2 text-sm rounded-lg border border-gray-300 bg-white hover:bg-gray-50"
+            >
+              Refresh
+            </button>
+            <button
+              onClick={() => navigate("/admin/analytics")}
+              className="btn-primary w-auto px-3 py-2 text-sm rounded-lg"
+            >
+              View Analytics
+            </button>
+          </div>
         </div>
 
         <div className="space-y-4">
@@ -819,16 +825,8 @@ export default function AdminDashboard() {
               <textarea
                 className="w-full border rounded-lg p-2 mt-2 text-sm"
                 rows={3}
-                value={(options.cities || []).join(", ")}
-                onChange={(e) =>
-                  setOptions((prev) => ({
-                    ...prev,
-                    cities: e.target.value
-                      .split(",")
-                      .map((s) => s.trim())
-                      .filter(Boolean)
-                  }))
-                }
+                value={citiesText}
+                onChange={(e) => setCitiesText(e.target.value)}
               />
             </div>
 
@@ -839,16 +837,8 @@ export default function AdminDashboard() {
               <textarea
                 className="w-full border rounded-lg p-2 mt-2 text-sm"
                 rows={3}
-                value={(options.categories || []).join(", ")}
-                onChange={(e) =>
-                  setOptions((prev) => ({
-                    ...prev,
-                    categories: e.target.value
-                      .split(",")
-                      .map((s) => s.trim())
-                      .filter(Boolean)
-                  }))
-                }
+                value={categoriesText}
+                onChange={(e) => setCategoriesText(e.target.value)}
               />
             </div>
 
@@ -859,16 +849,8 @@ export default function AdminDashboard() {
               <textarea
                 className="w-full border rounded-lg p-2 mt-2 text-sm"
                 rows={2}
-                value={(options.units || []).join(", ")}
-                onChange={(e) =>
-                  setOptions((prev) => ({
-                    ...prev,
-                    units: e.target.value
-                      .split(",")
-                      .map((s) => s.trim())
-                      .filter(Boolean)
-                  }))
-                }
+                value={unitsText}
+                onChange={(e) => setUnitsText(e.target.value)}
               />
             </div>
 
@@ -902,16 +884,8 @@ export default function AdminDashboard() {
               <textarea
                 className="w-full border rounded-lg p-2 mt-2 text-sm"
                 rows={2}
-                value={(options.currencies || []).join(", ")}
-                onChange={(e) =>
-                  setOptions((prev) => ({
-                    ...prev,
-                    currencies: e.target.value
-                      .split(",")
-                      .map((s) => s.trim())
-                      .filter(Boolean)
-                  }))
-                }
+                value={currenciesText}
+                onChange={(e) => setCurrenciesText(e.target.value)}
               />
             </div>
 
