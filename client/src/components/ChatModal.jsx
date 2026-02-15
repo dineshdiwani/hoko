@@ -349,7 +349,7 @@ export default function ChatModal({
           </button>
         </div>
 
-        <div className="flex-1 p-4 overflow-y-auto space-y-2 h-[68vh] bg-gray-50">
+        <div className="flex-1 p-3 md:p-4 overflow-y-auto space-y-2 h-[66vh] md:h-[68vh] bg-gray-50">
           {loading ? (
             <div className="h-full flex items-center justify-center text-sm text-gray-500">
               Loading messages...
@@ -370,7 +370,7 @@ export default function ChatModal({
                 {group.items.map((m) => (
                   <div
                     key={m.id || m.tempId}
-                    className={`px-3 py-2 rounded-2xl max-w-[80%] text-sm ${
+                    className={`px-3 py-2 rounded-2xl max-w-[92%] md:max-w-[80%] text-sm ${
                       m.fromSelf ? "bg-green-600 text-white ml-auto" : "bg-white border"
                     }`}
                   >
@@ -437,14 +437,66 @@ export default function ChatModal({
           </p>
         </div>
 
-        <div className="p-4 border-t flex gap-2 items-center">
-          <button
-            className="px-3 py-2 border rounded-lg text-sm"
-            disabled={uploading}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            {uploading ? "Uploading..." : "Share doc"}
-          </button>
+        <div className="p-4 border-t flex gap-3 items-end">
+          <div className="flex-1">
+            <textarea
+              rows={4}
+              className="w-full border rounded-lg px-3 py-2 text-sm resize-none"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Type message..."
+            />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <button
+              className="w-11 h-11 border rounded-lg text-sm inline-flex items-center justify-center"
+              disabled={uploading}
+              onClick={() => fileInputRef.current?.click()}
+              title={uploading ? "Uploading..." : "Share doc"}
+              aria-label={uploading ? "Uploading..." : "Share doc"}
+            >
+              {uploading ? (
+                <span className="text-[10px]">...</span>
+              ) : (
+                <svg
+                  viewBox="0 0 24 24"
+                  className="w-5 h-5 text-gray-700"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
+                  <path d="M16.5 6a4.5 4.5 0 0 1 0 9H8a3 3 0 1 1 0-6h8.5a1.5 1.5 0 1 1 0 3H9v-1.5h7.5a.5.5 0 1 0 0-1H8a2 2 0 1 0 0 4h8.5a3.5 3.5 0 0 0 0-7H9V5h7.5Z" />
+                </svg>
+              )}
+            </button>
+
+            <button
+              className={`w-11 h-11 border rounded-lg flex items-center justify-center ${
+                isListening ? "bg-green-600 border-green-600" : ""
+              }`}
+              onClick={toggleMic}
+              title="Speech to text"
+              aria-label="Speech to text"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                className={`w-5 h-5 ${isListening ? "text-white" : "text-gray-600"}`}
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v5a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V20H9v2h6v-2h-2v-2.08A7 7 0 0 0 19 11h-2z" />
+              </svg>
+            </button>
+
+            <button
+              onClick={sendMessage}
+              className="w-11 h-11 bg-green-600 text-white rounded-lg text-xs font-semibold"
+              title="Send"
+              aria-label="Send"
+            >
+              Send
+            </button>
+          </div>
 
           <input
             ref={fileInputRef}
@@ -454,39 +506,6 @@ export default function ChatModal({
             className="hidden"
             onChange={(e) => uploadFiles(e.target.files)}
           />
-
-          <textarea
-            rows={3}
-            className="flex-1 border rounded-lg px-3 py-2 text-sm resize-none"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="Type message..."
-          />
-
-          <button
-            className={`w-10 h-10 border rounded-full flex items-center justify-center ${
-              isListening ? "bg-green-600 border-green-600" : ""
-            }`}
-            onClick={toggleMic}
-            title="Speech to text"
-            aria-label="Speech to text"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              className={`w-5 h-5 ${isListening ? "text-white" : "text-gray-600"}`}
-              fill="currentColor"
-              aria-hidden="true"
-            >
-              <path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v5a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V20H9v2h6v-2h-2v-2.08A7 7 0 0 0 19 11h-2z" />
-            </svg>
-          </button>
-
-          <button
-            onClick={sendMessage}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm"
-          >
-            Send
-          </button>
         </div>
       </div>
     </div>
