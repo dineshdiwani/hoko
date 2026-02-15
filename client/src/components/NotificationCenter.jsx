@@ -6,7 +6,7 @@ import {
 } from "../services/notifications";
 import { getSession } from "../services/storage";
 
-export default function NotificationCenter() {
+export default function NotificationCenter({ onNotificationClick }) {
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const menuRef = useRef(null);
@@ -60,7 +60,8 @@ export default function NotificationCenter() {
     }
   }
 
-  async function handleRead(id) {
+  async function handleRead(id, notification) {
+    setOpen(false);
     try {
       await markAsRead(id);
       setNotifications((prev) =>
@@ -74,6 +75,9 @@ export default function NotificationCenter() {
           n._id === id ? { ...n, read: true } : n
         )
       );
+    }
+    if (typeof onNotificationClick === "function") {
+      onNotificationClick(notification);
     }
   }
 
@@ -114,7 +118,7 @@ export default function NotificationCenter() {
           {notifications.map((n, i) => (
             <div
               key={n._id || n.id || i}
-              onClick={() => handleRead(n._id || n.id)}
+              onClick={() => handleRead(n._id || n.id, n)}
               className={`px-4 py-3 border-b cursor-pointer ${
                 n.read
                   ? "bg-white"

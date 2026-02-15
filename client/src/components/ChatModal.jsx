@@ -326,7 +326,7 @@ export default function ChatModal({
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
       <div
-        className={`bg-white w-full max-w-3xl rounded-2xl shadow-2xl flex flex-col overflow-hidden max-h-[90vh] ${
+        className={`bg-white w-full max-w-4xl rounded-2xl shadow-2xl flex flex-col overflow-hidden max-h-[92vh] ${
           isDragging ? "ring-2 ring-indigo-500" : ""
         }`}
         onDragOver={(e) => {
@@ -347,7 +347,7 @@ export default function ChatModal({
           </button>
         </div>
 
-        <div className="flex-1 p-4 overflow-y-auto space-y-2 h-[60vh] bg-gray-50">
+        <div className="flex-1 p-4 overflow-y-auto space-y-2 h-[68vh] bg-gray-50">
           {loading ? (
             <div className="h-full flex items-center justify-center text-sm text-gray-500">
               Loading messages...
@@ -427,6 +427,12 @@ export default function ChatModal({
               Insert
             </button>
           </div>
+        </div>
+
+        <div className="px-4 pt-3">
+          <p className="text-xs text-gray-500">
+            Note: Buyer and Seller may share personal mobile and emails contacts on their discretion.
+          </p>
         </div>
 
         <div className="p-4 border-t flex gap-2 items-center">

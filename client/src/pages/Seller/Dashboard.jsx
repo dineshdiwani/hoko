@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
+import socket from "../../services/socket";
+import { fetchNotifications } from "../../services/notifications";
 import { fetchOptions } from "../../services/options";
 import { getSession, logout } from "../../services/auth";
 import { getSellerDashboardCategories, setSession } from "../../services/storage";
@@ -8,6 +10,7 @@ import NotificationCenter from "../../components/NotificationCenter";
 import OfferModal from "../../components/OfferModal";
 import ReviewModal from "../../components/ReviewModal";
 import ReportModal from "../../components/ReportModal";
+import ChatModal from "../../components/ChatModal";
 import { confirmDialog } from "../../utils/dialogs";
 
 export default function SellerDashboard() {
@@ -32,6 +35,12 @@ export default function SellerDashboard() {
   const [categories, setCategories] = useState([]);
   const [selectedCity, setSelectedCity] = useState(session?.city || "");
   const [activeSmartTab, setActiveSmartTab] = useState("all");
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatPeer, setChatPeer] = useState(null);
+  const [chatRequirementId, setChatRequirementId] = useState(null);
+  const [unreadChatRequirementIds, setUnreadChatRequirementIds] = useState(new Set());
+
+  const currentUserId = session?._id || session?.id || session?.userId || null;
 
   const normalizeCategory = (cat) => String(cat || "").toLowerCase().trim();
   const smartTabs = [
@@ -100,6 +109,47 @@ export default function SellerDashboard() {
     }
     load();
   }, [selectedCity]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadChatNotifications() {
+      try {
+        const allNotifications = await fetchNotifications();
+        if (!mounted) return;
+        const unreadIds = new Set(
+          (allNotifications || [])
+            .filter((n) => n?.type === "new_message" && !n?.read && n?.requirementId)
+            .map((n) => String(n.requirementId))
+        );
+        setUnreadChatRequirementIds(unreadIds);
+      } catch {
+        if (mounted) {
+          setUnreadChatRequirementIds(new Set());
+        }
+      }
+    }
+
+    if (currentUserId) {
+      socket.emit("join", currentUserId);
+    }
+    loadChatNotifications();
+
+    const onIncomingNotification = (notif) => {
+      if (notif?.type !== "new_message" || !notif?.requirementId) return;
+      setUnreadChatRequirementIds((prev) => {
+        const next = new Set(prev);
+        next.add(String(notif.requirementId));
+        return next;
+      });
+    };
+
+    socket.on("notification", onIncomingNotification);
+    return () => {
+      mounted = false;
+      socket.off("notification", onIncomingNotification);
+    };
+  }, [currentUserId]);
 
   useEffect(() => {
     function handleClick(e) {
@@ -185,6 +235,36 @@ export default function SellerDashboard() {
     }
   }
 
+  function openSellerChat({ buyerId, buyerName, requirementId }) {
+    if (!buyerId || !requirementId) return;
+    const reqId = String(requirementId);
+    setChatPeer({
+      id: String(buyerId),
+      name: buyerName || "Buyer"
+    });
+    setChatRequirementId(reqId);
+    setUnreadChatRequirementIds((prev) => {
+      const next = new Set(prev);
+      next.delete(reqId);
+      return next;
+    });
+    setChatOpen(true);
+  }
+
+  function handleNotificationClick(notification) {
+    if (!notification || notification.type !== "new_message") return;
+
+    const requirementId = notification.requirementId;
+    const buyerId = notification.fromUserId?._id || notification.fromUserId;
+    if (!requirementId || !buyerId) return;
+
+    openSellerChat({
+      buyerId,
+      buyerName: "Buyer",
+      requirementId
+    });
+  }
+
   return (
     <div className="page flex flex-col">
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-[var(--ui-border)]">
@@ -227,7 +307,7 @@ export default function SellerDashboard() {
               ))}
             </select>
 
-            <NotificationCenter />
+            <NotificationCenter onNotificationClick={handleNotificationClick} />
 
             <div className="relative" ref={menuRef}>
               <button
@@ -420,6 +500,25 @@ export default function SellerDashboard() {
                   </button>
 
                   {req.myOffer && req.buyerId && (
+                    <>
+                    <button
+                      onClick={() =>
+                        openSellerChat({
+                          buyerId: req.buyerId?._id || req.buyerId,
+                          buyerName: "Buyer",
+                          requirementId: req._id
+                        })
+                      }
+                      className="w-full mt-3 py-2 border border-blue-300 text-blue-700 rounded-xl text-sm font-semibold inline-flex items-center justify-center gap-2 relative"
+                    >
+                      <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor" aria-hidden="true">
+                        <path d="M4 5h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H8l-4 4V7a2 2 0 0 1 2-2Zm2 4h12v2H6V9Zm0 4h8v2H6v-2Z" />
+                      </svg>
+                      Chat with Buyer
+                      {unreadChatRequirementIds.has(String(req._id)) && (
+                        <span className="absolute right-2 top-2 w-2.5 h-2.5 bg-red-500 rounded-full" />
+                      )}
+                    </button>
                     <div className="w-full mt-3 grid grid-cols-2 gap-3">
                       <button
                         onClick={() => {
@@ -442,6 +541,7 @@ export default function SellerDashboard() {
                         Report Buyer
                       </button>
                     </div>
+                    </>
                   )}
                 </div>
               );
@@ -472,6 +572,14 @@ export default function SellerDashboard() {
         onClose={() => setReportOpen(false)}
         reportedUserId={reportTarget}
         requirementId={reviewRequirementId}
+      />
+
+      <ChatModal
+        open={chatOpen}
+        onClose={() => setChatOpen(false)}
+        sellerId={chatPeer?.id}
+        sellerName={chatPeer?.name || "Buyer"}
+        requirementId={chatRequirementId}
       />
     </div>
   );
