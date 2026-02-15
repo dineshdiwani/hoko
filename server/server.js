@@ -128,11 +128,13 @@ io.on("connection", (socket) => {
   });
 
   // Message relay + DB save
-  socket.on("send_message", async ({ toUserId, message, fromUserId, requirementId, to, from }) => {
+  socket.on("send_message", async ({ toUserId, message, fromUserId, requirementId, to, from, tempId }, ack) => {
     const effectiveFrom = fromUserId || from;
     const effectiveTo = toUserId || to;
+    const ackFn = typeof ack === "function" ? ack : null;
     console.log("Message:", { from: effectiveFrom, to: effectiveTo, message });
     let allowedToSend = true;
+    let savedMessage = null;
 
     // Save to DB (best effort)
     try {
@@ -151,11 +153,14 @@ io.on("connection", (socket) => {
           allowedToSend = false;
         }
         if (!allowedToSend) {
+          if (ackFn) {
+            ackFn({ ok: false, error: "Chat is disabled for this conversation" });
+          }
           return;
         }
 
         const flaggedReason = checkTextForFlags(message || "", rules);
-        await ChatMessage.create({
+        savedMessage = await ChatMessage.create({
           requirementId,
           fromUserId: effectiveFrom,
           toUserId: effectiveTo,
@@ -171,15 +176,75 @@ io.on("connection", (socket) => {
       }
     } catch (err) {
       console.warn("Chat save failed, continuing:", err.message);
+      if (ackFn) {
+        ackFn({ ok: false, error: "Failed to save message" });
+      }
+      return;
     }
 
     // Emit to recipient
     if (allowedToSend) {
-      io.to(String(effectiveTo)).emit("receive_message", {
-        from: effectiveFrom,
+      const payload = {
+        _id: savedMessage?._id,
+        requirementId,
+        fromUserId: effectiveFrom,
+        toUserId: effectiveTo,
         message,
-        time: new Date().toISOString(),
+        isRead: false,
+        readAt: null,
+        createdAt: savedMessage?.createdAt || new Date().toISOString(),
+        tempId: tempId || null
+      };
+
+      io.to(String(effectiveTo)).emit("receive_message", payload);
+
+      if (ackFn) {
+        ackFn({ ok: true, message: payload });
+      }
+    }
+  });
+
+  socket.on("mark_messages_read", async ({ requirementId, readerUserId, peerUserId }, ack) => {
+    const ackFn = typeof ack === "function" ? ack : null;
+    if (!requirementId || !readerUserId || !peerUserId) {
+      if (ackFn) {
+        ackFn({ ok: false, error: "Missing data" });
+      }
+      return;
+    }
+
+    try {
+      const now = new Date();
+      const result = await ChatMessage.updateMany(
+        {
+          requirementId,
+          fromUserId: peerUserId,
+          toUserId: readerUserId,
+          isRead: false,
+          "moderation.removed": { $ne: true }
+        },
+        {
+          $set: {
+            isRead: true,
+            readAt: now
+          }
+        }
+      );
+
+      io.to(String(peerUserId)).emit("messages_read", {
+        requirementId,
+        byUserId: readerUserId,
+        peerUserId,
+        readAt: now.toISOString()
       });
+
+      if (ackFn) {
+        ackFn({ ok: true, updated: result.modifiedCount || 0, readAt: now.toISOString() });
+      }
+    } catch (err) {
+      if (ackFn) {
+        ackFn({ ok: false, error: "Failed to mark messages as read" });
+      }
     }
   });
 

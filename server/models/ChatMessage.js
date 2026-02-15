@@ -18,6 +18,14 @@ const ChatMessageSchema = new mongoose.Schema(
       required: true
     },
     message: { type: String, required: true },
+    isRead: {
+      type: Boolean,
+      default: false
+    },
+    readAt: {
+      type: Date,
+      default: null
+    },
     moderation: {
       removed: { type: Boolean, default: false },
       removedAt: { type: Date, default: null },

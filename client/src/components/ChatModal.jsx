@@ -1,9 +1,59 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import socket from "../services/socket";
 import api from "../services/api";
 import { getSession } from "../services/storage";
 
-export default function ChatModal({ open, onClose, sellerId, sellerName, requirementId }) {
+function formatTime(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  return date.toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
+function formatDate(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+
+  if (date.toDateString() === today.toDateString()) return "Today";
+  if (date.toDateString() === yesterday.toDateString()) return "Yesterday";
+
+  return date.toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: date.getFullYear() === today.getFullYear() ? undefined : "numeric"
+  });
+}
+
+function toMessageShape(msg, currentUserId) {
+  const fromSelf = String(msg.fromUserId) === String(currentUserId);
+  const isRead = Boolean(msg.isRead);
+  return {
+    id: msg._id || msg.id || null,
+    tempId: msg.tempId || null,
+    message: msg.message || "",
+    requirementId: msg.requirementId || null,
+    fromUserId: msg.fromUserId || msg.from || null,
+    toUserId: msg.toUserId || null,
+    createdAt: msg.createdAt || msg.time || new Date().toISOString(),
+    isRead,
+    readAt: msg.readAt || null,
+    fromSelf,
+    status: fromSelf ? (isRead ? "read" : "sent") : null
+  };
+}
+
+export default function ChatModal({
+  open,
+  onClose,
+  sellerId,
+  sellerName,
+  requirementId
+}) {
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
   const [counterPrice, setCounterPrice] = useState("");
@@ -11,53 +61,122 @@ export default function ChatModal({ open, onClose, sellerId, sellerName, require
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [loading, setLoading] = useState(false);
   const fileInputRef = useRef(null);
   const recognitionRef = useRef(null);
+  const messagesEndRef = useRef(null);
 
   const session = getSession();
   const buyerId = session?._id;
+
+  const groupedMessages = useMemo(() => {
+    const groups = [];
+    const groupMap = new Map();
+    for (const msg of messages) {
+      const key = new Date(msg.createdAt).toDateString();
+      if (!groupMap.has(key)) {
+        const next = { key, label: formatDate(msg.createdAt), items: [] };
+        groupMap.set(key, next);
+        groups.push(next);
+      }
+      groupMap.get(key).items.push(msg);
+    }
+    return groups;
+  }, [messages]);
+
+  useEffect(() => {
+    if (!open) return;
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, open]);
 
   useEffect(() => {
     if (!open || !sellerId || !buyerId || !requirementId) return;
 
     socket.emit("join", buyerId);
+    let cancelled = false;
 
-    // Load chat history
-    api
-      .get("/chat/history", {
-        params: {
-          requirementId,
-          userId: buyerId,
-        },
-      })
-      .then((res) => {
-        const history = res.data || [];
-        setMessages(
-          history.map((m) => ({
-            message: m.message,
-            fromSelf: String(m.fromUserId) === String(buyerId),
-          }))
-        );
-      })
-      .catch(() => {
-        console.warn("Chat history unavailable");
+    async function loadHistory() {
+      setLoading(true);
+      try {
+        const res = await api.get("/chat/history", {
+          params: {
+            requirementId,
+            userId: buyerId,
+            peerId: sellerId
+          }
+        });
+        if (cancelled) return;
+        const history = Array.isArray(res.data) ? res.data : [];
+        setMessages(history.map((m) => toMessageShape(m, buyerId)));
+      } catch {
+        if (!cancelled) {
+          console.warn("Chat history unavailable");
+          setMessages([]);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    loadHistory();
+
+    const onReceiveMessage = (incoming) => {
+      const sameRequirement =
+        String(incoming?.requirementId) === String(requirementId);
+      const samePair =
+        String(incoming?.fromUserId) === String(sellerId) &&
+        String(incoming?.toUserId) === String(buyerId);
+      if (!sameRequirement || !samePair) return;
+
+      setMessages((prev) => {
+        const nextMsg = toMessageShape(incoming, buyerId);
+        if (nextMsg.id && prev.some((m) => String(m.id) === String(nextMsg.id))) {
+          return prev;
+        }
+        return [...prev, nextMsg];
       });
 
-    const handler = (msg) => {
-      setMessages((prev) => [
-        ...prev,
-        { message: msg.message, fromSelf: false },
-      ]);
+      socket.emit("mark_messages_read", {
+        requirementId,
+        readerUserId: buyerId,
+        peerUserId: sellerId
+      });
     };
 
-    socket.on("receive_message", handler);
+    const onMessagesRead = (payload) => {
+      const sameRequirement =
+        String(payload?.requirementId) === String(requirementId);
+      const readByPeer = String(payload?.byUserId) === String(sellerId);
+      if (!sameRequirement || !readByPeer) return;
+
+      setMessages((prev) =>
+        prev.map((m) => {
+          if (!m.fromSelf || String(m.toUserId) !== String(sellerId)) return m;
+          return {
+            ...m,
+            isRead: true,
+            readAt: payload.readAt || m.readAt,
+            status: "read"
+          };
+        })
+      );
+    };
+
+    socket.on("receive_message", onReceiveMessage);
+    socket.on("messages_read", onMessagesRead);
+
+    socket.emit("mark_messages_read", {
+      requirementId,
+      readerUserId: buyerId,
+      peerUserId: sellerId
+    });
 
     return () => {
-      socket.off("receive_message", handler);
+      cancelled = true;
+      socket.off("receive_message", onReceiveMessage);
+      socket.off("messages_read", onMessagesRead);
     };
   }, [open, sellerId, buyerId, requirementId]);
-
-  if (!open) return null;
 
   useEffect(() => {
     if (!open) return;
@@ -71,11 +190,8 @@ export default function ChatModal({ open, onClose, sellerId, sellerName, require
     recognition.continuous = false;
 
     recognition.onresult = (event) => {
-      const transcript =
-        event.results?.[0]?.[0]?.transcript || "";
-      setText((prev) =>
-        prev ? `${prev} ${transcript}`.trim() : transcript
-      );
+      const transcript = event.results?.[0]?.[0]?.transcript || "";
+      setText((prev) => (prev ? `${prev} ${transcript}`.trim() : transcript));
     };
 
     recognition.onerror = () => {
@@ -88,6 +204,8 @@ export default function ChatModal({ open, onClose, sellerId, sellerName, require
 
     recognitionRef.current = recognition;
   }, [open]);
+
+  if (!open) return null;
 
   function toggleMic() {
     const recognition = recognitionRef.current;
@@ -116,17 +234,7 @@ export default function ChatModal({ open, onClose, sellerId, sellerName, require
     const files = Array.from(fileList || []);
     if (!files.length) return;
 
-    const allowed = [
-      ".jpg",
-      ".jpeg",
-      ".png",
-      ".pdf",
-      ".doc",
-      ".docx",
-      ".xls",
-      ".xlsx"
-    ];
-
+    const allowed = [".jpg", ".jpeg", ".png", ".pdf", ".doc", ".docx", ".xls", ".xlsx"];
     const valid = files.filter((file) => {
       const name = String(file.name || "").toLowerCase();
       return allowed.some((ext) => name.endsWith(ext));
@@ -157,163 +265,222 @@ export default function ChatModal({ open, onClose, sellerId, sellerName, require
   }
 
   function sendMessage() {
-    if (!text.trim()) return;
+    const trimmed = String(text || "").trim();
+    if (!trimmed) return;
 
-    socket.emit("send_message", {
+    const tempId = `tmp-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const pendingMessage = {
+      id: null,
+      tempId,
+      message: trimmed,
+      requirementId,
       fromUserId: buyerId,
       toUserId: sellerId,
-      requirementId,
-      message: text,
-    });
+      createdAt: new Date().toISOString(),
+      isRead: false,
+      readAt: null,
+      fromSelf: true,
+      status: "sending"
+    };
 
-    setMessages((prev) => [
-      ...prev,
-      { message: text, fromSelf: true },
-    ]);
-
+    setMessages((prev) => [...prev, pendingMessage]);
     setText("");
+
+    socket.emit(
+      "send_message",
+      {
+        fromUserId: buyerId,
+        toUserId: sellerId,
+        requirementId,
+        message: trimmed,
+        tempId
+      },
+      (result) => {
+        if (!result?.ok) {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.tempId === tempId ? { ...m, status: "failed" } : m
+            )
+          );
+          return;
+        }
+
+        const saved = toMessageShape(result.message || {}, buyerId);
+        setMessages((prev) =>
+          prev.map((m) => {
+            if (m.tempId !== tempId) return m;
+            return {
+              ...m,
+              id: saved.id,
+              createdAt: saved.createdAt,
+              status: saved.isRead ? "read" : "sent",
+              isRead: saved.isRead,
+              readAt: saved.readAt
+            };
+          })
+        );
+      }
+    );
   }
 
   return (
-    <>
-      {/* Chat UI */}
-      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-        <div
-          className={`bg-white w-full max-w-3xl rounded-2xl shadow-2xl flex flex-col overflow-hidden max-h-[90vh] ${
-            isDragging ? "ring-2 ring-indigo-500" : ""
-          }`}
-          onDragOver={(e) => {
-            e.preventDefault();
-            setIsDragging(true);
-          }}
-          onDragLeave={() => setIsDragging(false)}
-          onDrop={(e) => {
-            e.preventDefault();
-            setIsDragging(false);
-            uploadFiles(e.dataTransfer.files);
-          }}
-        >
-          <div className="p-4 border-b flex justify-between items-center">
-            <h2 className="font-semibold">
-              Chat with {sellerName}
-            </h2>
-            <button onClick={onClose}>Close</button>
-          </div>
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+      <div
+        className={`bg-white w-full max-w-3xl rounded-2xl shadow-2xl flex flex-col overflow-hidden max-h-[90vh] ${
+          isDragging ? "ring-2 ring-indigo-500" : ""
+        }`}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setIsDragging(true);
+        }}
+        onDragLeave={() => setIsDragging(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setIsDragging(false);
+          uploadFiles(e.dataTransfer.files);
+        }}
+      >
+        <div className="p-4 border-b flex justify-between items-center bg-gradient-to-r from-blue-600 to-green-600 text-white">
+          <h2 className="font-semibold">Chat with {sellerName}</h2>
+          <button onClick={onClose} className="text-sm underline underline-offset-2">
+            Close
+          </button>
+        </div>
 
-          <div className="flex-1 p-4 overflow-y-auto space-y-2 h-[60vh] bg-gray-50">
-            {messages.map((m, i) => (
-              <div
-                key={i}
-                className={`px-3 py-2 rounded-2xl max-w-[80%] text-sm ${
-                  m.fromSelf
-                    ? "bg-green-600 text-white ml-auto"
-                    : "bg-white border"
-                }`}
-              >
-                <div className="whitespace-pre-wrap break-words">
-                  {m.message}
-                </div>
-                {m.fromSelf && (
-                  <div className="text-[10px] opacity-80 text-right mt-1">
-                    ✓✓
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-
-          <div className="px-4 pb-3">
-            <p className="text-xs text-gray-500 mb-2">
-              Quick counter
-            </p>
-            <div className="flex gap-2 mb-2">
-              <input
-                type="number"
-                value={counterPrice}
-                onChange={(e) => setCounterPrice(e.target.value)}
-                placeholder="Rs X"
-                className="flex-1 border rounded px-2 py-1 text-sm"
-              />
-              <input
-                type="date"
-                value={deliveryBy}
-                onChange={(e) => setDeliveryBy(e.target.value)}
-                className="border rounded px-2 py-1 text-sm"
-              />
-              <button
-                onClick={() => {
-                  const price = String(counterPrice || "").trim();
-                  const date = String(deliveryBy || "").trim();
-                  if (!price || !date) {
-                    alert("Please enter price and delivery date");
-                    return;
-                  }
-                  setText(
-                    `Can you do Rs ${price} with delivery by ${date}?`
-                  );
-                }}
-                className="px-3 bg-gray-900 text-white rounded text-sm"
-              >
-                Insert
-              </button>
+        <div className="flex-1 p-4 overflow-y-auto space-y-2 h-[60vh] bg-gray-50">
+          {loading ? (
+            <div className="h-full flex items-center justify-center text-sm text-gray-500">
+              Loading messages...
             </div>
-          </div>
+          ) : groupedMessages.length === 0 ? (
+            <div className="h-full flex items-center justify-center text-sm text-gray-500">
+              No messages yet. Start the conversation.
+            </div>
+          ) : (
+            groupedMessages.map((group) => (
+              <div key={group.key} className="space-y-2">
+                <div className="flex justify-center py-2">
+                  <span className="text-[11px] bg-gray-200 text-gray-600 px-3 py-1 rounded-full">
+                    {group.label}
+                  </span>
+                </div>
 
-          <div className="p-4 border-t flex gap-2 items-center">
-            <button
-              className="px-3 py-2 border rounded-lg text-sm"
-              disabled={uploading}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              {uploading ? "Uploading..." : "Share doc"}
-            </button>
+                {group.items.map((m) => (
+                  <div
+                    key={m.id || m.tempId}
+                    className={`px-3 py-2 rounded-2xl max-w-[80%] text-sm ${
+                      m.fromSelf ? "bg-green-600 text-white ml-auto" : "bg-white border"
+                    }`}
+                  >
+                    <div className="whitespace-pre-wrap break-words">{m.message}</div>
+                    <div
+                      className={`text-[10px] mt-1 flex items-center gap-2 ${
+                        m.fromSelf ? "justify-end text-green-100" : "text-gray-500"
+                      }`}
+                    >
+                      <span>{formatTime(m.createdAt)}</span>
+                      {m.fromSelf && (
+                        <span>
+                          {m.status === "sending" && "Sending..."}
+                          {m.status === "sent" && "Sent"}
+                          {m.status === "read" && "Read"}
+                          {m.status === "failed" && "Failed"}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ))
+          )}
+          <div ref={messagesEndRef} />
+        </div>
 
+        <div className="px-4 pb-3">
+          <p className="text-xs text-gray-500 mb-2">Quick counter</p>
+          <div className="flex gap-2 mb-2">
             <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/*"
-              className="hidden"
-              onChange={(e) => uploadFiles(e.target.files)}
+              type="number"
+              value={counterPrice}
+              onChange={(e) => setCounterPrice(e.target.value)}
+              placeholder="Rs X"
+              className="flex-1 border rounded px-2 py-1 text-sm"
             />
-
-            <textarea
-              rows={3}
-              className="flex-1 border rounded-lg px-3 py-2 text-sm resize-none"
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="Type message..."
+            <input
+              type="date"
+              value={deliveryBy}
+              onChange={(e) => setDeliveryBy(e.target.value)}
+              className="border rounded px-2 py-1 text-sm"
             />
-
             <button
-              className={`w-10 h-10 border rounded-full flex items-center justify-center ${
-                isListening ? "bg-green-600 border-green-600" : ""
-              }`}
-              onClick={toggleMic}
-              title="Speech to text"
-              aria-label="Speech to text"
+              onClick={() => {
+                const price = String(counterPrice || "").trim();
+                const date = String(deliveryBy || "").trim();
+                if (!price || !date) {
+                  alert("Please enter price and delivery date");
+                  return;
+                }
+                setText(`Can you do Rs ${price} with delivery by ${date}?`);
+              }}
+              className="px-3 bg-gray-900 text-white rounded text-sm"
             >
-              <svg
-                viewBox="0 0 24 24"
-                className={`w-5 h-5 ${
-                  isListening ? "text-white" : "text-gray-600"
-                }`}
-                fill="currentColor"
-                aria-hidden="true"
-              >
-                <path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v5a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V20H9v2h6v-2h-2v-2.08A7 7 0 0 0 19 11h-2z" />
-              </svg>
-            </button>
-
-            <button
-              onClick={sendMessage}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm"
-            >
-              Send
+              Insert
             </button>
           </div>
         </div>
+
+        <div className="p-4 border-t flex gap-2 items-center">
+          <button
+            className="px-3 py-2 border rounded-lg text-sm"
+            disabled={uploading}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            {uploading ? "Uploading..." : "Share doc"}
+          </button>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/*"
+            className="hidden"
+            onChange={(e) => uploadFiles(e.target.files)}
+          />
+
+          <textarea
+            rows={3}
+            className="flex-1 border rounded-lg px-3 py-2 text-sm resize-none"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Type message..."
+          />
+
+          <button
+            className={`w-10 h-10 border rounded-full flex items-center justify-center ${
+              isListening ? "bg-green-600 border-green-600" : ""
+            }`}
+            onClick={toggleMic}
+            title="Speech to text"
+            aria-label="Speech to text"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              className={`w-5 h-5 ${isListening ? "text-white" : "text-gray-600"}`}
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v5a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V20H9v2h6v-2h-2v-2.08A7 7 0 0 0 19 11h-2z" />
+            </svg>
+          </button>
+
+          <button
+            onClick={sendMessage}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm"
+          >
+            Send
+          </button>
+        </div>
       </div>
-    </>
+    </div>
   );
 }
