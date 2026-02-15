@@ -3,16 +3,18 @@ import { useNavigate } from "react-router-dom";
 import api from "../../utils/adminApi";
 
 export default function AdminLogin() {
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   async function handleLogin(e) {
     e.preventDefault(); // 🔴 REQUIRED
 
     try {
-      const res = await api.post("/admin-auth/login", {
-        username,
+      setLoading(true);
+      const res = await api.post("/admin/login", {
+        email,
         password,
       });
 
@@ -21,8 +23,11 @@ export default function AdminLogin() {
       }
       navigate("/admin/dashboard");
     } catch (err) {
-      alert("Invalid admin credentials");
+      const message = err?.response?.data?.message || err?.response?.data?.error || "Invalid admin credentials";
+      alert(message);
       console.error(err);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -46,9 +51,9 @@ export default function AdminLogin() {
 
         <input
           className="input mb-3"
-          placeholder="Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
+          placeholder="Admin email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
         />
 
         <input
@@ -62,8 +67,9 @@ export default function AdminLogin() {
         <button
           type="submit"
           className="btn-primary w-full"
+          disabled={loading}
         >
-          Login
+          {loading ? "Signing in..." : "Login"}
         </button>
           </form>
         </div>

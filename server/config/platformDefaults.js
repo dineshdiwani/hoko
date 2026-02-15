@@ -181,16 +181,21 @@ function mergeUnique(existing = [], defaults = []) {
 }
 
 function buildOptionsResponse(doc) {
+  const raw = doc ? (typeof doc.toObject === "function" ? doc.toObject() : doc) : null;
+  const hasDoc = Boolean(raw);
+
   return {
-    ...(doc ? (typeof doc.toObject === "function" ? doc.toObject() : doc) : {}),
-    cities: mergeUnique(doc?.cities, DEFAULT_CITIES),
-    categories: mergeUnique(doc?.categories, DEFAULT_CATEGORIES),
-    units: mergeUnique(doc?.units, DEFAULT_UNITS),
-    currencies: mergeUnique(doc?.currencies, DEFAULT_CURRENCIES),
-    notifications: doc?.notifications || DEFAULT_NOTIFICATIONS,
-    whatsAppCampaign: doc?.whatsAppCampaign || DEFAULT_WHATSAPP_CAMPAIGN,
-    moderationRules: doc?.moderationRules || DEFAULT_MODERATION_RULES,
-    termsAndConditions: doc?.termsAndConditions || {
+    ...(raw || {}),
+    // Admin can fully control these lists once settings document exists.
+    // Defaults are used only on first bootstrap when settings doc does not exist.
+    cities: hasDoc ? (Array.isArray(raw.cities) ? raw.cities : []) : DEFAULT_CITIES,
+    categories: hasDoc ? (Array.isArray(raw.categories) ? raw.categories : []) : DEFAULT_CATEGORIES,
+    units: hasDoc ? (Array.isArray(raw.units) ? raw.units : []) : DEFAULT_UNITS,
+    currencies: hasDoc ? (Array.isArray(raw.currencies) ? raw.currencies : []) : DEFAULT_CURRENCIES,
+    notifications: raw?.notifications || DEFAULT_NOTIFICATIONS,
+    whatsAppCampaign: raw?.whatsAppCampaign || DEFAULT_WHATSAPP_CAMPAIGN,
+    moderationRules: raw?.moderationRules || DEFAULT_MODERATION_RULES,
+    termsAndConditions: raw?.termsAndConditions || {
       content: DEFAULT_TERMS_CONTENT
     }
   };

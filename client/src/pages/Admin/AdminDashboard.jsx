@@ -60,6 +60,13 @@ export default function AdminDashboard() {
   const [categoriesText, setCategoriesText] = useState("");
   const [unitsText, setUnitsText] = useState("");
   const [currenciesText, setCurrenciesText] = useState("");
+  const [campaignRuns, setCampaignRuns] = useState([]);
+  const [contacts, setContacts] = useState([]);
+  const [testRequirementId, setTestRequirementId] = useState("");
+  const [testMobile, setTestMobile] = useState("");
+  const [unsubscribeMobile, setUnsubscribeMobile] = useState("");
+  const [unsubscribeReason, setUnsubscribeReason] = useState("");
+  const [dndBulk, setDndBulk] = useState("");
   const navigate = useNavigate();
 
   const parseOptionList = (value) =>
@@ -69,16 +76,19 @@ export default function AdminDashboard() {
       .filter(Boolean);
 
   const loadDashboardData = useCallback(async () => {
-    const [
-      usersRes,
-      requirementsRes,
-      offersRes,
-      chatsRes,
-      reportsRes,
-      optionsRes,
-      whatsAppSummaryRes,
-      moderationQueueRes
-    ] = await Promise.all([
+    const endpoints = [
+      "users",
+      "requirements",
+      "offers",
+      "chats",
+      "reports",
+      "options",
+      "whatsAppSummary",
+      "moderationQueue",
+      "campaignRuns",
+      "contacts"
+    ];
+    const requests = [
       api.get("/admin/users"),
       api.get("/admin/requirements"),
       api.get("/admin/offers"),
@@ -86,16 +96,24 @@ export default function AdminDashboard() {
       api.get("/admin/reports"),
       api.get("/admin/options"),
       api.get("/admin/whatsapp/contacts/summary"),
-      api.get("/admin/moderation/queue")
-    ]);
+      api.get("/admin/moderation/queue"),
+      api.get("/admin/whatsapp/campaign-runs"),
+      api.get("/admin/whatsapp/contacts")
+    ];
+    const settled = await Promise.allSettled(requests);
+    const responseMap = settled.reduce((acc, result, index) => {
+      const key = endpoints[index];
+      acc[key] = result.status === "fulfilled" ? result.value.data : null;
+      return acc;
+    }, {});
 
-    setUsers(usersRes.data || []);
-    setRequirements(requirementsRes.data || []);
-    setOffers(offersRes.data || []);
-    setChats(chatsRes.data || []);
-    setReports(reportsRes.data || []);
+    setUsers(Array.isArray(responseMap.users) ? responseMap.users : []);
+    setRequirements(Array.isArray(responseMap.requirements) ? responseMap.requirements : []);
+    setOffers(Array.isArray(responseMap.offers) ? responseMap.offers : []);
+    setChats(Array.isArray(responseMap.chats) ? responseMap.chats : []);
+    setReports(Array.isArray(responseMap.reports) ? responseMap.reports : []);
 
-    const data = optionsRes.data || {};
+    const data = responseMap.options || {};
     const nextCities = Array.isArray(data.cities) ? data.cities : [];
     const nextCategories = Array.isArray(data.categories) ? data.categories : [];
     const nextUnits = Array.isArray(data.units) ? data.units : [];
@@ -124,9 +142,11 @@ export default function AdminDashboard() {
     setCategoriesText(nextCategories.join(", "));
     setUnitsText(nextUnits.join(", "));
     setCurrenciesText(nextCurrencies.join(", "));
-    setWhatsAppSummary(whatsAppSummaryRes.data || { total: 0, cities: [] });
+    setWhatsAppSummary(responseMap.whatsAppSummary || { total: 0, cities: [] });
+    setCampaignRuns(Array.isArray(responseMap.campaignRuns) ? responseMap.campaignRuns : []);
+    setContacts(Array.isArray(responseMap.contacts) ? responseMap.contacts : []);
     setModerationQueue(
-      moderationQueueRes.data || {
+      responseMap.moderationQueue || {
         requirements: [],
         offers: [],
         chats: []
@@ -240,6 +260,126 @@ export default function AdminDashboard() {
     await api.put("/admin/options", payload);
     alert("Options updated");
     await loadDashboardData();
+  };
+
+  const setTaxonomyText = (type, values) => {
+    const next = Array.isArray(values) ? values.join(", ") : "";
+    if (type === "cities") setCitiesText(next);
+    if (type === "categories") setCategoriesText(next);
+    if (type === "units") setUnitsText(next);
+    if (type === "currencies") setCurrenciesText(next);
+  };
+
+  const addTaxonomyValue = async (type) => {
+    const value = prompt(`Add new ${type.slice(0, -1)} value`);
+    if (!value) return;
+    try {
+      const res = await api.post(`/admin/options/${type}`, { value });
+      setTaxonomyText(type, res.data?.values || []);
+      await loadDashboardData();
+    } catch (err) {
+      alert(err?.response?.data?.message || `Failed to add ${type}`);
+    }
+  };
+
+  const renameTaxonomyValue = async (type) => {
+    const oldValue = prompt(`Current ${type.slice(0, -1)} value to rename`);
+    if (!oldValue) return;
+    const newValue = prompt(`New value for ${oldValue}`);
+    if (!newValue) return;
+    try {
+      const res = await api.put(`/admin/options/${type}`, {
+        oldValue,
+        newValue
+      });
+      setTaxonomyText(type, res.data?.values || []);
+      await loadDashboardData();
+    } catch (err) {
+      alert(err?.response?.data?.message || `Failed to rename ${type}`);
+    }
+  };
+
+  const removeTaxonomyValue = async (type) => {
+    const value = prompt(`Value to remove from ${type}`);
+    if (!value) return;
+    const force = window.confirm("Force remove from options even if currently used?");
+    try {
+      const res = await api.delete(`/admin/options/${type}`, {
+        data: { value, force }
+      });
+      setTaxonomyText(type, res.data?.values || []);
+      await loadDashboardData();
+    } catch (err) {
+      alert(err?.response?.data?.message || `Failed to remove from ${type}`);
+    }
+  };
+
+  const updateContactCompliance = async (contactId, patch) => {
+    try {
+      await api.patch(`/admin/whatsapp/contacts/${contactId}/compliance`, patch);
+      await loadDashboardData();
+    } catch (err) {
+      alert(err?.response?.data?.message || "Failed to update contact compliance");
+    }
+  };
+
+  const submitUnsubscribe = async () => {
+    if (!unsubscribeMobile.trim()) {
+      alert("Enter mobile in E.164 format, e.g. +919999999999");
+      return;
+    }
+    try {
+      await api.post("/admin/whatsapp/unsubscribe", {
+        mobileE164: unsubscribeMobile,
+        reason: unsubscribeReason
+      });
+      alert("Contact unsubscribed");
+      setUnsubscribeMobile("");
+      setUnsubscribeReason("");
+      await loadDashboardData();
+    } catch (err) {
+      alert(err?.response?.data?.message || "Unsubscribe failed");
+    }
+  };
+
+  const importDndList = async () => {
+    const numbers = dndBulk
+      .split(/[\n,;]+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (!numbers.length) {
+      alert("Add at least one number");
+      return;
+    }
+    try {
+      const res = await api.post("/admin/whatsapp/dnd/import", {
+        numbers,
+        source: "admin_bulk"
+      });
+      alert(`DND import updated ${res.data?.updated || 0} contacts`);
+      setDndBulk("");
+      await loadDashboardData();
+    } catch (err) {
+      alert(err?.response?.data?.message || "DND import failed");
+    }
+  };
+
+  const sendCampaignTest = async (dryRun) => {
+    if (!testRequirementId.trim() || !testMobile.trim()) {
+      alert("Requirement ID and mobile are required");
+      return;
+    }
+    try {
+      const res = await api.post("/admin/whatsapp/test-send", {
+        requirementId: testRequirementId.trim(),
+        mobileE164: testMobile.trim(),
+        dryRun
+      });
+      alert(dryRun ? "Dry run created" : res.data?.ok ? "Test message sent" : "Test message failed");
+      await loadDashboardData();
+    } catch (err) {
+      alert(err?.response?.data?.message || "Failed to run test send");
+    }
   };
 
   const toggleUserDetails = (userId) => {
@@ -511,6 +651,9 @@ export default function AdminDashboard() {
                 Active WhatsApp contacts:{" "}
                 <span className="font-semibold">{whatsAppSummary.total || 0}</span>
               </p>
+              <p className="mt-1">
+                Opted-in: {whatsAppSummary?.compliance?.optedIn || 0} | Unsubscribed: {whatsAppSummary?.compliance?.unsubscribed || 0} | DND: {whatsAppSummary?.compliance?.dnd || 0}
+              </p>
               {Array.isArray(whatsAppSummary.cities) &&
                 whatsAppSummary.cities.length > 0 && (
                   <p className="mt-1">
@@ -648,6 +791,152 @@ export default function AdminDashboard() {
                     {cat}
                   </label>
                 ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-8">
+          <h2 className="text-lg font-bold mb-3">WhatsApp Compliance Controls</h2>
+          <div className="bg-white border rounded-2xl p-3 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <input
+                className="w-full border rounded-lg px-3 py-2 text-sm"
+                placeholder="Unsubscribe mobile (e.g. +919876543210)"
+                value={unsubscribeMobile}
+                onChange={(e) => setUnsubscribeMobile(e.target.value)}
+              />
+              <input
+                className="w-full border rounded-lg px-3 py-2 text-sm"
+                placeholder="Unsubscribe reason"
+                value={unsubscribeReason}
+                onChange={(e) => setUnsubscribeReason(e.target.value)}
+              />
+            </div>
+            <button
+              onClick={submitUnsubscribe}
+              className="px-3 py-2 rounded-lg text-sm font-semibold border border-red-300 text-red-700"
+            >
+              Mark Unsubscribed
+            </button>
+
+            <div>
+              <label className="text-sm text-gray-600">Bulk DND Import (one mobile per line)</label>
+              <textarea
+                className="w-full border rounded-lg p-2 mt-2 text-sm"
+                rows={3}
+                value={dndBulk}
+                onChange={(e) => setDndBulk(e.target.value)}
+              />
+              <button
+                onClick={importDndList}
+                className="mt-2 px-3 py-2 rounded-lg text-sm font-semibold border border-gray-300"
+              >
+                Import DND List
+              </button>
+            </div>
+
+            <div>
+              <p className="text-sm font-semibold mb-2">Recent Contacts (Top 20)</p>
+              <div className="space-y-2 max-h-80 overflow-auto">
+                {contacts.slice(0, 20).map((contact) => (
+                  <div key={contact._id} className="border rounded-lg p-2 text-xs text-gray-700">
+                    <div className="font-semibold">
+                      {contact.firmName || "-"} | {contact.mobileE164}
+                    </div>
+                    <div className="text-gray-500">
+                      {contact.city} | Opt-in: {contact.optInStatus} | DND: {contact.dndStatus} | Unsubscribed: {contact.unsubscribedAt ? "Yes" : "No"}
+                    </div>
+                    <div className="mt-2 flex gap-2 flex-wrap">
+                      <button
+                        onClick={() => updateContactCompliance(contact._id, {
+                          optInStatus: contact.optInStatus === "opted_in" ? "not_opted_in" : "opted_in",
+                          optInSource: "admin_toggle"
+                        })}
+                        className="px-2 py-1 rounded border border-gray-300"
+                      >
+                        Toggle Opt-in
+                      </button>
+                      <button
+                        onClick={() => updateContactCompliance(contact._id, {
+                          dndStatus: contact.dndStatus === "dnd" ? "allow" : "dnd",
+                          dndSource: "admin_toggle"
+                        })}
+                        className="px-2 py-1 rounded border border-gray-300"
+                      >
+                        Toggle DND
+                      </button>
+                      <button
+                        onClick={() => updateContactCompliance(contact._id, {
+                          unsubscribed: !contact.unsubscribedAt,
+                          unsubscribeReason: "Admin toggle"
+                        })}
+                        className="px-2 py-1 rounded border border-red-300 text-red-700"
+                      >
+                        Toggle Unsubscribe
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {contacts.length === 0 && (
+                  <p className="text-xs text-gray-500">No contacts uploaded yet.</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-8">
+          <h2 className="text-lg font-bold mb-3">Campaign Operations</h2>
+          <div className="bg-white border rounded-2xl p-3 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <input
+                className="w-full border rounded-lg px-3 py-2 text-sm"
+                placeholder="Requirement ID for test send"
+                value={testRequirementId}
+                onChange={(e) => setTestRequirementId(e.target.value)}
+              />
+              <input
+                className="w-full border rounded-lg px-3 py-2 text-sm"
+                placeholder="Target mobile (E.164)"
+                value={testMobile}
+                onChange={(e) => setTestMobile(e.target.value)}
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => sendCampaignTest(true)}
+                className="px-3 py-2 rounded-lg text-sm font-semibold border border-gray-300"
+              >
+                Dry Run
+              </button>
+              <button
+                onClick={() => sendCampaignTest(false)}
+                className="px-3 py-2 rounded-lg text-sm font-semibold btn-primary"
+              >
+                Test Send
+              </button>
+            </div>
+
+            <div>
+              <p className="text-sm font-semibold mb-2">Recent Campaign Runs</p>
+              <div className="space-y-2 max-h-80 overflow-auto">
+                {campaignRuns.slice(0, 25).map((run) => (
+                  <div key={run._id} className="border rounded-lg p-2 text-xs text-gray-700">
+                    <div className="font-semibold">
+                      {run.triggerType} | {run.status}
+                    </div>
+                    <div>
+                      Attempted: {run.attempted} | Sent: {run.sent} | Failed: {run.failed} | Skipped: {run.skipped}
+                    </div>
+                    <div className="text-gray-500">
+                      {new Date(run.createdAt).toLocaleString()} | {run.city} | {run.category}
+                    </div>
+                  </div>
+                ))}
+                {campaignRuns.length === 0 && (
+                  <p className="text-xs text-gray-500">No campaign runs yet.</p>
+                )}
               </div>
             </div>
           </div>
@@ -828,6 +1117,26 @@ export default function AdminDashboard() {
                 value={citiesText}
                 onChange={(e) => setCitiesText(e.target.value)}
               />
+              <div className="mt-2 flex gap-2">
+                <button
+                  onClick={() => addTaxonomyValue("cities")}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-300"
+                >
+                  Add City
+                </button>
+                <button
+                  onClick={() => renameTaxonomyValue("cities")}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-300"
+                >
+                  Rename City
+                </button>
+                <button
+                  onClick={() => removeTaxonomyValue("cities")}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-300 text-red-700"
+                >
+                  Remove City
+                </button>
+              </div>
             </div>
 
             <div>
@@ -840,6 +1149,26 @@ export default function AdminDashboard() {
                 value={categoriesText}
                 onChange={(e) => setCategoriesText(e.target.value)}
               />
+              <div className="mt-2 flex gap-2">
+                <button
+                  onClick={() => addTaxonomyValue("categories")}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-300"
+                >
+                  Add Category
+                </button>
+                <button
+                  onClick={() => renameTaxonomyValue("categories")}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-300"
+                >
+                  Rename Category
+                </button>
+                <button
+                  onClick={() => removeTaxonomyValue("categories")}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-300 text-red-700"
+                >
+                  Remove Category
+                </button>
+              </div>
             </div>
 
             <div>
@@ -852,6 +1181,26 @@ export default function AdminDashboard() {
                 value={unitsText}
                 onChange={(e) => setUnitsText(e.target.value)}
               />
+              <div className="mt-2 flex gap-2">
+                <button
+                  onClick={() => addTaxonomyValue("units")}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-300"
+                >
+                  Add Unit
+                </button>
+                <button
+                  onClick={() => renameTaxonomyValue("units")}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-300"
+                >
+                  Rename Unit
+                </button>
+                <button
+                  onClick={() => removeTaxonomyValue("units")}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-300 text-red-700"
+                >
+                  Remove Unit
+                </button>
+              </div>
             </div>
 
             <div>
@@ -887,6 +1236,26 @@ export default function AdminDashboard() {
                 value={currenciesText}
                 onChange={(e) => setCurrenciesText(e.target.value)}
               />
+              <div className="mt-2 flex gap-2">
+                <button
+                  onClick={() => addTaxonomyValue("currencies")}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-300"
+                >
+                  Add Currency
+                </button>
+                <button
+                  onClick={() => renameTaxonomyValue("currencies")}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-300"
+                >
+                  Rename Currency
+                </button>
+                <button
+                  onClick={() => removeTaxonomyValue("currencies")}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-300 text-red-700"
+                >
+                  Remove Currency
+                </button>
+              </div>
             </div>
 
             <button
