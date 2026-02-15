@@ -54,15 +54,15 @@ function AppShell() {
       {showGlobalLogo && (
         <Link
           to="/"
-          className="fixed top-4 left-4 z-50 flex items-center gap-2 rounded-full bg-white/90 backdrop-blur px-3 py-2 shadow-lg"
+          className="fixed top-3 left-3 md:top-4 md:left-4 z-50 flex items-center gap-2 rounded-full bg-white/90 backdrop-blur px-2 py-1.5 md:px-3 md:py-2 shadow-lg max-w-[calc(100vw-1.5rem)]"
           aria-label="Go to home"
         >
           <img
             src="/logo.png"
             alt="hoko"
-            className="w-16 h-16 rounded-full object-contain"
+            className="w-12 h-12 md:w-16 md:h-16 rounded-full object-contain"
           />
-          <span className="text-base font-extrabold text-hoko-brand">
+          <span className="text-sm md:text-base font-extrabold text-hoko-brand">
             <span className="text-slate-900">h</span>oko
           </span>
         </Link>

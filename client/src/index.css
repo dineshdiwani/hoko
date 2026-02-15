@@ -5,6 +5,12 @@
 @tailwind utilities;
 
 @layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
   :root {
     --hoko-ink: #0b0f1a;
     --hoko-ink-soft: #1b2233;
@@ -42,7 +48,15 @@
   html,
   body,
   #root {
+    width: 100%;
     min-height: 100%;
+  }
+
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
   }
 
   body {
@@ -53,6 +67,21 @@
     background-attachment: fixed;
     background-repeat: no-repeat;
     background-size: cover;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #root {
+    overflow-x: hidden;
+  }
+
+  img,
+  svg,
+  video,
+  canvas {
+    max-width: 100%;
+    height: auto;
+    display: block;
   }
 
   button {
@@ -108,7 +137,10 @@
   }
 
   .page {
-    @apply min-h-screen overflow-x-hidden;
+    @apply min-h-screen;
+    min-height: 100dvh;
+    width: 100%;
+    overflow-x: hidden;
     background: var(--hoko-flag-gradient);
     background-attachment: fixed;
     background-repeat: no-repeat;
@@ -116,7 +148,7 @@
   }
 
   .page-shell {
-    @apply w-full max-w-[912px] mx-auto pt-10 pb-10 pr-6 pl-16 md:pr-10 md:pl-20;
+    @apply w-full max-w-[1200px] mx-auto px-4 sm:px-6 md:px-8 lg:px-10 pt-6 md:pt-10 pb-8 md:pb-10;
   }
 
   .page-hero {
