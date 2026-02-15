@@ -7,7 +7,9 @@ const fs = require("fs");
 const Requirement = require("../models/Requirement");
 const Offer = require("../models/Offer");
 const User = require("../models/User");
+const Notification = require("../models/Notification");
 const { getModerationRules, checkTextForFlags } = require("../utils/moderation");
+const sendPush = require("../utils/sendPush");
 const auth = require("../middleware/auth");
 const buyerOnly = require("../middleware/buyerOnly");
 
@@ -281,11 +283,24 @@ router.post("/requirement/:id/reverse-auction/start", auth, buyerOnly, async (re
   if (String(requirement.buyerId) !== String(req.user._id)) {
     return res.status(403).json({ message: "Not allowed" });
   }
+  const offers = await Offer.find({
+    requirementId: requirement._id,
+    "moderation.removed": { $ne: true }
+  }).select("sellerId price");
+  if (offers.length < 3) {
+    return res.status(400).json({
+      message: "Reverse auction can be invoked only after 3 or more offers"
+    });
+  }
 
   const lowestPrice =
     typeof req.body.lowestPrice === "number"
       ? req.body.lowestPrice
-      : requirement.currentLowestPrice;
+      : offers.reduce((min, offer) => {
+          if (typeof offer.price !== "number") return min;
+          if (min === null || offer.price < min) return offer.price;
+          return min;
+        }, null);
   const targetPrice =
     typeof req.body.targetPrice === "number"
       ? req.body.targetPrice
@@ -315,6 +330,78 @@ router.post("/requirement/:id/reverse-auction/start", auth, buyerOnly, async (re
   }
 
   await requirement.save();
+
+  const requirementName = requirement.product || requirement.productName || "Product";
+  const currencyCode = String(req.user.preferredCurrency || "INR").toUpperCase();
+  const currencySymbolMap = {
+    INR: "Rs",
+    USD: "$",
+    EUR: "EUR",
+    GBP: "GBP",
+    AED: "AED"
+  };
+  const currencySymbol = currencySymbolMap[currencyCode] || currencyCode;
+  const displayLowest =
+    typeof requirement.currentLowestPrice === "number"
+      ? requirement.currentLowestPrice
+      : typeof requirement.reverseAuction?.lowestPrice === "number"
+      ? requirement.reverseAuction.lowestPrice
+      : null;
+  const message =
+    typeof displayLowest === "number"
+      ? `One of vendor offer lower cost (${currencySymbol} ${displayLowest}). You may lower offer if wish to.`
+      : "One of vendor offer lower cost. You may lower offer if wish to.";
+
+  const sellerIds = Array.from(
+    new Set(
+      offers
+        .map((offer) => (offer.sellerId ? String(offer.sellerId) : null))
+        .filter(Boolean)
+    )
+  );
+
+  const notifications = await Promise.all(
+    sellerIds.map((sellerId) =>
+      Notification.create({
+        userId: sellerId,
+        message,
+        type: "reverse_auction_invoked",
+        requirementId: requirement._id,
+        fromUserId: req.user._id,
+        data: {
+          action: "open_offer_edit",
+          requirementId: String(requirement._id),
+          productName: requirementName,
+          lowestPrice: displayLowest,
+          currencyCode,
+          currencySymbol
+        }
+      })
+    )
+  );
+
+  const io = req.app.get("io");
+  if (io) {
+    notifications.forEach((notification, idx) => {
+      const sellerId = sellerIds[idx];
+      if (!sellerId) return;
+      io.to(String(sellerId)).emit("notification", notification);
+    });
+  }
+
+  await Promise.all(
+    sellerIds.map(async (sellerId) => {
+      try {
+        await sendPush(String(sellerId), {
+          title: `Reverse Auction: ${requirementName}`,
+          body: message
+        });
+      } catch {
+        // Ignore push delivery failures per seller and continue.
+      }
+    })
+  );
+
   res.json(requirement);
 });
 

@@ -200,7 +200,7 @@ export default function MyPosts() {
               </h3>
 
               <span
-                className={statusClass}
+                className={`${statusClass} mr-10`}
               >
                 {statusText}
               </span>

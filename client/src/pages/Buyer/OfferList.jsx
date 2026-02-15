@@ -140,23 +140,13 @@ export default function OfferList() {
     typeof requirement.reverseAuction?.targetPrice === "number"
       ? requirement.reverseAuction.targetPrice
       : null;
-  const canEnableAuction =
-    offers.length >= 3 && !auctionActive;
+  const canShowAuctionButton = offers.length >= 3;
+  const canInvokeAuction = canShowAuctionButton && !auctionActive && !startingAuction;
 
   async function enableReverseAuction() {
-    if (!canEnableAuction || startingAuction) return;
-    const currentLowest = bestOffer ? bestOffer.price : null;
-    const targetInput = prompt(
-      "Enter target price to auto-close the auction (must be lower than current lowest price)",
-      currentLowest ? String(currentLowest - 1) : ""
-    );
-    const targetPrice = Number(targetInput);
-    if (!Number.isFinite(targetPrice)) {
-      alert("Please enter a valid target price");
-      return;
-    }
-    if (currentLowest !== null && targetPrice >= currentLowest) {
-      alert("Target price must be lower than the current lowest price");
+    if (!canInvokeAuction) return;
+    if (offers.length < 3) {
+      alert("Reverse auction can be invoked only after 3 or more offers.");
       return;
     }
     try {
@@ -164,11 +154,12 @@ export default function OfferList() {
       const lowestPrice = bestOffer ? bestOffer.price : null;
       const res = await api.post(
         `/buyer/requirement/${id}/reverse-auction/start`,
-        { lowestPrice, targetPrice }
+        { lowestPrice }
       );
       setRequirement(res.data);
-    } catch {
-      alert("Unable to start reverse auction. Try again.");
+    } catch (err) {
+      const message = err?.response?.data?.message;
+      alert(message || "Unable to start reverse auction. Try again.");
     } finally {
       setStartingAuction(false);
     }
@@ -199,13 +190,17 @@ export default function OfferList() {
               : ""}
           </p>
         )}
-        {canEnableAuction && (
+        {canShowAuctionButton && (
           <button
             onClick={enableReverseAuction}
-            className="mt-3 btn-primary text-sm"
-            disabled={startingAuction}
+            className={`mt-3 ml-2 text-sm rounded-xl px-4 py-2 font-semibold transition ${
+              canInvokeAuction
+                ? "btn-primary"
+                : "bg-gray-300 text-gray-600 cursor-not-allowed"
+            }`}
+            disabled={!canInvokeAuction}
           >
-            {startingAuction ? "Starting..." : "Enable Reverse Auction"}
+            {startingAuction ? "Invoking..." : "Invoke Reverse Auction"}
           </button>
         )}
       </div>

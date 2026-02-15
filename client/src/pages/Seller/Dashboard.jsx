@@ -252,17 +252,46 @@ export default function SellerDashboard() {
   }
 
   function handleNotificationClick(notification) {
-    if (!notification || notification.type !== "new_message") return;
+    if (!notification) return;
 
-    const requirementId = notification.requirementId;
-    const buyerId = notification.fromUserId?._id || notification.fromUserId;
-    if (!requirementId || !buyerId) return;
+    if (notification.type === "new_message") {
+      const requirementId = notification.requirementId;
+      const buyerId = notification.fromUserId?._id || notification.fromUserId;
+      if (!requirementId || !buyerId) return;
 
-    openSellerChat({
-      buyerId,
-      buyerName: "Buyer",
-      requirementId
-    });
+      openSellerChat({
+        buyerId,
+        buyerName: "Buyer",
+        requirementId
+      });
+      return;
+    }
+
+    if (notification.type === "reverse_auction_invoked") {
+      const notificationReqId =
+        notification?.data?.requirementId || notification.requirementId;
+      if (!notificationReqId) return;
+      const existingRequirement = requirements.find(
+        (req) => String(req._id) === String(notificationReqId)
+      );
+      if (existingRequirement) {
+        setActiveRequirement(existingRequirement);
+        return;
+      }
+      setActiveRequirement({
+        _id: notificationReqId,
+        product:
+          notification?.data?.productName || "Product",
+        productName:
+          notification?.data?.productName || "Product",
+        reverseAuction: {
+          active: true,
+          lowestPrice: notification?.data?.lowestPrice ?? null
+        },
+        reverseAuctionActive: true,
+        currentLowestPrice: notification?.data?.lowestPrice ?? null
+      });
+    }
   }
 
   return (
@@ -480,7 +509,11 @@ export default function SellerDashboard() {
                     </div>
 
                     {isAuction && (
-                      <span className="text-xs px-2 py-1 rounded-full bg-red-100 text-red-700 font-medium">
+                      <span
+                        className={`text-xs px-2 py-1 rounded-full bg-red-100 text-red-700 font-medium ${
+                          req.myOffer ? "mr-10" : ""
+                        }`}
+                      >
                         AUCTION
                       </span>
                     )}

@@ -7,19 +7,19 @@ const Report = require("../models/Report");
 const PlatformSettings = require("../models/PlatformSettings");
 const AdminAuditLog = require("../models/AdminAuditLog");
 const adminAuth = require("../middleware/adminAuth");
+const {
+  buildOptionsResponse,
+  DEFAULT_CITIES,
+  DEFAULT_CATEGORIES,
+  DEFAULT_UNITS,
+  DEFAULT_CURRENCIES,
+  DEFAULT_NOTIFICATIONS,
+  DEFAULT_MODERATION_RULES,
+  DEFAULT_TERMS_CONTENT
+} = require("../config/platformDefaults");
 const router = require("express").Router();
 const jwt = require("jsonwebtoken");
 const Admin = require("../models/Admin");
-
-const DEFAULT_TERMS_CONTENT = [
-  "By using hoko, you agree to these Terms & Conditions.",
-  "hoko is a marketplace platform connecting buyers and sellers. You are responsible for all negotiations, pricing, delivery, and payments.",
-  "You must provide accurate information and use the platform responsibly. Impersonation, fraud, or misuse is strictly prohibited.",
-  "Abusive, hateful, or harassing language is not allowed in chat or messages. Violations may result in suspension or permanent removal from the platform.",
-  "Sellers must ensure their business details are truthful and buyers must post genuine requirements. Any abuse may result in account restrictions.",
-  "You are responsible for complying with all applicable laws, taxes, and regulations related to your transactions.",
-  "hoko may update these terms at any time. Continued use of the platform indicates acceptance of the updated terms."
-].join("\n\n");
 
 
 router.post("/login", async (req, res) => {
@@ -358,102 +358,38 @@ router.post("/requirement/chat-toggle", adminAuth, async (req, res) => {
  */
 router.get("/options", adminAuth, async (req, res) => {
   const doc = await PlatformSettings.findOne();
-  res.json(
-    doc || {
-      cities: ["Mumbai", "Delhi", "Bangalore", "Chennai", "Hyderabad", "Pune"],
-      categories: [
-        "Agriculture & Food Products",
-        "Raw Materials (metals, minerals, chemicals)",
-        "Consumer Electronics",
-        "Electrical & Electronic Components",
-        "Machinery & Industrial Equipment",
-        "Automotive Parts & Vehicles",
-        "Construction Materials & Tools",
-        "Furniture & Home Furnishings",
-        "Textiles, Apparel & Footwear",
-        "Fashion Accessories & Jewelry",
-        "Health, Medical & Pharmaceutical Products",
-        "Beauty & Personal Care Products",
-        "Household Goods & Appliances",
-        "Packaging Materials",
-        "Office Supplies & Stationery",
-        "Sports, Leisure & Toys",
-        "Gifts, Handicrafts & Promotional Items",
-        "Energy, Power & Fuels",
-        "Chemicals & Plastics",
-        "Environmental & Recycling Products",
-        "Manufacturing & Contract Production",
-        "Trading, Import & Export Services",
-        "Logistics, Transportation & Warehousing",
-        "Installation, Maintenance & Repair",
-        "Construction & Engineering Services",
-        "IT Services & Software Development",
-        "Digital Services (marketing, design, data)",
-        "Financial & Accounting Services",
-        "Legal & Compliance Services",
-        "Consulting & Business Advisory",
-        "Human Resources & Recruitment",
-        "Education & Training",
-        "Healthcare & Medical Services",
-        "Marketing, Advertising & Media",
-        "Research & Development (R&D)",
-        "Quality Inspection & Testing",
-        "Security & Facility Management",
-        "Travel, Hospitality & Event Services",
-        "Outsourcing & BPO Services",
-        "Environmental, Safety & Sustainability Services"
-      ],
-      units: ["pcs", "kg", "litre", "service"],
-      currencies: ["INR", "USD", "EUR", "GBP", "AED", "SGD", "AUD", "CAD", "JPY"],
-      notifications: {
-        enabled: true,
-        cities: [],
-        categories: []
-      },
-      moderationRules: {
-        enabled: true,
-        keywords: ["whatsapp", "call me", "direct deal"],
-        blockPhone: true,
-        blockLinks: true
-      },
-      termsAndConditions: {
-        content: DEFAULT_TERMS_CONTENT
-      }
-    }
-  );
+  res.json(buildOptionsResponse(doc));
 });
 
 /**
  * Update platform dropdown options
  */
 router.put("/options", adminAuth, async (req, res) => {
-  const {
-    cities = [],
-    categories = [],
-    units = [],
-    currencies = [],
-    notifications = {},
-    moderationRules = {},
-    termsAndConditions = {}
-  } = req.body || {};
+  const payload = req.body || {};
+  const current = await PlatformSettings.findOne().lean();
+
+  const next = {
+    cities: Array.isArray(payload.cities) ? payload.cities : (current?.cities || DEFAULT_CITIES),
+    categories: Array.isArray(payload.categories) ? payload.categories : (current?.categories || DEFAULT_CATEGORIES),
+    units: Array.isArray(payload.units) ? payload.units : (current?.units || DEFAULT_UNITS),
+    currencies: Array.isArray(payload.currencies) ? payload.currencies : (current?.currencies || DEFAULT_CURRENCIES),
+    notifications: payload.notifications || current?.notifications || DEFAULT_NOTIFICATIONS,
+    moderationRules: payload.moderationRules || current?.moderationRules || DEFAULT_MODERATION_RULES,
+    termsAndConditions: payload.termsAndConditions || current?.termsAndConditions || {
+      content: DEFAULT_TERMS_CONTENT
+    }
+  };
+
   const doc = await PlatformSettings.findOneAndUpdate(
     {},
-    {
-      cities,
-      categories,
-      units,
-      currencies,
-      notifications,
-      moderationRules,
-      termsAndConditions
-    },
+    next,
     { upsert: true, new: true }
   );
   await logAdminAction(req.admin, "update_options", "platform_settings", doc._id, {
-    cities: cities.length,
-    categories: categories.length,
-    units: units.length,
-    currencies: currencies.length
+    cities: next.cities.length,
+    categories: next.categories.length,
+    units: next.units.length,
+    currencies: next.currencies.length
   });
   res.json(doc);
 });

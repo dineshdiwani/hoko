@@ -25,6 +25,10 @@ const notificationSchema = new mongoose.Schema(
       ref: "User",
       default: null
     },
+    data: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null
+    },
     read: {
       type: Boolean,
       default: false

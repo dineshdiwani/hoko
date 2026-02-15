@@ -1,58 +1,19 @@
 const mongoose = require("mongoose");
 const PlatformSettings = require("../models/PlatformSettings");
+const {
+  DEFAULT_CITIES,
+  DEFAULT_CATEGORIES,
+  DEFAULT_UNITS,
+  DEFAULT_CURRENCIES,
+  mergeUnique
+} = require("../config/platformDefaults");
 
 const DEFAULTS = {
-  cities: ["Mumbai", "Delhi", "Bangalore", "Chennai", "Hyderabad", "Pune"],
-  categories: [
-    "Agriculture & Food Products",
-    "Raw Materials (metals, minerals, chemicals)",
-    "Consumer Electronics",
-    "Electrical & Electronic Components",
-    "Machinery & Industrial Equipment",
-    "Automotive Parts & Vehicles",
-    "Construction Materials & Tools",
-    "Furniture & Home Furnishings",
-    "Textiles, Apparel & Footwear",
-    "Fashion Accessories & Jewelry",
-    "Health, Medical & Pharmaceutical Products",
-    "Beauty & Personal Care Products",
-    "Household Goods & Appliances",
-    "Packaging Materials",
-    "Office Supplies & Stationery",
-    "Sports, Leisure & Toys",
-    "Gifts, Handicrafts & Promotional Items",
-    "Energy, Power & Fuels",
-    "Chemicals & Plastics",
-    "Environmental & Recycling Products",
-    "Manufacturing & Contract Production",
-    "Trading, Import & Export Services",
-    "Logistics, Transportation & Warehousing",
-    "Installation, Maintenance & Repair",
-    "Construction & Engineering Services",
-    "IT Services & Software Development",
-    "Digital Services (marketing, design, data)",
-    "Financial & Accounting Services",
-    "Legal & Compliance Services",
-    "Consulting & Business Advisory",
-    "Human Resources & Recruitment",
-    "Education & Training",
-    "Healthcare & Medical Services",
-    "Marketing, Advertising & Media",
-    "Research & Development (R&D)",
-    "Quality Inspection & Testing",
-    "Security & Facility Management",
-    "Travel, Hospitality & Event Services",
-    "Outsourcing & BPO Services",
-    "Environmental, Safety & Sustainability Services"
-  ],
-  units: ["pcs", "kg", "litre", "service"],
-  currencies: ["INR", "USD", "EUR", "GBP", "AED", "SGD", "AUD", "CAD", "JPY"]
+  cities: DEFAULT_CITIES,
+  categories: DEFAULT_CATEGORIES,
+  units: DEFAULT_UNITS,
+  currencies: DEFAULT_CURRENCIES
 };
-
-function mergeUnique(existing, defaults) {
-  const set = new Set([...(existing || []), ...(defaults || [])]);
-  return Array.from(set);
-}
 
 async function run() {
   const uri = process.env.MONGO_URI;
