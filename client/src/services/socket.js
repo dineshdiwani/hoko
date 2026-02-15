@@ -14,7 +14,7 @@ function resolveSocketUrl() {
   }
 
   if (import.meta.env.DEV) {
-    return "http://localhost:5000";
+    return "http://localhost:8080";
   }
 
   if (typeof window !== "undefined") {

@@ -8,13 +8,14 @@ function isAbsoluteHttpUrl(value) {
 function normalizeApiBaseUrl(value) {
   const base = String(value || "").trim();
   if (!base) return "/api";
-  if (base.endsWith("/api")) return base;
-  return `${base.replace(/\/+$/, "")}/api`;
+  const withoutTrailingSlash = base.replace(/\/+$/, "");
+  if (/\/api$/i.test(withoutTrailingSlash)) {
+    return withoutTrailingSlash;
+  }
+  return `${withoutTrailingSlash}/api`;
 }
 
-const fallbackApiUrl = import.meta.env.DEV
-  ? "http://localhost:5000/api"
-  : "/api";
+const fallbackApiUrl = "/api";
 
 const rawBaseUrl =
   import.meta.env.VITE_API_URL ||
