@@ -520,7 +520,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="page">
-      <div className="page-shell">
+      <div className="page-shell pt-20 md:pt-10">
         <div className="flex flex-col gap-4 md:flex-row md:justify-between md:items-center mb-6">
           <h1 className="page-hero">Admin Dashboard</h1>
 
