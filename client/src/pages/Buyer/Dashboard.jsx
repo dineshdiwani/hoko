@@ -247,7 +247,7 @@ export default function BuyerDashboard() {
         </div>
 
         {/* TABS */}
-        <div className="max-w-6xl mx-auto flex border-t">
+        <div className="max-w-6xl mx-auto flex border-t pl-16 md:pl-20">
           <button
             onClick={() => setActiveTab("posts")}
             className={`flex-1 py-3 text-sm font-semibold ${
