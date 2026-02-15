@@ -21,6 +21,11 @@ function generateOtp() {
 const OTP_TTL_MS =
   Number(process.env.OTP_TTL_MINUTES || 5) * 60 * 1000;
 const OTP_MAX_ATTEMPTS = Number(process.env.OTP_MAX_ATTEMPTS || 5);
+const DEFAULT_ROLES = {
+  buyer: true,
+  seller: false,
+  admin: false
+};
 
 let googleClient = null;
 let googleAuthInitError = null;
@@ -36,6 +41,15 @@ function getGoogleClient() {
     googleAuthInitError = err;
     return null;
   }
+}
+
+function ensureRoles(user) {
+  if (!user) return;
+  const current = user.roles && typeof user.roles === "object" ? user.roles : {};
+  user.roles = {
+    ...DEFAULT_ROLES,
+    ...current
+  };
 }
 
 /* -------- LOGIN (SEND OTP) -------- */
@@ -73,6 +87,7 @@ router.post("/login", otpSendLimiter, async (req, res) => {
       }
     });
   } else {
+    ensureRoles(user);
     if (!user.passwordHash) {
       return res.status(400).json({
         message: "Password not set. Use forgot password."
@@ -134,6 +149,7 @@ router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
   if (!user) {
     return res.status(404).json({ message: "User not found" });
   }
+  ensureRoles(user);
 
   if (!city && !user.city) {
     return res.status(400).json({ message: "City required" });
@@ -265,138 +281,144 @@ router.post("/reset-password", otpVerifyLimiter, async (req, res) => {
 
 /* -------- GOOGLE LOGIN -------- */
 router.post("/google", async (req, res) => {
-  const { credential, role, city, acceptTerms } = req.body || {};
-  if (!credential) {
-    return res.status(400).json({ message: "Missing credential" });
-  }
-
-  if (!process.env.GOOGLE_CLIENT_ID) {
-    return res
-      .status(500)
-      .json({ message: "Google login not configured" });
-  }
-
-  const client = getGoogleClient();
-  if (!client) {
-    return res.status(500).json({
-      message: "Google login temporarily unavailable"
-    });
-  }
-
-  let payload;
   try {
-    const ticket = await client.verifyIdToken({
-      idToken: credential,
-      audience: process.env.GOOGLE_CLIENT_ID
-    });
-    payload = ticket.getPayload();
-  } catch (err) {
-    console.error("Google token verify failed:", err?.message || err);
-    return res.status(401).json({
-      message: "Invalid Google token or client ID mismatch"
-    });
-  }
-
-  const email = normalizeEmail(payload?.email);
-  const name = payload?.name || "User";
-  const picture = payload?.picture || "";
-  const sub = payload?.sub || "";
-  const emailVerified = payload?.email_verified;
-  if (!email || !emailVerified) {
-    return res
-      .status(401)
-      .json({ message: "Unverified Google account" });
-  }
-
-  const normalizedRole = role === "seller" ? "seller" : "buyer";
-
-  let user = await User.findOne({ email });
-  if (!user) {
-    if (!city) {
-      return res.status(400).json({ message: "City required" });
+    const { credential, role, city, acceptTerms } = req.body || {};
+    if (!credential) {
+      return res.status(400).json({ message: "Missing credential" });
     }
-    if (normalizedRole === "seller") {
-      return res.status(403).json({
-        message: "Complete seller registration before Google login"
+
+    if (!process.env.GOOGLE_CLIENT_ID) {
+      return res
+        .status(500)
+        .json({ message: "Google login not configured" });
+    }
+
+    const client = getGoogleClient();
+    if (!client) {
+      return res.status(500).json({
+        message: "Google login temporarily unavailable"
       });
     }
-    if (!acceptTerms) {
-      return res.status(403).json({
-        message: "Terms required"
+
+    let payload;
+    try {
+      const ticket = await client.verifyIdToken({
+        idToken: credential,
+        audience: process.env.GOOGLE_CLIENT_ID
+      });
+      payload = ticket.getPayload();
+    } catch (err) {
+      console.error("Google token verify failed:", err?.message || err);
+      return res.status(401).json({
+        message: "Invalid Google token or client ID mismatch"
       });
     }
-    user = await User.create({
-      email,
-      city,
-      roles: {
-        buyer: true,
-        seller: false,
-        admin: false
-      },
-      termsAccepted: { at: new Date() },
-      googleProfile: {
-        sub,
-        name,
-        picture
+
+    const email = normalizeEmail(payload?.email);
+    const name = payload?.name || "User";
+    const picture = payload?.picture || "";
+    const sub = payload?.sub || "";
+    const emailVerified = payload?.email_verified;
+    if (!email || !emailVerified) {
+      return res
+        .status(401)
+        .json({ message: "Unverified Google account" });
+    }
+
+    const normalizedRole = role === "seller" ? "seller" : "buyer";
+
+    let user = await User.findOne({ email });
+    if (!user) {
+      if (!city) {
+        return res.status(400).json({ message: "City required" });
       }
-    });
-  } else {
-    if (!user.city && city) {
-      user.city = city;
-    } else if (city) {
-      user.city = city;
-    }
-    if (normalizedRole === "seller") {
-      const hasSellerProfile =
-        Boolean(user.roles?.seller) ||
-        Boolean(user.sellerProfile?.businessName) ||
-        Boolean(user.sellerProfile?.firmName) ||
-        Boolean(user.sellerProfile?.taxId);
-      if (!hasSellerProfile) {
+      if (normalizedRole === "seller") {
         return res.status(403).json({
           message: "Complete seller registration before Google login"
         });
       }
-      user.roles.seller = true;
-    } else {
-      if (!user.termsAccepted?.at && !acceptTerms) {
+      if (!acceptTerms) {
         return res.status(403).json({
           message: "Terms required"
         });
       }
-      user.roles.buyer = true;
+      user = await User.create({
+        email,
+        city,
+        roles: {
+          buyer: true,
+          seller: false,
+          admin: false
+        },
+        termsAccepted: { at: new Date() },
+        googleProfile: {
+          sub,
+          name,
+          picture
+        }
+      });
+    } else {
+      ensureRoles(user);
+      if (!user.city && city) {
+        user.city = city;
+      } else if (city) {
+        user.city = city;
+      }
+      if (normalizedRole === "seller") {
+        const hasSellerProfile =
+          Boolean(user.roles?.seller) ||
+          Boolean(user.sellerProfile?.businessName) ||
+          Boolean(user.sellerProfile?.firmName) ||
+          Boolean(user.sellerProfile?.taxId);
+        if (!hasSellerProfile) {
+          return res.status(403).json({
+            message: "Complete seller registration before Google login"
+          });
+        }
+        user.roles.seller = true;
+      } else {
+        if (!user.termsAccepted?.at && !acceptTerms) {
+          return res.status(403).json({
+            message: "Terms required"
+          });
+        }
+        user.roles.buyer = true;
+      }
+      if (!user.termsAccepted?.at && acceptTerms) {
+        user.termsAccepted = { at: new Date() };
+      }
+      user.googleProfile = {
+        sub,
+        name,
+        picture
+      };
+      await user.save();
     }
-    if (!user.termsAccepted?.at && acceptTerms) {
-      user.termsAccepted = { at: new Date() };
-    }
-    user.googleProfile = {
-      sub,
-      name,
-      picture
-    };
-    await user.save();
+
+    const token = jwt.sign(
+      { id: user._id, role: normalizedRole, tokenVersion: user.tokenVersion || 0 },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    res.json({
+      token,
+      user: {
+        _id: user._id,
+        email: user.email,
+        name,
+        picture,
+        role: normalizedRole,
+        roles: user.roles,
+        city: user.city,
+        preferredCurrency: user.preferredCurrency || "INR",
+        sellerProfile: user.sellerProfile
+      }
+    });
+  } catch (err) {
+    console.error("Google login unexpected error:", err?.stack || err?.message || err);
+    return res.status(500).json({ message: "Google login failed" });
   }
-
-  const token = jwt.sign(
-    { id: user._id, role: normalizedRole, tokenVersion: user.tokenVersion || 0 },
-    process.env.JWT_SECRET,
-    { expiresIn: "7d" }
-  );
-
-  res.json({
-    token,
-    user: {
-      _id: user._id,
-      email: user.email,
-      name,
-      picture,
-      role: normalizedRole,
-      roles: user.roles,
-      city: user.city,
-      preferredCurrency: user.preferredCurrency || "INR",
-      sellerProfile: user.sellerProfile
-    }
-  });
 });
 
 /* -------- SWITCH ROLE -------- */
