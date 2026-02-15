@@ -21,4 +21,18 @@ adminApi.interceptors.request.use((config) => {
   return config;
 });
 
+adminApi.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error?.response?.status;
+    if (status === 401) {
+      localStorage.removeItem("admin_token");
+      if (window.location.pathname !== "/admin/login") {
+        window.location.href = "/admin/login";
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default adminApi;

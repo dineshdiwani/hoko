@@ -44,6 +44,10 @@ function requireSeller() {
   return Boolean(session.roles?.seller);
 }
 
+function requireAdmin() {
+  return Boolean(localStorage.getItem("admin_token"));
+}
+
 function AppShell() {
   const location = useLocation();
   const showGlobalLogo = location.pathname !== "/";
@@ -186,12 +190,12 @@ function AppShell() {
 
         <Route
           path="/admin/dashboard"
-          element={<AdminDashboard />}
+          element={requireAdmin() ? <AdminDashboard /> : <Navigate to="/admin/login" replace />}
         />
 
         <Route
           path="/admin/analytics"
-          element={<AdminAnalytics />}
+          element={requireAdmin() ? <AdminAnalytics /> : <Navigate to="/admin/login" replace />}
         />
 
         {/* Fallback */}
