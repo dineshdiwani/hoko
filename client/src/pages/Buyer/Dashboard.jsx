@@ -5,6 +5,7 @@ import { updateSession, setSession } from "../../services/storage";
 import MyPosts from "./MyPosts";
 import CityDashboard from "../CityDashboard";
 import NotificationCenter from "../../components/NotificationCenter";
+import ChatModal from "../../components/ChatModal";
 import { fetchOptions } from "../../services/options";
 import api from "../../services/api";
 
@@ -27,6 +28,9 @@ export default function BuyerDashboard() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [switching, setSwitching] = useState(false);
   const [roleSyncing, setRoleSyncing] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatSeller, setChatSeller] = useState(null);
+  const [chatRequirementId, setChatRequirementId] = useState(null);
   const menuRef = useRef(null);
 
   // Safety guard
@@ -77,6 +81,21 @@ export default function BuyerDashboard() {
         handleClickOutside
       );
   }, []);
+
+  function handleNotificationClick(notification) {
+    if (!notification || notification.type !== "new_message") return;
+
+    const requirementId = notification.requirementId;
+    const sellerId = notification.fromUserId?._id || notification.fromUserId;
+    if (!requirementId || !sellerId) return;
+
+    setChatSeller({
+      id: String(sellerId),
+      name: "Seller"
+    });
+    setChatRequirementId(String(requirementId));
+    setChatOpen(true);
+  }
   // Persist city change
   useEffect(() => {
     if (!city || !session) return;
@@ -120,7 +139,7 @@ export default function BuyerDashboard() {
           </div>
 
           <div className="flex items-center gap-3">
-            <NotificationCenter />
+            <NotificationCenter onNotificationClick={handleNotificationClick} />
 
             <div className="relative" ref={menuRef}>
               <button
@@ -270,6 +289,14 @@ export default function BuyerDashboard() {
       >
         +
       </button>
+
+      <ChatModal
+        open={chatOpen}
+        onClose={() => setChatOpen(false)}
+        sellerId={chatSeller?.id}
+        sellerName={chatSeller?.name || "Seller"}
+        requirementId={chatRequirementId}
+      />
     </div>
   );
 }
