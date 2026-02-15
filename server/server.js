@@ -196,6 +196,24 @@ io.on("connection", (socket) => {
         tempId: tempId || null
       };
 
+      try {
+        const messagePreview = String(message || "").trim();
+        const shortened =
+          messagePreview.length > 120
+            ? `${messagePreview.slice(0, 117)}...`
+            : messagePreview;
+        const notif = await Notification.create({
+          userId: effectiveTo,
+          fromUserId: effectiveFrom,
+          requirementId: requirementId || null,
+          type: "new_message",
+          message: `New message: ${shortened || "Open chat to view message"}`
+        });
+        io.to(String(effectiveTo)).emit("notification", notif);
+      } catch (err) {
+        console.warn("Notification create failed:", err.message);
+      }
+
       io.to(String(effectiveTo)).emit("receive_message", payload);
 
       if (ackFn) {

@@ -15,6 +15,16 @@ const notificationSchema = new mongoose.Schema(
       type: String,
       default: "info"
     },
+    requirementId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Requirement",
+      default: null
+    },
+    fromUserId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null
+    },
     read: {
       type: Boolean,
       default: false
