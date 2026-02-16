@@ -60,7 +60,7 @@ function AppShell() {
       {showGlobalLogo && (
         <Link
           to="/"
-          className="fixed top-2 left-2 md:top-3 md:left-3 z-[70] flex items-center gap-2 rounded-full border border-white/80 bg-white/95 backdrop-blur p-1.5 md:p-2 shadow-lg"
+          className="fixed top-2 left-2 md:top-3 md:left-3 z-[70] flex items-center gap-2 rounded-full border border-white/80 bg-white/95 backdrop-blur p-0.5 md:p-1 shadow-lg"
           aria-label="Go to home"
         >
           <img
@@ -70,14 +70,14 @@ function AppShell() {
               e.currentTarget.onerror = null;
               e.currentTarget.src = `${import.meta.env.BASE_URL}logo.png`;
             }}
-            className="w-9 h-9 md:w-10 md:h-10 rounded-full object-contain"
+            className="w-11 h-11 md:w-12 md:h-12 rounded-full object-cover"
           />
           <span className="hidden 2xl:inline text-sm font-extrabold text-hoko-brand whitespace-nowrap">
             <span className="text-slate-900">h</span>oko
           </span>
         </Link>
       )}
-      <div className={showGlobalLogo ? "pl-14 md:pl-16" : ""}>
+      <div>
         <Routes>
         {/* Landing */}
         <Route path="/" element={<BuyerWelcome />} />
