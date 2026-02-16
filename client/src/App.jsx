@@ -3,8 +3,7 @@ import {
   Routes,
   Route,
   Navigate,
-  Link,
-  useLocation
+  Link
 } from "react-router-dom";
 
 import BuyerWelcome from "./pages/Buyer/welcome";
@@ -49,8 +48,7 @@ function requireAdmin() {
 }
 
 function AppShell() {
-  const location = useLocation();
-  const showGlobalLogo = location.pathname !== "/";
+  const showGlobalLogo = true;
 
   return (
     <>
@@ -59,15 +57,15 @@ function AppShell() {
       {showGlobalLogo && (
         <Link
           to="/"
-          className="fixed top-3 right-3 md:top-4 md:right-4 z-30 flex items-center gap-2 rounded-full border border-white/80 bg-white/95 backdrop-blur p-1.5 md:p-2 shadow-lg"
+          className="fixed top-3 right-3 md:top-4 md:right-4 z-[70] flex items-center gap-2 rounded-full border border-white/80 bg-white/95 backdrop-blur p-1.5 md:p-2 shadow-lg"
           aria-label="Go to home"
         >
           <img
             src="/logo.png"
             alt="hoko"
-            className="w-9 h-9 md:w-11 md:h-11 rounded-full object-contain"
+            className="w-9 h-9 md:w-10 md:h-10 rounded-full object-contain"
           />
-          <span className="hidden xl:inline text-sm font-extrabold text-hoko-brand whitespace-nowrap">
+          <span className="hidden 2xl:inline text-sm font-extrabold text-hoko-brand whitespace-nowrap">
             <span className="text-slate-900">h</span>oko
           </span>
         </Link>
