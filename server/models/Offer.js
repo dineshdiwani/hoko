@@ -35,6 +35,10 @@ const offerSchema = new mongoose.Schema(
       type: Boolean,
       default: false
     },
+    contactEnabledByBuyer: {
+      type: Boolean,
+      default: false
+    },
 
     declinedAuction: {
       type: Boolean,

@@ -30,14 +30,17 @@ export default function OfferList() {
           `/buyer/requirements/${id}/offers`
         );
         setRequirement(res.data.requirement);
-        setOffers(
-          res.data.offers.sort(
-            (a, b) => a.price - b.price
-          )
+        const nextOffers = (res.data.offers || []).sort(
+          (a, b) => a.price - b.price
+        );
+        setOffers(nextOffers);
+        setContactEnabled(
+          nextOffers.some((offer) => offer.contactEnabledByBuyer === true)
         );
       } catch (err) {
         setRequirement(null);
         setOffers([]);
+        setContactEnabled(false);
       } finally {
         setLoading(false);
       }
@@ -134,18 +137,23 @@ export default function OfferList() {
     requirement.product || requirement.productName || "Product";
   const bestOffer = offers[0];
   const auctionActive =
-    requirement.reverseAuction?.active ||
-    requirement.reverseAuctionActive;
+    requirement.reverseAuction?.active === true;
   const targetPrice =
     typeof requirement.reverseAuction?.targetPrice === "number"
       ? requirement.reverseAuction.targetPrice
       : null;
-  const canShowAuctionButton = offers.length >= 3;
-  const canInvokeAuction = canShowAuctionButton && !auctionActive && !startingAuction;
+  const hasMinimumOffers = offers.length >= 3;
+  const canInvokeAuction = hasMinimumOffers && !auctionActive && !startingAuction;
+  const canStopAuction = auctionActive && !startingAuction;
 
-  async function enableReverseAuction() {
-    if (!canInvokeAuction) return;
-    if (offers.length < 3) {
+  async function startReverseAuction() {
+    if (!canInvokeAuction) {
+      if (!hasMinimumOffers) {
+        alert("Reverse auction can be invoked only after 3 or more offers.");
+      }
+      return;
+    }
+    if (!hasMinimumOffers) {
       alert("Reverse auction can be invoked only after 3 or more offers.");
       return;
     }
@@ -165,6 +173,38 @@ export default function OfferList() {
     }
   }
 
+  async function stopReverseAuction() {
+    if (!canStopAuction) return;
+    try {
+      setStartingAuction(true);
+      const res = await api.post(
+        `/buyer/requirement/${id}/reverse-auction/stop`
+      );
+      setRequirement(res.data);
+    } catch (err) {
+      const message = err?.response?.data?.message;
+      alert(message || "Unable to stop reverse auction. Try again.");
+    } finally {
+      setStartingAuction(false);
+    }
+  }
+
+  async function enableContact() {
+    try {
+      await api.post(`/buyer/requirements/${id}/enable-contact`);
+      setContactEnabled(true);
+      setOffers((prev) =>
+        prev.map((offer) => ({
+          ...offer,
+          contactEnabledByBuyer: true
+        }))
+      );
+    } catch (err) {
+      const message = err?.response?.data?.message;
+      alert(message || "Unable to enable chat right now.");
+    }
+  }
+
   return (
     <div className="page">
       {/* ================= HEADER ================= */}
@@ -181,8 +221,7 @@ export default function OfferList() {
             Offers for {productName}
           </h1>
 
-        {(requirement.reverseAuction?.active ||
-          requirement.reverseAuctionActive) && (
+        {requirement.reverseAuction?.active === true && (
           <p className="text-sm text-red-600 mt-1">
             Reverse auction live
             {typeof targetPrice === "number"
@@ -190,19 +229,33 @@ export default function OfferList() {
               : ""}
           </p>
         )}
-        {canShowAuctionButton && (
-          <button
-            onClick={enableReverseAuction}
-            className={`mt-3 ml-2 text-sm rounded-xl px-4 py-2 font-semibold transition ${
-              canInvokeAuction
-                ? "btn-primary"
+        <button
+          onClick={
+            auctionActive
+              ? stopReverseAuction
+              : startReverseAuction
+          }
+          className={`mt-3 ml-2 text-sm rounded-xl px-4 py-2 font-semibold transition ${
+            auctionActive
+              ? canStopAuction
+                ? "bg-red-600 text-white"
                 : "bg-gray-300 text-gray-600 cursor-not-allowed"
-            }`}
-            disabled={!canInvokeAuction}
-          >
-            {startingAuction ? "Invoking..." : "Invoke Reverse Auction"}
-          </button>
-        )}
+              : canInvokeAuction
+              ? "btn-primary"
+              : "bg-gray-300 text-gray-600 cursor-not-allowed"
+          }`}
+          disabled={
+            auctionActive ? !canStopAuction : !canInvokeAuction
+          }
+        >
+          {startingAuction
+            ? auctionActive
+              ? "Stopping..."
+              : "Invoking..."
+            : auctionActive
+            ? "Stop Reverse Auction"
+            : "Invoke Reverse Auction"}
+        </button>
       </div>
       </div>
 
@@ -278,7 +331,8 @@ export default function OfferList() {
 
               {/* CTA icons */}
               <div className="flex gap-4 mt-4">
-                {offer.sellerId && contactEnabled && (
+                {offer.sellerId &&
+                  (contactEnabled || offer.contactEnabledByBuyer) && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -292,13 +346,13 @@ export default function OfferList() {
                   >
                     Chat
                   </button>
-                )}
+                  )}
 
                 {!contactEnabled && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      setContactEnabled(true);
+                      enableContact();
                     }}
                     className="flex-1 text-center py-3 btn-primary rounded-xl font-semibold"
                   >

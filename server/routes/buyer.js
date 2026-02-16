@@ -468,6 +468,7 @@ router.get("/requirements/:id/offers", auth, buyerOnly, async (req, res) => {
     deliveryTime: offer.deliveryTime || "",
     paymentTerms: offer.paymentTerms || "",
     viewedByBuyer: offer.viewedByBuyer || false,
+    contactEnabledByBuyer: offer.contactEnabledByBuyer === true,
     sellerId: offer.sellerId?._id,
     sellerFirm:
       offer.sellerId?.sellerProfile?.firmName ||
@@ -492,6 +493,34 @@ router.post("/offers/:offerId/view", auth, buyerOnly, async (req, res) => {
     return res.status(404).json({ message: "Offer not found" });
   }
   res.json({ success: true });
+});
+
+/**
+ * Enable contact for a requirement (buyer controlled)
+ */
+router.post("/requirements/:id/enable-contact", auth, buyerOnly, async (req, res) => {
+  const requirement = await Requirement.findById(req.params.id);
+  if (!requirement) {
+    return res.status(404).json({ message: "Requirement not found" });
+  }
+  if (String(requirement.buyerId) !== String(req.user._id)) {
+    return res.status(403).json({ message: "Not allowed" });
+  }
+
+  const result = await Offer.updateMany(
+    {
+      requirementId: requirement._id,
+      "moderation.removed": { $ne: true }
+    },
+    {
+      $set: { contactEnabledByBuyer: true }
+    }
+  );
+
+  res.json({
+    success: true,
+    updated: result.modifiedCount || 0
+  });
 });
 
 /**

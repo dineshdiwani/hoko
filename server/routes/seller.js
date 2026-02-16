@@ -10,19 +10,19 @@ const sellerOnly = require("../middleware/sellerOnly");
 const sendPush = require("../utils/sendPush");
 const { getModerationRules, checkTextForFlags } = require("../utils/moderation");
 
-function mapRequirementForSeller(requirementDoc, offerSet) {
+function mapRequirementForSeller(requirementDoc, offerMap) {
   if (!requirementDoc) return null;
   const data = requirementDoc.toObject();
+  const reqId = String(requirementDoc._id);
+  const sellerOffer = offerMap.get(reqId) || null;
   data.product = data.product || data.productName;
-  data.reverseAuctionActive =
-    data.reverseAuctionActive ||
-    data.reverseAuction?.active ||
-    false;
+  data.reverseAuctionActive = data.reverseAuction?.active === true;
   data.currentLowestPrice =
     typeof data.currentLowestPrice === "number"
       ? data.currentLowestPrice
       : data.reverseAuction?.lowestPrice ?? null;
-  data.myOffer = offerSet.has(String(requirementDoc._id));
+  data.myOffer = Boolean(sellerOffer);
+  data.contactEnabledByBuyer = sellerOffer?.contactEnabledByBuyer === true;
   data.buyerId = data.buyerId;
   return data;
 }
@@ -195,8 +195,7 @@ router.post("/offer", auth, sellerOnly, async (req, res) => {
 
     const requirement = await Requirement.findById(requirementId);
     if (requirement) {
-      const auctionWasActive =
-        requirement.reverseAuction?.active || requirement.reverseAuctionActive;
+      const auctionWasActive = requirement.reverseAuction?.active === true;
       const nextLowest =
         typeof requirement.currentLowestPrice === "number"
           ? Math.min(requirement.currentLowestPrice, price)
@@ -298,12 +297,14 @@ router.get("/requirement/:requirementId", auth, sellerOnly, async (req, res) => 
   const sellerOffer = await Offer.findOne({
     requirementId: requirement._id,
     sellerId: req.user._id
-  }).select("requirementId");
-  const offerSet = new Set(
-    sellerOffer ? [String(sellerOffer.requirementId)] : []
+  }).select("requirementId contactEnabledByBuyer");
+  const offerMap = new Map(
+    sellerOffer
+      ? [[String(sellerOffer.requirementId), sellerOffer]]
+      : []
   );
 
-  return res.json(mapRequirementForSeller(requirement, offerSet));
+  return res.json(mapRequirementForSeller(requirement, offerMap));
 });
 
 /**
@@ -338,13 +339,13 @@ router.get("/dashboard", auth, sellerOnly, async (req, res) => {
   const offers = await Offer.find({
     sellerId: req.user._id,
     requirementId: { $in: requirementIds }
-  }).select("requirementId");
-  const offerSet = new Set(
-    offers.map((o) => String(o.requirementId))
+  }).select("requirementId contactEnabledByBuyer");
+  const offerMap = new Map(
+    offers.map((offer) => [String(offer.requirementId), offer])
   );
 
   const mapped = requirements.map((req) =>
-    mapRequirementForSeller(req, offerSet)
+    mapRequirementForSeller(req, offerMap)
   );
 
   res.json(mapped);

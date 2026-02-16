@@ -76,7 +76,7 @@ export default function SellerDashboard() {
     if (activeSmartTab === "today") return isToday(createdAt);
     if (activeSmartTab === "offers") return !!req.myOffer;
     if (activeSmartTab === "auctions") {
-      return !!(req.reverseAuction?.active || req.reverseAuctionActive);
+      return req.reverseAuction?.active === true;
     }
     return true;
   };
@@ -264,7 +264,7 @@ export default function SellerDashboard() {
   });
 
   const liveAuctions = filteredRequirements.filter(
-    (req) => req.reverseAuction?.active || req.reverseAuctionActive
+    (req) => req.reverseAuction?.active === true
   ).length;
   const categoryFilterOptions = (
     categories.length ? categories : dashboardCategories
@@ -602,7 +602,7 @@ export default function SellerDashboard() {
 
           <div className="space-y-4">
             {filteredRequirements.map((req) => {
-              const isAuction = req.reverseAuction?.active || req.reverseAuctionActive;
+              const isAuction = req.reverseAuction?.active === true;
               const lowestPrice = req.reverseAuction?.lowestPrice ?? req.currentLowestPrice ?? "-";
 
               return (
@@ -658,7 +658,7 @@ export default function SellerDashboard() {
                     {req.myOffer ? "Submitted Offer / Edit Offer" : "Submit Offer"}
                   </button>
 
-                  {req.myOffer && req.buyerId && (
+                  {req.myOffer && req.buyerId && req.contactEnabledByBuyer && (
                     <>
                     <button
                       onClick={() =>
@@ -701,6 +701,12 @@ export default function SellerDashboard() {
                       </button>
                     </div>
                     </>
+                  )}
+
+                  {req.myOffer && req.buyerId && !req.contactEnabledByBuyer && (
+                    <p className="mt-3 text-xs text-[var(--ui-muted)]">
+                      Buyer has not enabled chat for this post yet.
+                    </p>
                   )}
                 </div>
               );
