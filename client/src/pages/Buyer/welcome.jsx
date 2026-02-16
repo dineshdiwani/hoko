@@ -216,7 +216,7 @@ export default function BuyerWelcome() {
               <div className="mf-pill">Verified sellers</div>
               <div className="mf-pill">Zero spam</div>
             </div>
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="hidden md:grid gap-4 sm:grid-cols-3">
               <div className="mf-stat">
                 <p className="mf-stat-value">2x</p>
                 <p className="mf-stat-label">Faster sourcing</p>
@@ -295,6 +295,21 @@ export default function BuyerWelcome() {
             <p className="mt-4 text-xs text-slate-500">
               No spam. No obligation. 100% free for buyers.
             </p>
+
+            <div className="grid md:hidden gap-3 grid-cols-3 mt-4">
+              <div className="mf-stat">
+                <p className="mf-stat-value">2x</p>
+                <p className="mf-stat-label">Faster sourcing</p>
+              </div>
+              <div className="mf-stat">
+                <p className="mf-stat-value">100%</p>
+                <p className="mf-stat-label">Buyer free</p>
+              </div>
+              <div className="mf-stat">
+                <p className="mf-stat-value">24/7</p>
+                <p className="mf-stat-label">Active offers</p>
+              </div>
+            </div>
           </div>
         </section>
 
