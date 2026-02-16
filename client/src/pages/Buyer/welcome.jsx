@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getSession, setSession } from "../../services/storage";
 import api from "../../services/api";
@@ -9,6 +9,7 @@ export default function BuyerWelcome() {
   const [text, setText] = useState("");
   const [listening, setListening] = useState(false);
   const [speechStatus, setSpeechStatus] = useState("");
+  const recognitionRef = useRef(null);
   const navigate = useNavigate();
   const session = getSession();
   const isLoggedIn = Boolean(session?.token);
@@ -35,7 +36,12 @@ export default function BuyerWelcome() {
       alert("Speech recognition is not supported in this browser.");
       return;
     }
+    if (listening && recognitionRef.current) {
+      recognitionRef.current.stop();
+      return;
+    }
     const recognition = new SpeechRecognition();
+    recognitionRef.current = recognition;
     recognition.lang = "en-IN";
     recognition.interimResults = false;
     recognition.continuous = false;
@@ -44,20 +50,26 @@ export default function BuyerWelcome() {
       setListening(true);
       setSpeechStatus("Listening...");
     };
-    recognition.onerror = () => {
+    recognition.onerror = (event) => {
       setListening(false);
-      setSpeechStatus("Voice input failed. Try again.");
+      const code = String(event?.error || "");
+      if (code === "not-allowed" || code === "service-not-allowed") {
+        setSpeechStatus("Mic permission denied. Allow microphone access.");
+      } else if (code === "no-speech") {
+        setSpeechStatus("No speech detected. Try again.");
+      } else {
+        setSpeechStatus("Voice input failed. Try again.");
+      }
     };
     recognition.onend = () => {
       setListening(false);
+      recognitionRef.current = null;
       setTimeout(() => setSpeechStatus(""), 1500);
     };
     recognition.onresult = (event) => {
       let transcript = "";
       for (let i = event.resultIndex; i < event.results.length; i += 1) {
-        if (event.results[i].isFinal) {
-          transcript += event.results[i][0].transcript;
-        }
+        transcript += event.results[i][0].transcript || "";
       }
       if (transcript.trim()) {
         setText((prev) => `${prev}${prev ? " " : ""}${transcript}`.trim());
@@ -65,7 +77,13 @@ export default function BuyerWelcome() {
       }
     };
 
-    recognition.start();
+    try {
+      recognition.start();
+    } catch {
+      setListening(false);
+      recognitionRef.current = null;
+      setSpeechStatus("Mic could not start. Please try again.");
+    }
   };
 
   return (
