@@ -3,6 +3,8 @@ const multer = require("multer");
 const XLSX = require("xlsx");
 const bcrypt = require("bcryptjs");
 const rateLimit = require("express-rate-limit");
+const fs = require("fs");
+const path = require("path");
 const User = require("../models/User");
 const Requirement = require("../models/Requirement");
 const Offer = require("../models/Offer");
@@ -34,6 +36,8 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 }
 });
+const WHATSAPP_UPLOAD_DIR = path.join(process.cwd(), "uploads", "admin");
+const WHATSAPP_UPLOAD_META_PATH = path.join(WHATSAPP_UPLOAD_DIR, "whatsapp-contacts-latest.json");
 
 function normalizeText(value) {
   return String(value || "").trim().toLowerCase();
@@ -41,6 +45,39 @@ function normalizeText(value) {
 
 function toDigits(value) {
   return String(value || "").replace(/\D/g, "");
+}
+
+function getSafeUploadExt(originalName = "") {
+  const ext = String(path.extname(originalName || "")).toLowerCase();
+  return ext === ".xls" || ext === ".xlsx" ? ext : ".xlsx";
+}
+
+async function saveLatestWhatsAppUpload(file) {
+  const ext = getSafeUploadExt(file?.originalname);
+  const filename = `whatsapp-contacts-latest${ext}`;
+  await fs.promises.mkdir(WHATSAPP_UPLOAD_DIR, { recursive: true });
+  const absolutePath = path.join(WHATSAPP_UPLOAD_DIR, filename);
+  await fs.promises.writeFile(absolutePath, file.buffer);
+  const metadata = {
+    filename,
+    originalName: String(file?.originalname || filename),
+    mimeType: String(file?.mimetype || "application/octet-stream"),
+    size: Number(file?.size || file?.buffer?.length || 0),
+    uploadedAt: new Date().toISOString()
+  };
+  await fs.promises.writeFile(WHATSAPP_UPLOAD_META_PATH, JSON.stringify(metadata, null, 2), "utf8");
+  return metadata;
+}
+
+async function readLatestWhatsAppUploadMeta() {
+  try {
+    const raw = await fs.promises.readFile(WHATSAPP_UPLOAD_META_PATH, "utf8");
+    const parsed = JSON.parse(raw);
+    if (!parsed?.filename) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
 }
 
 function parseWhatsAppContactsFromWorkbook(buffer) {
@@ -878,7 +915,7 @@ router.get("/whatsapp/contacts", adminAuth, requireAdminPermission("campaigns.re
 });
 
 router.get("/whatsapp/contacts/summary", adminAuth, requireAdminPermission("campaigns.read"), async (req, res) => {
-  const [total, cityRows, complianceRows] = await Promise.all([
+  const [total, cityRows, complianceRows, latestContact, uploadMeta] = await Promise.all([
     WhatsAppContact.countDocuments({ active: true }),
     WhatsAppContact.aggregate([
       { $match: { active: true } },
@@ -901,17 +938,48 @@ router.get("/whatsapp/contacts/summary", adminAuth, requireAdminPermission("camp
           }
         }
       }
-    ])
+    ]),
+    WhatsAppContact.findOne({ active: true }).sort({ updatedAt: -1 }).select("updatedAt").lean(),
+    readLatestWhatsAppUploadMeta()
   ]);
   const compliance = complianceRows[0] || { optedIn: 0, unsubscribed: 0, dnd: 0 };
+  const uploadFile = uploadMeta
+    ? {
+        originalName: uploadMeta.originalName,
+        size: uploadMeta.size,
+        uploadedAt: uploadMeta.uploadedAt,
+        downloadPath: "/admin/whatsapp/contacts/uploaded-file"
+      }
+    : null;
   res.json({
     total,
     compliance,
+    lastUpdatedAt: latestContact?.updatedAt || null,
+    uploadFile,
     cities: cityRows.map((row) => ({
       city: row._id,
       count: row.count
     }))
   });
+});
+
+router.get("/whatsapp/contacts/uploaded-file", adminAuth, requireAdminPermission("campaigns.read"), async (req, res) => {
+  const uploadMeta = await readLatestWhatsAppUploadMeta();
+  if (!uploadMeta?.filename) {
+    return res.status(404).json({ message: "No uploaded file found" });
+  }
+
+  const absolutePath = path.join(WHATSAPP_UPLOAD_DIR, uploadMeta.filename);
+  try {
+    await fs.promises.access(absolutePath, fs.constants.R_OK);
+  } catch {
+    return res.status(404).json({ message: "Uploaded file is missing on server" });
+  }
+
+  const safeName = String(uploadMeta.originalName || uploadMeta.filename).replace(/["\r\n]/g, "_");
+  res.setHeader("Content-Type", uploadMeta.mimeType || "application/octet-stream");
+  res.setHeader("Content-Disposition", `attachment; filename="${safeName}"`);
+  return res.sendFile(absolutePath);
 });
 
 router.delete("/whatsapp/contacts/:id", adminAuth, requireAdminPermission("campaigns.manage"), async (req, res) => {
@@ -1082,6 +1150,13 @@ router.post(
     let inserted = 0;
     let updated = 0;
     const errors = [];
+    let uploadFile = null;
+
+    try {
+      uploadFile = await saveLatestWhatsAppUpload(req.file);
+    } catch (err) {
+      console.warn("Failed to save uploaded WhatsApp file:", err?.message || err);
+    }
 
     for (const contact of parsedContacts) {
       try {
@@ -1116,6 +1191,14 @@ router.post(
       inserted,
       updated,
       failed: errors.length,
+      uploadFile: uploadFile
+        ? {
+            originalName: uploadFile.originalName,
+            size: uploadFile.size,
+            uploadedAt: uploadFile.uploadedAt,
+            downloadPath: "/admin/whatsapp/contacts/uploaded-file"
+          }
+        : null,
       errors: errors.slice(0, 30)
     });
   }

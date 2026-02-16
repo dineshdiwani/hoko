@@ -53,9 +53,12 @@ export default function AdminDashboard() {
   const [notificationFile, setNotificationFile] = useState(null);
   const [whatsAppSummary, setWhatsAppSummary] = useState({
     total: 0,
-    cities: []
+    cities: [],
+    lastUpdatedAt: null,
+    uploadFile: null
   });
   const [uploadingWhatsApp, setUploadingWhatsApp] = useState(false);
+  const [downloadingWhatsAppFile, setDownloadingWhatsAppFile] = useState(false);
   const [citiesText, setCitiesText] = useState("");
   const [categoriesText, setCategoriesText] = useState("");
   const [unitsText, setUnitsText] = useState("");
@@ -74,6 +77,19 @@ export default function AdminDashboard() {
       .split(/[\n,;]+/)
       .map((s) => s.trim())
       .filter(Boolean);
+
+  const formatDateTime = (value) => {
+    if (!value) return "N/A";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "N/A";
+    return date.toLocaleString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+  };
 
   const loadDashboardData = useCallback(async () => {
     const endpoints = [
@@ -144,7 +160,14 @@ export default function AdminDashboard() {
       setUnitsText(nextUnits.join(", "));
       setCurrenciesText(nextCurrencies.join(", "));
     }
-    setWhatsAppSummary(responseMap.whatsAppSummary || { total: 0, cities: [] });
+    setWhatsAppSummary(
+      responseMap.whatsAppSummary || {
+        total: 0,
+        cities: [],
+        lastUpdatedAt: null,
+        uploadFile: null
+      }
+    );
     setCampaignRuns(Array.isArray(responseMap.campaignRuns) ? responseMap.campaignRuns : []);
     setContacts(Array.isArray(responseMap.contacts) ? responseMap.contacts : []);
     setModerationQueue(
@@ -452,6 +475,41 @@ export default function AdminDashboard() {
     }
   };
 
+  const downloadWhatsAppUploadedFile = async () => {
+    try {
+      setDownloadingWhatsAppFile(true);
+      const res = await api.get("/admin/whatsapp/contacts/uploaded-file", {
+        responseType: "blob"
+      });
+      const disposition = String(res.headers?.["content-disposition"] || "");
+      const match = disposition.match(/filename="([^"]+)"/i);
+      const fileName = match?.[1] || "whatsapp-contacts.xlsx";
+      const blobUrl = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.setAttribute("download", fileName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      let message = "Failed to download uploaded file";
+      const raw = err?.response?.data;
+      if (raw instanceof Blob) {
+        try {
+          const text = await raw.text();
+          const parsed = JSON.parse(text);
+          if (parsed?.message) message = parsed.message;
+        } catch {}
+      } else if (raw?.message) {
+        message = raw.message;
+      }
+      alert(message);
+    } finally {
+      setDownloadingWhatsAppFile(false);
+    }
+  };
+
   const toggleOptionNotificationCity = (city) => {
     setOptions((prev) => {
       const current = prev.notifications?.cities || [];
@@ -690,6 +748,22 @@ export default function AdminDashboard() {
             >
               {uploadingWhatsApp ? "Uploading..." : "Upload Excel Contacts"}
             </button>
+            <div className="text-xs text-gray-600 space-y-1">
+              <p>
+                Last updated on:{" "}
+                <span className="font-medium">
+                  {formatDateTime(whatsAppSummary?.lastUpdatedAt || whatsAppSummary?.uploadFile?.uploadedAt)}
+                </span>
+              </p>
+              <button
+                type="button"
+                onClick={downloadWhatsAppUploadedFile}
+                disabled={!whatsAppSummary?.uploadFile || downloadingWhatsAppFile}
+                className="underline text-blue-700 disabled:text-gray-400 disabled:no-underline"
+              >
+                {downloadingWhatsAppFile ? "Downloading..." : "Download last uploaded file"}
+              </button>
+            </div>
           </div>
         </div>
 
