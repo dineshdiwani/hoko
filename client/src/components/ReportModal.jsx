@@ -55,7 +55,7 @@ export default function ReportModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex justify-center items-center">
+    <div className="fixed inset-0 z-[100] bg-black/50 flex justify-center items-center p-4">
       <div className="bg-white p-5 rounded-2xl w-96 max-w-[90vw] max-h-[90vh] overflow-y-auto shadow-xl">
         <h2 className="font-bold mb-2">Report Abuse</h2>
         <p className="text-xs text-gray-500 mb-4">
