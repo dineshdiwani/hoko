@@ -770,119 +770,168 @@ export default function AdminDashboard() {
         <div className="mt-8">
           <h2 className="text-lg font-bold mb-3">Notification Controls</h2>
           <div className="bg-white border rounded-2xl p-3 space-y-4">
-            <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input
-                type="checkbox"
-                checked={options.notifications?.enabled ?? true}
-                onChange={(e) =>
-                  setOptions((prev) => ({
-                    ...prev,
-                    notifications: {
-                      ...prev.notifications,
-                      enabled: e.target.checked
-                    }
-                  }))
-                }
-              />
-              Enable Notifications
-            </label>
-
-            <div>
-              <p className="text-sm text-gray-600 mb-2">Cities</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {(options.cities || []).map((city) => (
-                  <label
-                    key={city}
-                    className="flex items-center gap-2 text-xs text-gray-700 border rounded-lg px-3 py-2"
-                  >
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="border rounded-xl p-3 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-800">In-App Notifications</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Controls generic app notifications to users.
+                    </p>
+                  </div>
+                  <label className="flex items-center gap-2 text-xs text-gray-700">
                     <input
                       type="checkbox"
-                      checked={(options.notifications?.cities || []).includes(city)}
-                      onChange={() => toggleOptionNotificationCity(city)}
+                      checked={options.notifications?.enabled ?? true}
+                      onChange={(e) =>
+                        setOptions((prev) => ({
+                          ...prev,
+                          notifications: {
+                            ...prev.notifications,
+                            enabled: e.target.checked
+                          }
+                        }))
+                      }
                     />
-                    {city}
+                    Enabled
                   </label>
-                ))}
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs font-semibold text-gray-600">Cities</p>
+                    <p className="text-[11px] text-gray-500">
+                      Selected {(options.notifications?.cities || []).length}/{(options.cities || []).length}
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-48 overflow-auto pr-1">
+                    {(options.cities || []).map((city) => (
+                      <label
+                        key={city}
+                        className="flex items-center gap-2 text-xs text-gray-700 border rounded-lg px-3 py-2"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={(options.notifications?.cities || []).includes(city)}
+                          onChange={() => toggleOptionNotificationCity(city)}
+                        />
+                        {city}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs font-semibold text-gray-600">Categories</p>
+                    <p className="text-[11px] text-gray-500">
+                      Selected {(options.notifications?.categories || []).length}/{(options.categories || []).length}
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-48 overflow-auto pr-1">
+                    {(options.categories || []).map((cat) => (
+                      <label
+                        key={cat}
+                        className="flex items-center gap-2 text-xs text-gray-700 border rounded-lg px-3 py-2"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={(options.notifications?.categories || []).includes(cat)}
+                          onChange={() => toggleOptionNotificationCategory(cat)}
+                        />
+                        {cat}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="border rounded-xl p-3 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-800">WhatsApp Auto Campaign</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Sends campaign when buyers post, filtered by city/category.
+                    </p>
+                  </div>
+                  <label className="flex items-center gap-2 text-xs text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={options.whatsAppCampaign?.enabled ?? false}
+                      onChange={(e) =>
+                        setOptions((prev) => ({
+                          ...prev,
+                          whatsAppCampaign: {
+                            ...prev.whatsAppCampaign,
+                            enabled: e.target.checked
+                          }
+                        }))
+                      }
+                    />
+                    Enabled
+                  </label>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs font-semibold text-gray-600">Cities</p>
+                    <p className="text-[11px] text-gray-500">
+                      Selected {(options.whatsAppCampaign?.cities || []).length}/{(options.cities || []).length}
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-48 overflow-auto pr-1">
+                    {(options.cities || []).map((city) => (
+                      <label
+                        key={`wa-${city}`}
+                        className="flex items-center gap-2 text-xs text-gray-700 border rounded-lg px-3 py-2"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={(options.whatsAppCampaign?.cities || []).includes(city)}
+                          onChange={() => toggleWhatsAppCity(city)}
+                        />
+                        {city}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs font-semibold text-gray-600">Categories</p>
+                    <p className="text-[11px] text-gray-500">
+                      Selected {(options.whatsAppCampaign?.categories || []).length}/{(options.categories || []).length}
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-48 overflow-auto pr-1">
+                    {(options.categories || []).map((cat) => (
+                      <label
+                        key={`wa-cat-${cat}`}
+                        className="flex items-center gap-2 text-xs text-gray-700 border rounded-lg px-3 py-2"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={(options.whatsAppCampaign?.categories || []).includes(cat)}
+                          onChange={() => toggleWhatsAppCategory(cat)}
+                        />
+                        {cat}
+                      </label>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div>
-              <p className="text-sm text-gray-600 mb-2">Categories</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {(options.categories || []).map((cat) => (
-                  <label
-                    key={cat}
-                    className="flex items-center gap-2 text-xs text-gray-700 border rounded-lg px-3 py-2"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={(options.notifications?.categories || []).includes(cat)}
-                      onChange={() => toggleOptionNotificationCategory(cat)}
-                    />
-                    {cat}
-                  </label>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-8">
-          <h2 className="text-lg font-bold mb-3">WhatsApp Campaign Controls</h2>
-          <div className="bg-white border rounded-2xl p-3 space-y-4">
-            <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input
-                type="checkbox"
-                checked={options.whatsAppCampaign?.enabled ?? false}
-                onChange={(e) =>
-                  setOptions((prev) => ({
-                    ...prev,
-                    whatsAppCampaign: {
-                      ...prev.whatsAppCampaign,
-                      enabled: e.target.checked
-                    }
-                  }))
-                }
-              />
-              Enable WhatsApp campaign when buyer posts
-            </label>
-
-            <div>
-              <p className="text-sm text-gray-600 mb-2">Cities</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {(options.cities || []).map((city) => (
-                  <label
-                    key={`wa-${city}`}
-                    className="flex items-center gap-2 text-xs text-gray-700 border rounded-lg px-3 py-2"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={(options.whatsAppCampaign?.cities || []).includes(city)}
-                      onChange={() => toggleWhatsAppCity(city)}
-                    />
-                    {city}
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <p className="text-sm text-gray-600 mb-2">Categories</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {(options.categories || []).map((cat) => (
-                  <label
-                    key={`wa-cat-${cat}`}
-                    className="flex items-center gap-2 text-xs text-gray-700 border rounded-lg px-3 py-2"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={(options.whatsAppCampaign?.categories || []).includes(cat)}
-                      onChange={() => toggleWhatsAppCategory(cat)}
-                    />
-                    {cat}
-                  </label>
-                ))}
-              </div>
+            <div className="flex items-center justify-between gap-3 border rounded-xl p-3 bg-gray-50">
+              <p className="text-xs text-gray-600">
+                Save these settings to apply notification and WhatsApp targeting rules platform-wide.
+              </p>
+              <button
+                onClick={saveOptions}
+                className="btn-primary w-auto px-3 py-2 text-sm rounded-lg"
+              >
+                Save Notification Settings
+              </button>
             </div>
           </div>
         </div>
