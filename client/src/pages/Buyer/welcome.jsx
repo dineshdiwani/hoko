@@ -4,7 +4,7 @@ import { getSession, setSession } from "../../services/storage";
 import api from "../../services/api";
 
 export default function BuyerWelcome() {
-  const logoSrc = `${import.meta.env.BASE_URL}logo.png`;
+  const logoSrc = "/logo.png";
   const [text, setText] = useState("");
   const [listening, setListening] = useState(false);
   const [speechStatus, setSpeechStatus] = useState("");
@@ -75,6 +75,10 @@ export default function BuyerWelcome() {
             <img
               src={logoSrc}
               alt="hoko"
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = `${import.meta.env.BASE_URL}logo.png`;
+              }}
               className="w-[4.2rem] h-[4.2rem] rounded-full object-contain mf-logo-enter"
             />
             <div>

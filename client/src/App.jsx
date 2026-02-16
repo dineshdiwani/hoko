@@ -51,7 +51,7 @@ function requireAdmin() {
 function AppShell() {
   const location = useLocation();
   const showGlobalLogo = location.pathname !== "/";
-  const logoSrc = `${import.meta.env.BASE_URL}logo.png`;
+  const logoSrc = "/logo.png";
 
   return (
     <>
@@ -66,6 +66,10 @@ function AppShell() {
           <img
             src={logoSrc}
             alt="hoko"
+            onError={(e) => {
+              e.currentTarget.onerror = null;
+              e.currentTarget.src = `${import.meta.env.BASE_URL}logo.png`;
+            }}
             className="w-9 h-9 md:w-10 md:h-10 rounded-full object-contain"
           />
           <span className="hidden 2xl:inline text-sm font-extrabold text-hoko-brand whitespace-nowrap">
@@ -73,8 +77,8 @@ function AppShell() {
           </span>
         </Link>
       )}
-      <div className={showGlobalLogo ? "pl-14 pt-14 md:pl-16 md:pt-16" : ""}>
-      <Routes>
+      <div className={showGlobalLogo ? "pl-14 md:pl-16" : ""}>
+        <Routes>
         {/* Landing */}
         <Route path="/" element={<BuyerWelcome />} />
 
@@ -202,7 +206,7 @@ function AppShell() {
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+        </Routes>
       </div>
     </>
   );
