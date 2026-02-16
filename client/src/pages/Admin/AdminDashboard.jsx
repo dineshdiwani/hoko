@@ -84,6 +84,10 @@ export default function AdminDashboard() {
   const [unsubscribeMobile, setUnsubscribeMobile] = useState("");
   const [unsubscribeReason, setUnsubscribeReason] = useState("");
   const [dndBulk, setDndBulk] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
   const navigate = useNavigate();
 
   const parseOptionList = (value) =>
@@ -715,6 +719,44 @@ export default function AdminDashboard() {
     }));
   };
 
+  const handleAdminLogout = () => {
+    localStorage.removeItem("admin_token");
+    navigate("/admin/login", { replace: true });
+  };
+
+  const handleChangePassword = async () => {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      alert("Fill current password, new password, and confirm password");
+      return;
+    }
+    if (newPassword.length < 8) {
+      alert("New password must be at least 8 characters");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      alert("New password and confirm password do not match");
+      return;
+    }
+    try {
+      setChangingPassword(true);
+      const res = await api.post("/admin/change-password", {
+        currentPassword,
+        newPassword
+      });
+      if (res.data?.token) {
+        localStorage.setItem("admin_token", res.data.token);
+      }
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      alert("Admin password updated");
+    } catch (err) {
+      alert(err?.response?.data?.message || "Failed to change password");
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
   return (
     <div className="page">
       <div className="page-shell pt-20 md:pt-10">
@@ -733,6 +775,48 @@ export default function AdminDashboard() {
               className="btn-primary w-auto px-3 py-2 text-sm rounded-lg"
             >
               View Analytics
+            </button>
+            <button
+              onClick={handleAdminLogout}
+              className="px-3 py-2 text-sm rounded-lg border border-red-300 text-red-700 bg-white hover:bg-red-50"
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+
+        <div className="bg-white border rounded-2xl p-4 mb-6">
+          <h2 className="text-base font-semibold mb-3">Admin Settings</h2>
+          <div className="grid md:grid-cols-3 gap-3">
+            <input
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              className="border rounded-lg px-3 py-2 text-sm"
+              placeholder="Current password"
+            />
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="border rounded-lg px-3 py-2 text-sm"
+              placeholder="New password (min 8 chars)"
+            />
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="border rounded-lg px-3 py-2 text-sm"
+              placeholder="Confirm new password"
+            />
+          </div>
+          <div className="mt-3">
+            <button
+              onClick={handleChangePassword}
+              disabled={changingPassword}
+              className="btn-primary w-auto px-3 py-2 text-sm rounded-lg"
+            >
+              {changingPassword ? "Updating..." : "Change Password"}
             </button>
           </div>
         </div>

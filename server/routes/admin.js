@@ -16,6 +16,9 @@ const WhatsAppCampaignRun = require("../models/WhatsAppCampaignRun");
 const AdminAuditLog = require("../models/AdminAuditLog");
 const adminAuth = require("../middleware/adminAuth");
 const { requireAdminPermission } = require("../middleware/adminPermission");
+const { otpSendLimiter, otpVerifyLimiter } = require("../middleware/rateLimit");
+const { setOtp, verifyOtp } = require("../utils/otpStore");
+const { sendOtpEmail } = require("../utils/sendEmail");
 const { normalizeE164 } = require("../utils/sendWhatsApp");
 const { sendTestWhatsAppCampaign } = require("../services/whatsAppCampaign");
 const {
@@ -38,6 +41,9 @@ const upload = multer({
 });
 const WHATSAPP_UPLOAD_DIR = path.join(process.cwd(), "uploads", "admin");
 const WHATSAPP_UPLOAD_META_PATH = path.join(WHATSAPP_UPLOAD_DIR, "whatsapp-contacts-latest.json");
+const ADMIN_JWT_EXPIRES = String(process.env.ADMIN_JWT_EXPIRES || "30d");
+const OTP_TTL_MS = Number(process.env.OTP_TTL_MINUTES || 5) * 60 * 1000;
+const OTP_MAX_ATTEMPTS = Number(process.env.OTP_MAX_ATTEMPTS || 5);
 
 function normalizeText(value) {
   return String(value || "").trim().toLowerCase();
@@ -215,6 +221,90 @@ function getFailedAttemptState(admin) {
   };
 }
 
+function generateOtp() {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+
+function issueAdminToken(admin) {
+  return jwt.sign(
+    {
+      id: admin._id,
+      role: admin.role || "ops_admin",
+      tokenVersion: admin.tokenVersion || 0
+    },
+    process.env.ADMIN_JWT_SECRET,
+    { expiresIn: ADMIN_JWT_EXPIRES }
+  );
+}
+
+router.post("/forgot-password", otpSendLimiter, async (req, res) => {
+  const email = normalizeEmail(req.body?.email);
+  if (!email) {
+    return res.status(400).json({ message: "Email required" });
+  }
+
+  const admin = await Admin.findOne({ email, active: { $ne: false } });
+  if (!admin) {
+    return res.json({ success: true });
+  }
+
+  const otp = generateOtp();
+  try {
+    await sendOtpEmail({
+      email,
+      otp,
+      subject: "Your Hoko admin password reset OTP"
+    });
+    setOtp(`admin-forgot:${email}`, otp, OTP_TTL_MS);
+    return res.json({ success: true });
+  } catch (err) {
+    const body = { message: "Failed to send OTP" };
+    if (process.env.NODE_ENV !== "production") {
+      body.error = err?.response || err?.message || "Unknown SMTP error";
+    }
+    return res.status(500).json(body);
+  }
+});
+
+router.post("/reset-password", otpVerifyLimiter, async (req, res) => {
+  const email = normalizeEmail(req.body?.email);
+  const otp = String(req.body?.otp || "").trim();
+  const newPassword = String(req.body?.newPassword || "");
+  if (!email || !otp || !newPassword) {
+    return res.status(400).json({ message: "Missing data" });
+  }
+  if (newPassword.length < 8) {
+    return res.status(400).json({ message: "Password must be at least 8 characters" });
+  }
+
+  const otpResult = verifyOtp(`admin-forgot:${email}`, otp, OTP_MAX_ATTEMPTS);
+  if (!otpResult.ok) {
+    const message =
+      otpResult.reason === "expired"
+        ? "OTP expired"
+        : otpResult.reason === "locked"
+        ? "Too many OTP attempts"
+        : "Invalid OTP";
+    const status = otpResult.reason === "locked" ? 429 : 401;
+    return res.status(status).json({ message });
+  }
+
+  const admin = await Admin.findOne({ email });
+  if (!admin || admin.active === false) {
+    return res.status(404).json({ message: "Admin not found" });
+  }
+
+  admin.passwordHash = await bcrypt.hash(newPassword, 10);
+  admin.password = "";
+  admin.failedLoginCount = 0;
+  admin.lockUntil = null;
+  admin.tokenVersion = Number(admin.tokenVersion || 0) + 1;
+  await admin.save();
+
+  await logAdminAction(admin, "admin_reset_password", "admin", admin._id);
+  return res.json({ success: true });
+});
+
 
 router.post("/login", adminLoginLimiter, async (req, res) => {
   const { email, password } = req.body;
@@ -255,21 +345,43 @@ router.post("/login", adminLoginLimiter, async (req, res) => {
   admin.lastLoginAt = new Date();
   await admin.save();
 
-  const token = jwt.sign(
-    {
-      id: admin._id,
-      role: admin.role || "ops_admin",
-      tokenVersion: admin.tokenVersion || 0
-    },
-    process.env.ADMIN_JWT_SECRET,
-    { expiresIn: "8h" }
-  );
+  const token = issueAdminToken(admin);
 
   await logAdminAction(admin, "admin_login", "admin", admin._id, {
     role: admin.role || "ops_admin"
   });
 
   res.json({ token });
+});
+
+router.post("/change-password", adminAuth, async (req, res) => {
+  const currentPassword = String(req.body?.currentPassword || "");
+  const newPassword = String(req.body?.newPassword || "");
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({ message: "Current and new password required" });
+  }
+  if (newPassword.length < 8) {
+    return res.status(400).json({ message: "Password must be at least 8 characters" });
+  }
+
+  let validPassword = false;
+  if (req.admin.passwordHash) {
+    validPassword = await bcrypt.compare(currentPassword, String(req.admin.passwordHash));
+  } else if (req.admin.password) {
+    validPassword = req.admin.password === currentPassword;
+  }
+  if (!validPassword) {
+    return res.status(401).json({ message: "Current password is incorrect" });
+  }
+
+  req.admin.passwordHash = await bcrypt.hash(newPassword, 10);
+  req.admin.password = "";
+  req.admin.tokenVersion = Number(req.admin.tokenVersion || 0) + 1;
+  await req.admin.save();
+
+  await logAdminAction(req.admin, "admin_change_password", "admin", req.admin._id);
+  const token = issueAdminToken(req.admin);
+  return res.json({ success: true, token });
 });
 
 async function logAdminAction(admin, action, targetType, targetId, meta = {}) {
