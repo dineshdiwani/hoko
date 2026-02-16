@@ -276,7 +276,7 @@ export default function BuyerWelcome() {
                 <button
                   type="button"
                   onClick={startVoiceInput}
-                  className={`w-11 h-11 rounded-full border flex items-center justify-center transition ${
+                  className={`ml-2 sm:ml-0 w-11 h-11 rounded-full border flex items-center justify-center transition shrink-0 ${
                     listening
                       ? "border-red-300 bg-red-50 text-red-700"
                       : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
