@@ -89,12 +89,12 @@ export default function NotificationCenter({ onNotificationClick }) {
     <div className="relative" ref={menuRef}>
       <button
         onClick={() => setOpen(!open)}
-        className="relative w-10 h-10 inline-flex items-center justify-center rounded-full border border-amber-200 bg-white hover:bg-amber-50"
+        className="relative w-10 h-10 inline-flex items-center justify-center rounded-full border border-yellow-300 bg-white hover:bg-yellow-50"
         aria-label="Notifications"
       >
         <svg
           viewBox="0 0 24 24"
-          className="w-5 h-5 text-amber-500"
+          className="w-5 h-5 text-yellow-500"
           fill="currentColor"
           aria-hidden="true"
         >
