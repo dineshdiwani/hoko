@@ -49,6 +49,7 @@ function requireAdmin() {
 
 function AppShell() {
   const showGlobalLogo = true;
+  const logoSrc = `${import.meta.env.BASE_URL}logo.png`;
 
   return (
     <>
@@ -61,7 +62,7 @@ function AppShell() {
           aria-label="Go to home"
         >
           <img
-            src="/logo.png"
+            src={logoSrc}
             alt="hoko"
             className="w-9 h-9 md:w-10 md:h-10 rounded-full object-contain"
           />

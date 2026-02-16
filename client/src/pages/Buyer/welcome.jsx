@@ -4,6 +4,7 @@ import { getSession, setSession } from "../../services/storage";
 import api from "../../services/api";
 
 export default function BuyerWelcome() {
+  const logoSrc = `${import.meta.env.BASE_URL}logo.png`;
   const [text, setText] = useState("");
   const [listening, setListening] = useState(false);
   const [speechStatus, setSpeechStatus] = useState("");
@@ -72,7 +73,7 @@ export default function BuyerWelcome() {
         <div className="mf-shell flex items-center justify-between gap-6 py-5">
           <div className="flex items-center gap-3">
             <img
-              src="/logo.png"
+              src={logoSrc}
               alt="hoko"
               className="w-[4.2rem] h-[4.2rem] rounded-full object-contain mf-logo-enter"
             />
