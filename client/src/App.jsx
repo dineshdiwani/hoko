@@ -3,7 +3,8 @@ import {
   Routes,
   Route,
   Navigate,
-  Link
+  Link,
+  useLocation
 } from "react-router-dom";
 
 import BuyerWelcome from "./pages/Buyer/welcome";
@@ -48,7 +49,8 @@ function requireAdmin() {
 }
 
 function AppShell() {
-  const showGlobalLogo = true;
+  const location = useLocation();
+  const showGlobalLogo = location.pathname !== "/";
   const logoSrc = `${import.meta.env.BASE_URL}logo.png`;
 
   return (
@@ -58,7 +60,7 @@ function AppShell() {
       {showGlobalLogo && (
         <Link
           to="/"
-          className="fixed top-3 right-3 md:top-4 md:right-4 z-[70] flex items-center gap-2 rounded-full border border-white/80 bg-white/95 backdrop-blur p-1.5 md:p-2 shadow-lg"
+          className="fixed top-2 left-2 md:top-3 md:left-3 z-[70] flex items-center gap-2 rounded-full border border-white/80 bg-white/95 backdrop-blur p-1.5 md:p-2 shadow-lg"
           aria-label="Go to home"
         >
           <img
@@ -71,6 +73,7 @@ function AppShell() {
           </span>
         </Link>
       )}
+      <div className={showGlobalLogo ? "pl-14 pt-14 md:pl-16 md:pt-16" : ""}>
       <Routes>
         {/* Landing */}
         <Route path="/" element={<BuyerWelcome />} />
@@ -200,6 +203,7 @@ function AppShell() {
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      </div>
     </>
   );
 }
