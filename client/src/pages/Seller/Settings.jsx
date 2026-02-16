@@ -78,7 +78,8 @@ export default function SellerSettings() {
               .map((c) => normalizeCategory(c))
               .filter(Boolean);
         setProfile({
-          businessName: sellerProfile.businessName || "",
+          businessName:
+            sellerProfile.businessName || sellerProfile.firmName || "",
           registrationDetails: sellerProfile.registrationDetails || "",
           businessAddress: sellerProfile.businessAddress || "",
           ownerName: sellerProfile.ownerName || "",
@@ -150,7 +151,7 @@ export default function SellerSettings() {
         registrationDetails: profile.registrationDetails,
         businessAddress: profile.businessAddress,
         ownerName: profile.ownerName,
-        firmName: profile.firmName,
+        firmName: profile.firmName || profile.businessName,
         managerName: profile.managerName,
         city: profile.city,
         categories: profile.categories,
@@ -186,114 +187,143 @@ export default function SellerSettings() {
               Business Profile
             </h2>
             <div className="grid gap-3 md:grid-cols-2">
-              <input
-                value={profile.businessName}
-                onChange={(e) =>
-                  setProfile({
-                    ...profile,
-                    businessName: e.target.value
-                  })
-                }
-                placeholder="Business Name"
-                className="w-full border rounded-xl px-4 py-3"
-              />
-              <input
-                value={profile.firmName}
-                onChange={(e) =>
-                  setProfile({
-                    ...profile,
-                    firmName: e.target.value
-                  })
-                }
-                placeholder="Firm Name"
-                className="w-full border rounded-xl px-4 py-3"
-              />
-              <input
-                value={profile.ownerName}
-                onChange={(e) =>
-                  setProfile({
-                    ...profile,
-                    ownerName: e.target.value
-                  })
-                }
-                placeholder="Owner Name"
-                className="w-full border rounded-xl px-4 py-3"
-              />
-              <input
-                value={profile.managerName}
-                onChange={(e) =>
-                  setProfile({
-                    ...profile,
-                    managerName: e.target.value
-                  })
-                }
-                placeholder="Manager Name"
-                className="w-full border rounded-xl px-4 py-3"
-              />
-              <input
-                value={profile.businessAddress}
-                onChange={(e) =>
-                  setProfile({
-                    ...profile,
-                    businessAddress: e.target.value
-                  })
-                }
-                placeholder="Business Address"
-                className="md:col-span-2 w-full border rounded-xl px-4 py-3"
-              />
-              <select
-                value={profile.city}
-                onChange={(e) =>
-                  setProfile({
-                    ...profile,
-                    city: e.target.value
-                  })
-                }
-                className="w-full border rounded-xl px-4 py-3"
-              >
-                <option value="">Select city</option>
-                {(cities.length
-                  ? cities
-                  : ["Mumbai", "Delhi", "Bangalore", "Chennai", "Hyderabad", "Pune"]
-                ).map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-              <input
-                value={profile.registrationDetails}
-                onChange={(e) =>
-                  setProfile({
-                    ...profile,
-                    registrationDetails: e.target.value
-                  })
-                }
-                placeholder="Registration Details"
-                className="md:col-span-2 w-full border rounded-xl px-4 py-3"
-              />
-              <input
-                value={profile.website}
-                onChange={(e) =>
-                  setProfile({
-                    ...profile,
-                    website: e.target.value
-                  })
-                }
-                placeholder="Website"
-                className="w-full border rounded-xl px-4 py-3"
-              />
-              <input
-                value={profile.taxId}
-                onChange={(e) =>
-                  setProfile({
-                    ...profile,
-                    taxId: e.target.value
-                  })
-                }
-                placeholder="Tax ID"
-                className="w-full border rounded-xl px-4 py-3"
-              />
+              <label className="block">
+                <span className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1">
+                  Business Name
+                </span>
+                <input
+                  value={profile.businessName}
+                  onChange={(e) =>
+                    setProfile({
+                      ...profile,
+                      businessName: e.target.value
+                    })
+                  }
+                  placeholder="Enter business name"
+                  className="w-full border rounded-xl px-4 py-3"
+                />
+              </label>
+              <label className="block">
+                <span className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1">
+                  Owner Name
+                </span>
+                <input
+                  value={profile.ownerName}
+                  onChange={(e) =>
+                    setProfile({
+                      ...profile,
+                      ownerName: e.target.value
+                    })
+                  }
+                  placeholder="Enter owner name"
+                  className="w-full border rounded-xl px-4 py-3"
+                />
+              </label>
+              <label className="block">
+                <span className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1">
+                  Manager Name
+                </span>
+                <input
+                  value={profile.managerName}
+                  onChange={(e) =>
+                    setProfile({
+                      ...profile,
+                      managerName: e.target.value
+                    })
+                  }
+                  placeholder="Enter manager name"
+                  className="w-full border rounded-xl px-4 py-3"
+                />
+              </label>
+              <label className="block">
+                <span className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1">
+                  City
+                </span>
+                <select
+                  value={profile.city}
+                  onChange={(e) =>
+                    setProfile({
+                      ...profile,
+                      city: e.target.value
+                    })
+                  }
+                  className="w-full border rounded-xl px-4 py-3"
+                >
+                  <option value="">Select city</option>
+                  {(cities.length
+                    ? cities
+                    : ["Mumbai", "Delhi", "Bangalore", "Chennai", "Hyderabad", "Pune"]
+                  ).map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="md:col-span-2 block">
+                <span className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1">
+                  Business Address
+                </span>
+                <input
+                  value={profile.businessAddress}
+                  onChange={(e) =>
+                    setProfile({
+                      ...profile,
+                      businessAddress: e.target.value
+                    })
+                  }
+                  placeholder="Enter business address"
+                  className="w-full border rounded-xl px-4 py-3"
+                />
+              </label>
+              <label className="md:col-span-2 block">
+                <span className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1">
+                  Registration Details
+                </span>
+                <input
+                  value={profile.registrationDetails}
+                  onChange={(e) =>
+                    setProfile({
+                      ...profile,
+                      registrationDetails: e.target.value
+                    })
+                  }
+                  placeholder="Enter registration details"
+                  className="w-full border rounded-xl px-4 py-3"
+                />
+              </label>
+              <label className="block">
+                <span className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1">
+                  Website
+                </span>
+                <input
+                  value={profile.website}
+                  onChange={(e) =>
+                    setProfile({
+                      ...profile,
+                      website: e.target.value
+                    })
+                  }
+                  placeholder="Enter website URL"
+                  className="w-full border rounded-xl px-4 py-3"
+                />
+              </label>
+              <label className="block">
+                <span className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1">
+                  Tax ID
+                </span>
+                <input
+                  value={profile.taxId}
+                  onChange={(e) =>
+                    setProfile({
+                      ...profile,
+                      taxId: e.target.value
+                    })
+                  }
+                  placeholder="Enter tax ID"
+                  className="w-full border rounded-xl px-4 py-3"
+                />
+              </label>
             </div>
           </div>
 
