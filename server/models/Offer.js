@@ -22,6 +22,14 @@ const offerSchema = new mongoose.Schema(
     message: {
       type: String
     },
+    deliveryTime: {
+      type: String,
+      default: ""
+    },
+    paymentTerms: {
+      type: String,
+      default: ""
+    },
 
     viewedByBuyer: {
       type: Boolean,

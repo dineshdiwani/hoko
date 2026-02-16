@@ -20,6 +20,8 @@ export default function OfferModal({
 
   const [price, setPrice] = useState("");
   const [note, setNote] = useState("");
+  const [deliveryTime, setDeliveryTime] = useState("");
+  const [paymentTerms, setPaymentTerms] = useState("");
   const [file, setFile] = useState(null);
   const [existingOffer, setExistingOffer] = useState(false);
   const [lastUpdatedAt, setLastUpdatedAt] = useState("");
@@ -74,12 +76,16 @@ export default function OfferModal({
       .then((res) => {
         setPrice(res.data.price || "");
         setNote(res.data.message || "");
+        setDeliveryTime(res.data.deliveryTime || "");
+        setPaymentTerms(res.data.paymentTerms || "");
         setExistingOffer(true);
         setLastUpdatedAt(res.data.updatedAt || res.data.createdAt || "");
       })
       .catch(() => {
         setPrice("");
         setNote("");
+        setDeliveryTime("");
+        setPaymentTerms("");
         setExistingOffer(false);
         setLastUpdatedAt("");
       });
@@ -109,7 +115,9 @@ export default function OfferModal({
       await api.post("/seller/offer", {
         requirementId: requirementId,
         price: Number(price),
-        message: note
+        message: note,
+        deliveryTime,
+        paymentTerms
       });
     } catch {
       alert("Failed to submit offer. Try again.");
@@ -232,6 +240,22 @@ export default function OfferModal({
           onChange={(e) => setNote(e.target.value)}
           className="w-full border rounded-xl px-4 py-2 mb-3"
           placeholder="Optional note"
+        />
+
+        <input
+          type="text"
+          value={deliveryTime}
+          onChange={(e) => setDeliveryTime(e.target.value)}
+          className="w-full border rounded-xl px-4 py-2 mb-3"
+          placeholder="Delivery time (e.g., 3-5 days)"
+        />
+
+        <input
+          type="text"
+          value={paymentTerms}
+          onChange={(e) => setPaymentTerms(e.target.value)}
+          className="w-full border rounded-xl px-4 py-2 mb-3"
+          placeholder="Payment terms (e.g., 50% advance, balance on delivery)"
         />
 
         <input

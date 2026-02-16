@@ -255,6 +255,12 @@ export default function OfferList() {
                   <p className="text-sm text-[var(--ui-muted)]">
                     {offer.sellerFirm}
                   </p>
+                  <p className="text-sm text-[var(--ui-muted)] mt-1">
+                    Delivery: {offer.deliveryTime || "-"}
+                  </p>
+                  <p className="text-sm text-[var(--ui-muted)]">
+                    Payment: {offer.paymentTerms || "-"}
+                  </p>
                 </div>
 
                 <span

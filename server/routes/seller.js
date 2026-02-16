@@ -171,7 +171,7 @@ router.get("/profile", auth, sellerOnly, async (req, res) => {
  */
 router.post("/offer", auth, sellerOnly, async (req, res) => {
   try {
-    const { requirementId, price, message } = req.body;
+    const { requirementId, price, message, deliveryTime, paymentTerms } = req.body;
     const moderationRules = await getModerationRules();
     const flaggedReason = checkTextForFlags(message || "", moderationRules);
 
@@ -180,6 +180,8 @@ router.post("/offer", auth, sellerOnly, async (req, res) => {
       {
         price,
         message,
+        deliveryTime: String(deliveryTime || "").trim(),
+        paymentTerms: String(paymentTerms || "").trim(),
         "moderation.removed": false,
         "moderation.removedAt": null,
         "moderation.removedBy": null,
