@@ -108,7 +108,7 @@ export default function BuyerWelcome() {
             </a>
           </nav>
 
-          <div className="flex items-center gap-3">
+          <div className="flex w-full lg:w-auto flex-wrap items-center justify-start lg:justify-end gap-2">
             {isLoggedIn && (
               <NotificationCenter
                 onNotificationClick={() =>
@@ -149,7 +149,7 @@ export default function BuyerWelcome() {
                 }
                 navigate("/buyer/login");
               }}
-              className="mf-btn"
+              className="mf-btn text-xs sm:text-sm px-3 sm:px-6 py-2 sm:py-3 whitespace-nowrap"
             >
               {isLoggedIn ? "My Post" : "I am a Buyer"}
             </button>
@@ -188,7 +188,7 @@ export default function BuyerWelcome() {
                   alert(message || "Unable to switch role");
                 }
               }}
-              className="mf-btn-ghost"
+              className="mf-btn-ghost text-xs sm:text-sm px-3 sm:px-6 py-2 sm:py-3 whitespace-nowrap"
             >
               {isLoggedIn ? "Seller's Dashboard" : "I am a Seller"}
             </button>
