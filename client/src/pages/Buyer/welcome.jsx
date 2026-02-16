@@ -196,9 +196,9 @@ export default function BuyerWelcome() {
         </div>
       </header>
 
-      <main className="mf-shell pt-10 pb-20">
-        <section className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] items-center">
-          <div className="space-y-6">
+      <main className="mf-shell pt-6 md:pt-10 pb-14 md:pb-20">
+        <section className="grid gap-6 md:gap-10 lg:grid-cols-[1.1fr_0.9fr] items-center">
+          <div className="space-y-4 md:space-y-6">
             <div className="mf-chip">Market-driven pricing, instantly</div>
             <h1 className="mf-title text-[1.8rem] md:text-[3rem]">
               Get the best price for what you need.
