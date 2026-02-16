@@ -347,7 +347,7 @@ export default function OfferList() {
               </div>
 
               {/* CTA icons */}
-              <div className="flex gap-4 mt-4">
+              <div className="flex flex-wrap items-center justify-start gap-2 mt-4">
                 {offer.sellerId &&
                   (contactEnabled || offer.contactEnabledByBuyer) && (
                   <button
@@ -359,7 +359,7 @@ export default function OfferList() {
                       });
                       setChatOpen(true);
                     }}
-                    className="flex-1 text-center py-3 btn-brand rounded-xl font-semibold"
+                    className="inline-flex w-fit items-center justify-center px-3 py-2 btn-brand rounded-xl font-semibold"
                   >
                     Chat
                   </button>
@@ -375,7 +375,7 @@ export default function OfferList() {
                       }
                       enableContact();
                     }}
-                    className={`flex-1 text-center py-3 rounded-xl font-semibold ${
+                    className={`inline-flex w-fit items-center justify-center px-3 py-2 rounded-xl font-semibold ${
                       contactEnabled || offer.contactEnabledByBuyer
                         ? "bg-red-600 text-white"
                         : "btn-primary"
@@ -389,14 +389,14 @@ export default function OfferList() {
               </div>
 
               {offer.sellerId && (
-                <div className="mt-3 grid grid-cols-2 gap-3">
+                <div className="mt-3 flex flex-wrap items-center justify-start gap-2">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       setReviewTarget(offer.sellerId);
                       setReviewOpen(true);
                     }}
-                    className="w-full text-center py-2 border border-[var(--ui-border)] rounded-xl text-sm font-semibold text-[var(--ui-text)]"
+                    className="inline-flex w-fit items-center justify-center px-3 py-2 border border-[var(--ui-border)] rounded-xl text-sm font-semibold text-[var(--ui-text)]"
                   >
                     Rate Seller
                   </button>
@@ -406,7 +406,7 @@ export default function OfferList() {
                       setReportTarget(offer.sellerId);
                       setReportOpen(true);
                     }}
-                    className="w-full text-center py-2 border border-red-300 text-red-600 rounded-xl text-sm font-semibold"
+                    className="inline-flex w-fit items-center justify-center px-3 py-2 border border-red-300 text-red-600 rounded-xl text-sm font-semibold"
                   >
                     Report Seller
                   </button>
