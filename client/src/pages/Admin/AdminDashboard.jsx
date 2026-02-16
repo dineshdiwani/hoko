@@ -67,6 +67,20 @@ export default function AdminDashboard() {
   const [contacts, setContacts] = useState([]);
   const [testRequirementId, setTestRequirementId] = useState("");
   const [testMobile, setTestMobile] = useState("");
+  const [manualRequirementId, setManualRequirementId] = useState("");
+  const [manualCity, setManualCity] = useState("");
+  const [manualCategory, setManualCategory] = useState("");
+  const [manualTemplateFields, setManualTemplateFields] = useState({
+    product: true,
+    makeBrand: true,
+    typeModel: true,
+    quantity: true,
+    city: true,
+    details: true,
+    link: true
+  });
+  const [manualQueue, setManualQueue] = useState([]);
+  const [manualMessagePreview, setManualMessagePreview] = useState("");
   const [unsubscribeMobile, setUnsubscribeMobile] = useState("");
   const [unsubscribeReason, setUnsubscribeReason] = useState("");
   const [dndBulk, setDndBulk] = useState("");
@@ -90,6 +104,44 @@ export default function AdminDashboard() {
       minute: "2-digit"
     });
   };
+
+  const normalizeText = (value) => String(value || "").trim().toLowerCase();
+
+  const getRequirementDisplay = (req) =>
+    `${req?.product || req?.productName || "Requirement"} | ${req?.city || "-"} | ${req?.category || "-"}`;
+
+  const buildManualMessage = useCallback(
+    (requirement) => {
+      if (!requirement?._id) return "";
+      const lines = ["New buyer requirement posted on Hoko."];
+      if (manualTemplateFields.product) {
+        lines.push(`Post: ${requirement.product || requirement.productName || "-"}`);
+      }
+      if (manualTemplateFields.makeBrand) {
+        lines.push(`Make/Brand: ${requirement.makeBrand || requirement.brand || "-"}`);
+      }
+      if (manualTemplateFields.typeModel) {
+        lines.push(`Type Model: ${requirement.typeModel || requirement.type || "-"}`);
+      }
+      if (manualTemplateFields.quantity) {
+        const quantity = requirement.quantity || "-";
+        const unit = requirement.unit || "-";
+        lines.push(`Quantity: ${quantity} ${unit}`.trim());
+      }
+      if (manualTemplateFields.city) {
+        lines.push(`City: ${requirement.city || "-"}`);
+      }
+      if (manualTemplateFields.details) {
+        lines.push(`Details: ${requirement.details || "-"}`);
+      }
+      if (manualTemplateFields.link) {
+        const baseUrl = window.location.origin.replace(/\/+$/, "");
+        lines.push(`Open: ${baseUrl}/seller/dashboard`);
+      }
+      return lines.join("\n");
+    },
+    [manualTemplateFields]
+  );
 
   const loadDashboardData = useCallback(async () => {
     const endpoints = [
@@ -182,6 +234,19 @@ export default function AdminDashboard() {
   useEffect(() => {
     loadDashboardData().catch(() => {});
   }, [loadDashboardData]);
+
+  useEffect(() => {
+    if (!manualRequirementId) {
+      setManualMessagePreview("");
+      return;
+    }
+    const req = requirements.find((item) => String(item._id) === String(manualRequirementId));
+    if (!req) {
+      setManualMessagePreview("");
+      return;
+    }
+    setManualMessagePreview(buildManualMessage(req));
+  }, [buildManualMessage, manualRequirementId, requirements]);
 
   const toggleSellerApproval = async (sellerId, approved) => {
     await api.post("/admin/seller/approve", {
@@ -412,6 +477,70 @@ export default function AdminDashboard() {
     } catch (err) {
       alert(err?.response?.data?.message || "Failed to run test send");
     }
+  };
+
+  const toggleManualTemplateField = (field) => {
+    setManualTemplateFields((prev) => ({
+      ...prev,
+      [field]: !prev[field]
+    }));
+  };
+
+  const createManualQueue = () => {
+    if (!manualRequirementId) {
+      alert("Select a requirement");
+      return;
+    }
+    if (!manualCity) {
+      alert("Select city");
+      return;
+    }
+    if (!manualCategory) {
+      alert("Please select category");
+      return;
+    }
+    const requirement = requirements.find((req) => String(req._id) === String(manualRequirementId));
+    if (!requirement) {
+      alert("Selected requirement not found");
+      return;
+    }
+    if (normalizeText(requirement.city) !== normalizeText(manualCity)) {
+      alert("Selected city does not match this post");
+      return;
+    }
+    if (normalizeText(requirement.category) !== normalizeText(manualCategory)) {
+      alert("Selected category does not match this post");
+      return;
+    }
+
+    const message = buildManualMessage(requirement);
+    const queue = contacts
+      .filter((contact) => normalizeText(contact.city) === normalizeText(manualCity))
+      .filter((contact) => contact.active !== false)
+      .filter((contact) => contact.optInStatus === "opted_in")
+      .filter((contact) => !contact.unsubscribedAt)
+      .filter((contact) => contact.dndStatus !== "dnd")
+      .map((contact) => ({
+        id: contact._id,
+        firmName: contact.firmName || "-",
+        city: contact.city || "-",
+        mobileE164: contact.mobileE164,
+        status: "pending",
+        whatsappLink: `https://wa.me/${String(contact.mobileE164 || "").replace(/[^\d]/g, "")}?text=${encodeURIComponent(message)}`
+      }));
+
+    setManualMessagePreview(message);
+    setManualQueue(queue);
+    if (!queue.length) {
+      alert("No eligible contacts found for selected city/category");
+      return;
+    }
+    alert(`Manual queue created with ${queue.length} pending contacts`);
+  };
+
+  const openManualWhatsApp = (entry) => {
+    if (!entry?.whatsappLink) return;
+    window.open(entry.whatsappLink, "_blank", "noopener,noreferrer");
   };
 
   const toggleUserDetails = (userId) => {
@@ -1029,6 +1158,143 @@ export default function AdminDashboard() {
         <div className="mt-8">
           <h2 className="text-lg font-bold mb-3">Campaign Operations</h2>
           <div className="bg-white border rounded-2xl p-3 space-y-4">
+            <div className="border rounded-xl p-3 space-y-3">
+              <p className="text-sm font-semibold">Manual WhatsApp Queue (Device App Send)</p>
+              <p className="text-xs text-gray-500">
+                Uses latest uploaded WhatsApp contacts file and creates pending queue. Send one chat at a time via WhatsApp app/web.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <select
+                  className="w-full border rounded-lg px-3 py-2 text-sm"
+                  value={manualRequirementId}
+                  onChange={(e) => {
+                    const nextRequirementId = e.target.value;
+                    setManualRequirementId(nextRequirementId);
+                    const req = requirements.find((item) => String(item._id) === String(nextRequirementId));
+                    if (req) {
+                      setManualCity(req.city || "");
+                      setManualCategory(req.category || "");
+                      setManualMessagePreview(buildManualMessage(req));
+                    }
+                  }}
+                >
+                  <option value="">Select Post (Requirement)</option>
+                  {requirements.slice(0, 200).map((req) => (
+                    <option key={req._id} value={req._id}>
+                      {getRequirementDisplay(req)}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  className="w-full border rounded-lg px-3 py-2 text-sm"
+                  value={manualCity}
+                  onChange={(e) => setManualCity(e.target.value)}
+                >
+                  <option value="">Select City</option>
+                  {(options.cities || []).map((city) => (
+                    <option key={`manual-city-${city}`} value={city}>
+                      {city}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  className="w-full border rounded-lg px-3 py-2 text-sm"
+                  value={manualCategory}
+                  onChange={(e) => setManualCategory(e.target.value)}
+                >
+                  <option value="">Select Category</option>
+                  {(options.categories || []).map((category) => (
+                    <option key={`manual-category-${category}`} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <p className="text-xs font-semibold text-gray-600 mb-2">Template Fields</p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  {[
+                    ["product", "Post"],
+                    ["makeBrand", "Make/Brand"],
+                    ["typeModel", "Type Model"],
+                    ["quantity", "Quantity"],
+                    ["city", "City"],
+                    ["details", "Details"],
+                    ["link", "Seller Dashboard Link"]
+                  ].map(([field, label]) => (
+                    <label
+                      key={field}
+                      className="flex items-center gap-2 text-xs text-gray-700 border rounded-lg px-3 py-2"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={Boolean(manualTemplateFields[field])}
+                        onChange={() => toggleManualTemplateField(field)}
+                      />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex gap-2 flex-wrap">
+                <button
+                  onClick={createManualQueue}
+                  className="px-3 py-2 rounded-lg text-sm font-semibold btn-primary"
+                >
+                  Create Pending Queue
+                </button>
+                <p className="text-xs text-gray-500 self-center">
+                  Queue status: Pending | Contacts source: latest uploaded file
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs font-semibold text-gray-600 mb-2">Message Preview</p>
+                <pre className="text-xs whitespace-pre-wrap bg-gray-50 border rounded-lg p-3 text-gray-700">
+                  {manualMessagePreview || "Select post, city, and category to preview message"}
+                </pre>
+              </div>
+
+              <div>
+                <p className="text-sm font-semibold mb-2">
+                  Pending Queue ({manualQueue.length})
+                </p>
+                <div className="space-y-2 max-h-72 overflow-auto">
+                  {manualQueue.map((entry) => (
+                    <div
+                      key={entry.id}
+                      className="border rounded-lg p-2 text-xs text-gray-700 flex flex-col md:flex-row md:items-center md:justify-between gap-2"
+                    >
+                      <div>
+                        <div className="font-semibold">
+                          {entry.firmName} | {entry.mobileE164}
+                        </div>
+                        <div className="text-gray-500">
+                          {entry.city} | Status: {entry.status}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => openManualWhatsApp(entry)}
+                        className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-green-300 text-green-700"
+                      >
+                        Send via WhatsApp
+                      </button>
+                    </div>
+                  ))}
+                  {manualQueue.length === 0 && (
+                    <p className="text-xs text-gray-500">No pending queue created yet.</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t pt-4">
+              <p className="text-sm font-semibold mb-3">API Campaign Test (existing)</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <input
                 className="w-full border rounded-lg px-3 py-2 text-sm"
@@ -1078,6 +1344,7 @@ export default function AdminDashboard() {
                   <p className="text-xs text-gray-500">No campaign runs yet.</p>
                 )}
               </div>
+            </div>
             </div>
           </div>
         </div>
