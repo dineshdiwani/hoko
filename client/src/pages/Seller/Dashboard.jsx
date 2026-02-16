@@ -658,7 +658,7 @@ export default function SellerDashboard() {
 
                   <button
                     onClick={() => setActiveRequirement(req)}
-                    className={`mt-3 inline-flex items-center justify-center px-4 py-2.5 rounded-xl font-semibold active:scale-95 ${
+                    className={`mt-3 block w-fit px-4 py-2.5 rounded-xl text-center font-semibold active:scale-95 ${
                       req.myOffer ? "bg-green-600 text-white" : "btn-brand"
                     }`}
                   >
