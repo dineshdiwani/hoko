@@ -186,8 +186,7 @@ export default function MyPosts() {
         const offerCount = Number(req.offerCount || 0);
         const normalizedStatus = req.status?.toUpperCase() || "OPEN";
         const auctionLive = offerCount >= 3;
-        const auctionActive =
-          req.reverseAuction?.active || req.reverseAuctionActive;
+        const auctionActive = req.reverseAuction?.active === true;
         const reqId = String(req._id || req.id || "");
         const isAuctionBusy = Boolean(auctionLoadingById[reqId]);
         const statusText = auctionLive
@@ -372,6 +371,38 @@ export default function MyPosts() {
                   : auctionActive
                   ? "Stop Reverse Auction"
                   : "Invoke Reverse Auction"}
+              </button>
+            </div>
+
+            <div
+              className="mt-3 grid grid-cols-2 gap-2"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={() =>
+                  navigate(`/buyer/requirement/${reqId}/edit`)
+                }
+                className="w-full py-2 border border-[var(--ui-border)] rounded-lg text-xs font-semibold text-[var(--ui-text)]"
+              >
+                Edit Post
+              </button>
+              <button
+                onClick={() =>
+                  navigate(`/buyer/requirement/${reqId}/offers`)
+                }
+                disabled={offerCount < 1}
+                className={`w-full py-2 rounded-lg text-xs font-semibold ${
+                  offerCount < 1
+                    ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                    : "btn-primary text-white"
+                }`}
+                title={
+                  offerCount < 1
+                    ? "No offers yet"
+                    : "Open offers and enable chat"
+                }
+              >
+                Enable Chat
               </button>
             </div>
           </div>

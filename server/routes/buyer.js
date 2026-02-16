@@ -193,6 +193,20 @@ router.get("/my-posts/:buyerId", auth, buyerOnly, async (req, res) => {
 });
 
 /**
+ * Get a single buyer requirement
+ */
+router.get("/requirement/:id", auth, buyerOnly, async (req, res) => {
+  const requirement = await Requirement.findById(req.params.id);
+  if (!requirement) {
+    return res.status(404).json({ message: "Requirement not found" });
+  }
+  if (String(requirement.buyerId) !== String(req.user._id)) {
+    return res.status(403).json({ message: "Not allowed" });
+  }
+  res.json(requirement);
+});
+
+/**
  * Update requirement
  */
 router.put("/requirement/:id", auth, buyerOnly, async (req, res) => {

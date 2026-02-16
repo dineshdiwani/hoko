@@ -7,6 +7,7 @@ const helmet = require("helmet");
 const ChatMessage = require("./models/ChatMessage");
 const Notification = require("./models/Notification");
 const Requirement = require("./models/Requirement");
+const Offer = require("./models/Offer");
 const User = require("./models/User");
 const { getModerationRules, checkTextForFlags } = require("./utils/moderation");
 
@@ -155,9 +156,36 @@ io.on("connection", (socket) => {
         if (requirement?.chatDisabled) {
           allowedToSend = false;
         }
+
+        if (!requirement) {
+          allowedToSend = false;
+        }
+
+        if (allowedToSend && requirement) {
+          const buyerId = String(requirement.buyerId || "");
+          const fromId = String(effectiveFrom);
+          const toId = String(effectiveTo);
+          const involvesBuyer = fromId === buyerId || toId === buyerId;
+
+          if (!involvesBuyer) {
+            allowedToSend = false;
+          } else {
+            const sellerId = fromId === buyerId ? toId : fromId;
+            const offer = await Offer.findOne({
+              requirementId,
+              sellerId,
+              "moderation.removed": { $ne: true }
+            }).select("contactEnabledByBuyer");
+
+            if (!offer || offer.contactEnabledByBuyer !== true) {
+              allowedToSend = false;
+            }
+          }
+        }
+
         if (!allowedToSend) {
           if (ackFn) {
-            ackFn({ ok: false, error: "Chat is disabled for this conversation" });
+            ackFn({ ok: false, error: "Buyer has not enabled chat for this post yet" });
           }
           return;
         }

@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { fetchOptions } from "../../services/options";
 import api from "../../services/api";
 
 export default function RequirementForm() {
   const navigate = useNavigate();
+  const { id: requirementId } = useParams();
+  const isEditMode = Boolean(requirementId);
 
   const [form, setForm] = useState({
     city: "",
@@ -18,7 +20,9 @@ export default function RequirementForm() {
   });
   const [submitted, setSubmitted] = useState(false);
   const [attachments, setAttachments] = useState([]);
+  const [existingAttachments, setExistingAttachments] = useState([]);
   const [uploading, setUploading] = useState(false);
+  const [loadingRequirement, setLoadingRequirement] = useState(isEditMode);
   const maxImageBytes = 100 * 1024;
   const [cameraOpen, setCameraOpen] = useState(false);
   const [cameraError, setCameraError] = useState("");
@@ -62,14 +66,48 @@ export default function RequirementForm() {
   }, []);
 
   useEffect(() => {
+    async function loadRequirement() {
+      if (!isEditMode) {
+        setLoadingRequirement(false);
+        return;
+      }
+      try {
+        const res = await api.get(`/buyer/requirement/${requirementId}`);
+        const requirement = res?.data || {};
+        setForm((prev) => ({
+          ...prev,
+          city: requirement.city || "",
+          category: requirement.category || "",
+          product: requirement.product || requirement.productName || "",
+          makeBrand: requirement.makeBrand || requirement.brand || "",
+          typeModel: requirement.typeModel || "",
+          quantity: requirement.quantity || "",
+          unit: requirement.type || requirement.unit || "",
+          details: requirement.details || ""
+        }));
+        setExistingAttachments(
+          Array.isArray(requirement.attachments) ? requirement.attachments : []
+        );
+      } catch {
+        alert("Unable to load requirement for editing.");
+        navigate("/buyer/dashboard", { replace: true });
+      } finally {
+        setLoadingRequirement(false);
+      }
+    }
+
+    loadRequirement();
+  }, [isEditMode, navigate, requirementId]);
+
+  useEffect(() => {
     const draft = localStorage.getItem("draft_requirement_text");
-    if (draft && !form.product) {
+    if (!isEditMode && draft && !form.product) {
       setForm((prev) => ({ ...prev, product: draft }));
     }
-    if (draft) {
+    if (!isEditMode && draft) {
       localStorage.removeItem("draft_requirement_text");
     }
-  }, [form.product]);
+  }, [form.product, isEditMode]);
 
   useEffect(() => {
     try {
@@ -235,6 +273,10 @@ export default function RequirementForm() {
     setAttachments((prev) => prev.filter((_, i) => i !== index));
   }
 
+  function removeExistingAttachment(index) {
+    setExistingAttachments((prev) => prev.filter((_, i) => i !== index));
+  }
+
   async function capturePhoto() {
     if (!videoRef.current) return;
     const video = videoRef.current;
@@ -296,7 +338,7 @@ export default function RequirementForm() {
           uploadRes?.data?.files?.map((f) => f.url) || [];
       }
 
-      await api.post("/buyer/requirement", {
+      const payload = {
         city: form.city,
         category: form.category,
         productName: form.product,
@@ -306,15 +348,40 @@ export default function RequirementForm() {
         quantity: form.quantity,
         type: form.unit,
         details: form.details,
-        attachments: attachmentUrls
-      });
-      alert("Requirement posted successfully");
+        attachments: [...existingAttachments, ...attachmentUrls]
+      };
+
+      if (isEditMode) {
+        await api.put(`/buyer/requirement/${requirementId}`, payload);
+      } else {
+        await api.post("/buyer/requirement", payload);
+      }
+
+      alert(
+        isEditMode
+          ? "Requirement updated successfully"
+          : "Requirement posted successfully"
+      );
       navigate("/buyer/dashboard", { replace: true });
     } catch {
-      alert("Failed to post requirement. Try again.");
+      alert(
+        isEditMode
+          ? "Failed to update requirement. Try again."
+          : "Failed to post requirement. Try again."
+      );
     } finally {
       setUploading(false);
     }
+  }
+
+  if (loadingRequirement) {
+    return (
+      <div className="page">
+        <div className="page-shell py-10 text-sm text-gray-600">
+          Loading requirement...
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -323,7 +390,9 @@ export default function RequirementForm() {
         <div className="page-shell">
           <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr] items-start">
             <div>
-              <h1 className="page-hero mb-4 pl-12 md:pl-0">Post Requirement</h1>
+              <h1 className="page-hero mb-4 pl-12 md:pl-0">
+                {isEditMode ? "Edit Requirement" : "Post Requirement"}
+              </h1>
               <p className="page-subtitle leading-relaxed">
                 Share your requirement once. Sellers will compete to give
                 you their best offer.
@@ -464,6 +533,28 @@ export default function RequirementForm() {
             </button>
           </div>
 
+          {existingAttachments.length > 0 && (
+            <div className="mt-3 space-y-2">
+              {existingAttachments.map((fileUrl, index) => (
+                <div
+                  key={`${fileUrl}-${index}`}
+                  className="flex items-center justify-between text-sm bg-gray-50 border rounded-lg px-3 py-2"
+                >
+                  <span className="truncate">
+                    {String(fileUrl || "").split("/").pop() || `Attachment ${index + 1}`}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => removeExistingAttachment(index)}
+                    className="text-red-600"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
           {attachments.length > 0 && (
             <div className="mt-3 space-y-2">
               {attachments.map((file, index) => (
@@ -492,7 +583,13 @@ export default function RequirementForm() {
           disabled={uploading}
           className="hidden md:block w-full py-2 btn-brand rounded-xl font-semibold disabled:opacity-60 text-sm"
         >
-          {uploading ? "Uploading..." : "Post Requirement"}
+          {uploading
+            ? isEditMode
+              ? "Saving..."
+              : "Uploading..."
+            : isEditMode
+            ? "Update Requirement"
+            : "Post Requirement"}
         </button>
             </form>
           </div>
@@ -505,7 +602,13 @@ export default function RequirementForm() {
           disabled={uploading}
           className="w-full py-3 btn-brand rounded-xl font-semibold disabled:opacity-60 text-sm"
         >
-          {uploading ? "Uploading..." : "Post Requirement"}
+          {uploading
+            ? isEditMode
+              ? "Saving..."
+              : "Uploading..."
+            : isEditMode
+            ? "Update Requirement"
+            : "Post Requirement"}
         </button>
       </div>
       {cameraOpen && (

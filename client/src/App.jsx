@@ -140,6 +140,17 @@ function AppShell() {
         />
 
         <Route
+          path="/buyer/requirement/:id/edit"
+          element={
+            requireBuyer() ? (
+              <RequirementForm />
+            ) : (
+              <Navigate to="/buyer/login" replace />
+            )
+          }
+        />
+
+        <Route
           path="/buyer/requirement/:id/offers"
           element={
             requireBuyer() ? (
