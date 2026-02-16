@@ -1,19 +1,34 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getSession, setSession } from "../../services/storage";
 import api from "../../services/api";
+import { fetchNotifications } from "../../services/notifications";
 
 export default function BuyerWelcome() {
   const logoSrc = "/logo.png";
   const [text, setText] = useState("");
   const [listening, setListening] = useState(false);
   const [speechStatus, setSpeechStatus] = useState("");
+  const [unreadCount, setUnreadCount] = useState(0);
   const navigate = useNavigate();
   const session = getSession();
   const isLoggedIn = Boolean(session?.token);
   const SpeechRecognition =
     typeof window !== "undefined" &&
     (window.SpeechRecognition || window.webkitSpeechRecognition);
+
+  useEffect(() => {
+    if (!isLoggedIn) {
+      setUnreadCount(0);
+      return;
+    }
+    fetchNotifications()
+      .then((items) => {
+        const list = Array.isArray(items) ? items : [];
+        setUnreadCount(list.filter((n) => !n.read).length);
+      })
+      .catch(() => setUnreadCount(0));
+  }, [isLoggedIn]);
 
   function submitRequirement() {
     if (!text.trim()) {
@@ -108,6 +123,27 @@ export default function BuyerWelcome() {
           </nav>
 
           <div className="flex items-center gap-3">
+            {isLoggedIn && (
+              <button
+                type="button"
+                onClick={() =>
+                  navigate(session?.role === "seller" ? "/seller/dashboard" : "/buyer/dashboard")
+                }
+                className="relative w-10 h-10 rounded-full border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 flex items-center justify-center"
+                aria-label="Notifications"
+                title="Notifications"
+              >
+                <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor" aria-hidden="true">
+                  <path d="M12 2a6 6 0 0 0-6 6v3.4c0 .9-.3 1.8-.9 2.5l-1 1.2A1 1 0 0 0 5 17h14a1 1 0 0 0 .8-1.6l-1-1.2a4 4 0 0 1-.8-2.5V8a6 6 0 0 0-6-6Zm0 20a3 3 0 0 0 2.8-2H9.2A3 3 0 0 0 12 22Z" />
+                </svg>
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[1.1rem] h-[1.1rem] px-1 rounded-full bg-red-600 text-white text-[10px] leading-[1.1rem] font-semibold">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
+              </button>
+            )}
+
             <button
               onClick={async () => {
                 localStorage.removeItem("draft_requirement_text");
