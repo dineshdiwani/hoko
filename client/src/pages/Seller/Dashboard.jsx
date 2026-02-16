@@ -40,6 +40,7 @@ export default function SellerDashboard() {
   const [chatPeer, setChatPeer] = useState(null);
   const [chatRequirementId, setChatRequirementId] = useState(null);
   const [unreadChatRequirementIds, setUnreadChatRequirementIds] = useState(new Set());
+  const [reverseAuctionNotice, setReverseAuctionNotice] = useState("");
 
   const currentUserId = session?._id || session?.id || session?.userId || null;
 
@@ -347,11 +348,37 @@ export default function SellerDashboard() {
       const notificationReqId =
         notification?.data?.requirementId || notification.requirementId;
       if (!notificationReqId) return;
+      const lowestPrice = notification?.data?.lowestPrice;
+      const productName = notification?.data?.productName || "Product";
+      setReverseAuctionNotice(
+        typeof lowestPrice === "number"
+          ? `Reverse Auction enabled by buyer for ${productName}. Current lowest price: Rs ${lowestPrice}.`
+          : `Reverse Auction enabled by buyer for ${productName}.`
+      );
       const existingRequirement = requirements.find(
         (req) => String(req._id) === String(notificationReqId)
       );
       if (existingRequirement) {
-        setActiveRequirement(existingRequirement);
+        setActiveRequirement({
+          ...existingRequirement,
+          reverseAuction: {
+            ...(existingRequirement.reverseAuction || {}),
+            active: true,
+            lowestPrice:
+              typeof lowestPrice === "number"
+                ? lowestPrice
+                : existingRequirement.reverseAuction?.lowestPrice ??
+                  existingRequirement.currentLowestPrice ??
+                  null
+          },
+          reverseAuctionActive: true,
+          currentLowestPrice:
+            typeof lowestPrice === "number"
+              ? lowestPrice
+              : existingRequirement.currentLowestPrice ??
+                existingRequirement.reverseAuction?.lowestPrice ??
+                null
+        });
         return;
       }
       setActiveRequirement({
@@ -488,6 +515,18 @@ export default function SellerDashboard() {
 
       <main className="flex-1">
         <div className="page-shell pt-4 pb-28">
+          {reverseAuctionNotice && (
+            <div className="mb-4 rounded-xl border border-red-200 bg-red-50 text-red-800 px-4 py-3 text-sm flex items-start justify-between gap-3">
+              <span>{reverseAuctionNotice}</span>
+              <button
+                onClick={() => setReverseAuctionNotice("")}
+                className="text-red-700 text-xs font-semibold"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
+
           {!loading && (
             <div className="flex flex-wrap gap-2 mb-4">
               {smartTabs.map((option) => (
@@ -594,13 +633,20 @@ export default function SellerDashboard() {
                           req.myOffer ? "mr-10" : ""
                         }`}
                       >
-                        AUCTION
+                        REVERSE AUCTION
                       </span>
                     )}
                   </div>
 
                   {isAuction && (
-                    <p className="text-sm text-red-700 mb-2">Lowest price: Rs {lowestPrice}</p>
+                    <>
+                      <p className="text-sm text-red-700 mb-1">
+                        Reverse Auction enabled by buyer.
+                      </p>
+                      <p className="text-sm text-red-700 mb-2">
+                        Current lowest price: Rs {lowestPrice}
+                      </p>
+                    </>
                   )}
 
                   <button

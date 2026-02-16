@@ -195,35 +195,27 @@ router.post("/offer", auth, sellerOnly, async (req, res) => {
 
     const requirement = await Requirement.findById(requirementId);
     if (requirement) {
+      const auctionWasActive =
+        requirement.reverseAuction?.active || requirement.reverseAuctionActive;
       const nextLowest =
         typeof requirement.currentLowestPrice === "number"
           ? Math.min(requirement.currentLowestPrice, price)
           : price;
-      const targetPrice =
-        typeof requirement.reverseAuction?.targetPrice === "number"
-          ? requirement.reverseAuction.targetPrice
-          : null;
       requirement.reverseAuction = {
         ...(requirement.reverseAuction || {}),
-        active: true,
+        active: Boolean(auctionWasActive),
         lowestPrice:
           typeof requirement.reverseAuction?.lowestPrice === "number"
             ? Math.min(requirement.reverseAuction.lowestPrice, price)
             : price,
         startedAt:
-          requirement.reverseAuction?.startedAt || new Date(),
+          auctionWasActive
+            ? requirement.reverseAuction?.startedAt || new Date()
+            : requirement.reverseAuction?.startedAt || null,
         updatedAt: new Date()
       };
-      requirement.reverseAuctionActive = true;
+      requirement.reverseAuctionActive = Boolean(auctionWasActive);
       requirement.currentLowestPrice = nextLowest;
-
-      const targetReached =
-        typeof targetPrice === "number" && price <= targetPrice;
-      if (targetReached) {
-        requirement.reverseAuction.active = false;
-        requirement.reverseAuctionActive = false;
-        requirement.reverseAuction.closedAt = new Date();
-      }
 
       await requirement.save();
 
@@ -238,21 +230,13 @@ router.post("/offer", auth, sellerOnly, async (req, res) => {
           "notification",
           notif
         );
-        io.to(String(requirement.buyerId)).emit(
-          "auction_price_update",
-          {
-            requirementId,
-            offerId: offer._id,
-            price,
-            targetReached
-          }
-        );
-        if (targetReached) {
+        if (auctionWasActive) {
           io.to(String(requirement.buyerId)).emit(
-            "auction_closed",
+            "auction_price_update",
             {
               requirementId,
-              closedAt: requirement.reverseAuction.closedAt
+              offerId: offer._id,
+              price
             }
           );
         }

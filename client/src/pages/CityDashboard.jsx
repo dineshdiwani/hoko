@@ -1,10 +1,14 @@
 import { useEffect, useState } from "react";
 import api, { getAssetBaseUrl } from "../services/api";
+import { getSession } from "../services/storage";
 
 export default function CityDashboard({ city }) {
   const [requirements, setRequirements] = useState([]);
   const [loading, setLoading] = useState(false);
   const [timeFilter, setTimeFilter] = useState("all");
+  const [auctionLoadingById, setAuctionLoadingById] = useState({});
+  const session = getSession();
+  const currentBuyerId = String(session?._id || session?.id || "");
   const baseUrl = getAssetBaseUrl();
 
   function toAbsoluteUrl(url) {
@@ -150,6 +154,41 @@ export default function CityDashboard({ city }) {
     (req) => req.reverseAuction?.active || req.reverseAuctionActive
   ).length;
 
+  async function toggleReverseAuction(req) {
+    const reqId = String(req._id || req.id || "");
+    if (!reqId) return;
+    const offerCount = Number(req.offerCount || 0);
+    const auctionActive = req.reverseAuction?.active || req.reverseAuctionActive;
+    if (!auctionActive && offerCount < 3) return;
+
+    setAuctionLoadingById((prev) => ({ ...prev, [reqId]: true }));
+    try {
+      const endpoint = auctionActive
+        ? `/buyer/requirement/${reqId}/reverse-auction/stop`
+        : `/buyer/requirement/${reqId}/reverse-auction/start`;
+      const res = await api.post(endpoint);
+      const updated = res.data || {};
+      setRequirements((prev) =>
+        prev.map((item) => {
+          const itemId = String(item._id || item.id || "");
+          if (itemId !== reqId) return item;
+          return {
+            ...item,
+            ...updated,
+            offerCount: item.offerCount
+          };
+        })
+      );
+    } catch (err) {
+      alert(
+        err?.response?.data?.message ||
+          `Unable to ${auctionActive ? "stop" : "start"} reverse auction`
+      );
+    } finally {
+      setAuctionLoadingById((prev) => ({ ...prev, [reqId]: false }));
+    }
+  }
+
   /* ---------------- DASHBOARD ---------------- */
   return (
     <div className="space-y-4">
@@ -198,6 +237,12 @@ export default function CityDashboard({ city }) {
             const isAuction =
               req.reverseAuction?.active ||
               req.reverseAuctionActive;
+            const reqId = String(req._id || req.id || "");
+            const offerCount = Number(req.offerCount || 0);
+            const isOwnPost =
+              currentBuyerId &&
+              String(req.buyerId || "") === currentBuyerId;
+            const isAuctionBusy = Boolean(auctionLoadingById[reqId]);
             const attachments = Array.isArray(req.attachments)
               ? req.attachments
               : [];
@@ -230,6 +275,40 @@ export default function CityDashboard({ city }) {
                     req.createdAt || Date.now()
                   ).toLocaleDateString()}
                 </p>
+
+                {isOwnPost && (
+                  <div className="mt-3">
+                    <button
+                      onClick={() => toggleReverseAuction(req)}
+                      disabled={
+                        isAuctionBusy ||
+                        (!isAuction && offerCount < 3)
+                      }
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                        isAuction
+                          ? "bg-red-600 text-white"
+                          : offerCount >= 3
+                          ? "btn-primary text-white"
+                          : "bg-gray-300 text-gray-600 cursor-not-allowed"
+                      }`}
+                      title={
+                        !isAuction && offerCount < 3
+                          ? "Requires 3 or more offers"
+                          : isAuction
+                          ? "Stop reverse auction"
+                          : "Invoke reverse auction"
+                      }
+                    >
+                      {isAuctionBusy
+                        ? isAuction
+                          ? "Stopping..."
+                          : "Invoking..."
+                        : isAuction
+                        ? "Stop Reverse Auction"
+                        : "Invoke Reverse Auction"}
+                    </button>
+                  </div>
+                )}
 
                 {attachments.length > 0 && (
                   <div className="mt-3">

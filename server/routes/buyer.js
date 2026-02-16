@@ -332,16 +332,6 @@ router.post("/requirement/:id/reverse-auction/start", auth, buyerOnly, async (re
   requirement.currentLowestPrice =
     typeof lowestPrice === "number" ? lowestPrice : null;
 
-  if (
-    typeof targetPrice === "number" &&
-    typeof lowestPrice === "number" &&
-    lowestPrice <= targetPrice
-  ) {
-    requirement.reverseAuction.active = false;
-    requirement.reverseAuctionActive = false;
-    requirement.reverseAuction.closedAt = new Date();
-  }
-
   await requirement.save();
 
   const requirementName = requirement.product || requirement.productName || "Product";
@@ -362,8 +352,8 @@ router.post("/requirement/:id/reverse-auction/start", auth, buyerOnly, async (re
       : null;
   const message =
     typeof displayLowest === "number"
-      ? `One of vendor offer lower cost (${currencySymbol} ${displayLowest}). You may lower offer if wish to.`
-      : "One of vendor offer lower cost. You may lower offer if wish to.";
+      ? `Reverse Auction enabled by buyer. Current lowest offer is ${currencySymbol} ${displayLowest}. You may edit your offer if you can go lower.`
+      : "Reverse Auction enabled by buyer. You may edit your offer if you can go lower.";
 
   const sellerIds = Array.from(
     new Set(

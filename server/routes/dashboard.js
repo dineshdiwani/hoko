@@ -4,10 +4,31 @@ const Offer = require("../models/Offer");
 const router = express.Router();
 
 router.get("/city/:city", async (req, res) => {
-  const data = await Requirement.find({
+  const requirements = await Requirement.find({
     city: req.params.city,
     "moderation.removed": { $ne: true }
+  }).sort({ createdAt: -1 });
+
+  const requirementIds = requirements.map((r) => r._id);
+  const offerCounts = await Offer.aggregate([
+    {
+      $match: {
+        requirementId: { $in: requirementIds },
+        "moderation.removed": { $ne: true }
+      }
+    },
+    { $group: { _id: "$requirementId", count: { $sum: 1 } } }
+  ]);
+  const countMap = new Map(
+    offerCounts.map((row) => [String(row._id), row.count])
+  );
+
+  const data = requirements.map((req) => {
+    const item = req.toObject();
+    item.offerCount = countMap.get(String(req._id)) || 0;
+    return item;
   });
+
   res.json(data);
 });
 

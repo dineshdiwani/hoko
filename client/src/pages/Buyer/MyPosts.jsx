@@ -11,6 +11,7 @@ export default function MyPosts() {
   const [sellerModalOpen, setSellerModalOpen] = useState(false);
   const [sellerLoading, setSellerLoading] = useState(false);
   const [sellerDetails, setSellerDetails] = useState(null);
+  const [auctionLoadingById, setAuctionLoadingById] = useState({});
   const modalRef = useRef(null);
   const baseUrl = getAssetBaseUrl();
 
@@ -108,6 +109,41 @@ export default function MyPosts() {
     }
   }
 
+  async function toggleReverseAuction(req) {
+    const reqId = String(req._id || req.id || "");
+    if (!reqId) return;
+    const offerCount = Number(req.offerCount || 0);
+    const auctionActive = req.reverseAuction?.active || req.reverseAuctionActive;
+    if (!auctionActive && offerCount < 3) return;
+
+    setAuctionLoadingById((prev) => ({ ...prev, [reqId]: true }));
+    try {
+      const endpoint = auctionActive
+        ? `/buyer/requirement/${reqId}/reverse-auction/stop`
+        : `/buyer/requirement/${reqId}/reverse-auction/start`;
+      const res = await api.post(endpoint);
+      const updated = res.data || {};
+      setRequirements((prev) =>
+        prev.map((item) => {
+          const itemId = String(item._id || item.id || "");
+          if (itemId !== reqId) return item;
+          return {
+            ...item,
+            ...updated,
+            offerCount: item.offerCount
+          };
+        })
+      );
+    } catch (err) {
+      alert(
+        err?.response?.data?.message ||
+          `Unable to ${auctionActive ? "stop" : "start"} reverse auction`
+      );
+    } finally {
+      setAuctionLoadingById((prev) => ({ ...prev, [reqId]: false }));
+    }
+  }
+
   /* ---------------- LOADING STATE ---------------- */
   if (loading) {
     return (
@@ -144,24 +180,25 @@ export default function MyPosts() {
     <>
       <div className="space-y-4">
         {requirements.map((req) => {
-        const isAuction =
-          req.reverseAuction?.active ||
-          req.reverseAuctionActive;
         const attachments = Array.isArray(req.attachments)
           ? req.attachments
           : [];
         const offerCount = Number(req.offerCount || 0);
         const normalizedStatus = req.status?.toUpperCase() || "OPEN";
         const auctionLive = offerCount >= 3;
+        const auctionActive =
+          req.reverseAuction?.active || req.reverseAuctionActive;
+        const reqId = String(req._id || req.id || "");
+        const isAuctionBusy = Boolean(auctionLoadingById[reqId]);
         const statusText = auctionLive
-          ? "AUCTION LIVE"
-          : offerCount > 0
-          ? "AUCTION"
+          ? auctionActive
+            ? "AUCTION LIVE"
+            : "AUCTION READY"
           : normalizedStatus;
         const statusClass = auctionLive
-          ? "app-badge app-badge-danger"
-          : offerCount > 0
-          ? "app-badge app-badge-warning"
+          ? auctionActive
+            ? "app-badge app-badge-danger"
+            : "app-badge app-badge-warning"
           : normalizedStatus === "CLOSED"
           ? "app-badge app-badge-muted"
           : "app-badge app-badge-new";
@@ -219,7 +256,7 @@ export default function MyPosts() {
             </p>
 
             {/* Auction info */}
-            {isAuction && (
+            {auctionActive && (
               <div className="mt-3 text-sm text-red-700">
                 Lowest price: Rs{" "}
                 {req.reverseAuction?.lowestPrice ??
@@ -304,7 +341,38 @@ export default function MyPosts() {
                   ? `${offerCount} offer received`
                   : "No offers received yet"}
               </span>
-              <span />
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleReverseAuction(req);
+                }}
+                disabled={
+                  isAuctionBusy ||
+                  (!auctionActive && offerCount < 3)
+                }
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                  auctionActive
+                    ? "bg-red-600 text-white"
+                    : offerCount >= 3
+                    ? "btn-primary text-white"
+                    : "bg-gray-300 text-gray-600 cursor-not-allowed"
+                }`}
+                title={
+                  !auctionActive && offerCount < 3
+                    ? "Requires 3 or more offers"
+                    : auctionActive
+                    ? "Stop reverse auction"
+                    : "Invoke reverse auction"
+                }
+              >
+                {isAuctionBusy
+                  ? auctionActive
+                    ? "Stopping..."
+                    : "Invoking..."
+                  : auctionActive
+                  ? "Stop Reverse Auction"
+                  : "Invoke Reverse Auction"}
+              </button>
             </div>
           </div>
         );
