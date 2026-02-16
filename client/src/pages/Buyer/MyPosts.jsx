@@ -382,7 +382,7 @@ export default function MyPosts() {
                 onClick={() =>
                   navigate(`/buyer/requirement/${reqId}/edit`)
                 }
-                className="w-full py-2 border border-[var(--ui-border)] rounded-lg text-xs font-semibold text-[var(--ui-text)]"
+                className="inline-flex items-center justify-center px-3 py-2 border border-[var(--ui-border)] rounded-lg text-xs font-semibold text-[var(--ui-text)]"
               >
                 Edit Post
               </button>
