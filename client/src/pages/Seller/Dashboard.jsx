@@ -76,7 +76,7 @@ export default function SellerDashboard() {
     if (activeSmartTab === "today") return isToday(createdAt);
     if (activeSmartTab === "offers") return !!req.myOffer;
     if (activeSmartTab === "auctions") {
-      return req.reverseAuction?.active === true;
+      return req.myOffer && req.reverseAuction?.active === true;
     }
     return true;
   };
@@ -264,7 +264,7 @@ export default function SellerDashboard() {
   });
 
   const liveAuctions = filteredRequirements.filter(
-    (req) => req.reverseAuction?.active === true
+    (req) => req.myOffer && req.reverseAuction?.active === true
   ).length;
   const categoryFilterOptions = (
     categories.length ? categories : dashboardCategories
@@ -603,6 +603,7 @@ export default function SellerDashboard() {
           <div className="space-y-4">
             {filteredRequirements.map((req) => {
               const isAuction = req.reverseAuction?.active === true;
+              const showAuctionForSeller = req.myOffer && isAuction;
               const lowestPrice = req.reverseAuction?.lowestPrice ?? req.currentLowestPrice ?? "-";
 
               return (
@@ -627,7 +628,7 @@ export default function SellerDashboard() {
                       </p>
                     </div>
 
-                    {isAuction && (
+                    {showAuctionForSeller && (
                       <span
                         className={`text-xs px-2 py-1 rounded-full bg-red-100 text-red-700 font-medium ${
                           req.myOffer ? "mr-10" : ""
@@ -638,14 +639,20 @@ export default function SellerDashboard() {
                     )}
                   </div>
 
-                  {isAuction && (
+                  {showAuctionForSeller && (
                     <>
                       <p className="text-sm text-red-700 mb-1">
-                        Reverse Auction enabled by buyer.
+                        Buyer has invoked Reverse Auction.
                       </p>
                       <p className="text-sm text-red-700 mb-2">
                         Current lowest price: Rs {lowestPrice}
                       </p>
+                      <button
+                        onClick={() => setActiveRequirement(req)}
+                        className="text-sm font-semibold text-red-700 underline"
+                      >
+                        Edit your offer now
+                      </button>
                     </>
                   )}
 

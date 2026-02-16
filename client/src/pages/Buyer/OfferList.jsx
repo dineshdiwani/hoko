@@ -205,6 +205,23 @@ export default function OfferList() {
     }
   }
 
+  async function disableContact() {
+    try {
+      await api.post(`/buyer/requirements/${id}/disable-contact`);
+      setContactEnabled(false);
+      setChatOpen(false);
+      setOffers((prev) =>
+        prev.map((offer) => ({
+          ...offer,
+          contactEnabledByBuyer: false
+        }))
+      );
+    } catch (err) {
+      const message = err?.response?.data?.message;
+      alert(message || "Unable to stop chat right now.");
+    }
+  }
+
   return (
     <div className="page">
       {/* ================= HEADER ================= */}
@@ -346,17 +363,27 @@ export default function OfferList() {
                   >
                     Chat
                   </button>
-                  )}
+                )}
 
-                {!contactEnabled && (
+                {offer.sellerId && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
+                      if (contactEnabled || offer.contactEnabledByBuyer) {
+                        disableContact();
+                        return;
+                      }
                       enableContact();
                     }}
-                    className="flex-1 text-center py-3 btn-primary rounded-xl font-semibold"
+                    className={`flex-1 text-center py-3 rounded-xl font-semibold ${
+                      contactEnabled || offer.contactEnabledByBuyer
+                        ? "bg-red-600 text-white"
+                        : "btn-primary"
+                    }`}
                   >
-                    Enable Contact
+                    {contactEnabled || offer.contactEnabledByBuyer
+                      ? "Stop Chat"
+                      : "Enable Chat"}
                   </button>
                 )}
               </div>

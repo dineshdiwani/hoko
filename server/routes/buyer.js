@@ -538,6 +538,34 @@ router.post("/requirements/:id/enable-contact", auth, buyerOnly, async (req, res
 });
 
 /**
+ * Disable contact for a requirement (buyer controlled)
+ */
+router.post("/requirements/:id/disable-contact", auth, buyerOnly, async (req, res) => {
+  const requirement = await Requirement.findById(req.params.id);
+  if (!requirement) {
+    return res.status(404).json({ message: "Requirement not found" });
+  }
+  if (String(requirement.buyerId) !== String(req.user._id)) {
+    return res.status(403).json({ message: "Not allowed" });
+  }
+
+  const result = await Offer.updateMany(
+    {
+      requirementId: requirement._id,
+      "moderation.removed": { $ne: true }
+    },
+    {
+      $set: { contactEnabledByBuyer: false }
+    }
+  );
+
+  res.json({
+    success: true,
+    updated: result.modifiedCount || 0
+  });
+});
+
+/**
  * Submit review (buyer → seller)
  */
 router.post("/review", auth, buyerOnly, async (req, res) => {
