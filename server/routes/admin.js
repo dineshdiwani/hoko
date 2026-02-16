@@ -55,7 +55,7 @@ function parseWhatsAppContactsFromWorkbook(buffer) {
   });
 
   const contacts = [];
-  for (let index = 1; index < rows.length; index += 1) {
+  for (let index = 0; index < rows.length; index += 1) {
     const row = rows[index] || [];
     const firmName = String(row[0] || "").trim();
     const city = String(row[1] || "").trim();
@@ -1071,7 +1071,7 @@ router.post(
     if (!parsedContacts.length) {
       return res.status(400).json({
         message:
-          "No valid rows found. Expected columns: Firm Name, City, Country Code, Mobile Number"
+          "No valid rows found. Expected columns in order: A Firm Name, B City, C Country Code, D Mobile Number."
       });
     }
 

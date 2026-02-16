@@ -438,7 +438,15 @@ export default function AdminDashboard() {
       setNotificationFile(null);
       await loadDashboardData();
     } catch (err) {
-      alert(err?.response?.data?.message || "Failed to upload WhatsApp contacts");
+      const serverData = err?.response?.data;
+      const serverMessage =
+        typeof serverData === "string"
+          ? serverData
+          : serverData?.message;
+      const fallback = err?.response?.status
+        ? `Failed to upload WhatsApp contacts (HTTP ${err.response.status})`
+        : "Failed to upload WhatsApp contacts";
+      alert(serverMessage || err?.message || fallback);
     } finally {
       setUploadingWhatsApp(false);
     }
@@ -651,7 +659,7 @@ export default function AdminDashboard() {
                 className="mt-2 block w-full text-sm"
               />
               <p className="text-xs text-gray-500 mt-1">
-                Columns required in order: A Firm Name, B City, C Mobile Country Code, D Mobile Number.
+                Columns required in order: A Firm Name, B City, C Country Code, D Mobile Number.
               </p>
             </div>
 
