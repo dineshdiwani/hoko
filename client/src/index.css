@@ -272,7 +272,7 @@
   }
 
   .btn-primary {
-    @apply text-white px-4 py-2 rounded-lg font-semibold transition;
+    @apply inline-flex items-center justify-center text-white px-3 py-1.5 rounded-lg text-sm font-semibold transition;
     background: var(--hoko-button);
   }
 
@@ -281,12 +281,12 @@
   }
 
   .btn-secondary {
-    @apply text-white px-4 py-2 rounded-lg font-semibold transition;
+    @apply inline-flex items-center justify-center text-white px-3 py-1.5 rounded-lg text-sm font-semibold transition;
     background: var(--hoko-button);
   }
 
   .btn-brand {
-    @apply rounded-xl font-semibold text-white transition;
+    @apply inline-flex items-center justify-center rounded-xl px-3.5 py-2 text-sm font-semibold text-white transition;
     background: var(--hoko-button);
     box-shadow: 0 12px 30px rgba(204, 47, 47, 0.28);
   }
@@ -416,7 +416,8 @@
     background: var(--hoko-button);
     color: #ffffff;
     border-radius: 999px;
-    padding: 0.7rem 1.6rem;
+    padding: 0.5rem 1.1rem;
+    font-size: 0.85rem;
     font-weight: 600;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     box-shadow: 0 12px 30px rgba(204, 47, 47, 0.28);
@@ -431,7 +432,8 @@
     border: 1px solid rgba(204, 47, 47, 0.5);
     color: #ffffff;
     border-radius: 999px;
-    padding: 0.7rem 1.4rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
     font-weight: 600;
     background: var(--hoko-button);
   }
