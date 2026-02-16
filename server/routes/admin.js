@@ -1146,7 +1146,7 @@ router.post("/whatsapp/unsubscribe", adminAuth, requireAdminPermission("campaign
   if (!mobileE164) {
     return res.status(400).json({ message: "mobileE164 required" });
   }
-  const contact = await WhatsAppContact.findOneAndUpdate(
+  const result = await WhatsAppContact.updateMany(
     { mobileE164 },
     {
       $set: {
@@ -1154,17 +1154,22 @@ router.post("/whatsapp/unsubscribe", adminAuth, requireAdminPermission("campaign
         unsubscribeReason: reason,
         optInStatus: "not_opted_in"
       }
-    },
-    { new: true }
+    }
   );
-  if (!contact) {
+  if (!result.matchedCount) {
     return res.status(404).json({ message: "Contact not found" });
   }
-  await logAdminAction(req.admin, "unsubscribe_whatsapp_contact", "whatsapp_contact", contact._id, {
+  await logAdminAction(req.admin, "unsubscribe_whatsapp_contact", "whatsapp_contact", "bulk", {
     mobileE164,
-    reason
+    reason,
+    matched: result.matchedCount || 0,
+    updated: result.modifiedCount || 0
   });
-  res.json({ success: true, contact });
+  res.json({
+    success: true,
+    matched: result.matchedCount || 0,
+    updated: result.modifiedCount || 0
+  });
 });
 
 router.post("/whatsapp/dnd/import", adminAuth, requireAdminPermission("campaigns.manage"), async (req, res) => {
@@ -1273,7 +1278,10 @@ router.post(
     for (const contact of parsedContacts) {
       try {
         const result = await WhatsAppContact.findOneAndUpdate(
-          { mobileE164: contact.mobileE164 },
+          {
+            mobileE164: contact.mobileE164,
+            cityNormalized: contact.cityNormalized
+          },
           contact,
           { upsert: true, new: true, setDefaultsOnInsert: true }
         );

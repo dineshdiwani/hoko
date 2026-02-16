@@ -25,8 +25,7 @@ const whatsAppContactSchema = new mongoose.Schema(
     },
     mobileE164: {
       type: String,
-      required: true,
-      unique: true
+      required: true
     },
     active: {
       type: Boolean,
@@ -69,6 +68,12 @@ const whatsAppContactSchema = new mongoose.Schema(
     }
   },
   { timestamps: true }
+);
+
+// Allow same mobile in different cities, but keep one record per mobile+city.
+whatsAppContactSchema.index(
+  { mobileE164: 1, cityNormalized: 1 },
+  { unique: true }
 );
 
 module.exports = mongoose.model("WhatsAppContact", whatsAppContactSchema);
