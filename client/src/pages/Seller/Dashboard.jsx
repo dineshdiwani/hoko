@@ -131,32 +131,58 @@ export default function SellerDashboard() {
   }, [selectedCity]);
 
   useEffect(() => {
-    if (loading || !requirements.length) return;
+    if (loading) return;
     const params = new URLSearchParams(location.search);
-    const openRequirement = String(params.get("openRequirement") || "").trim();
+    const openRequirement = String(
+      params.get("openRequirement") || params.get("postId") || ""
+    ).trim();
     if (!openRequirement) return;
 
-    const targetRequirement = requirements.find(
-      (req) => String(req._id) === openRequirement
-    );
-    if (targetRequirement) {
-      setActiveRequirement(targetRequirement);
-    } else {
-      setActiveRequirement({
-        _id: openRequirement,
-        product: "Requirement",
-        productName: "Requirement"
-      });
+    let cancelled = false;
+
+    async function openLinkedRequirement() {
+      let targetRequirement = requirements.find(
+        (req) => String(req._id) === openRequirement
+      );
+
+      if (!targetRequirement) {
+        try {
+          const res = await api.get(`/seller/requirement/${openRequirement}`);
+          targetRequirement = res.data || null;
+        } catch {
+          targetRequirement = null;
+        }
+      }
+
+      if (cancelled) return;
+
+      if (targetRequirement) {
+        setActiveRequirement(targetRequirement);
+      } else {
+        setActiveRequirement({
+          _id: openRequirement,
+          product: "Requirement",
+          productName: "Requirement"
+        });
+      }
+
+      const nextParams = new URLSearchParams(location.search);
+      nextParams.delete("openRequirement");
+      nextParams.delete("postId");
+      navigate(
+        {
+          pathname: location.pathname,
+          search: nextParams.toString()
+        },
+        { replace: true }
+      );
     }
-    const nextParams = new URLSearchParams(location.search);
-    nextParams.delete("openRequirement");
-    navigate(
-      {
-        pathname: location.pathname,
-        search: nextParams.toString()
-      },
-      { replace: true }
-    );
+
+    openLinkedRequirement();
+
+    return () => {
+      cancelled = true;
+    };
   }, [loading, requirements, location.pathname, location.search, navigate]);
 
   useEffect(() => {

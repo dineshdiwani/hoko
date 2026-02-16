@@ -10,6 +10,23 @@ const sellerOnly = require("../middleware/sellerOnly");
 const sendPush = require("../utils/sendPush");
 const { getModerationRules, checkTextForFlags } = require("../utils/moderation");
 
+function mapRequirementForSeller(requirementDoc, offerSet) {
+  if (!requirementDoc) return null;
+  const data = requirementDoc.toObject();
+  data.product = data.product || data.productName;
+  data.reverseAuctionActive =
+    data.reverseAuctionActive ||
+    data.reverseAuction?.active ||
+    false;
+  data.currentLowestPrice =
+    typeof data.currentLowestPrice === "number"
+      ? data.currentLowestPrice
+      : data.reverseAuction?.lowestPrice ?? null;
+  data.myOffer = offerSet.has(String(requirementDoc._id));
+  data.buyerId = data.buyerId;
+  return data;
+}
+
 /**
  * Seller onboarding (first-time registration)
  */
@@ -281,6 +298,29 @@ router.delete("/offer/:requirementId", auth, sellerOnly, async (req, res) => {
 });
 
 /**
+ * Get a specific requirement for deep-link open in seller dashboard
+ */
+router.get("/requirement/:requirementId", auth, sellerOnly, async (req, res) => {
+  const requirement = await Requirement.findOne({
+    _id: req.params.requirementId,
+    "moderation.removed": { $ne: true }
+  });
+  if (!requirement) {
+    return res.status(404).json({ message: "Requirement not found" });
+  }
+
+  const sellerOffer = await Offer.findOne({
+    requirementId: requirement._id,
+    sellerId: req.user._id
+  }).select("requirementId");
+  const offerSet = new Set(
+    sellerOffer ? [String(sellerOffer.requirementId)] : []
+  );
+
+  return res.json(mapRequirementForSeller(requirement, offerSet));
+});
+
+/**
  * Seller dashboard (requirements by category + city)
  */
 router.get("/dashboard", auth, sellerOnly, async (req, res) => {
@@ -307,21 +347,9 @@ router.get("/dashboard", auth, sellerOnly, async (req, res) => {
     offers.map((o) => String(o.requirementId))
   );
 
-  const mapped = requirements.map((req) => {
-    const data = req.toObject();
-    data.product = data.product || data.productName;
-    data.reverseAuctionActive =
-      data.reverseAuctionActive ||
-      data.reverseAuction?.active ||
-      false;
-    data.currentLowestPrice =
-      typeof data.currentLowestPrice === "number"
-        ? data.currentLowestPrice
-        : data.reverseAuction?.lowestPrice ?? null;
-    data.myOffer = offerSet.has(String(req._id));
-    data.buyerId = req.buyerId;
-    return data;
-  });
+  const mapped = requirements.map((req) =>
+    mapRequirementForSeller(req, offerSet)
+  );
 
   res.json(mapped);
 });

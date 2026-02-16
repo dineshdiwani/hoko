@@ -77,7 +77,8 @@ async function triggerWhatsAppCampaignForRequirement(requirement) {
       .split(",")[0]
       .trim()
       .replace(/\/+$/, "") || "https://hokoapp.in";
-  const deepLink = `${appBase}/seller/deeplink/${requirement._id}?city=${encodeURIComponent(requirement.city || "")}`;
+  const requirementId = encodeURIComponent(String(requirement._id || ""));
+  const deepLink = `${appBase}/seller/deeplink/${requirementId}?city=${encodeURIComponent(requirement.city || "")}&postId=${requirementId}`;
   const body = formatMessage({ requirement, deepLink });
   const run = await WhatsAppCampaignRun.create({
     requirementId: requirement._id,
@@ -167,7 +168,8 @@ async function sendTestWhatsAppCampaign({
       .split(",")[0]
       .trim()
       .replace(/\/+$/, "") || "https://hokoapp.in";
-  const deepLink = `${appBase}/seller/deeplink/${requirement._id}?city=${encodeURIComponent(requirement.city || "")}`;
+  const requirementId = encodeURIComponent(String(requirement._id || ""));
+  const deepLink = `${appBase}/seller/deeplink/${requirementId}?city=${encodeURIComponent(requirement.city || "")}&postId=${requirementId}`;
   const body = formatMessage({ requirement, deepLink });
 
   const run = await WhatsAppCampaignRun.create({

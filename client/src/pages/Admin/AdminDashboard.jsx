@@ -138,7 +138,7 @@ export default function AdminDashboard() {
         const baseUrl = window.location.origin.replace(/\/+$/, "");
         const cityParam = encodeURIComponent(requirement.city || "");
         const reqIdParam = encodeURIComponent(requirement._id || "");
-        lines.push(`Open: ${baseUrl}/seller/deeplink/${reqIdParam}?city=${cityParam}`);
+        lines.push(`Open: ${baseUrl}/seller/deeplink/${reqIdParam}?city=${cityParam}&postId=${reqIdParam}`);
       }
       return lines.join("\n");
     },
