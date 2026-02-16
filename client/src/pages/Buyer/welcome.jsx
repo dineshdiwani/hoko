@@ -71,8 +71,8 @@ export default function BuyerWelcome() {
   return (
     <div className="mf-theme">
       <header className="mf-header">
-        <div className="mf-shell flex items-center justify-between gap-6 py-5">
-          <div className="flex items-center gap-3">
+        <div className="mf-shell flex flex-wrap lg:flex-nowrap items-center justify-between gap-4 py-5">
+          <div className="flex items-center gap-2 w-full lg:w-auto justify-start lg:justify-end">
             <img
               src={logoSrc}
               alt="hoko"

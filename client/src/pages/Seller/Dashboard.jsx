@@ -373,13 +373,13 @@ export default function SellerDashboard() {
   return (
     <div className="page flex flex-col">
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-[var(--ui-border)]">
-        <div className="max-w-6xl mx-auto flex flex-wrap justify-between items-center px-4 py-3 pl-16 md:pl-20 gap-2">
+        <div className="max-w-6xl mx-auto flex flex-wrap md:flex-nowrap justify-between items-center px-4 py-3 pl-16 md:pl-20 gap-2">
           <div>
             <h1 className="text-lg font-bold">Seller Dashboard</h1>
             <p className="text-xs text-[var(--ui-muted)]">Matching buyer requirements</p>
           </div>
 
-          <div className="flex items-center flex-wrap justify-end gap-2 w-full md:w-auto">
+          <div className="flex items-center flex-wrap justify-between md:justify-end gap-2 w-full md:w-auto">
             <select
               value={selectedCity}
               onChange={(e) => setSelectedCity(e.target.value)}
