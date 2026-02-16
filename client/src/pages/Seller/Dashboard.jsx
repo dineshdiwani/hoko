@@ -372,17 +372,17 @@ export default function SellerDashboard() {
   return (
     <div className="page flex flex-col">
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-[var(--ui-border)]">
-        <div className="max-w-6xl mx-auto flex justify-between items-center px-4 py-3 pl-16 md:pl-20 gap-3">
+        <div className="max-w-6xl mx-auto flex flex-wrap justify-between items-center px-4 py-3 pl-16 md:pl-20 gap-2">
           <div>
             <h1 className="text-lg font-bold">Seller Dashboard</h1>
             <p className="text-xs text-[var(--ui-muted)]">Matching buyer requirements</p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center flex-wrap justify-end gap-2 w-full md:w-auto">
             <select
               value={selectedCity}
               onChange={(e) => setSelectedCity(e.target.value)}
-              className="app-select w-auto text-xs"
+              className="app-select w-[calc(50%-0.25rem)] md:w-auto text-xs"
               aria-label="Filter posts by city"
               title="Filter posts by city"
             >
@@ -403,7 +403,7 @@ export default function SellerDashboard() {
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="app-select w-auto text-xs"
+              className="app-select w-[calc(50%-0.25rem)] md:w-auto text-xs"
               aria-label="Filter posts by category"
               title="Filter posts by category"
             >
@@ -420,7 +420,7 @@ export default function SellerDashboard() {
             <div className="relative" ref={menuRef}>
               <button
                 onClick={() => setMenuOpen(!menuOpen)}
-                className="px-3 py-2 border rounded-xl text-sm font-medium bg-white"
+                className="px-2 md:px-3 py-2 border rounded-xl text-xs md:text-sm font-medium bg-white"
               >
                 {session?.name || "Seller"} v
               </button>
