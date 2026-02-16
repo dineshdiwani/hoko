@@ -34,6 +34,8 @@ export default function SellerDashboard() {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [cities, setCities] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [postedCities, setPostedCities] = useState([]);
+  const [postedCategories, setPostedCategories] = useState([]);
   const [selectedCity, setSelectedCity] = useState(session?.city || "");
   const [activeSmartTab, setActiveSmartTab] = useState("all");
   const [chatOpen, setChatOpen] = useState(false);
@@ -96,12 +98,39 @@ export default function SellerDashboard() {
     async function load() {
       setLoading(true);
       try {
-        const res = await api.get("/seller/dashboard", {
-          params: {
-            city: selectedCity || undefined
-          }
-        });
-        setRequirements(Array.isArray(res.data) ? res.data : []);
+        const [res, allRes] = await Promise.all([
+          api.get("/seller/dashboard", {
+            params: {
+              city: selectedCity
+            }
+          }),
+          api.get("/seller/dashboard", {
+            params: {
+              city: ""
+            }
+          })
+        ]);
+
+        const currentRequirements = Array.isArray(res.data) ? res.data : [];
+        const allRequirements = Array.isArray(allRes.data) ? allRes.data : [];
+        setRequirements(currentRequirements);
+
+        const nextPostedCities = Array.from(
+          new Set(
+            allRequirements
+              .map((req) => String(req?.city || "").trim())
+              .filter(Boolean)
+          )
+        );
+        const nextPostedCategories = Array.from(
+          new Set(
+            allRequirements
+              .map((req) => String(req?.category || "").trim())
+              .filter(Boolean)
+          )
+        );
+        setPostedCities(nextPostedCities);
+        setPostedCategories(nextPostedCategories);
       } catch (err) {
         console.error(err);
       } finally {
@@ -193,6 +222,7 @@ export default function SellerDashboard() {
 
   const visibleRequirements = requirements.filter((req) => {
     const normalizedCategory = normalizeCategory(req.category);
+    if (selectedCategory !== "all") return true;
     if (!dashboardCategories.length) return true;
     return dashboardCategories.includes(normalizedCategory);
   });
@@ -220,7 +250,11 @@ export default function SellerDashboard() {
     (req) => req.reverseAuction?.active || req.reverseAuctionActive
   ).length;
   const categoryFilterOptions = (
-    categories.length ? categories : dashboardCategories
+    postedCategories.length
+      ? postedCategories
+      : categories.length
+      ? categories
+      : dashboardCategories
   )
     .map((cat) => {
       const label = String(cat || "").trim();
@@ -236,6 +270,7 @@ export default function SellerDashboard() {
       (item, index, arr) =>
         arr.findIndex((other) => other.value === item.value) === index
     );
+  const cityFilterOptions = postedCities.length ? postedCities : cities;
 
   const markOfferSubmitted = (requirementId) => {
     if (!requirementId) return;
@@ -343,7 +378,7 @@ export default function SellerDashboard() {
             >
               <option value={session?.city || ""}>{session?.city || "Select city"}</option>
               <option value="">All cities</option>
-              {cities
+              {cityFilterOptions
                 .filter((c) => c !== session?.city)
                 .map((city) => (
                   <option key={city} value={city}>
