@@ -101,6 +101,12 @@
     flex: 0 0 auto !important;
   }
 
+  button.tab-stretch {
+    display: block !important;
+    width: auto !important;
+    flex: 1 1 0% !important;
+  }
+
   button:disabled {
     box-shadow: none;
   }

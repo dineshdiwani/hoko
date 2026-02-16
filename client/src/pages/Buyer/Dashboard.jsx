@@ -250,7 +250,7 @@ export default function BuyerDashboard() {
         <div className="max-w-6xl mx-auto flex border-t px-4 pl-16 md:pl-20">
           <button
             onClick={() => setActiveTab("posts")}
-            className={`flex-1 py-3 text-sm font-semibold ${
+            className={`tab-stretch flex-1 py-3 text-sm font-semibold ${
               activeTab === "posts"
                 ? "text-amber-700 border-b-2 border-indigo-600"
                 : "text-gray-500"
@@ -261,7 +261,7 @@ export default function BuyerDashboard() {
 
           <button
             onClick={() => setActiveTab("city")}
-            className={`flex-1 py-3 text-sm font-semibold ${
+            className={`tab-stretch flex-1 py-3 text-sm font-semibold ${
               activeTab === "city"
                 ? "text-amber-700 border-b-2 border-indigo-600"
                 : "text-gray-500"
