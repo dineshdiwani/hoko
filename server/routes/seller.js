@@ -325,13 +325,23 @@ router.get("/requirement/:requirementId", auth, sellerOnly, async (req, res) => 
  */
 router.get("/dashboard", auth, sellerOnly, async (req, res) => {
   const seller = await User.findById(req.user._id);
+  const hasCityParam = Object.prototype.hasOwnProperty.call(
+    req.query || {},
+    "city"
+  );
   const requestedCity = String(req.query?.city || "").trim();
-  const targetCity = requestedCity || seller.city;
+  const isAllCities =
+    hasCityParam &&
+    (!requestedCity ||
+      String(requestedCity).toLowerCase() === "all");
+  const targetCity = requestedCity || String(seller?.city || "").trim();
 
   const requirementQuery = {
-    city: targetCity,
     "moderation.removed": { $ne: true }
   };
+  if (!isAllCities && targetCity) {
+    requirementQuery.city = targetCity;
+  }
   // Category filtering is handled client-side using localStorage prefs.
 
   const requirements = await Requirement.find(requirementQuery).sort({

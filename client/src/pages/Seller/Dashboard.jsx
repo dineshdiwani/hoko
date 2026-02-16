@@ -117,7 +117,7 @@ export default function SellerDashboard() {
       try {
         const res = await api.get("/seller/dashboard", {
           params: {
-            city: selectedCity
+            city: selectedCity || "all"
           }
         });
         setRequirements(Array.isArray(res.data) ? res.data : []);
@@ -237,6 +237,7 @@ export default function SellerDashboard() {
   }, []);
 
   const visibleRequirements = requirements.filter((req) => {
+    if (selectedCategory === "all") return true;
     const normalizedCategory = normalizeCategory(req.category);
     if (!dashboardCategories.length) return true;
     return dashboardCategories.includes(normalizedCategory);
