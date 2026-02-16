@@ -136,7 +136,9 @@ export default function AdminDashboard() {
       }
       if (manualTemplateFields.link) {
         const baseUrl = window.location.origin.replace(/\/+$/, "");
-        lines.push(`Open: ${baseUrl}/seller/dashboard`);
+        const cityParam = encodeURIComponent(requirement.city || "");
+        const reqIdParam = encodeURIComponent(requirement._id || "");
+        lines.push(`Open: ${baseUrl}/seller/deeplink/${reqIdParam}?city=${cityParam}`);
       }
       return lines.join("\n");
     },

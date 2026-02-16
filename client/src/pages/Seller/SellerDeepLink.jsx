@@ -1,9 +1,10 @@
 import { useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { getSession } from "../../services/storage";
 
 export default function SellerDeepLink() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { requirementId } = useParams();
 
   useEffect(() => {
@@ -12,9 +13,14 @@ export default function SellerDeepLink() {
       return;
     }
 
-    const target = `/seller/dashboard?openRequirement=${encodeURIComponent(
-      requirementId
-    )}`;
+    const params = new URLSearchParams(location.search);
+    const city = String(params.get("city") || "").trim();
+    const next = new URLSearchParams();
+    next.set("openRequirement", requirementId);
+    if (city) {
+      next.set("city", city);
+    }
+    const target = `/seller/dashboard?${next.toString()}`;
     localStorage.setItem("post_login_redirect", target);
     localStorage.setItem("login_intent_role", "seller");
 
@@ -36,7 +42,7 @@ export default function SellerDeepLink() {
     }
 
     navigate("/seller/login", { replace: true });
-  }, [navigate, requirementId]);
+  }, [location.search, navigate, requirementId]);
 
   return (
     <div className="page">
