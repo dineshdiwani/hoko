@@ -323,7 +323,7 @@ export default function RequirementForm() {
         <div className="page-shell">
           <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr] items-start">
             <div>
-              <h1 className="page-hero mb-4">Post Requirement</h1>
+              <h1 className="page-hero mb-4 pl-12 md:pl-0">Post Requirement</h1>
               <p className="page-subtitle leading-relaxed">
                 Share your requirement once. Sellers will compete to give
                 you their best offer.
