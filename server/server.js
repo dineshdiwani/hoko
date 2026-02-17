@@ -139,6 +139,7 @@ io.on("connection", (socket) => {
     console.log("Message:", { from: effectiveFrom, to: effectiveTo, message });
     let allowedToSend = true;
     let savedMessage = null;
+    let toUserDoc = null;
 
     // Save to DB (best effort)
     try {
@@ -149,6 +150,7 @@ io.on("connection", (socket) => {
           Requirement.findById(requirementId),
           getModerationRules()
         ]);
+        toUserDoc = toUser;
 
         if (fromUser?.chatDisabled || toUser?.chatDisabled) {
           allowedToSend = false;
@@ -233,14 +235,20 @@ io.on("connection", (socket) => {
           messagePreview.length > 120
             ? `${messagePreview.slice(0, 117)}...`
             : messagePreview;
-        const notif = await Notification.create({
-          userId: effectiveTo,
-          fromUserId: effectiveFrom,
-          requirementId: requirementId || null,
-          type: "new_message",
-          message: `New message: ${shortened || "Open chat to view message"}`
-        });
-        io.to(String(effectiveTo)).emit("notification", notif);
+        const chatNotificationsEnabled =
+          !toUserDoc?.roles?.buyer ||
+          toUserDoc?.buyerSettings?.notificationToggles?.chat !== false;
+
+        if (chatNotificationsEnabled) {
+          const notif = await Notification.create({
+            userId: effectiveTo,
+            fromUserId: effectiveFrom,
+            requirementId: requirementId || null,
+            type: "new_message",
+            message: `New message: ${shortened || "Open chat to view message"}`
+          });
+          io.to(String(effectiveTo)).emit("notification", notif);
+        }
       } catch (err) {
         console.warn("Notification create failed:", err.message);
       }

@@ -10,6 +10,30 @@ const sellerOnly = require("../middleware/sellerOnly");
 const sendPush = require("../utils/sendPush");
 const { getModerationRules, checkTextForFlags } = require("../utils/moderation");
 
+function shouldNotifyBuyerEvent(userDoc, eventKey) {
+  if (!userDoc?.roles?.buyer) return true;
+  const toggles = userDoc?.buyerSettings?.notificationToggles || {};
+  if (eventKey === "newOffer") {
+    return toggles.newOffer !== false;
+  }
+  if (eventKey === "chat") {
+    return toggles.chat !== false;
+  }
+  if (eventKey === "statusUpdate") {
+    return toggles.statusUpdate !== false;
+  }
+  if (eventKey === "reminder") {
+    return toggles.reminder !== false;
+  }
+  return true;
+}
+
+function shouldSendBuyerPush(userDoc) {
+  if (!userDoc?.roles?.buyer) return true;
+  const toggles = userDoc?.buyerSettings?.notificationToggles || {};
+  return toggles.pushEnabled !== false;
+}
+
 function mapRequirementForSeller(requirementDoc, offerMap) {
   if (!requirementDoc) return null;
   const data = requirementDoc.toObject();
@@ -176,7 +200,7 @@ router.post("/offer", auth, sellerOnly, async (req, res) => {
     if (!requirement) {
       return res.status(404).json({ message: "Requirement not found" });
     }
-    const buyer = await User.findById(requirement.buyerId).select("buyerSettings");
+    const buyer = await User.findById(requirement.buyerId).select("buyerSettings roles");
     const autoEnableChat =
       buyer?.buyerSettings?.chatOnlyAfterOfferAcceptance === false &&
       buyer?.buyerSettings?.hideProfileUntilApproved === false;
@@ -227,33 +251,38 @@ router.post("/offer", auth, sellerOnly, async (req, res) => {
 
       await requirement.save();
 
-      const notif = await Notification.create({
-        userId: requirement.buyerId,
-        message: `New offer received for ${requirement.product || requirement.productName}`,
-        type: "new_offer"
-      });
       const io = req.app.get("io");
-      if (io) {
-        io.to(String(requirement.buyerId)).emit(
-          "notification",
-          notif
-        );
-        if (auctionWasActive) {
+      if (shouldNotifyBuyerEvent(buyer, "newOffer")) {
+        const notif = await Notification.create({
+          userId: requirement.buyerId,
+          message: `New offer received for ${requirement.product || requirement.productName}`,
+          type: "new_offer"
+        });
+        if (io) {
           io.to(String(requirement.buyerId)).emit(
-            "auction_price_update",
-            {
-              requirementId,
-              offerId: offer._id,
-              price
-            }
+            "notification",
+            notif
           );
         }
       }
 
-      await sendPush(requirement.buyerId.toString(), {
-        title: "New Offer Received",
-        body: `A seller submitted an offer of Rs ${price}`
-      });
+      if (io && auctionWasActive) {
+        io.to(String(requirement.buyerId)).emit(
+          "auction_price_update",
+          {
+            requirementId,
+            offerId: offer._id,
+            price
+          }
+        );
+      }
+
+      if (shouldSendBuyerPush(buyer)) {
+        await sendPush(requirement.buyerId.toString(), {
+          title: "New Offer Received",
+          body: `A seller submitted an offer of Rs ${price}`
+        });
+      }
     }
     res.json(offer);
   } catch (err) {
