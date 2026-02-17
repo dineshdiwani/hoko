@@ -25,7 +25,7 @@ const DEFAULT_PREFS = {
 
 export default function BuyerSettings() {
   const navigate = useNavigate();
-  const session = getSession();
+  const [session] = useState(() => getSession());
   const [saving, setSaving] = useState(false);
   const [busyAction, setBusyAction] = useState("");
   const [cities, setCities] = useState([]);
@@ -132,7 +132,7 @@ export default function BuyerSettings() {
         setMyPosts(Array.isArray(res.data) ? res.data : []);
       })
       .catch(() => {});
-  }, [navigate, session]);
+  }, [navigate, session?.token, session?._id]);
 
   function updatePrefs(partial) {
     setPrefs((prev) => ({ ...prev, ...partial }));
