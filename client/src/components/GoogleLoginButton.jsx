@@ -109,23 +109,27 @@ export default function GoogleLoginButton({
 
   return (
     <div className={`w-full mt-3 relative ${disabled ? "opacity-70" : ""}`}>
-      <div
-        ref={buttonHostRef}
-        className={`flex justify-center ${disabled ? "pointer-events-none" : ""}`}
-      />
+      <div className="flex justify-center">
+        <div className="relative inline-flex">
+          <div
+            ref={buttonHostRef}
+            className={disabled ? "pointer-events-none" : ""}
+          />
+          {disabled && (
+            <button
+              type="button"
+              onClick={() => onDisabledClick?.()}
+              className="absolute inset-0 z-20 min-h-[40px] min-w-[240px] rounded cursor-not-allowed bg-white/0"
+              aria-label="Complete city and terms before Google login"
+              title="Select city and accept terms first"
+            />
+          )}
+        </div>
+      </div>
       {!googleReady && (
         <div className="text-xs text-gray-500 text-center mt-2">
           Loading Google login...
         </div>
-      )}
-      {disabled && (
-        <button
-          type="button"
-          onClick={() => onDisabledClick?.()}
-          className="absolute inset-0 z-20 w-full h-full rounded-xl cursor-not-allowed bg-transparent"
-          aria-label="Complete city and terms before Google login"
-          title="Select city and accept terms first"
-        />
       )}
     </div>
   );
