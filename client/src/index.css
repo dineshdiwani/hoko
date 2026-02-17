@@ -56,7 +56,7 @@
   body {
     margin: 0;
     padding: 0;
-    overflow-x: hidden;
+    overflow-x: clip;
   }
 
   body {
@@ -72,7 +72,7 @@
   }
 
   #root {
-    overflow-x: hidden;
+    overflow-x: clip;
   }
 
   img,
@@ -159,7 +159,8 @@
     @apply min-h-screen;
     min-height: 100dvh;
     width: 100%;
-    overflow-x: hidden;
+    max-width: 100%;
+    overflow-x: clip;
     background: var(--hoko-flag-gradient);
     background-attachment: fixed;
     background-repeat: no-repeat;
@@ -325,6 +326,8 @@
     color: #0f172a;
     font-family: "Manrope", "Space Grotesk", system-ui, sans-serif;
     min-height: 100vh;
+    max-width: 100%;
+    overflow-x: clip;
   }
 
   .mf-shell {

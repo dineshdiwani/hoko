@@ -440,7 +440,7 @@ export default function UserLogin({ role = "buyer" }) {
 
   return (
     <div className="page">
-      <div className="page-shell">
+      <div className="page-shell pt-20 md:pt-10">
         <div className="grid gap-10 lg:grid-cols-[1fr_1fr] items-center">
           <div className="text-slate-900">
             <h1 className="page-hero mb-4">
