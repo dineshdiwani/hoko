@@ -13,6 +13,7 @@ export default function SellerSettings() {
   const navigate = useNavigate();
   const [session] = useState(() => getSession());
   const [saving, setSaving] = useState(false);
+  const [busyAction, setBusyAction] = useState("");
   const [cities, setCities] = useState([]);
   const [categories, setCategories] = useState([]);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
@@ -22,11 +23,23 @@ export default function SellerSettings() {
     businessAddress: "",
     ownerName: "",
     firmName: "",
-    managerName: "",
     city: "",
     categories: [],
     website: "",
     taxId: ""
+  });
+  const [terms, setTerms] = useState({
+    acceptedAt: "",
+    versionDate: ""
+  });
+  const [loginMethods, setLoginMethods] = useState({
+    password: false,
+    google: false
+  });
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: ""
   });
   const [prefs, setPrefs] = useState({
     notificationsLeads: true,
@@ -34,8 +47,6 @@ export default function SellerSettings() {
     notificationsOffers: true,
     availabilityDays: "Mon-Sat",
     availabilityHours: "10:00-19:00",
-    payoutUpi: "",
-    payoutBank: "",
     termsAcceptedAt:
       localStorage.getItem("terms_accepted_at") || ""
   });
@@ -84,11 +95,21 @@ export default function SellerSettings() {
           businessAddress: sellerProfile.businessAddress || "",
           ownerName: sellerProfile.ownerName || "",
           firmName: sellerProfile.firmName || "",
-          managerName: sellerProfile.managerName || "",
           city: res.data?.city || session?.city || "",
           categories: normalizedCategories,
           website: sellerProfile.website || "",
           taxId: sellerProfile.taxId || ""
+        });
+        setTerms({
+          acceptedAt:
+            res.data?.terms?.acceptedAt ||
+            localStorage.getItem("terms_accepted_at") ||
+            "",
+          versionDate: res.data?.terms?.versionDate || ""
+        });
+        setLoginMethods({
+          password: Boolean(res.data?.loginMethods?.password),
+          google: Boolean(res.data?.loginMethods?.google)
         });
       })
       .catch(() => {});
@@ -152,7 +173,6 @@ export default function SellerSettings() {
         businessAddress: profile.businessAddress,
         ownerName: profile.ownerName,
         firmName: profile.firmName || profile.businessName,
-        managerName: profile.managerName,
         city: profile.city,
         categories: profile.categories,
         website: profile.website,
@@ -167,6 +187,52 @@ export default function SellerSettings() {
       setSaving(false);
     }
   };
+
+  async function changePassword() {
+    if (!passwordForm.currentPassword || !passwordForm.newPassword) {
+      alert("Please enter current and new password");
+      return;
+    }
+    if (passwordForm.newPassword.length < 6) {
+      alert("New password must be at least 6 characters");
+      return;
+    }
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      alert("New password and confirm password do not match");
+      return;
+    }
+
+    setBusyAction("password");
+    try {
+      await api.post("/seller/profile/password", {
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword
+      });
+      setPasswordForm({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: ""
+      });
+      alert("Password updated");
+    } catch (err) {
+      alert(err?.response?.data?.message || "Failed to update password");
+    } finally {
+      setBusyAction("");
+    }
+  }
+
+  async function deleteAccountPermanently() {
+    const confirmText = window.prompt('Type "DELETE" to permanently delete your account');
+    if (confirmText !== "DELETE") return;
+    setBusyAction("delete-account");
+    try {
+      await api.delete("/seller/account");
+      logout(navigate);
+    } catch (err) {
+      alert(err?.response?.data?.message || "Failed to delete account");
+      setBusyAction("");
+    }
+  }
 
   return (
     <div className="page">
@@ -189,7 +255,7 @@ export default function SellerSettings() {
             <div className="grid gap-3 md:grid-cols-2">
               <label className="block">
                 <span className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1">
-                  Business Name
+                  Business/Firm/Company Name
                 </span>
                 <input
                   value={profile.businessName}
@@ -205,7 +271,7 @@ export default function SellerSettings() {
               </label>
               <label className="block">
                 <span className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1">
-                  Owner Name
+                  Owner/Manager/Sale Representative Name
                 </span>
                 <input
                   value={profile.ownerName}
@@ -216,22 +282,6 @@ export default function SellerSettings() {
                     })
                   }
                   placeholder="Enter owner name"
-                  className="w-full border rounded-xl px-4 py-3"
-                />
-              </label>
-              <label className="block">
-                <span className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1">
-                  Manager Name
-                </span>
-                <input
-                  value={profile.managerName}
-                  onChange={(e) =>
-                    setProfile({
-                      ...profile,
-                      managerName: e.target.value
-                    })
-                  }
-                  placeholder="Enter manager name"
                   className="w-full border rounded-xl px-4 py-3"
                 />
               </label>
@@ -262,7 +312,7 @@ export default function SellerSettings() {
               </label>
               <label className="md:col-span-2 block">
                 <span className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1">
-                  Business Address
+                  Business/Firm/Company Address
                 </span>
                 <input
                   value={profile.businessAddress}
@@ -310,7 +360,7 @@ export default function SellerSettings() {
               </label>
               <label className="block">
                 <span className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1">
-                  Tax ID
+                  Tax ID (GST etc)
                 </span>
                 <input
                   value={profile.taxId}
@@ -456,43 +506,54 @@ export default function SellerSettings() {
           </div>
 
           <div className="pt-6">
-            <h2 className="text-lg font-semibold mb-3">
-              Payout Settings
-            </h2>
-            <div className="grid gap-3 md:grid-cols-2">
+            <h2 className="text-lg font-semibold mb-3">Account</h2>
+            <div className="grid gap-3 md:grid-cols-3 mb-3">
               <input
-                value={prefs.payoutUpi}
+                type="password"
+                value={passwordForm.currentPassword}
                 onChange={(e) =>
-                  setPrefs({
-                    ...prefs,
-                    payoutUpi: e.target.value
+                  setPasswordForm({
+                    ...passwordForm,
+                    currentPassword: e.target.value
                   })
                 }
-                placeholder="UPI ID"
+                placeholder="Current password"
                 className="w-full border rounded-xl px-4 py-3"
               />
               <input
-                value={prefs.payoutBank}
+                type="password"
+                value={passwordForm.newPassword}
                 onChange={(e) =>
-                  setPrefs({
-                    ...prefs,
-                    payoutBank: e.target.value
+                  setPasswordForm({
+                    ...passwordForm,
+                    newPassword: e.target.value
                   })
                 }
-                placeholder="Bank account"
+                placeholder="New password"
+                className="w-full border rounded-xl px-4 py-3"
+              />
+              <input
+                type="password"
+                value={passwordForm.confirmPassword}
+                onChange={(e) =>
+                  setPasswordForm({
+                    ...passwordForm,
+                    confirmPassword: e.target.value
+                  })
+                }
+                placeholder="Confirm new password"
                 className="w-full border rounded-xl px-4 py-3"
               />
             </div>
-          </div>
-
-          <div className="pt-6">
-            <h2 className="text-lg font-semibold mb-3">Account</h2>
             <div className="flex flex-wrap gap-3">
               <button
-                onClick={() => navigate("/seller/login")}
+                onClick={changePassword}
+                disabled={busyAction === "password" || !loginMethods.password}
                 className="btn-secondary"
               >
-                Change Password
+                {busyAction === "password"
+                  ? "Updating..."
+                  : "Change Password"}
               </button>
               <button
                 onClick={() => logout(navigate)}
@@ -501,21 +562,35 @@ export default function SellerSettings() {
                 Logout
               </button>
               <button
-                disabled
-                className="btn-secondary opacity-60"
+                onClick={deleteAccountPermanently}
+                disabled={busyAction === "delete-account"}
+                className="px-3 py-1.5 rounded-lg text-sm font-semibold border border-red-300 text-red-700 bg-white hover:bg-red-50"
               >
-                Delete Account (coming soon)
+                {busyAction === "delete-account"
+                  ? "Deleting..."
+                  : "Delete Account Permanently"}
               </button>
             </div>
+            <p className="text-xs text-gray-500 mt-2">
+              Login methods: {loginMethods.password ? "Password" : ""}
+              {loginMethods.password && loginMethods.google ? " + " : ""}
+              {loginMethods.google ? "Google" : ""}
+            </p>
           </div>
 
           <div className="pt-6">
             <h2 className="text-lg font-semibold mb-3">Terms</h2>
             <p className="text-sm text-gray-600">
-              Accepted:{" "}
-              {prefs.termsAcceptedAt
-                ? new Date(prefs.termsAcceptedAt).toLocaleString()
+              Accepted at:{" "}
+              {terms.acceptedAt
+                ? new Date(terms.acceptedAt).toLocaleString()
                 : "Not recorded"}
+            </p>
+            <p className="text-sm text-gray-600">
+              Current T&C version date:{" "}
+              {terms.versionDate
+                ? new Date(terms.versionDate).toLocaleString()
+                : "Not available"}
             </p>
           </div>
 

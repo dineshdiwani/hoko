@@ -1,10 +1,13 @@
 const express = require("express");
 const router = express.Router();
+const bcrypt = require("bcryptjs");
 
 const Offer = require("../models/Offer");
 const Requirement = require("../models/Requirement");
 const User = require("../models/User");
 const Notification = require("../models/Notification");
+const ChatMessage = require("../models/ChatMessage");
+const PlatformSettings = require("../models/PlatformSettings");
 const auth = require("../middleware/auth");
 const sellerOnly = require("../middleware/sellerOnly");
 const sendPush = require("../utils/sendPush");
@@ -183,11 +186,80 @@ router.post("/profile", auth, sellerOnly, async (req, res) => {
  */
 router.get("/profile", auth, sellerOnly, async (req, res) => {
   const user = await User.findById(req.user._id);
+  const latestPlatformSettings = await PlatformSettings.findOne({})
+    .sort({ updatedAt: -1 })
+    .select("updatedAt");
   res.json({
     sellerProfile: user?.sellerProfile || {},
     city: user?.city,
-    preferredCurrency: user?.preferredCurrency || "INR"
+    preferredCurrency: user?.preferredCurrency || "INR",
+    terms: {
+      acceptedAt: user?.termsAccepted?.at || null,
+      versionDate: latestPlatformSettings?.updatedAt || null
+    },
+    loginMethods: {
+      password: Boolean(user?.passwordHash),
+      google: Boolean(user?.googleProfile?.sub)
+    }
   });
+});
+
+/**
+ * Change seller password
+ */
+router.post("/profile/password", auth, sellerOnly, async (req, res) => {
+  const { currentPassword, newPassword } = req.body || {};
+  if (!currentPassword || !newPassword) {
+    return res
+      .status(400)
+      .json({ message: "Current password and new password are required" });
+  }
+  if (String(newPassword).length < 6) {
+    return res
+      .status(400)
+      .json({ message: "Password must be at least 6 characters" });
+  }
+  if (!req.user.passwordHash) {
+    return res.status(400).json({
+      message: "Password login is not enabled for this account"
+    });
+  }
+
+  const ok = await bcrypt.compare(currentPassword, req.user.passwordHash);
+  if (!ok) {
+    return res.status(401).json({ message: "Current password is incorrect" });
+  }
+
+  req.user.passwordHash = await bcrypt.hash(newPassword, 10);
+  await req.user.save();
+  res.json({ success: true });
+});
+
+/**
+ * Permanently delete seller account and related data
+ */
+router.delete("/account", auth, sellerOnly, async (req, res) => {
+  const userId = req.user._id;
+  const requirements = await Requirement.find({ buyerId: userId })
+    .select("_id")
+    .lean();
+  const reqIds = requirements.map((item) => item._id);
+
+  await Promise.all([
+    Requirement.deleteMany({ buyerId: userId }),
+    Offer.deleteMany({
+      $or: [{ sellerId: userId }, { requirementId: { $in: reqIds } }]
+    }),
+    ChatMessage.deleteMany({
+      $or: [{ fromUserId: userId }, { toUserId: userId }]
+    }),
+    Notification.deleteMany({
+      $or: [{ userId }, { fromUserId: userId }]
+    }),
+    User.findByIdAndDelete(userId)
+  ]);
+
+  res.json({ success: true });
 });
 
 /**
