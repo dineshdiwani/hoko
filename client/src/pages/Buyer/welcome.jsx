@@ -269,14 +269,14 @@ export default function BuyerWelcome() {
               maxLength={200}
             />
 
-            <div className="flex justify-between items-center mt-4">
+            <div className="flex flex-wrap justify-between items-center gap-2 mt-4">
               <span className="text-sm text-slate-400">{text.length}/200</span>
 
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center justify-end gap-2 w-full sm:w-auto">
                 <button
                   type="button"
                   onClick={startVoiceInput}
-                  className={`ml-[2.5rem] sm:ml-0 w-11 h-11 rounded-full border flex items-center justify-center transition shrink-0 ${
+                  className={`w-11 h-11 rounded-full border flex items-center justify-center transition shrink-0 ${
                     listening
                       ? "border-red-300 bg-red-50 text-red-700"
                       : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
@@ -294,7 +294,7 @@ export default function BuyerWelcome() {
                   </svg>
                 </button>
 
-                <div className="text-xs text-slate-500 min-w-[120px]">
+                <div className="text-xs text-slate-500 min-w-0">
                   {listening ? "Listening..." : speechStatus || "Voice input"}
                 </div>
 

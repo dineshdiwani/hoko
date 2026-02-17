@@ -108,7 +108,7 @@ export default function NotificationCenter({ onNotificationClick }) {
       </button>
 
       {open && (
-        <div className="absolute left-0 sm:left-auto sm:right-0 mt-2 w-[min(20rem,calc(100vw-1rem))] sm:w-80 bg-white shadow-lg rounded-lg border z-50 max-h-96 overflow-auto">
+        <div className="absolute right-0 mt-2 w-[min(20rem,calc(100vw-1rem))] max-w-[calc(100vw-1rem)] sm:w-80 bg-white shadow-lg rounded-lg border z-50 max-h-96 overflow-auto">
           {notifications.length === 0 && (
             <p className="p-4 text-gray-500">
               No notifications
