@@ -3,11 +3,14 @@ const router = express.Router();
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+const bcrypt = require("bcryptjs");
 
 const Requirement = require("../models/Requirement");
 const Offer = require("../models/Offer");
 const User = require("../models/User");
 const Notification = require("../models/Notification");
+const ChatMessage = require("../models/ChatMessage");
+const PlatformSettings = require("../models/PlatformSettings");
 const { getModerationRules, checkTextForFlags } = require("../utils/moderation");
 const sendPush = require("../utils/sendPush");
 const { triggerWhatsAppCampaignForRequirement } = require("../services/whatsAppCampaign");
@@ -17,6 +20,10 @@ const buyerOnly = require("../middleware/buyerOnly");
 const uploadDir = path.join(__dirname, "../uploads/requirements");
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
+}
+const buyerDocUploadDir = path.join(__dirname, "../uploads/buyer-documents");
+if (!fs.existsSync(buyerDocUploadDir)) {
+  fs.mkdirSync(buyerDocUploadDir, { recursive: true });
 }
 
 const allowedExtensions = new Set([
@@ -29,6 +36,10 @@ const allowedExtensions = new Set([
   ".xls",
   ".xlsx"
 ]);
+const MIN_POST_AUTO_EXPIRY_DAYS = 7;
+const MAX_POST_AUTO_EXPIRY_DAYS = 365;
+const MIN_DOC_AUTO_DELETE_DAYS = 1;
+const MAX_DOC_AUTO_DELETE_DAYS = 365;
 
 function safeFilename(originalname) {
   const ext = path.extname(originalname).toLowerCase();
@@ -37,6 +48,134 @@ function safeFilename(originalname) {
     .replace(/[^a-zA-Z0-9_-]+/g, "_")
     .slice(0, 60);
   return `${base || "file"}${ext}`;
+}
+function toBoolean(value, fallback = false) {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "true") return true;
+    if (normalized === "false") return false;
+  }
+  return fallback;
+}
+function clamp(value, min, max, fallback) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(min, Math.min(max, Math.round(n)));
+}
+function getFreshBuyerSettings(user) {
+  const base = user?.buyerSettings || {};
+  return {
+    defaultCity: String(base.defaultCity || "").trim(),
+    defaultCategory: String(base.defaultCategory || "").trim(),
+    defaultUnit: String(base.defaultUnit || "").trim(),
+    hideProfileUntilApproved:
+      typeof base.hideProfileUntilApproved === "boolean"
+        ? base.hideProfileUntilApproved
+        : true,
+    hideEmail: Boolean(base.hideEmail),
+    hidePhone: Boolean(base.hidePhone),
+    chatOnlyAfterOfferAcceptance:
+      typeof base.chatOnlyAfterOfferAcceptance === "boolean"
+        ? base.chatOnlyAfterOfferAcceptance
+        : true,
+    postAutoExpiryDays: clamp(
+      base.postAutoExpiryDays,
+      MIN_POST_AUTO_EXPIRY_DAYS,
+      MAX_POST_AUTO_EXPIRY_DAYS,
+      30
+    ),
+    documentAutoDeleteDays: clamp(
+      base.documentAutoDeleteDays,
+      MIN_DOC_AUTO_DELETE_DAYS,
+      MAX_DOC_AUTO_DELETE_DAYS,
+      30
+    ),
+    notificationToggles: {
+      pushEnabled:
+        typeof base.notificationToggles?.pushEnabled === "boolean"
+          ? base.notificationToggles.pushEnabled
+          : true,
+      newOffer:
+        typeof base.notificationToggles?.newOffer === "boolean"
+          ? base.notificationToggles.newOffer
+          : true,
+      chat:
+        typeof base.notificationToggles?.chat === "boolean"
+          ? base.notificationToggles.chat
+          : true,
+      statusUpdate:
+        typeof base.notificationToggles?.statusUpdate === "boolean"
+          ? base.notificationToggles.statusUpdate
+          : true,
+      reminder:
+        typeof base.notificationToggles?.reminder === "boolean"
+          ? base.notificationToggles.reminder
+          : true
+    },
+    documents: Array.isArray(base.documents) ? base.documents : []
+  };
+}
+function normalizeBuyerDocument(doc) {
+  if (!doc) return null;
+  return {
+    id: String(doc._id || ""),
+    filename: String(doc.filename || ""),
+    originalName: String(doc.originalName || ""),
+    url: String(doc.url || ""),
+    size: Number(doc.size || 0),
+    mimetype: String(doc.mimetype || ""),
+    requirementId: doc.requirementId ? String(doc.requirementId) : "",
+    visibleToSellerId: doc.visibleToSellerId ? String(doc.visibleToSellerId) : "",
+    autoDeleteDays: clamp(doc.autoDeleteDays, MIN_DOC_AUTO_DELETE_DAYS, MAX_DOC_AUTO_DELETE_DAYS, 30),
+    createdAt: doc.createdAt || null
+  };
+}
+function isDocumentExpired(doc) {
+  if (!doc?.createdAt) return false;
+  const days = clamp(
+    doc.autoDeleteDays,
+    MIN_DOC_AUTO_DELETE_DAYS,
+    MAX_DOC_AUTO_DELETE_DAYS,
+    30
+  );
+  const ageMs = Date.now() - new Date(doc.createdAt).getTime();
+  return ageMs > days * 24 * 60 * 60 * 1000;
+}
+function removeFileIfExists(filePath) {
+  try {
+    if (filePath && fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+  } catch {
+    // Ignore unlink errors; record cleanup should still continue.
+  }
+}
+async function cleanupExpiredBuyerDocuments(user) {
+  const settings = getFreshBuyerSettings(user);
+  const docs = Array.isArray(settings.documents) ? settings.documents : [];
+  const keep = [];
+  let changed = false;
+
+  docs.forEach((doc) => {
+    if (isDocumentExpired(doc)) {
+      changed = true;
+      const filename = String(doc.filename || "").trim();
+      if (filename) {
+        removeFileIfExists(path.join(buyerDocUploadDir, filename));
+      }
+      return;
+    }
+    keep.push(doc);
+  });
+
+  if (changed) {
+    user.buyerSettings = {
+      ...settings,
+      documents: keep
+    };
+    await user.save();
+  }
 }
 
 const storage = multer.diskStorage({
@@ -53,6 +192,26 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage,
   limits: { fileSize: 10 * 1024 * 1024, files: 5 },
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (!allowedExtensions.has(ext)) {
+      return cb(new Error("Unsupported file type"));
+    }
+    cb(null, true);
+  }
+});
+const buyerDocStorage = multer.diskStorage({
+  destination: buyerDocUploadDir,
+  filename: (req, file, cb) => {
+    const finalName = `${req.user._id}_${Date.now()}_${safeFilename(
+      file.originalname
+    )}`;
+    cb(null, finalName);
+  }
+});
+const buyerDocUpload = multer({
+  storage: buyerDocStorage,
+  limits: { fileSize: 10 * 1024 * 1024, files: 1 },
   fileFilter: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
     if (!allowedExtensions.has(ext)) {
@@ -254,9 +413,34 @@ router.post("/profile/city", auth, buyerOnly, async (req, res) => {
  * Get buyer profile
  */
 router.get("/profile", auth, buyerOnly, async (req, res) => {
+  await cleanupExpiredBuyerDocuments(req.user);
+  const latestPlatformSettings = await PlatformSettings.findOne({})
+    .sort({ updatedAt: -1 })
+    .select("termsAndConditions updatedAt");
+  const settings = getFreshBuyerSettings(req.user);
+  const documents = (settings.documents || [])
+    .map(normalizeBuyerDocument)
+    .filter(Boolean);
+
   res.json({
+    name: req.user.name || req.user.googleProfile?.name || "",
+    email: req.user.email || "",
+    mobile: req.user.mobile || "",
     city: req.user.city,
-    preferredCurrency: req.user.preferredCurrency || "INR"
+    preferredCurrency: req.user.preferredCurrency || "INR",
+    roles: req.user.roles || {},
+    loginMethods: {
+      password: Boolean(req.user.passwordHash),
+      google: Boolean(req.user.googleProfile?.sub)
+    },
+    terms: {
+      acceptedAt: req.user.termsAccepted?.at || null,
+      versionDate: latestPlatformSettings?.updatedAt || null
+    },
+    buyerSettings: {
+      ...settings,
+      documents
+    }
   });
 });
 
@@ -264,20 +448,421 @@ router.get("/profile", auth, buyerOnly, async (req, res) => {
  * Update buyer profile
  */
 router.post("/profile", auth, buyerOnly, async (req, res) => {
-  const { city, preferredCurrency } = req.body || {};
+  const {
+    name,
+    mobile,
+    city,
+    preferredCurrency,
+    buyerSettings
+  } = req.body || {};
+  const beforeSettings = getFreshBuyerSettings(req.user);
 
+  if (typeof name === "string") {
+    req.user.name = name.trim();
+  }
+  if (typeof mobile === "string") {
+    req.user.mobile = mobile.trim();
+  }
   if (city) {
     req.user.city = city;
   }
   if (preferredCurrency) {
     req.user.preferredCurrency = preferredCurrency;
   }
+  if (buyerSettings && typeof buyerSettings === "object") {
+    const next = getFreshBuyerSettings(req.user);
+    if (Object.prototype.hasOwnProperty.call(buyerSettings, "defaultCity")) {
+      next.defaultCity = String(buyerSettings.defaultCity || "").trim();
+    }
+    if (Object.prototype.hasOwnProperty.call(buyerSettings, "defaultCategory")) {
+      next.defaultCategory = String(buyerSettings.defaultCategory || "").trim();
+    }
+    if (Object.prototype.hasOwnProperty.call(buyerSettings, "defaultUnit")) {
+      next.defaultUnit = String(buyerSettings.defaultUnit || "").trim();
+    }
+    if (Object.prototype.hasOwnProperty.call(buyerSettings, "hideProfileUntilApproved")) {
+      next.hideProfileUntilApproved = toBoolean(
+        buyerSettings.hideProfileUntilApproved,
+        next.hideProfileUntilApproved
+      );
+    }
+    if (Object.prototype.hasOwnProperty.call(buyerSettings, "hideEmail")) {
+      next.hideEmail = toBoolean(buyerSettings.hideEmail, next.hideEmail);
+    }
+    if (Object.prototype.hasOwnProperty.call(buyerSettings, "hidePhone")) {
+      next.hidePhone = toBoolean(buyerSettings.hidePhone, next.hidePhone);
+    }
+    if (
+      Object.prototype.hasOwnProperty.call(
+        buyerSettings,
+        "chatOnlyAfterOfferAcceptance"
+      )
+    ) {
+      next.chatOnlyAfterOfferAcceptance = toBoolean(
+        buyerSettings.chatOnlyAfterOfferAcceptance,
+        next.chatOnlyAfterOfferAcceptance
+      );
+    }
+    if (Object.prototype.hasOwnProperty.call(buyerSettings, "postAutoExpiryDays")) {
+      next.postAutoExpiryDays = clamp(
+        buyerSettings.postAutoExpiryDays,
+        MIN_POST_AUTO_EXPIRY_DAYS,
+        MAX_POST_AUTO_EXPIRY_DAYS,
+        next.postAutoExpiryDays
+      );
+    }
+    if (Object.prototype.hasOwnProperty.call(buyerSettings, "documentAutoDeleteDays")) {
+      next.documentAutoDeleteDays = clamp(
+        buyerSettings.documentAutoDeleteDays,
+        MIN_DOC_AUTO_DELETE_DAYS,
+        MAX_DOC_AUTO_DELETE_DAYS,
+        next.documentAutoDeleteDays
+      );
+    }
+    if (buyerSettings.notificationToggles && typeof buyerSettings.notificationToggles === "object") {
+      const notif = buyerSettings.notificationToggles;
+      next.notificationToggles = {
+        ...next.notificationToggles,
+        pushEnabled: toBoolean(
+          notif.pushEnabled,
+          next.notificationToggles.pushEnabled
+        ),
+        newOffer: toBoolean(notif.newOffer, next.notificationToggles.newOffer),
+        chat: toBoolean(notif.chat, next.notificationToggles.chat),
+        statusUpdate: toBoolean(
+          notif.statusUpdate,
+          next.notificationToggles.statusUpdate
+        ),
+        reminder: toBoolean(notif.reminder, next.notificationToggles.reminder)
+      };
+    }
+    req.user.buyerSettings = next;
+  }
 
   await req.user.save();
+
+  const afterSettings = getFreshBuyerSettings(req.user);
+  const enabledOpenChat =
+    beforeSettings.chatOnlyAfterOfferAcceptance === true &&
+    afterSettings.chatOnlyAfterOfferAcceptance === false;
+
+  if (enabledOpenChat) {
+    const requirementIds = await Requirement.find({ buyerId: req.user._id })
+      .select("_id")
+      .lean();
+    const ids = requirementIds.map((item) => item._id);
+    if (ids.length) {
+      await Offer.updateMany(
+        { requirementId: { $in: ids }, "moderation.removed": { $ne: true } },
+        { $set: { contactEnabledByBuyer: true } }
+      );
+    }
+  }
+
+  const documents = (afterSettings.documents || [])
+    .map(normalizeBuyerDocument)
+    .filter(Boolean);
   res.json({
+    name: req.user.name || req.user.googleProfile?.name || "",
+    email: req.user.email || "",
+    mobile: req.user.mobile || "",
     city: req.user.city,
-    preferredCurrency: req.user.preferredCurrency || "INR"
+    preferredCurrency: req.user.preferredCurrency || "INR",
+    roles: req.user.roles || {},
+    loginMethods: {
+      password: Boolean(req.user.passwordHash),
+      google: Boolean(req.user.googleProfile?.sub)
+    },
+    terms: {
+      acceptedAt: req.user.termsAccepted?.at || null
+    },
+    buyerSettings: {
+      ...afterSettings,
+      documents
+    }
   });
+});
+
+/**
+ * Change buyer password
+ */
+router.post("/profile/password", auth, buyerOnly, async (req, res) => {
+  const { currentPassword, newPassword } = req.body || {};
+  if (!currentPassword || !newPassword) {
+    return res
+      .status(400)
+      .json({ message: "Current password and new password are required" });
+  }
+  if (String(newPassword).length < 6) {
+    return res
+      .status(400)
+      .json({ message: "Password must be at least 6 characters" });
+  }
+  if (!req.user.passwordHash) {
+    return res.status(400).json({
+      message: "Password login is not enabled for this account"
+    });
+  }
+
+  const ok = await bcrypt.compare(currentPassword, req.user.passwordHash);
+  if (!ok) {
+    return res.status(401).json({ message: "Current password is incorrect" });
+  }
+
+  req.user.passwordHash = await bcrypt.hash(newPassword, 10);
+  await req.user.save();
+  res.json({ success: true });
+});
+
+/**
+ * Upload buyer document for profile-level visibility controls
+ */
+router.post(
+  "/documents/upload",
+  auth,
+  buyerOnly,
+  buyerDocUpload.single("file"),
+  async (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ message: "File is required" });
+    }
+    const settings = getFreshBuyerSettings(req.user);
+    const autoDeleteDays = clamp(
+      req.body?.autoDeleteDays,
+      MIN_DOC_AUTO_DELETE_DAYS,
+      MAX_DOC_AUTO_DELETE_DAYS,
+      settings.documentAutoDeleteDays
+    );
+
+    const doc = {
+      filename: req.file.filename,
+      originalName: req.file.originalname,
+      url: `/uploads/buyer-documents/${req.file.filename}`,
+      size: req.file.size,
+      mimetype: req.file.mimetype,
+      requirementId: req.body?.requirementId || null,
+      visibleToSellerId: req.body?.visibleToSellerId || null,
+      autoDeleteDays,
+      createdAt: new Date()
+    };
+
+    settings.documents = [...settings.documents, doc];
+    req.user.buyerSettings = settings;
+    await req.user.save();
+    const savedDoc =
+      req.user.buyerSettings?.documents?.[req.user.buyerSettings.documents.length - 1];
+    res.json({ document: normalizeBuyerDocument(savedDoc) });
+  }
+);
+
+/**
+ * List buyer documents
+ */
+router.get("/documents", auth, buyerOnly, async (req, res) => {
+  await cleanupExpiredBuyerDocuments(req.user);
+  const settings = getFreshBuyerSettings(req.user);
+  const documents = (settings.documents || [])
+    .map(normalizeBuyerDocument)
+    .filter(Boolean);
+  res.json({ documents });
+});
+
+/**
+ * Update buyer document visibility and retention
+ */
+router.patch("/documents/:documentId", auth, buyerOnly, async (req, res) => {
+  const settings = getFreshBuyerSettings(req.user);
+  const docs = Array.isArray(settings.documents) ? settings.documents : [];
+  const target = docs.find(
+    (doc) => String(doc._id) === String(req.params.documentId)
+  );
+  if (!target) {
+    return res.status(404).json({ message: "Document not found" });
+  }
+
+  if (Object.prototype.hasOwnProperty.call(req.body || {}, "visibleToSellerId")) {
+    target.visibleToSellerId = req.body.visibleToSellerId || null;
+  }
+  if (Object.prototype.hasOwnProperty.call(req.body || {}, "requirementId")) {
+    target.requirementId = req.body.requirementId || null;
+  }
+  if (Object.prototype.hasOwnProperty.call(req.body || {}, "autoDeleteDays")) {
+    target.autoDeleteDays = clamp(
+      req.body.autoDeleteDays,
+      MIN_DOC_AUTO_DELETE_DAYS,
+      MAX_DOC_AUTO_DELETE_DAYS,
+      settings.documentAutoDeleteDays
+    );
+  }
+
+  req.user.buyerSettings = settings;
+  await req.user.save();
+  const updated = req.user.buyerSettings.documents.find(
+    (doc) => String(doc._id) === String(req.params.documentId)
+  );
+  res.json({ document: normalizeBuyerDocument(updated) });
+});
+
+/**
+ * Delete a buyer document
+ */
+router.delete("/documents/:documentId", auth, buyerOnly, async (req, res) => {
+  const settings = getFreshBuyerSettings(req.user);
+  const docs = Array.isArray(settings.documents) ? settings.documents : [];
+  const index = docs.findIndex(
+    (doc) => String(doc._id) === String(req.params.documentId)
+  );
+  if (index < 0) {
+    return res.status(404).json({ message: "Document not found" });
+  }
+
+  const [removed] = docs.splice(index, 1);
+  if (removed?.filename) {
+    removeFileIfExists(path.join(buyerDocUploadDir, removed.filename));
+  }
+
+  settings.documents = docs;
+  req.user.buyerSettings = settings;
+  await req.user.save();
+  res.json({ success: true });
+});
+
+/**
+ * Export buyer-owned data snapshot
+ */
+router.get("/data-export", auth, buyerOnly, async (req, res) => {
+  await cleanupExpiredBuyerDocuments(req.user);
+  const [requirements, offers, chats] = await Promise.all([
+    Requirement.find({ buyerId: req.user._id })
+      .sort({ createdAt: -1 })
+      .lean(),
+    Offer.find({
+      requirementId: {
+        $in: await Requirement.find({ buyerId: req.user._id }).distinct("_id")
+      }
+    })
+      .sort({ createdAt: -1 })
+      .lean(),
+    ChatMessage.find({
+      $or: [{ fromUserId: req.user._id }, { toUserId: req.user._id }]
+    })
+      .sort({ createdAt: -1 })
+      .lean()
+  ]);
+
+  const settings = getFreshBuyerSettings(req.user);
+  res.json({
+    exportedAt: new Date().toISOString(),
+    profile: {
+      id: String(req.user._id),
+      name: req.user.name || req.user.googleProfile?.name || "",
+      email: req.user.email || "",
+      mobile: req.user.mobile || "",
+      city: req.user.city || "",
+      preferredCurrency: req.user.preferredCurrency || "INR",
+      roles: req.user.roles || {},
+      termsAcceptedAt: req.user.termsAccepted?.at || null
+    },
+    settings: {
+      ...settings,
+      documents: (settings.documents || [])
+        .map(normalizeBuyerDocument)
+        .filter(Boolean)
+    },
+    requirements,
+    offers,
+    chats
+  });
+});
+
+/**
+ * Delete one buyer-owned item: post/chat/document
+ */
+router.delete("/items/:type/:id", auth, buyerOnly, async (req, res) => {
+  const { type, id } = req.params;
+  if (!type || !id) {
+    return res.status(400).json({ message: "Missing item details" });
+  }
+
+  if (type === "post") {
+    const requirement = await Requirement.findById(id);
+    if (!requirement) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+    if (String(requirement.buyerId) !== String(req.user._id)) {
+      return res.status(403).json({ message: "Not allowed" });
+    }
+    await Requirement.findByIdAndDelete(id);
+    await Offer.deleteMany({ requirementId: id });
+    await ChatMessage.deleteMany({ requirementId: id });
+    return res.json({ success: true });
+  }
+
+  if (type === "chat") {
+    const message = await ChatMessage.findById(id);
+    if (!message) {
+      return res.status(404).json({ message: "Chat message not found" });
+    }
+    const owner =
+      String(message.fromUserId) === String(req.user._id) ||
+      String(message.toUserId) === String(req.user._id);
+    if (!owner) {
+      return res.status(403).json({ message: "Not allowed" });
+    }
+    await ChatMessage.findByIdAndDelete(id);
+    return res.json({ success: true });
+  }
+
+  if (type === "document") {
+    const settings = getFreshBuyerSettings(req.user);
+    const docs = Array.isArray(settings.documents) ? settings.documents : [];
+    const idx = docs.findIndex((doc) => String(doc._id) === String(id));
+    if (idx < 0) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+    const [removed] = docs.splice(idx, 1);
+    if (removed?.filename) {
+      removeFileIfExists(path.join(buyerDocUploadDir, removed.filename));
+    }
+    settings.documents = docs;
+    req.user.buyerSettings = settings;
+    await req.user.save();
+    return res.json({ success: true });
+  }
+
+  return res.status(400).json({ message: "Unsupported item type" });
+});
+
+/**
+ * Permanently delete buyer account and buyer-owned data
+ */
+router.delete("/account", auth, buyerOnly, async (req, res) => {
+  const userId = req.user._id;
+  const requirements = await Requirement.find({ buyerId: userId })
+    .select("_id")
+    .lean();
+  const reqIds = requirements.map((item) => item._id);
+
+  const settings = getFreshBuyerSettings(req.user);
+  (settings.documents || []).forEach((doc) => {
+    if (doc?.filename) {
+      removeFileIfExists(path.join(buyerDocUploadDir, doc.filename));
+    }
+  });
+
+  await Promise.all([
+    Requirement.deleteMany({ buyerId: userId }),
+    Offer.deleteMany({ requirementId: { $in: reqIds } }),
+    ChatMessage.deleteMany({
+      $or: [{ fromUserId: userId }, { toUserId: userId }]
+    }),
+    Notification.deleteMany({
+      $or: [{ userId }, { fromUserId: userId }]
+    }),
+    User.findByIdAndDelete(userId)
+  ]);
+
+  res.json({ success: true });
 });
 
 /**

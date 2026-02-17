@@ -172,6 +172,14 @@ router.get("/profile", auth, sellerOnly, async (req, res) => {
 router.post("/offer", auth, sellerOnly, async (req, res) => {
   try {
     const { requirementId, price, message, deliveryTime, paymentTerms } = req.body;
+    const requirement = await Requirement.findById(requirementId);
+    if (!requirement) {
+      return res.status(404).json({ message: "Requirement not found" });
+    }
+    const buyer = await User.findById(requirement.buyerId).select("buyerSettings");
+    const autoEnableChat =
+      buyer?.buyerSettings?.chatOnlyAfterOfferAcceptance === false;
+
     const moderationRules = await getModerationRules();
     const flaggedReason = checkTextForFlags(message || "", moderationRules);
 
@@ -188,12 +196,12 @@ router.post("/offer", auth, sellerOnly, async (req, res) => {
         "moderation.reason": "",
         "moderation.flagged": Boolean(flaggedReason),
         "moderation.flaggedAt": flaggedReason ? new Date() : null,
-        "moderation.flaggedReason": flaggedReason || ""
+        "moderation.flaggedReason": flaggedReason || "",
+        ...(autoEnableChat ? { contactEnabledByBuyer: true } : {})
       },
       { upsert: true, new: true }
     );
 
-    const requirement = await Requirement.findById(requirementId);
     if (requirement) {
       const auctionWasActive = requirement.reverseAuction?.active === true;
       const nextLowest =
