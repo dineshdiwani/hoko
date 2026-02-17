@@ -15,7 +15,6 @@ export default function GoogleLoginButton({
   const canProceedRef = useRef(canProceed);
   const [scriptLoaded, setScriptLoaded] = useState(false);
   const [googleReady, setGoogleReady] = useState(false);
-  const blocked = disabled || (typeof canProceed === "function" && !canProceed());
 
   useEffect(() => {
     onSuccessRef.current = onSuccess;
@@ -110,41 +109,35 @@ export default function GoogleLoginButton({
     if (!scriptLoaded) return;
     if (!initializeGoogle()) return;
 
-    if (blocked) {
-      if (buttonHostRef.current) {
-        buttonHostRef.current.innerHTML = "";
-      }
-      setGoogleReady(false);
+    const rendered = renderGoogleButton();
+    setGoogleReady(rendered);
+
+    if (disabled) {
       window.google?.accounts?.id?.cancel();
       return;
     }
 
-    const rendered = renderGoogleButton();
-    setGoogleReady(rendered);
-
     return () => {
       window.google?.accounts?.id?.cancel();
     };
-  }, [scriptLoaded, initializeGoogle, renderGoogleButton, blocked]);
+  }, [scriptLoaded, initializeGoogle, renderGoogleButton, disabled]);
 
   return (
-    <div className={`w-full mt-3 relative ${blocked ? "opacity-70" : ""}`}>
-      {blocked && (
-        <button
-          type="button"
-          onClick={() => onDisabledClick?.()}
-          className="w-full rounded-xl border border-gray-300 bg-white py-3 text-sm font-medium text-gray-700"
-          aria-label="Complete city and terms before Google login"
-          title="Select city and accept terms first"
-        >
-          Continue with Google
-        </button>
-      )}
+    <div className={`w-full mt-3 relative ${disabled ? "opacity-70" : ""}`}>
       <div ref={buttonHostRef} className="flex justify-center" />
-      {!blocked && !googleReady && (
+      {!googleReady && (
         <div className="text-xs text-gray-500 text-center mt-2">
           Loading Google login...
         </div>
+      )}
+      {disabled && (
+        <button
+          type="button"
+          onClick={() => onDisabledClick?.()}
+          className="absolute inset-0 w-full h-full rounded-xl cursor-not-allowed bg-transparent"
+          aria-label="Complete city and terms before Google login"
+          title="Select city and accept terms first"
+        />
       )}
     </div>
   );
