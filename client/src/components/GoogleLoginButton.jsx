@@ -94,17 +94,13 @@ export default function GoogleLoginButton({
     if (!scriptLoaded) return;
     if (!initializeGoogle()) return;
 
+    const rendered = renderGoogleButton();
+    setGoogleReady(rendered);
+
     if (disabled) {
-      if (buttonHostRef.current) {
-        buttonHostRef.current.innerHTML = "";
-      }
-      setGoogleReady(false);
       window.google?.accounts?.id?.cancel();
       return;
     }
-
-    const rendered = renderGoogleButton();
-    setGoogleReady(rendered);
 
     return () => {
       window.google?.accounts?.id?.cancel();
@@ -113,22 +109,23 @@ export default function GoogleLoginButton({
 
   return (
     <div className={`w-full mt-3 relative ${disabled ? "opacity-70" : ""}`}>
+      <div
+        ref={buttonHostRef}
+        className={`flex justify-center ${disabled ? "pointer-events-none" : ""}`}
+      />
+      {!googleReady && (
+        <div className="text-xs text-gray-500 text-center mt-2">
+          Loading Google login...
+        </div>
+      )}
       {disabled && (
         <button
           type="button"
           onClick={() => onDisabledClick?.()}
-          className="w-full rounded-xl border border-gray-300 bg-white py-3 text-sm font-medium text-gray-700"
+          className="absolute inset-0 z-20 w-full h-full rounded-xl cursor-not-allowed bg-transparent"
           aria-label="Complete city and terms before Google login"
           title="Select city and accept terms first"
-        >
-          Continue with Google
-        </button>
-      )}
-      {!disabled && <div ref={buttonHostRef} className="flex justify-center" />}
-      {!disabled && !googleReady && (
-        <div className="text-xs text-gray-500 text-center mt-2">
-          Loading Google login...
-        </div>
+        />
       )}
     </div>
   );
