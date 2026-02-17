@@ -99,8 +99,8 @@ export default function AdminLogin() {
   return (
     <div className="page">
       <div className="page-shell pt-20 md:pt-10">
-        <div className="grid gap-10 lg:grid-cols-[1fr_1fr] items-center">
-          <div>
+        <div className="grid gap-10 justify-items-center lg:justify-items-stretch lg:grid-cols-[1fr_1fr] items-center">
+          <div className="w-full max-w-md lg:max-w-none text-center lg:text-left">
             <h1 className="page-hero mb-4">Admin Console</h1>
             <p className="page-subtitle leading-relaxed">
               Secure access to platform analytics, approvals, and operations.

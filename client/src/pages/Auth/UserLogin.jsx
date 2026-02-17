@@ -441,8 +441,8 @@ export default function UserLogin({ role = "buyer" }) {
   return (
     <div className="page">
       <div className="page-shell pt-20 md:pt-10">
-        <div className="grid gap-10 lg:grid-cols-[1fr_1fr] items-center">
-          <div className="text-slate-900">
+        <div className="grid gap-10 justify-items-center lg:justify-items-stretch lg:grid-cols-[1fr_1fr] items-center">
+          <div className="text-slate-900 w-full max-w-md lg:max-w-none text-center lg:text-left">
             <h1 className="page-hero mb-4">
               Access, fast and secure
             </h1>
