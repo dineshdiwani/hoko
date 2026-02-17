@@ -539,7 +539,7 @@ export default function BuyerSettings() {
               <button
                 onClick={deleteAccountPermanently}
                 disabled={busyAction === "delete-account"}
-                className="btn-secondary border border-red-300 text-red-600"
+                className="px-3 py-1.5 rounded-lg text-sm font-semibold border border-red-300 text-red-700 bg-white hover:bg-red-50"
               >
                 {busyAction === "delete-account" ? "Deleting..." : "Delete Account Permanently"}
               </button>
