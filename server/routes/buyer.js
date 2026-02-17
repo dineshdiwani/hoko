@@ -73,8 +73,18 @@ function getFreshBuyerSettings(user) {
       typeof base.hideProfileUntilApproved === "boolean"
         ? base.hideProfileUntilApproved
         : true,
-    hideEmail: Boolean(base.hideEmail),
-    hidePhone: Boolean(base.hidePhone),
+    hideEmail:
+      typeof base.hideEmail === "boolean"
+        ? base.hideEmail
+        : (typeof base.hideProfileUntilApproved === "boolean"
+            ? base.hideProfileUntilApproved
+            : true),
+    hidePhone:
+      typeof base.hidePhone === "boolean"
+        ? base.hidePhone
+        : (typeof base.hideProfileUntilApproved === "boolean"
+            ? base.hideProfileUntilApproved
+            : true),
     chatOnlyAfterOfferAcceptance:
       typeof base.chatOnlyAfterOfferAcceptance === "boolean"
         ? base.chatOnlyAfterOfferAcceptance
@@ -455,7 +465,6 @@ router.post("/profile", auth, buyerOnly, async (req, res) => {
     preferredCurrency,
     buyerSettings
   } = req.body || {};
-  const beforeSettings = getFreshBuyerSettings(req.user);
 
   if (typeof name === "string") {
     req.user.name = name.trim();
@@ -542,21 +551,23 @@ router.post("/profile", auth, buyerOnly, async (req, res) => {
   await req.user.save();
 
   const afterSettings = getFreshBuyerSettings(req.user);
-  const enabledOpenChat =
-    beforeSettings.chatOnlyAfterOfferAcceptance === true &&
-    afterSettings.chatOnlyAfterOfferAcceptance === false;
+  afterSettings.hideEmail = Boolean(afterSettings.hideProfileUntilApproved);
+  afterSettings.hidePhone = Boolean(afterSettings.hideProfileUntilApproved);
+  req.user.buyerSettings = afterSettings;
+  await req.user.save();
 
-  if (enabledOpenChat) {
-    const requirementIds = await Requirement.find({ buyerId: req.user._id })
-      .select("_id")
-      .lean();
-    const ids = requirementIds.map((item) => item._id);
-    if (ids.length) {
-      await Offer.updateMany(
-        { requirementId: { $in: ids }, "moderation.removed": { $ne: true } },
-        { $set: { contactEnabledByBuyer: true } }
-      );
-    }
+  const requirementIds = await Requirement.find({ buyerId: req.user._id })
+    .select("_id")
+    .lean();
+  const ids = requirementIds.map((item) => item._id);
+  if (ids.length) {
+    const allowContact =
+      afterSettings.hideProfileUntilApproved === false &&
+      afterSettings.chatOnlyAfterOfferAcceptance === false;
+    await Offer.updateMany(
+      { requirementId: { $in: ids }, "moderation.removed": { $ne: true } },
+      { $set: { contactEnabledByBuyer: allowContact } }
+    );
   }
 
   const documents = (afterSettings.documents || [])

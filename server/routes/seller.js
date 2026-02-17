@@ -178,7 +178,8 @@ router.post("/offer", auth, sellerOnly, async (req, res) => {
     }
     const buyer = await User.findById(requirement.buyerId).select("buyerSettings");
     const autoEnableChat =
-      buyer?.buyerSettings?.chatOnlyAfterOfferAcceptance === false;
+      buyer?.buyerSettings?.chatOnlyAfterOfferAcceptance === false &&
+      buyer?.buyerSettings?.hideProfileUntilApproved === false;
 
     const moderationRules = await getModerationRules();
     const flaggedReason = checkTextForFlags(message || "", moderationRules);

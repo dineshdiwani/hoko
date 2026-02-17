@@ -14,8 +14,6 @@ const DEFAULT_PREFS = {
   defaultCategory: "",
   defaultUnit: "",
   hideProfileUntilApproved: true,
-  hideEmail: false,
-  hidePhone: false,
   chatOnlyAfterOfferAcceptance: true,
   postAutoExpiryDays: 30,
   documentAutoDeleteDays: 30,
@@ -445,22 +443,6 @@ export default function BuyerSettings() {
                   onChange={(e) => updatePrefs({ hideProfileUntilApproved: e.target.checked })}
                 />
                 Hide profile/contact details until buyer approves
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={prefs.hideEmail}
-                  onChange={(e) => updatePrefs({ hideEmail: e.target.checked })}
-                />
-                Hide email from sellers
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={prefs.hidePhone}
-                  onChange={(e) => updatePrefs({ hidePhone: e.target.checked })}
-                />
-                Hide mobile from sellers
               </label>
               <label className="flex items-center gap-2">
                 <input
