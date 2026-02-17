@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
 import { fetchOptions } from "../../services/options";
@@ -30,8 +30,6 @@ export default function BuyerSettings() {
   const [busyAction, setBusyAction] = useState("");
   const [cities, setCities] = useState([]);
   const [currencies, setCurrencies] = useState([]);
-  const [myPosts, setMyPosts] = useState([]);
-  const [documents, setDocuments] = useState([]);
 
   const [profile, setProfile] = useState({
     name: "",
@@ -56,22 +54,6 @@ export default function BuyerSettings() {
     type: "post",
     id: ""
   });
-  const [uploadForm, setUploadForm] = useState({
-    file: null,
-    requirementId: "",
-    visibleToSellerId: "",
-    autoDeleteDays: 30
-  });
-
-  const docsByPost = useMemo(() => {
-    const map = new Map();
-    documents.forEach((doc) => {
-      const key = String(doc.requirementId || "");
-      if (!map.has(key)) map.set(key, []);
-      map.get(key).push(doc);
-    });
-    return map;
-  }, [documents]);
 
   useEffect(() => {
     if (!session?.token) {
@@ -108,7 +90,6 @@ export default function BuyerSettings() {
             ...(data.buyerSettings?.notificationToggles || {})
           }
         });
-        setDocuments(Array.isArray(data.buyerSettings?.documents) ? data.buyerSettings.documents : []);
         setTerms({
           acceptedAt: data.terms?.acceptedAt || localStorage.getItem("terms_accepted_at") || "",
           versionDate: data.terms?.versionDate || ""
@@ -126,12 +107,6 @@ export default function BuyerSettings() {
         }));
       });
 
-    api
-      .get(`/buyer/my-posts/${session._id}`)
-      .then((res) => {
-        setMyPosts(Array.isArray(res.data) ? res.data : []);
-      })
-      .catch(() => {});
   }, [navigate, session?.token, session?._id]);
 
   function updatePrefs(partial) {
@@ -185,7 +160,6 @@ export default function BuyerSettings() {
         ...prev,
         acceptedAt: data.terms?.acceptedAt || prev.acceptedAt
       }));
-      setDocuments(Array.isArray(data.buyerSettings?.documents) ? data.buyerSettings.documents : documents);
       updateSession({
         name: data.name || profile.name,
         city: data.city || profile.city,
@@ -256,55 +230,6 @@ export default function BuyerSettings() {
     }
   }
 
-  async function uploadDocument() {
-    if (!uploadForm.file) {
-      alert("Please choose a file");
-      return;
-    }
-    setBusyAction("upload-doc");
-    try {
-      const fd = new FormData();
-      fd.append("file", uploadForm.file);
-      if (uploadForm.requirementId) fd.append("requirementId", uploadForm.requirementId);
-      if (uploadForm.visibleToSellerId) fd.append("visibleToSellerId", uploadForm.visibleToSellerId);
-      fd.append("autoDeleteDays", String(uploadForm.autoDeleteDays || prefs.documentAutoDeleteDays || 30));
-      const res = await api.post("/buyer/documents/upload", fd, {
-        headers: { "Content-Type": "multipart/form-data" }
-      });
-      const doc = res?.data?.document;
-      if (doc) {
-        setDocuments((prev) => [doc, ...prev]);
-      }
-      setUploadForm((prev) => ({ ...prev, file: null }));
-      alert("Document uploaded");
-    } catch (err) {
-      alert(err?.response?.data?.message || "Failed to upload document");
-    } finally {
-      setBusyAction("");
-    }
-  }
-
-  async function updateDocument(docId, patch) {
-    try {
-      const res = await api.patch(`/buyer/documents/${docId}`, patch);
-      const doc = res?.data?.document;
-      if (doc) {
-        setDocuments((prev) => prev.map((d) => (d.id === doc.id ? doc : d)));
-      }
-    } catch (err) {
-      alert(err?.response?.data?.message || "Failed to update document");
-    }
-  }
-
-  async function deleteDocument(docId) {
-    try {
-      await api.delete(`/buyer/documents/${docId}`);
-      setDocuments((prev) => prev.filter((d) => d.id !== docId));
-    } catch (err) {
-      alert(err?.response?.data?.message || "Failed to delete document");
-    }
-  }
-
   async function deleteIndividualItem() {
     if (!itemDeleteForm.id.trim()) {
       alert("Please enter item id");
@@ -315,12 +240,6 @@ export default function BuyerSettings() {
     setBusyAction("delete-item");
     try {
       await api.delete(`/buyer/items/${itemDeleteForm.type}/${itemDeleteForm.id.trim()}`);
-      if (itemDeleteForm.type === "post") {
-        setMyPosts((prev) => prev.filter((p) => String(p._id) !== itemDeleteForm.id.trim()));
-      }
-      if (itemDeleteForm.type === "document") {
-        setDocuments((prev) => prev.filter((d) => String(d.id) !== itemDeleteForm.id.trim()));
-      }
       setItemDeleteForm((prev) => ({ ...prev, id: "" }));
       alert("Item deleted");
     } catch (err) {
@@ -514,111 +433,6 @@ export default function BuyerSettings() {
                 />
               </label>
             </div>
-          </div>
-
-          <div className="pt-6">
-            <h2 className="text-lg font-semibold mb-3">Documents</h2>
-            <div className="grid gap-3 md:grid-cols-2">
-              <label className="block md:col-span-2">
-                <span className="text-sm text-gray-600">Upload file</span>
-                <input
-                  type="file"
-                  onChange={(e) => setUploadForm((prev) => ({ ...prev, file: e.target.files?.[0] || null }))}
-                  className="w-full border rounded-xl px-4 py-3"
-                />
-              </label>
-              <label className="block">
-                <span className="text-sm text-gray-600">Link to post (optional)</span>
-                <select
-                  value={uploadForm.requirementId}
-                  onChange={(e) => setUploadForm((prev) => ({ ...prev, requirementId: e.target.value }))}
-                  className="w-full border rounded-xl px-4 py-3"
-                >
-                  <option value="">No post link</option>
-                  {myPosts.map((post) => (
-                    <option key={post._id} value={post._id}>
-                      {post.product || post.productName || post._id}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="block">
-                <span className="text-sm text-gray-600">Visible to seller ID (optional)</span>
-                <input
-                  value={uploadForm.visibleToSellerId}
-                  onChange={(e) => setUploadForm((prev) => ({ ...prev, visibleToSellerId: e.target.value }))}
-                  placeholder="Seller user id"
-                  className="w-full border rounded-xl px-4 py-3"
-                />
-              </label>
-              <label className="block">
-                <span className="text-sm text-gray-600">Auto-delete days</span>
-                <input
-                  type="number"
-                  min={1}
-                  max={365}
-                  value={uploadForm.autoDeleteDays}
-                  onChange={(e) => setUploadForm((prev) => ({ ...prev, autoDeleteDays: Number(e.target.value || 30) }))}
-                  className="w-full border rounded-xl px-4 py-3"
-                />
-              </label>
-              <div className="flex items-end">
-                <button
-                  onClick={uploadDocument}
-                  disabled={busyAction === "upload-doc"}
-                  className="btn-primary w-full"
-                >
-                  {busyAction === "upload-doc" ? "Uploading..." : "Upload Document"}
-                </button>
-              </div>
-            </div>
-
-            {documents.length > 0 && (
-              <div className="mt-4 space-y-2">
-                {documents.map((doc) => (
-                  <div key={doc.id} className="border rounded-xl p-3 text-sm">
-                    <div className="font-medium">{doc.originalName || doc.filename}</div>
-                    <div className="text-gray-500 text-xs">
-                      Post: {doc.requirementId || "none"} | Seller: {doc.visibleToSellerId || "all"} | Auto-delete: {doc.autoDeleteDays}d
-                    </div>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      <input
-                        value={doc.visibleToSellerId || ""}
-                        onChange={(e) => updateDocument(doc.id, { visibleToSellerId: e.target.value })}
-                        placeholder="Seller ID"
-                        className="border rounded px-3 py-1"
-                      />
-                      <input
-                        type="number"
-                        min={1}
-                        max={365}
-                        value={doc.autoDeleteDays || 30}
-                        onChange={(e) => updateDocument(doc.id, { autoDeleteDays: Number(e.target.value || 30) })}
-                        className="border rounded px-3 py-1 w-24"
-                      />
-                      <button
-                        onClick={() => deleteDocument(doc.id)}
-                        className="px-3 py-1 border border-red-300 text-red-600 rounded"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {myPosts.length > 0 && (
-              <div className="mt-4 text-xs text-gray-500">
-                {Array.from(docsByPost.entries())
-                  .filter(([key]) => key)
-                  .map(([key, items]) => (
-                    <div key={key}>
-                      Post {key}: {items.length} docs
-                    </div>
-                  ))}
-              </div>
-            )}
           </div>
 
           <div className="pt-6">
