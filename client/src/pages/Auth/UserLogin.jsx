@@ -102,22 +102,6 @@ export default function UserLogin({ role = "buyer" }) {
     return /\S+@\S+\.\S+/.test(String(value || ""));
   }
 
-  function validateCityAndTerms() {
-    if (!city && !acceptedTerms) {
-      alert("Please select city and tick the Terms & Conditions checkbox first.");
-      return false;
-    }
-    if (!city) {
-      alert("Please select your city from the dropdown first.");
-      return false;
-    }
-    if (!acceptedTerms) {
-      alert("Please tick the Terms & Conditions checkbox first.");
-      return false;
-    }
-    return true;
-  }
-
   function sendLoginOtp() {
     setSubmitted(true);
 
@@ -130,13 +114,26 @@ export default function UserLogin({ role = "buyer" }) {
       return;
     }
 
-    if (!validateCityAndTerms()) return;
+    if (!acceptedTerms) {
+      alert("Please accept the Terms & Conditions");
+      return;
+    }
 
     if (authMode === "SIGNUP") {
       if (password !== confirmPassword) {
         alert("Passwords do not match");
         return;
       }
+    }
+
+    if (!city) {
+      if (isSeller) {
+        alert("City missing. Please register again.");
+        navigate("/seller/register");
+      } else {
+        alert("Please select your city");
+      }
+      return;
     }
 
     setLoading(true);
@@ -340,11 +337,26 @@ export default function UserLogin({ role = "buyer" }) {
   }
 
   function handleGoogleLogin(credential) {
-    if (!validateCityAndTerms()) {
+    const selectedCity = cityRef.current || city;
+    const hasAcceptedTerms =
+      acceptedTermsRef.current || acceptedTerms;
+
+    if (!selectedCity) {
+      alert(
+        isSeller
+          ? "City missing. Please register again."
+          : "Please select your city"
+      );
+      if (isSeller) {
+        navigate("/seller/register");
+      }
       return;
     }
-    const selectedCity = cityRef.current || city;
-    const hasAcceptedTerms = acceptedTermsRef.current || acceptedTerms;
+
+    if (!hasAcceptedTerms) {
+      alert("Please accept the Terms & Conditions");
+      return;
+    }
 
     setLoading(true);
     api
@@ -428,9 +440,9 @@ export default function UserLogin({ role = "buyer" }) {
 
   return (
     <div className="page">
-      <div className="page-shell pt-[calc(5rem-5mm)] md:pt-10">
+      <div className="page-shell pt-20 md:pt-10">
         <div className="grid gap-10 lg:grid-cols-[1fr_1fr] items-center">
-          <div className="text-slate-900 min-w-0">
+          <div className="text-slate-900">
             <h1 className="page-hero mb-4">
               Access, fast and secure
             </h1>
@@ -446,7 +458,7 @@ export default function UserLogin({ role = "buyer" }) {
           </div>
 
           <div
-            className={`w-full max-w-md max-w-[calc(100vw-2rem)] bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl p-5 mx-auto ${
+            className={`w-full max-w-md bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl p-5 mx-auto ${
               submitted ? "form-submitted" : ""
             }`}
           >
@@ -575,13 +587,17 @@ export default function UserLogin({ role = "buyer" }) {
                       "Google login failed to initialize.";
                     alert(reason);
                   }}
-                  disabled={loading || !city || !acceptedTerms}
-                  canProceed={() =>
-                    Boolean(cityRef.current || city) &&
-                    Boolean(acceptedTermsRef.current || acceptedTerms)
-                  }
+                  disabled={!city || !acceptedTerms}
                   onDisabledClick={() => {
-                    validateCityAndTerms();
+                    if (!city && !acceptedTerms) {
+                      alert("Please select city and accept Terms & Conditions first.");
+                      return;
+                    }
+                    if (!city) {
+                      alert("Please select your city first.");
+                      return;
+                    }
+                    alert("Please accept the Terms & Conditions first.");
                   }}
                 />
 
