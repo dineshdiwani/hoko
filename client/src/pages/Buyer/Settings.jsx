@@ -137,6 +137,16 @@ export default function BuyerSettings() {
   function updatePrefs(partial) {
     setPrefs((prev) => ({ ...prev, ...partial }));
   }
+  function updateNotificationToggle(key, value) {
+    setPrefs((prev) => ({
+      ...prev,
+      notificationToggles: {
+        ...DEFAULT_PREFS.notificationToggles,
+        ...(prev.notificationToggles || {}),
+        [key]: Boolean(value)
+      }
+    }));
+  }
 
   async function saveSettings() {
     setSaving(true);
@@ -146,7 +156,18 @@ export default function BuyerSettings() {
         mobile: profile.mobile,
         city: profile.city,
         preferredCurrency: profile.preferredCurrency,
-        buyerSettings: prefs
+        buyerSettings: {
+          ...prefs,
+          notificationToggles: {
+            ...DEFAULT_PREFS.notificationToggles,
+            ...(prefs.notificationToggles || {}),
+            pushEnabled: Boolean(prefs.notificationToggles?.pushEnabled),
+            newOffer: Boolean(prefs.notificationToggles?.newOffer),
+            chat: Boolean(prefs.notificationToggles?.chat),
+            statusUpdate: Boolean(prefs.notificationToggles?.statusUpdate),
+            reminder: Boolean(prefs.notificationToggles?.reminder)
+          }
+        }
       };
       const res = await api.post("/buyer/profile", payload);
       const data = res.data || {};
@@ -427,75 +448,40 @@ export default function BuyerSettings() {
               <label className="flex items-center gap-2">
                 <input
                   type="checkbox"
-                  checked={prefs.notificationToggles?.pushEnabled}
-                  onChange={(e) =>
-                    updatePrefs({
-                      notificationToggles: {
-                        ...prefs.notificationToggles,
-                        pushEnabled: e.target.checked
-                      }
-                    })
-                  }
+                  checked={Boolean(prefs.notificationToggles?.pushEnabled)}
+                  onChange={(e) => updateNotificationToggle("pushEnabled", e.target.checked)}
                 />
                 Push notifications enabled
               </label>
               <label className="flex items-center gap-2">
                 <input
                   type="checkbox"
-                  checked={prefs.notificationToggles?.newOffer}
-                  onChange={(e) =>
-                    updatePrefs({
-                      notificationToggles: {
-                        ...prefs.notificationToggles,
-                        newOffer: e.target.checked
-                      }
-                    })
-                  }
+                  checked={Boolean(prefs.notificationToggles?.newOffer)}
+                  onChange={(e) => updateNotificationToggle("newOffer", e.target.checked)}
                 />
                 New offer alerts
               </label>
               <label className="flex items-center gap-2">
                 <input
                   type="checkbox"
-                  checked={prefs.notificationToggles?.chat}
-                  onChange={(e) =>
-                    updatePrefs({
-                      notificationToggles: {
-                        ...prefs.notificationToggles,
-                        chat: e.target.checked
-                      }
-                    })
-                  }
+                  checked={Boolean(prefs.notificationToggles?.chat)}
+                  onChange={(e) => updateNotificationToggle("chat", e.target.checked)}
                 />
                 Chat alerts
               </label>
               <label className="flex items-center gap-2">
                 <input
                   type="checkbox"
-                  checked={prefs.notificationToggles?.statusUpdate}
-                  onChange={(e) =>
-                    updatePrefs({
-                      notificationToggles: {
-                        ...prefs.notificationToggles,
-                        statusUpdate: e.target.checked
-                      }
-                    })
-                  }
+                  checked={Boolean(prefs.notificationToggles?.statusUpdate)}
+                  onChange={(e) => updateNotificationToggle("statusUpdate", e.target.checked)}
                 />
                 Status update alerts
               </label>
               <label className="flex items-center gap-2">
                 <input
                   type="checkbox"
-                  checked={prefs.notificationToggles?.reminder}
-                  onChange={(e) =>
-                    updatePrefs({
-                      notificationToggles: {
-                        ...prefs.notificationToggles,
-                        reminder: e.target.checked
-                      }
-                    })
-                  }
+                  checked={Boolean(prefs.notificationToggles?.reminder)}
+                  onChange={(e) => updateNotificationToggle("reminder", e.target.checked)}
                 />
                 Reminder alerts
               </label>
