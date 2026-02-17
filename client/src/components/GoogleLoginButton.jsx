@@ -15,6 +15,7 @@ export default function GoogleLoginButton({
   const canProceedRef = useRef(canProceed);
   const [scriptLoaded, setScriptLoaded] = useState(false);
   const [googleReady, setGoogleReady] = useState(false);
+  const blocked = disabled || (typeof canProceed === "function" && !canProceed());
 
   useEffect(() => {
     onSuccessRef.current = onSuccess;
@@ -109,35 +110,41 @@ export default function GoogleLoginButton({
     if (!scriptLoaded) return;
     if (!initializeGoogle()) return;
 
-    const rendered = renderGoogleButton();
-    setGoogleReady(rendered);
-
-    if (disabled) {
+    if (blocked) {
+      if (buttonHostRef.current) {
+        buttonHostRef.current.innerHTML = "";
+      }
+      setGoogleReady(false);
       window.google?.accounts?.id?.cancel();
       return;
     }
 
+    const rendered = renderGoogleButton();
+    setGoogleReady(rendered);
+
     return () => {
       window.google?.accounts?.id?.cancel();
     };
-  }, [scriptLoaded, initializeGoogle, renderGoogleButton, disabled]);
+  }, [scriptLoaded, initializeGoogle, renderGoogleButton, blocked]);
 
   return (
-    <div className={`w-full mt-3 relative ${disabled ? "opacity-70" : ""}`}>
-      <div ref={buttonHostRef} className="flex justify-center" />
-      {!googleReady && (
-        <div className="text-xs text-gray-500 text-center mt-2">
-          Loading Google login...
-        </div>
-      )}
-      {disabled && (
+    <div className={`w-full mt-3 relative ${blocked ? "opacity-70" : ""}`}>
+      {blocked && (
         <button
           type="button"
           onClick={() => onDisabledClick?.()}
-          className="absolute inset-0 w-full h-full rounded-xl cursor-not-allowed bg-transparent"
+          className="w-full rounded-xl border border-gray-300 bg-white py-3 text-sm font-medium text-gray-700"
           aria-label="Complete city and terms before Google login"
           title="Select city and accept terms first"
-        />
+        >
+          Continue with Google
+        </button>
+      )}
+      <div ref={buttonHostRef} className="flex justify-center" />
+      {!blocked && !googleReady && (
+        <div className="text-xs text-gray-500 text-center mt-2">
+          Loading Google login...
+        </div>
       )}
     </div>
   );
