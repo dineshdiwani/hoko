@@ -4,12 +4,15 @@ export default function GoogleLoginButton({
   onSuccess,
   onError,
   disabled = false,
-  onDisabledClick
+  onDisabledClick,
+  canProceed
 }) {
   const initializedRef = useRef(false);
   const buttonHostRef = useRef(null);
   const onSuccessRef = useRef(onSuccess);
   const onErrorRef = useRef(onError);
+  const disabledRef = useRef(disabled);
+  const canProceedRef = useRef(canProceed);
   const [scriptLoaded, setScriptLoaded] = useState(false);
   const [googleReady, setGoogleReady] = useState(false);
 
@@ -17,6 +20,14 @@ export default function GoogleLoginButton({
     onSuccessRef.current = onSuccess;
     onErrorRef.current = onError;
   }, [onSuccess, onError]);
+
+  useEffect(() => {
+    disabledRef.current = disabled;
+  }, [disabled]);
+
+  useEffect(() => {
+    canProceedRef.current = canProceed;
+  }, [canProceed]);
 
   const initializeGoogle = useCallback(() => {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -30,6 +41,10 @@ export default function GoogleLoginButton({
       window.google.accounts.id.initialize({
         client_id: clientId,
         callback: (response) => {
+          if (disabledRef.current || canProceedRef.current?.() === false) {
+            onDisabledClick?.();
+            return;
+          }
           if (response?.credential) {
             onSuccessRef.current?.(response.credential);
           } else {
@@ -43,7 +58,7 @@ export default function GoogleLoginButton({
       initializedRef.current = true;
     }
     return true;
-  }, []);
+  }, [canProceed, onDisabledClick]);
 
   const renderGoogleButton = useCallback(() => {
     if (buttonHostRef.current) {
