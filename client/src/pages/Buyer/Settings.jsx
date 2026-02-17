@@ -10,9 +10,6 @@ import {
 } from "../../services/storage";
 
 const DEFAULT_PREFS = {
-  defaultCity: "",
-  defaultCategory: "",
-  defaultUnit: "",
   hideProfileUntilApproved: true,
   chatOnlyAfterOfferAcceptance: true,
   postAutoExpiryDays: 30,
@@ -33,8 +30,6 @@ export default function BuyerSettings() {
   const [busyAction, setBusyAction] = useState("");
   const [cities, setCities] = useState([]);
   const [currencies, setCurrencies] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [units, setUnits] = useState([]);
   const [myPosts, setMyPosts] = useState([]);
   const [documents, setDocuments] = useState([]);
 
@@ -87,8 +82,6 @@ export default function BuyerSettings() {
     fetchOptions()
       .then((data) => {
         setCities(data.cities || []);
-        setCategories(data.categories || []);
-        setUnits(data.units || []);
         setCurrencies(data.currencies || []);
       })
       .catch(() => {});
@@ -408,34 +401,7 @@ export default function BuyerSettings() {
 
           <div className="pt-6">
             <h2 className="text-lg font-semibold mb-3">Defaults & Privacy</h2>
-            <div className="grid gap-3 md:grid-cols-3">
-              <select
-                value={prefs.defaultCity || ""}
-                onChange={(e) => updatePrefs({ defaultCity: e.target.value })}
-                className="w-full border rounded-xl px-4 py-3"
-              >
-                <option value="">Default city for posts</option>
-                {cities.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
-              <select
-                value={prefs.defaultCategory || ""}
-                onChange={(e) => updatePrefs({ defaultCategory: e.target.value })}
-                className="w-full border rounded-xl px-4 py-3"
-              >
-                <option value="">Default category for posts</option>
-                {categories.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
-              <select
-                value={prefs.defaultUnit || ""}
-                onChange={(e) => updatePrefs({ defaultUnit: e.target.value })}
-                className="w-full border rounded-xl px-4 py-3"
-              >
-                <option value="">Default unit for posts</option>
-                {units.map((u) => <option key={u} value={u}>{u}</option>)}
-              </select>
-            </div>
-
-            <div className="mt-4 grid gap-2 text-sm text-gray-700">
+            <div className="grid gap-2 text-sm text-gray-700">
               <label className="flex items-center gap-2">
                 <input
                   type="checkbox"
