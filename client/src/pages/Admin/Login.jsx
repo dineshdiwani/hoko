@@ -107,43 +107,45 @@ export default function AdminLogin() {
             </p>
           </div>
 
-          <form
-            onSubmit={handleLogin}
-            className="bg-white p-6 rounded-2xl shadow-xl w-full max-w-md mx-auto justify-self-center"
-          >
-            <h1 className="text-2xl font-bold mb-4">Admin Login</h1>
-
-            <input
-              className="input mb-3"
-              placeholder="Admin email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-
-            <input
-              className="input mb-3"
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-
-            <button
-              type="submit"
-              className="btn-primary w-full"
-              disabled={loading}
+          <div className="w-full flex justify-center">
+            <form
+              onSubmit={handleLogin}
+              className="bg-white p-6 rounded-2xl shadow-xl w-full max-w-md mx-auto"
             >
-              {loading ? "Signing in..." : "Login"}
-            </button>
+              <h1 className="text-2xl font-bold mb-4">Admin Login</h1>
 
-            <button
-              type="button"
-              onClick={() => setShowForgot(true)}
-              className="mt-3 text-sm text-amber-700 hover:underline"
-            >
-              Forgot password?
-            </button>
-          </form>
+              <input
+                className="input mb-3"
+                placeholder="Admin email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+
+              <input
+                className="input mb-3"
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+
+              <button
+                type="submit"
+                className="btn-primary w-full"
+                disabled={loading}
+              >
+                {loading ? "Signing in..." : "Login"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowForgot(true)}
+                className="mt-3 text-sm text-amber-700 hover:underline"
+              >
+                Forgot password?
+              </button>
+            </form>
+          </div>
         </div>
       </div>
 

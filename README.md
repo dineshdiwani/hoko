@@ -19,7 +19,7 @@ In GitHub repo settings -> Secrets and variables -> Actions, add:
 - `DEPLOY_HOST`: VPS public IP (example: `84.32.84.32`)
 - `DEPLOY_USER`: SSH user (example: `root`)
 - `DEPLOY_PATH`: app path on server (example: `/var/www/hoko`)
-- `DEPLOY_SSH_KEY`: private SSH key content used by GitHub Actions
+- `DEPLOY_SSH_KEY_B64`: base64-encoded private SSH key content used by GitHub Actions
 
 ## Auto deploy
 

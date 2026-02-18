@@ -457,22 +457,23 @@ export default function UserLogin({ role = "buyer" }) {
             </div>
           </div>
 
-          <div
-            className={`w-full max-w-md bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl p-5 mx-auto justify-self-center ${
-              submitted ? "form-submitted" : ""
-            }`}
-          >
-            <h1 className="text-2xl font-bold text-center text-gray-800 mb-1">
-              Login
-            </h1>
-            <p className="text-center text-gray-500 mb-4">
-              {authMode === "SIGNUP"
-                ? "Create account with email OTP"
-                : "Continue with email OTP"}
-            </p>
+          <div className="w-full flex justify-center">
+            <div
+              className={`w-full max-w-md bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl p-5 mx-auto ${
+                submitted ? "form-submitted" : ""
+              }`}
+            >
+              <h1 className="text-2xl font-bold text-center text-gray-800 mb-1">
+                Login
+              </h1>
+              <p className="text-center text-gray-500 mb-4">
+                {authMode === "SIGNUP"
+                  ? "Create account with email OTP"
+                  : "Continue with email OTP"}
+              </p>
 
-            {step === "LOGIN" && (
-              <>
+              {step === "LOGIN" && (
+                <>
                 <label className="block text-sm font-medium mb-1 text-gray-700">
                   City
                 </label>
@@ -636,11 +637,11 @@ export default function UserLogin({ role = "buyer" }) {
                     </button>
                   </div>
                 )}
-              </>
-            )}
+                </>
+              )}
 
-            {step === "OTP" && (
-              <>
+              {step === "OTP" && (
+                <>
                 <label className="block text-sm font-medium mb-1 text-gray-700">
                   Enter OTP
                 </label>
@@ -669,8 +670,9 @@ export default function UserLogin({ role = "buyer" }) {
                 >
                   Change details
                 </button>
-              </>
-            )}
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>

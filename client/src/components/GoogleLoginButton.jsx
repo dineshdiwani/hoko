@@ -54,7 +54,7 @@ export default function GoogleLoginButton({
         text: "continue_with",
         shape: "rectangular",
         logo_alignment: "left",
-        width: 360
+        width: Math.min(360, Math.max(220, buttonHostRef.current.offsetWidth || 0))
       });
       return true;
     }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import api, { getAssetBaseUrl } from "../services/api";
+import api from "../services/api";
 
 export default function DocumentModal({
   open,
@@ -8,7 +8,20 @@ export default function DocumentModal({
   buyerId
 }) {
   const [docs, setDocs] = useState([]);
-  const baseUrl = getAssetBaseUrl();
+
+  async function openFile(filename) {
+    try {
+      const res = await api.get(
+        `/chat-files/file/${encodeURIComponent(filename)}`,
+        { responseType: "blob" }
+      );
+      const blobUrl = window.URL.createObjectURL(res.data);
+      window.open(blobUrl, "_blank", "noopener,noreferrer");
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 10000);
+    } catch {
+      alert("Unable to open file.");
+    }
+  }
 
   useEffect(() => {
     if (!open || !sellerId || !buyerId) return;
@@ -38,20 +51,18 @@ export default function DocumentModal({
         ) : (
           <ul className="space-y-2">
             {docs.map((filename, i) => {
-              const url = `${baseUrl}/uploads/chat/${filename}`;
               return (
                 <li
                   key={`${filename}-${i}`}
                   className="flex justify-between items-center border p-2 rounded"
                 >
-                  <a
-                    href={url}
-                    target="_blank"
-                    rel="noreferrer"
+                  <button
+                    type="button"
+                    onClick={() => openFile(filename)}
                     className="text-blue-600 underline text-sm break-all"
                   >
                     {filename}
-                  </a>
+                  </button>
                 </li>
               );
             })}

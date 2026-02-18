@@ -86,7 +86,7 @@ export default function NotificationCenter({ onNotificationClick }) {
   ).length;
 
   return (
-    <div className="relative" ref={menuRef}>
+    <div className="relative shrink-0" ref={menuRef}>
       <button
         onClick={() => setOpen(!open)}
         className="relative w-10 h-10 inline-flex items-center justify-center rounded-full border border-yellow-300 bg-white hover:bg-yellow-50"
@@ -108,7 +108,7 @@ export default function NotificationCenter({ onNotificationClick }) {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-[min(20rem,calc(100vw-1rem))] max-w-[calc(100vw-1rem)] sm:w-80 bg-white shadow-lg rounded-lg border z-50 max-h-96 overflow-auto">
+        <div className="fixed top-16 left-2 right-2 w-auto sm:absolute sm:top-auto sm:left-auto sm:right-0 sm:w-80 mt-2 bg-white shadow-lg rounded-lg border z-50 max-h-96 overflow-auto">
           {notifications.length === 0 && (
             <p className="p-4 text-gray-500">
               No notifications

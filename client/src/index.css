@@ -93,14 +93,6 @@
     box-shadow: 0 12px 30px rgba(204, 47, 47, 0.28);
   }
 
-  button[class*="w-full"] {
-    width: fit-content !important;
-  }
-
-  button[class*="flex-1"] {
-    flex: 0 0 auto !important;
-  }
-
   button.tab-stretch {
     display: block !important;
     width: auto !important;
