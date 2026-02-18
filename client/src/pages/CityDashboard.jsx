@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import api from "../services/api";
+import api, { getAssetBaseUrl } from "../services/api";
 import { getSession } from "../services/storage";
 
 export default function CityDashboard({ city }) {
@@ -9,6 +9,7 @@ export default function CityDashboard({ city }) {
   const [auctionLoadingById, setAuctionLoadingById] = useState({});
   const session = getSession();
   const currentBuyerId = String(session?._id || session?.id || "");
+  const assetBaseUrl = getAssetBaseUrl();
   function parseAttachment(attachment) {
     if (attachment && typeof attachment === "object") {
       return {
@@ -50,7 +51,8 @@ export default function CityDashboard({ city }) {
     try {
       const path = normalizeAttachmentPath(attachment);
       if (!path) throw new Error("Invalid attachment path");
-      const res = await api.get(path, { responseType: "blob" });
+      const absoluteUrl = `${assetBaseUrl}${path}`;
+      const res = await api.get(absoluteUrl, { responseType: "blob" });
       const blobUrl = window.URL.createObjectURL(res.data);
       if (newTab) {
         newTab.location.href = blobUrl;

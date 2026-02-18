@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../../services/api";
+import api, { getAssetBaseUrl } from "../../services/api";
 import { getSession } from "../../services/storage";
 import { confirmDialog } from "../../utils/dialogs";
 
@@ -13,6 +13,7 @@ export default function MyPosts() {
   const [sellerDetails, setSellerDetails] = useState(null);
   const [auctionLoadingById, setAuctionLoadingById] = useState({});
   const modalRef = useRef(null);
+  const assetBaseUrl = getAssetBaseUrl();
 
   function parseAttachment(attachment) {
     if (attachment && typeof attachment === "object") {
@@ -55,7 +56,8 @@ export default function MyPosts() {
     try {
       const path = normalizeAttachmentPath(attachment);
       if (!path) throw new Error("Invalid attachment path");
-      const res = await api.get(path, { responseType: "blob" });
+      const absoluteUrl = `${assetBaseUrl}${path}`;
+      const res = await api.get(absoluteUrl, { responseType: "blob" });
       const blobUrl = window.URL.createObjectURL(res.data);
       if (newTab) {
         newTab.location.href = blobUrl;
