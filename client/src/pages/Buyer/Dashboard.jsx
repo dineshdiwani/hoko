@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { getSession, logout } from "../../services/auth";
 import { updateSession, setSession } from "../../services/storage";
 import MyPosts from "./MyPosts";
+import OffersReceived from "./OffersReceived";
 import CityDashboard from "../CityDashboard";
 import NotificationCenter from "../../components/NotificationCenter";
 import ChatModal from "../../components/ChatModal";
@@ -269,6 +270,17 @@ export default function BuyerDashboard() {
           >
             City Dashboard
           </button>
+
+          <button
+            onClick={() => setActiveTab("offers")}
+            className={`tab-stretch flex-1 py-3 text-sm font-semibold ${
+              activeTab === "offers"
+                ? "text-amber-700 border-b-2 border-indigo-600"
+                : "text-gray-500"
+            }`}
+          >
+            Received Offers
+          </button>
         </div>
       </header>
 
@@ -279,6 +291,7 @@ export default function BuyerDashboard() {
         {activeTab === "city" && (
           <CityDashboard key={city} city={city} />
         )}
+        {activeTab === "offers" && <OffersReceived />}
         </div>
       </main>
 
