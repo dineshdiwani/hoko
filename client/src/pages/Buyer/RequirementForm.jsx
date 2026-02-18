@@ -88,19 +88,6 @@ export default function RequirementForm() {
         }
         if (Array.isArray(data.units) && data.units.length) {
           setUnits(data.units);
-          const desiredUnit = String(defaults.unit || "").trim();
-          if (desiredUnit) {
-            setForm((prev) => {
-              if (prev.unit) return prev;
-              const matchedUnit = data.units.find(
-                (unitName) =>
-                  String(unitName).toLowerCase() ===
-                  desiredUnit.toLowerCase()
-              );
-              if (!matchedUnit) return prev;
-              return { ...prev, unit: matchedUnit };
-            });
-          }
         }
       })
       .catch(() => {});

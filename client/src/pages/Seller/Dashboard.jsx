@@ -97,15 +97,6 @@ export default function SellerDashboard() {
       .then((data) => {
         setCities(Array.isArray(data?.cities) ? data.cities : []);
         setCategories(Array.isArray(data?.categories) ? data.categories : []);
-        const defaults = data?.defaults || {};
-        const defaultCity = String(
-          defaults.sellerDashboardCity || "all"
-        ).trim();
-        const defaultCategory = String(
-          defaults.sellerDashboardCategory || "all"
-        ).trim();
-        setSelectedCity(defaultCity || "all");
-        setSelectedCategory(defaultCategory || "all");
       })
       .catch(() => {});
   }, []);

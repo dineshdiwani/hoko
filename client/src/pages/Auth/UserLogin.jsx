@@ -76,20 +76,6 @@ export default function UserLogin({ role = "buyer" }) {
       .then((data) => {
         if (Array.isArray(data.cities) && data.cities.length) {
           setCities(data.cities);
-          const defaults = data?.defaults || {};
-          const desiredCity = String(
-            defaults.loginCity || defaults.city || ""
-          ).trim();
-          setCity((prevCity) => {
-            if (prevCity) return prevCity;
-            if (!desiredCity) return prevCity;
-            const matchedCity = data.cities.find(
-              (cityName) =>
-                String(cityName).toLowerCase() ===
-                desiredCity.toLowerCase()
-            );
-            return matchedCity || prevCity;
-          });
         }
         const terms = String(
           data?.termsAndConditions?.content || ""

@@ -177,16 +177,7 @@ const DEFAULT_MODERATION_RULES = {
 
 const DEFAULT_SELECTIONS = {
   city: "user_default",
-  category: "",
-  unit: "",
-  currency: "",
-  loginCity: "",
-  sellerRegisterCity: "",
-  sellerRegisterCategory: "",
-  sellerDashboardCity: "all",
-  sellerDashboardCategory: "all",
-  buyerDashboardCity: "",
-  buyerDashboardCategory: "all"
+  category: "user_default"
 };
 
 function mergeUnique(existing = [], defaults = []) {
@@ -206,34 +197,16 @@ function pickValid(options, value, fallback = "") {
 function sanitizeSelections(rawSelections, merged) {
   const source = rawSelections || {};
   const cityMode = String(source.city || "").trim().toLowerCase();
+  const categoryMode = String(source.category || "").trim().toLowerCase();
   return {
     city:
       cityMode === "all" || cityMode === "user_default"
         ? cityMode
         : "user_default",
-    category: pickValid(merged.categories, source.category, ""),
-    unit: pickValid(merged.units, source.unit, ""),
-    currency: pickValid(merged.currencies, source.currency, ""),
-    loginCity: pickValid(merged.cities, source.loginCity, ""),
-    sellerRegisterCity: pickValid(merged.cities, source.sellerRegisterCity, ""),
-    sellerRegisterCategory: pickValid(
-      merged.categories,
-      source.sellerRegisterCategory,
-      ""
-    ),
-    sellerDashboardCity:
-      String(source.sellerDashboardCity || "").trim().toLowerCase() === "all"
-        ? "all"
-        : pickValid(merged.cities, source.sellerDashboardCity, "all"),
-    sellerDashboardCategory:
-      String(source.sellerDashboardCategory || "").trim().toLowerCase() === "all"
-        ? "all"
-        : pickValid(merged.categories, source.sellerDashboardCategory, "all"),
-    buyerDashboardCity: pickValid(merged.cities, source.buyerDashboardCity, ""),
-    buyerDashboardCategory:
-      String(source.buyerDashboardCategory || "").trim().toLowerCase() === "all"
-        ? "all"
-        : pickValid(merged.categories, source.buyerDashboardCategory, "all")
+    category:
+      categoryMode === "all" || categoryMode === "user_default"
+        ? categoryMode
+        : "user_default"
   };
 }
 

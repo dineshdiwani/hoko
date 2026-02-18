@@ -25,16 +25,7 @@ export default function AdminDashboard() {
     currencies: [],
     defaults: {
       city: "user_default",
-      category: "",
-      unit: "",
-      currency: "",
-      loginCity: "",
-      sellerRegisterCity: "",
-      sellerRegisterCategory: "",
-      sellerDashboardCity: "all",
-      sellerDashboardCategory: "all",
-      buyerDashboardCity: "",
-      buyerDashboardCategory: "all"
+      category: "user_default"
     },
     notifications: {
       enabled: true,
@@ -1811,180 +1802,28 @@ export default function AdminDashboard() {
 
                 <label className="text-xs text-gray-600">
                   Default Category
-                  <select
-                    className="w-full border rounded-lg p-2 mt-1 text-sm"
-                    value={options.defaults?.category || ""}
-                    onChange={(e) => updateDefaultSelection("category", e.target.value)}
-                  >
-                    <option value="">None</option>
-                    {(options.categories || []).map((category) => (
-                      <option key={`default-category-${category}`} value={category}>
-                        {category}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="text-xs text-gray-600">
-                  Default Unit
-                  <select
-                    className="w-full border rounded-lg p-2 mt-1 text-sm"
-                    value={options.defaults?.unit || ""}
-                    onChange={(e) => updateDefaultSelection("unit", e.target.value)}
-                  >
-                    <option value="">None</option>
-                    {(options.units || []).map((unit) => (
-                      <option key={`default-unit-${unit}`} value={unit}>
-                        {unit}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="text-xs text-gray-600">
-                  Default Currency
-                  <select
-                    className="w-full border rounded-lg p-2 mt-1 text-sm"
-                    value={options.defaults?.currency || ""}
-                    onChange={(e) => updateDefaultSelection("currency", e.target.value)}
-                  >
-                    <option value="">None</option>
-                    {(options.currencies || []).map((currency) => (
-                      <option key={`default-currency-${currency}`} value={currency}>
-                        {currency}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="text-xs text-gray-600">
-                  Login Form City
-                  <select
-                    className="w-full border rounded-lg p-2 mt-1 text-sm"
-                    value={options.defaults?.loginCity || ""}
-                    onChange={(e) => updateDefaultSelection("loginCity", e.target.value)}
-                  >
-                    <option value="">None</option>
-                    {(options.cities || []).map((city) => (
-                      <option key={`default-login-city-${city}`} value={city}>
-                        {city}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="text-xs text-gray-600">
-                  Seller Register City
-                  <select
-                    className="w-full border rounded-lg p-2 mt-1 text-sm"
-                    value={options.defaults?.sellerRegisterCity || ""}
-                    onChange={(e) =>
-                      updateDefaultSelection("sellerRegisterCity", e.target.value)
-                    }
-                  >
-                    <option value="">None</option>
-                    {(options.cities || []).map((city) => (
-                      <option key={`default-seller-city-${city}`} value={city}>
-                        {city}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="text-xs text-gray-600">
-                  Seller Register Category
-                  <select
-                    className="w-full border rounded-lg p-2 mt-1 text-sm"
-                    value={options.defaults?.sellerRegisterCategory || ""}
-                    onChange={(e) =>
-                      updateDefaultSelection("sellerRegisterCategory", e.target.value)
-                    }
-                  >
-                    <option value="">None</option>
-                    {(options.categories || []).map((category) => (
-                      <option key={`default-seller-category-${category}`} value={category}>
-                        {category}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="text-xs text-gray-600">
-                  Seller Dashboard City
-                  <select
-                    className="w-full border rounded-lg p-2 mt-1 text-sm"
-                    value={options.defaults?.sellerDashboardCity || "all"}
-                    onChange={(e) =>
-                      updateDefaultSelection("sellerDashboardCity", e.target.value)
-                    }
-                  >
-                    <option value="all">All cities</option>
-                    {(options.cities || []).map((city) => (
-                      <option key={`default-seller-dashboard-city-${city}`} value={city}>
-                        {city}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="text-xs text-gray-600">
-                  Seller Dashboard Category
-                  <select
-                    className="w-full border rounded-lg p-2 mt-1 text-sm"
-                    value={options.defaults?.sellerDashboardCategory || "all"}
-                    onChange={(e) =>
-                      updateDefaultSelection("sellerDashboardCategory", e.target.value)
-                    }
-                  >
-                    <option value="all">All categories</option>
-                    {(options.categories || []).map((category) => (
-                      <option
-                        key={`default-seller-dashboard-category-${category}`}
-                        value={category}
-                      >
-                        {category}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="text-xs text-gray-600">
-                  Buyer Dashboard City
-                  <select
-                    className="w-full border rounded-lg p-2 mt-1 text-sm"
-                    value={options.defaults?.buyerDashboardCity || ""}
-                    onChange={(e) =>
-                      updateDefaultSelection("buyerDashboardCity", e.target.value)
-                    }
-                  >
-                    <option value="">None</option>
-                    {(options.cities || []).map((city) => (
-                      <option key={`default-buyer-dashboard-city-${city}`} value={city}>
-                        {city}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="text-xs text-gray-600">
-                  Buyer Dashboard Category
-                  <select
-                    className="w-full border rounded-lg p-2 mt-1 text-sm"
-                    value={options.defaults?.buyerDashboardCategory || "all"}
-                    onChange={(e) =>
-                      updateDefaultSelection("buyerDashboardCategory", e.target.value)
-                    }
-                  >
-                    <option value="all">All categories</option>
-                    {(options.categories || []).map((category) => (
-                      <option
-                        key={`default-buyer-dashboard-category-${category}`}
-                        value={category}
-                      >
-                        {category}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="mt-1 space-y-2 rounded-lg border p-2">
+                    <label className="flex items-center gap-2 text-sm text-gray-700">
+                      <input
+                        type="radio"
+                        name="default-category-mode"
+                        checked={(options.defaults?.category || "user_default") === "all"}
+                        onChange={() => updateDefaultSelection("category", "all")}
+                      />
+                      <span>All categories</span>
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-gray-700">
+                      <input
+                        type="radio"
+                        name="default-category-mode"
+                        checked={(options.defaults?.category || "user_default") === "user_default"}
+                        onChange={() =>
+                          updateDefaultSelection("category", "user_default")
+                        }
+                      />
+                      <span>User default category</span>
+                    </label>
+                  </div>
                 </label>
               </div>
             </div>
