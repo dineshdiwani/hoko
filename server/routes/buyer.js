@@ -71,6 +71,9 @@ function normalizeRequirementAttachmentValues(value) {
 
   return Array.from(new Set(normalized));
 }
+function escapeRegex(value) {
+  return String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 function toBoolean(value, fallback = false) {
   if (typeof value === "boolean") return value;
   if (typeof value === "string") {
@@ -730,6 +733,50 @@ router.post(
     res.json({ document: normalizeBuyerDocument(savedDoc) });
   }
 );
+
+/**
+ * Open requirement attachment (auth-protected via /api path)
+ */
+router.get("/attachments/:filename", auth, async (req, res) => {
+  const safeName = path.basename(String(req.params.filename || ""));
+  if (!safeName) {
+    return res.status(400).json({ message: "Invalid file name" });
+  }
+
+  const relativeUrl = `/uploads/requirements/${safeName}`;
+  const escapedName = escapeRegex(safeName);
+  const requirement = await Requirement.findOne({
+    $or: [
+      { attachments: relativeUrl },
+      { attachments: safeName },
+      { attachments: { $regex: `${escapedName}$`, $options: "i" } },
+      { "attachments.url": relativeUrl },
+      { "attachments.url": { $regex: `${escapedName}$`, $options: "i" } },
+      { "attachments.path": relativeUrl },
+      { "attachments.path": { $regex: `${escapedName}$`, $options: "i" } },
+      { "attachments.filename": safeName },
+      { "attachments.filename": { $regex: `${escapedName}$`, $options: "i" } }
+    ],
+    "moderation.removed": { $ne: true }
+  }).select("_id buyerId");
+
+  if (!requirement) {
+    return res.status(404).json({ message: "File not found" });
+  }
+
+  const requesterId = String(req.user?._id || "");
+  const buyerId = String(requirement.buyerId || "");
+  if (requesterId !== buyerId && !req.user?.roles?.seller && !req.user?.roles?.admin) {
+    return res.status(403).json({ message: "Not allowed" });
+  }
+
+  const filePath = path.join(uploadDir, safeName);
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ message: "File not found" });
+  }
+
+  return res.sendFile(filePath);
+});
 
 /**
  * List buyer documents

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import api, { getAssetBaseUrl } from "../services/api";
+import api from "../services/api";
 import { getSession } from "../services/storage";
 
 export default function CityDashboard({ city }) {
@@ -9,7 +9,6 @@ export default function CityDashboard({ city }) {
   const [auctionLoadingById, setAuctionLoadingById] = useState({});
   const session = getSession();
   const currentBuyerId = String(session?._id || session?.id || "");
-  const assetBaseUrl = getAssetBaseUrl();
   function parseAttachment(attachment) {
     if (attachment && typeof attachment === "object") {
       return {
@@ -23,36 +22,30 @@ export default function CityDashboard({ city }) {
     };
   }
 
-  function normalizeAttachmentPath(attachment) {
+  function extractAttachmentFileName(attachment) {
     const { url } = parseAttachment(attachment);
     if (!url) return "";
 
     if (url.startsWith("http://") || url.startsWith("https://")) {
       try {
         const parsed = new URL(url);
-        const pathname = String(parsed.pathname || "");
-        return pathname.startsWith("/api/uploads/")
-          ? pathname.replace(/^\/api/, "")
-          : pathname;
+        return decodeURIComponent(String(parsed.pathname || "").split("/").pop() || "");
       } catch {
         return "";
       }
     }
 
-    if (url.startsWith("/api/uploads/")) return url.replace(/^\/api/, "");
-    if (url.startsWith("/uploads/")) return url;
-
-    const clean = decodeURIComponent(url.split("/").pop() || "");
-    return `/uploads/requirements/${encodeURIComponent(clean)}`;
+    return decodeURIComponent(url.split("/").pop() || "");
   }
 
   async function openAttachment(attachment) {
     const newTab = window.open("", "_blank", "noopener,noreferrer");
     try {
-      const path = normalizeAttachmentPath(attachment);
-      if (!path) throw new Error("Invalid attachment path");
-      const absoluteUrl = `${assetBaseUrl}${path}`;
-      const res = await api.get(absoluteUrl, { responseType: "blob" });
+      const filename = extractAttachmentFileName(attachment);
+      if (!filename) throw new Error("Invalid attachment path");
+      const res = await api.get(`/buyer/attachments/${encodeURIComponent(filename)}`, {
+        responseType: "blob"
+      });
       const blobUrl = window.URL.createObjectURL(res.data);
       if (newTab) {
         newTab.location.href = blobUrl;
@@ -372,7 +365,7 @@ export default function CityDashboard({ city }) {
                     </p>
                     <div className="space-y-2">
                       {attachments.map((attachment, index) => {
-                        const path = normalizeAttachmentPath(attachment);
+                        const filename = extractAttachmentFileName(attachment);
                         const name = getDisplayName(attachment, index);
                         return (
                           <div
@@ -388,7 +381,7 @@ export default function CityDashboard({ city }) {
                               type="button"
                               onClick={() => openAttachment(attachment)}
                               className="text-xs text-amber-700 hover:underline break-all"
-                              title={path || "Attachment path missing"}
+                              title={filename || "Attachment path missing"}
                             >
                               {name}
                             </button>

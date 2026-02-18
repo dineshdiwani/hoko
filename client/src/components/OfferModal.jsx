@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import api, { getAssetBaseUrl } from "../services/api";
+import api from "../services/api";
 
 export default function OfferModal({
   open,
@@ -25,7 +25,6 @@ export default function OfferModal({
   const [file, setFile] = useState(null);
   const [existingOffer, setExistingOffer] = useState(false);
   const [lastUpdatedAt, setLastUpdatedAt] = useState("");
-  const assetBaseUrl = getAssetBaseUrl();
   const attachments = Array.isArray(requirement.attachments)
     ? requirement.attachments
     : [];
@@ -43,36 +42,30 @@ export default function OfferModal({
     };
   }
 
-  function normalizeAttachmentPath(attachment) {
+  function extractAttachmentFileName(attachment) {
     const { url } = parseAttachment(attachment);
     if (!url) return "";
 
     if (url.startsWith("http://") || url.startsWith("https://")) {
       try {
         const parsed = new URL(url);
-        const pathname = String(parsed.pathname || "");
-        return pathname.startsWith("/api/uploads/")
-          ? pathname.replace(/^\/api/, "")
-          : pathname;
+        return decodeURIComponent(String(parsed.pathname || "").split("/").pop() || "");
       } catch {
         return "";
       }
     }
 
-    if (url.startsWith("/api/uploads/")) return url.replace(/^\/api/, "");
-    if (url.startsWith("/uploads/")) return url;
-
-    const clean = decodeURIComponent(url.split("/").pop() || "");
-    return `/uploads/requirements/${encodeURIComponent(clean)}`;
+    return decodeURIComponent(url.split("/").pop() || "");
   }
 
   async function openAttachment(attachment) {
     const newTab = window.open("", "_blank", "noopener,noreferrer");
     try {
-      const path = normalizeAttachmentPath(attachment);
-      if (!path) throw new Error("Invalid attachment path");
-      const absoluteUrl = `${assetBaseUrl}${path}`;
-      const res = await api.get(absoluteUrl, { responseType: "blob" });
+      const filename = extractAttachmentFileName(attachment);
+      if (!filename) throw new Error("Invalid attachment path");
+      const res = await api.get(`/buyer/attachments/${encodeURIComponent(filename)}`, {
+        responseType: "blob"
+      });
       const blobUrl = window.URL.createObjectURL(res.data);
       if (newTab) {
         newTab.location.href = blobUrl;
@@ -234,7 +227,7 @@ export default function OfferModal({
             </p>
             <div className="space-y-2">
               {attachments.map((attachment, index) => {
-                const path = normalizeAttachmentPath(attachment);
+                const filename = extractAttachmentFileName(attachment);
                 const name = getDisplayName(attachment, index);
                 return (
                   <div
@@ -250,7 +243,7 @@ export default function OfferModal({
                       type="button"
                       onClick={() => openAttachment(attachment)}
                       className="text-sm text-indigo-600 hover:underline break-all"
-                      title={path || "Attachment path missing"}
+                      title={filename || "Attachment path missing"}
                     >
                       {name}
                     </button>
