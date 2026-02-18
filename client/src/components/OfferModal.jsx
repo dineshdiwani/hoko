@@ -35,8 +35,24 @@ export default function OfferModal({
     if (url.startsWith("http://") || url.startsWith("https://")) {
       return url;
     }
+    if (!url.startsWith("/uploads/")) {
+      const clean = String(url).split("/").pop();
+      return `${baseUrl}/uploads/requirements/${clean}`;
+    }
     const prefix = url.startsWith("/") ? "" : "/";
     return `${baseUrl}${prefix}${url}`;
+  }
+
+  async function openAttachment(fileUrl) {
+    try {
+      const absolute = toAbsoluteUrl(fileUrl);
+      const res = await api.get(absolute, { responseType: "blob" });
+      const blobUrl = window.URL.createObjectURL(res.data);
+      window.open(blobUrl, "_blank", "noopener,noreferrer");
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 10000);
+    } catch {
+      alert("Unable to open attachment.");
+    }
   }
 
   function isImage(url) {
@@ -178,7 +194,6 @@ export default function OfferModal({
             </p>
             <div className="space-y-2">
               {attachments.map((fileUrl, index) => {
-                const absolute = toAbsoluteUrl(fileUrl);
                 const name =
                   String(fileUrl || "")
                     .split("/")
@@ -189,20 +204,17 @@ export default function OfferModal({
                     className="flex items-center gap-3"
                   >
                     {isImage(fileUrl) && (
-                      <img
-                        src={absolute}
-                        alt={name}
-                        className="w-12 h-12 object-cover rounded-lg border"
-                      />
+                      <span className="w-12 h-12 rounded-lg border bg-gray-50 inline-flex items-center justify-center text-gray-500 text-[10px]">
+                        IMG
+                      </span>
                     )}
-                    <a
-                      href={absolute}
-                      target="_blank"
-                      rel="noreferrer"
+                    <button
+                      type="button"
+                      onClick={() => openAttachment(fileUrl)}
                       className="text-sm text-indigo-600 hover:underline break-all"
                     >
                       {name}
-                    </a>
+                    </button>
                   </div>
                 );
               })}

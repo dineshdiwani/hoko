@@ -4,11 +4,14 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const mongoose = require("mongoose");
 const helmet = require("helmet");
+const path = require("path");
+const fs = require("fs");
 const ChatMessage = require("./models/ChatMessage");
 const Notification = require("./models/Notification");
 const Requirement = require("./models/Requirement");
 const Offer = require("./models/Offer");
 const User = require("./models/User");
+const auth = require("./middleware/auth");
 const { getModerationRules, checkTextForFlags } = require("./utils/moderation");
 
 dotenv.config();
@@ -357,9 +360,73 @@ app.use("/api/notifications", require("./routes/notifications"));
 app.use("/api/reviews", require("./routes/reviews"));
 app.use("/api/reports", require("./routes/reports"));
 app.use("/api/meta", require("./routes/meta"));
-app.use("/uploads", express.static("uploads"));
 app.use("/api/admin-auth", require("./routes/adminAuth"));
 app.use("/api/admin", require("./routes/adminStats"));
+
+app.get("/uploads/requirements/:filename", auth, async (req, res) => {
+  const safeName = path.basename(String(req.params.filename || ""));
+  const relativeUrl = `/uploads/requirements/${safeName}`;
+  const requirement = await Requirement.findOne({
+    $or: [{ attachments: relativeUrl }, { attachments: safeName }],
+    "moderation.removed": { $ne: true }
+  }).select("_id buyerId");
+
+  if (!requirement) {
+    return res.status(404).json({ message: "File not found" });
+  }
+
+  const requesterId = String(req.user?._id || "");
+  const buyerId = String(requirement.buyerId || "");
+  if (requesterId !== buyerId && !req.user?.roles?.seller && !req.user?.roles?.admin) {
+    return res.status(403).json({ message: "Not allowed" });
+  }
+
+  const filePath = path.join(__dirname, "uploads", "requirements", safeName);
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ message: "File not found" });
+  }
+
+  return res.sendFile(filePath);
+});
+
+app.get("/uploads/buyer-documents/:filename", auth, async (req, res) => {
+  const safeName = path.basename(String(req.params.filename || ""));
+  const owner = await User.findOne({
+    "buyerSettings.documents.filename": safeName
+  }).select("_id buyerSettings.documents");
+
+  if (!owner) {
+    return res.status(404).json({ message: "File not found" });
+  }
+
+  const doc = (owner.buyerSettings?.documents || []).find(
+    (item) => String(item.filename || "") === safeName
+  );
+  if (!doc) {
+    return res.status(404).json({ message: "File not found" });
+  }
+
+  const requesterId = String(req.user?._id || "");
+  const ownerId = String(owner._id || "");
+  const visibleToSellerId = doc.visibleToSellerId ? String(doc.visibleToSellerId) : "";
+  const visibleSellerAllowed =
+    requesterId === visibleToSellerId && req.user?.roles?.seller === true;
+
+  if (
+    requesterId !== ownerId &&
+    !visibleSellerAllowed &&
+    !req.user?.roles?.admin
+  ) {
+    return res.status(403).json({ message: "Not allowed" });
+  }
+
+  const filePath = path.join(__dirname, "uploads", "buyer-documents", safeName);
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ message: "File not found" });
+  }
+
+  return res.sendFile(filePath);
+});
 
 /* -------------------- GLOBAL ERROR HANDLER -------------------- */
 app.use((err, req, res, next) => {
