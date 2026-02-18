@@ -159,6 +159,9 @@ export default function OfferModal({
         <p className="text-sm text-gray-600 mb-3">
           For <strong>{productName}</strong>
         </p>
+        <p className="text-sm text-gray-600 mb-3">
+          Buyer from <strong>{requirement.city || "your city"}</strong>
+        </p>
         {existingOffer && lastUpdatedAt && (
           <p className="text-xs text-gray-500 mb-3">
             Last updated: {formatDateTime(lastUpdatedAt)}

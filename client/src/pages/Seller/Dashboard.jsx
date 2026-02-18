@@ -630,7 +630,7 @@ export default function SellerDashboard() {
                     <div>
                       <h3 className="font-semibold text-base text-[var(--ui-text)]">{req.product}</h3>
                       <p className="text-sm text-[var(--ui-muted)]">
-                        {req.city} · {req.category}
+                        Buyer from {req.city || "your city"} · {req.category}
                       </p>
                       {attachments.length > 0 && (
                         <p className="text-xs text-indigo-700 mt-1">
