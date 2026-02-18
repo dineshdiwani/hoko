@@ -14,7 +14,9 @@ export default function OffersReceived() {
     api.get(`/buyer/my-posts/${buyerId}`).then(async res => {
       const enriched = await Promise.all(
         res.data.map(async post => {
-          const offers = await api.get(`/dashboard/offers/${post._id}`);
+          const postId = post._id || post.id;
+          if (!postId) return { ...post, offerCount: 0 };
+          const offers = await api.get(`/dashboard/offers/${postId}`);
           return { ...post, offerCount: offers.data.length };
         })
       );
@@ -31,10 +33,13 @@ export default function OffersReceived() {
         <p className="text-gray-500">No posts yet.</p>
       )}
 
-      {posts.map(post => (
+      {posts.map(post => {
+        const postId = post._id || post.id;
+        if (!postId) return null;
+        return (
         <div
-          key={post._id}
-          onClick={() => navigate(`/offers/${post._id}`)}
+          key={postId}
+          onClick={() => navigate(`/buyer/requirement/${postId}/offers`)}
           className="bg-white border rounded-2xl p-4 mb-3 cursor-pointer hover:bg-gray-50"
         >
           <div className="flex justify-between items-center">
@@ -48,7 +53,8 @@ export default function OffersReceived() {
             </span>
           </div>
         </div>
-      ))}
+        );
+      })}
       </div>
     </div>
   );
