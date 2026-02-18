@@ -322,7 +322,13 @@ export default function BuyerDashboard() {
         <div className="page-shell pt-4">
         {activeTab === "posts" && <MyPosts />}
         {activeTab === "city" && (
-          <CityDashboard key={`${city}-${selectedCategory}`} city={city} category={selectedCategory} />
+          <CityDashboard
+            key={`${city}-${selectedCategory}`}
+            city={city}
+            category={selectedCategory}
+            categories={categories}
+            onCategoryChange={setSelectedCategory}
+          />
         )}
         {activeTab === "offers" && <OffersReceived />}
         </div>

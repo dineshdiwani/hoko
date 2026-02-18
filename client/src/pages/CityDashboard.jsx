@@ -7,7 +7,12 @@ import {
   isImageAttachment
 } from "../utils/attachments";
 
-export default function CityDashboard({ city, category = "all" }) {
+export default function CityDashboard({
+  city,
+  category = "all",
+  categories = [],
+  onCategoryChange
+}) {
   const [requirements, setRequirements] = useState([]);
   const [loading, setLoading] = useState(false);
   const [timeFilter, setTimeFilter] = useState("all");
@@ -214,6 +219,24 @@ export default function CityDashboard({ city, category = "all" }) {
   /* ---------------- DASHBOARD ---------------- */
   return (
     <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm font-semibold text-gray-700">
+          Category
+        </span>
+        <select
+          value={category}
+          onChange={(e) => onCategoryChange?.(e.target.value)}
+          className="w-full sm:w-auto max-w-full px-4 py-2.5 rounded-xl border text-sm bg-white"
+        >
+          <option value="all">All categories</option>
+          {categories.map((cat) => (
+            <option key={cat} value={cat}>
+              {cat}
+            </option>
+          ))}
+        </select>
+      </div>
+
       <div className="flex flex-wrap gap-2">
         {timeOptions.map((option) => (
           <button
