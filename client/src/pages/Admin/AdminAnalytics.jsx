@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import api from "../../utils/adminApi";
+import AdminNav from "../../components/AdminNav";
 
 /* Charts */
 import KPIBarChart from "../../components/Charts/KPIBarChart";
@@ -11,18 +11,12 @@ export default function AdminAnalytics() {
   const [overview, setOverview] = useState(null);
   const [cities, setCities] = useState([]);
   const [categories, setCategories] = useState([]);
-  const navigate = useNavigate();
 
   useEffect(() => {
     api.get("/admin/analytics/overview").then(res => setOverview(res.data));
     api.get("/admin/analytics/cities").then(res => setCities(res.data));
     api.get("/admin/analytics/categories").then(res => setCategories(res.data));
   }, []);
-
-  const handleAdminLogout = () => {
-    localStorage.removeItem("admin_token");
-    navigate("/admin/login", { replace: true });
-  };
 
   if (!overview) {
     return (
@@ -45,20 +39,7 @@ export default function AdminAnalytics() {
       <div className="page-shell pt-20 md:pt-10">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
           <h1 className="page-hero">Admin Analytics</h1>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => navigate("/admin/dashboard")}
-              className="btn-primary w-auto px-3 py-2 text-sm rounded-lg"
-            >
-              Dashboard
-            </button>
-            <button
-              onClick={handleAdminLogout}
-              className="px-3 py-2 text-sm rounded-lg border border-red-300 text-red-700 bg-white hover:bg-red-50"
-            >
-              Logout
-            </button>
-          </div>
+          <AdminNav />
         </div>
 
         {/* KPI CARDS */}

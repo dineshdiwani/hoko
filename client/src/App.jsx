@@ -25,6 +25,7 @@ import SellerDeepLink from "./pages/Seller/SellerDeepLink";
 import AdminLogin from "./pages/Admin/Login";
 import AdminDashboard from "./pages/Admin/AdminDashboard";
 import AdminAnalytics from "./pages/Admin/AdminAnalytics";
+import AdminWhatsApp from "./pages/Admin/AdminWhatsApp";
 
 import OfflineBanner from "./components/OfflineBanner";
 import AppDialog from "./components/AppDialog";
@@ -213,6 +214,11 @@ function AppShell() {
         <Route
           path="/admin/analytics"
           element={requireAdmin() ? <AdminAnalytics /> : <Navigate to="/admin/login" replace />}
+        />
+
+        <Route
+          path="/admin/whatsapp"
+          element={requireAdmin() ? <AdminWhatsApp /> : <Navigate to="/admin/login" replace />}
         />
 
         {/* Fallback */}
