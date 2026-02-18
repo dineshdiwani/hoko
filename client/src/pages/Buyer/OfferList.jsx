@@ -370,20 +370,8 @@ export default function OfferList() {
                   >
                     {offer.sellerFirm}
                   </button>
-                  <p className="text-sm text-[var(--ui-muted)] mt-1">
-                    Business: {offer.sellerDetails?.businessName || offer.sellerFirm || "Not provided"}
-                  </p>
-                  <p className="text-sm text-[var(--ui-muted)]">
-                    Owner: {offer.sellerDetails?.ownerName || "Not provided"}
-                  </p>
-                  <p className="text-sm text-[var(--ui-muted)]">
-                    Manager: {offer.sellerDetails?.managerName || "Not provided"}
-                  </p>
-                  <p className="text-sm text-[var(--ui-muted)]">
-                    City: {offer.sellerDetails?.city || offer.sellerCity || "Not provided"}
-                  </p>
-                  <p className="text-sm text-[var(--ui-muted)]">
-                    Email: {offer.sellerDetails?.email || "Not provided"}
+                  <p className="text-xs text-indigo-700 mt-1">
+                    Tap seller name to view full seller details
                   </p>
                   <p className="text-sm text-[var(--ui-muted)] mt-1">
                     Delivery: {offer.deliveryTime || "-"}
