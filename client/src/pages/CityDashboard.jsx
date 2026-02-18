@@ -7,7 +7,7 @@ import {
   isImageAttachment
 } from "../utils/attachments";
 
-export default function CityDashboard({ city }) {
+export default function CityDashboard({ city, category = "all" }) {
   const [requirements, setRequirements] = useState([]);
   const [loading, setLoading] = useState(false);
   const [timeFilter, setTimeFilter] = useState("all");
@@ -128,6 +128,12 @@ export default function CityDashboard({ city }) {
     return true;
   };
 
+  const matchesCategoryFilter = (req) => {
+    if (!category || category === "all") return true;
+    const reqCategory = String(req.category || "").trim().toLowerCase();
+    return reqCategory === String(category).trim().toLowerCase();
+  };
+
   /* ---------------- EMPTY STATE ---------------- */
   if (!city) {
     return (
@@ -162,7 +168,9 @@ export default function CityDashboard({ city }) {
     );
   }
 
-  const filteredRequirements = requirements.filter(matchesTimeFilter);
+  const filteredRequirements = requirements.filter(
+    (req) => matchesTimeFilter(req) && matchesCategoryFilter(req)
+  );
   const totalRequirements = filteredRequirements.length;
   const liveAuctions = filteredRequirements.filter(
     (req) => req.reverseAuction?.active || req.reverseAuctionActive

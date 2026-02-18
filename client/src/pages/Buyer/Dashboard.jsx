@@ -17,6 +17,7 @@ export default function BuyerDashboard() {
 
   const [activeTab, setActiveTab] = useState("posts");
   const [city, setCity] = useState(session?.city || "");
+  const [selectedCategory, setSelectedCategory] = useState("all");
   const [cities, setCities] = useState([
     "Mumbai",
     "Delhi",
@@ -25,6 +26,7 @@ export default function BuyerDashboard() {
     "Hyderabad",
     "Pune"
   ]);
+  const [categories, setCategories] = useState([]);
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [switching, setSwitching] = useState(false);
@@ -110,10 +112,21 @@ export default function BuyerDashboard() {
       .then((data) => {
         if (Array.isArray(data.cities) && data.cities.length) {
           setCities(data.cities);
+          setCity((prevCity) => {
+            if (prevCity) return prevCity;
+            const preferredCity = session?.city || "";
+            if (preferredCity && data.cities.includes(preferredCity)) {
+              return preferredCity;
+            }
+            return data.cities[0];
+          });
+        }
+        if (Array.isArray(data.categories) && data.categories.length) {
+          setCategories(data.categories);
         }
       })
       .catch(() => {});
-  }, []);
+  }, [session?.city]);
 
   if (roleSyncing) {
     return (
@@ -244,6 +257,26 @@ export default function BuyerDashboard() {
                 <option key={c}>{c}</option>
               ))}
             </select>
+
+            {activeTab === "city" && (
+              <>
+                <span className="text-sm font-semibold text-gray-700 md:ml-3">
+                  Category
+                </span>
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="w-full md:w-auto max-w-full px-4 py-3 rounded-xl border text-base"
+                >
+                  <option value="all">All categories</option>
+                  {categories.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+              </>
+            )}
           </div>
         </div>
 
@@ -289,7 +322,7 @@ export default function BuyerDashboard() {
         <div className="page-shell pt-4">
         {activeTab === "posts" && <MyPosts />}
         {activeTab === "city" && (
-          <CityDashboard key={city} city={city} />
+          <CityDashboard key={`${city}-${selectedCategory}`} city={city} category={selectedCategory} />
         )}
         {activeTab === "offers" && <OffersReceived />}
         </div>
