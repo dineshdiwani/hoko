@@ -254,10 +254,10 @@ export default function ChatModal({
       setUploading(true);
       for (const file of valid) {
         const formData = new FormData();
-        formData.append("file", file);
         formData.append("from", currentUserId);
         formData.append("to", peerUserId);
         formData.append("requirementId", requirementId);
+        formData.append("file", file);
         const res = await api.post("/chat-files/upload", formData, {
           headers: { "Content-Type": "multipart/form-data" }
         });
@@ -273,8 +273,8 @@ export default function ChatModal({
         }
       }
       alert("Document(s) uploaded");
-    } catch {
-      alert("Failed to upload document(s).");
+    } catch (err) {
+      alert(err?.response?.data?.error || "Failed to upload document(s).");
     } finally {
       setUploading(false);
     }

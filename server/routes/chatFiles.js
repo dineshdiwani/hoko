@@ -17,8 +17,9 @@ if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 const storage = multer.diskStorage({
   destination: uploadDir,
   filename: (req, file, cb) => {
-    const { from, to } = req.body;
     const ext = path.extname(file.originalname);
+    const from = String(req.body?.from || req.user?._id || "user");
+    const to = String(req.body?.to || "peer");
     cb(null, `${from}_${to}_${Date.now()}${ext}`);
   }
 });
