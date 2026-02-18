@@ -29,12 +29,16 @@ export default function CityDashboard({ city }) {
     if (url.startsWith("http://") || url.startsWith("https://")) {
       try {
         const parsed = new URL(url);
-        return parsed.pathname || "";
+        const pathname = String(parsed.pathname || "");
+        return pathname.startsWith("/api/uploads/")
+          ? pathname.replace(/^\/api/, "")
+          : pathname;
       } catch {
         return "";
       }
     }
 
+    if (url.startsWith("/api/uploads/")) return url.replace(/^\/api/, "");
     if (url.startsWith("/uploads/")) return url;
 
     const clean = decodeURIComponent(url.split("/").pop() || "");

@@ -610,6 +610,7 @@ export default function SellerDashboard() {
               const isAuction = req.reverseAuction?.active === true;
               const showAuctionForSeller = req.myOffer && isAuction;
               const lowestPrice = req.reverseAuction?.lowestPrice ?? req.currentLowestPrice ?? "-";
+              const attachments = Array.isArray(req.attachments) ? req.attachments : [];
 
               return (
                 <div key={req._id} className="relative app-card">
@@ -631,6 +632,11 @@ export default function SellerDashboard() {
                       <p className="text-sm text-[var(--ui-muted)]">
                         {req.city} · {req.category}
                       </p>
+                      {attachments.length > 0 && (
+                        <p className="text-xs text-indigo-700 mt-1">
+                          Attachments: {attachments.length}
+                        </p>
+                      )}
                     </div>
 
                     {showAuctionForSeller && (
