@@ -55,6 +55,10 @@ function mapRequirementForSeller(requirementDoc, offerMap) {
   return data;
 }
 
+function normalizeCity(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
 /**
  * Seller onboarding (first-time registration)
  */
@@ -273,6 +277,13 @@ router.post("/offer", auth, sellerOnly, async (req, res) => {
     if (!requirement) {
       return res.status(404).json({ message: "Requirement not found" });
     }
+    const sellerCity = normalizeCity(req.user?.city);
+    const buyerCity = normalizeCity(requirement?.city);
+    if (!sellerCity || !buyerCity || sellerCity !== buyerCity) {
+      return res.status(403).json({
+        message: "You can submit offers only for requirements in your city"
+      });
+    }
     const buyer = await User.findById(requirement.buyerId).select("buyerSettings roles");
     const autoEnableChat =
       buyer?.buyerSettings?.chatOnlyAfterOfferAcceptance === false &&
@@ -403,6 +414,13 @@ router.get("/requirement/:requirementId", auth, sellerOnly, async (req, res) => 
   });
   if (!requirement) {
     return res.status(404).json({ message: "Requirement not found" });
+  }
+  const sellerCity = normalizeCity(req.user?.city);
+  const buyerCity = normalizeCity(requirement?.city);
+  if (!sellerCity || !buyerCity || sellerCity !== buyerCity) {
+    return res.status(403).json({
+      message: "This requirement is outside your city"
+    });
   }
 
   const sellerOffer = await Offer.findOne({

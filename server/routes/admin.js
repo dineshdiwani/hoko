@@ -30,6 +30,7 @@ const {
   DEFAULT_NOTIFICATIONS,
   DEFAULT_WHATSAPP_CAMPAIGN,
   DEFAULT_MODERATION_RULES,
+  DEFAULT_SELECTIONS,
   DEFAULT_TERMS_CONTENT
 } = require("../config/platformDefaults");
 const router = require("express").Router();
@@ -824,6 +825,7 @@ router.put("/options", adminAuth, requireAdminPermission("options.manage"), asyn
     categories: nextCategories,
     units: nextUnits,
     currencies: uniqueNormalizedList(Array.isArray(payload.currencies) ? payload.currencies : (current?.currencies || DEFAULT_CURRENCIES)),
+    defaults: payload.defaults || current?.defaults || DEFAULT_SELECTIONS,
     notifications: payload.notifications || current?.notifications || DEFAULT_NOTIFICATIONS,
     whatsAppCampaign:
       payload.whatsAppCampaign ||

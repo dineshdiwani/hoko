@@ -175,20 +175,80 @@ const DEFAULT_MODERATION_RULES = {
   blockLinks: true
 };
 
+const DEFAULT_SELECTIONS = {
+  city: "",
+  category: "",
+  unit: "",
+  currency: "",
+  loginCity: "",
+  sellerRegisterCity: "",
+  sellerRegisterCategory: "",
+  sellerDashboardCity: "all",
+  sellerDashboardCategory: "all",
+  buyerDashboardCity: "",
+  buyerDashboardCategory: "all"
+};
+
 function mergeUnique(existing = [], defaults = []) {
   const set = new Set([...(Array.isArray(existing) ? existing : []), ...defaults]);
   return Array.from(set);
 }
 
+function pickValid(options, value, fallback = "") {
+  const target = String(value || "").trim();
+  if (!target) return String(fallback || "");
+  const match = (Array.isArray(options) ? options : []).find(
+    (item) => String(item || "").trim().toLowerCase() === target.toLowerCase()
+  );
+  return match || String(fallback || "");
+}
+
+function sanitizeSelections(rawSelections, merged) {
+  const source = rawSelections || {};
+  return {
+    city: pickValid(merged.cities, source.city, ""),
+    category: pickValid(merged.categories, source.category, ""),
+    unit: pickValid(merged.units, source.unit, ""),
+    currency: pickValid(merged.currencies, source.currency, ""),
+    loginCity: pickValid(merged.cities, source.loginCity, ""),
+    sellerRegisterCity: pickValid(merged.cities, source.sellerRegisterCity, ""),
+    sellerRegisterCategory: pickValid(
+      merged.categories,
+      source.sellerRegisterCategory,
+      ""
+    ),
+    sellerDashboardCity:
+      String(source.sellerDashboardCity || "").trim().toLowerCase() === "all"
+        ? "all"
+        : pickValid(merged.cities, source.sellerDashboardCity, "all"),
+    sellerDashboardCategory:
+      String(source.sellerDashboardCategory || "").trim().toLowerCase() === "all"
+        ? "all"
+        : pickValid(merged.categories, source.sellerDashboardCategory, "all"),
+    buyerDashboardCity: pickValid(merged.cities, source.buyerDashboardCity, ""),
+    buyerDashboardCategory:
+      String(source.buyerDashboardCategory || "").trim().toLowerCase() === "all"
+        ? "all"
+        : pickValid(merged.categories, source.buyerDashboardCategory, "all")
+  };
+}
+
 function buildOptionsResponse(doc) {
   const raw = doc ? (typeof doc.toObject === "function" ? doc.toObject() : doc) : null;
-
-  return {
-    ...(raw || {}),
+  const merged = {
     cities: mergeUnique(raw?.cities, DEFAULT_CITIES),
     categories: mergeUnique(raw?.categories, DEFAULT_CATEGORIES),
     units: mergeUnique(raw?.units, DEFAULT_UNITS),
-    currencies: mergeUnique(raw?.currencies, DEFAULT_CURRENCIES),
+    currencies: mergeUnique(raw?.currencies, DEFAULT_CURRENCIES)
+  };
+
+  return {
+    ...(raw || {}),
+    cities: merged.cities,
+    categories: merged.categories,
+    units: merged.units,
+    currencies: merged.currencies,
+    defaults: sanitizeSelections(raw?.defaults || DEFAULT_SELECTIONS, merged),
     notifications: raw?.notifications || DEFAULT_NOTIFICATIONS,
     whatsAppCampaign: raw?.whatsAppCampaign || DEFAULT_WHATSAPP_CAMPAIGN,
     moderationRules: raw?.moderationRules || DEFAULT_MODERATION_RULES,
@@ -207,6 +267,7 @@ module.exports = {
   DEFAULT_NOTIFICATIONS,
   DEFAULT_WHATSAPP_CAMPAIGN,
   DEFAULT_MODERATION_RULES,
+  DEFAULT_SELECTIONS,
   mergeUnique,
   buildOptionsResponse
 };
