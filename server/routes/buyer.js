@@ -12,6 +12,13 @@ const Notification = require("../models/Notification");
 const ChatMessage = require("../models/ChatMessage");
 const PlatformSettings = require("../models/PlatformSettings");
 const { getModerationRules, checkTextForFlags } = require("../utils/moderation");
+const {
+  normalizeRequirementAttachmentValues,
+  normalizeRequirementAttachmentsForResponse,
+  extractStoredRequirementFilename,
+  extractAttachmentAliases,
+  displayNameFromStoredFilename
+} = require("../utils/attachments");
 const sendPush = require("../utils/sendPush");
 const { triggerWhatsAppCampaignForRequirement } = require("../services/whatsAppCampaign");
 const auth = require("../middleware/auth");
@@ -47,73 +54,8 @@ function safeFilename(originalname) {
     .slice(0, 60);
   return `${base || "file"}${ext}`;
 }
-function normalizeRequirementAttachmentValues(value) {
-  const items = Array.isArray(value) ? value : [];
-  const normalized = items
-    .map((item) => {
-      if (typeof item === "string") {
-        const raw = item.trim();
-        if (!raw) return "";
-        if (raw.startsWith("/uploads/requirements/")) return raw;
-        const clean = path.basename(raw);
-        return `/uploads/requirements/${clean}`;
-      }
-      if (item && typeof item === "object") {
-        const raw = String(item.url || item.path || item.filename || "").trim();
-        if (!raw) return "";
-        if (raw.startsWith("/uploads/requirements/")) return raw;
-        const clean = path.basename(raw);
-        return `/uploads/requirements/${clean}`;
-      }
-      return "";
-    })
-    .filter(Boolean);
-
-  return Array.from(new Set(normalized));
-}
 function escapeRegex(value) {
   return String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-function extractStoredRequirementFilename(attachment) {
-  if (!attachment) return "";
-
-  if (typeof attachment === "string") {
-    return path.basename(String(attachment || "").trim());
-  }
-
-  if (typeof attachment === "object") {
-    const fromUrl = path.basename(String(attachment.url || "").trim());
-    if (fromUrl) return fromUrl;
-    const fromPath = path.basename(String(attachment.path || "").trim());
-    if (fromPath) return fromPath;
-    const fromFilename = path.basename(String(attachment.filename || "").trim());
-    if (fromFilename) return fromFilename;
-  }
-
-  return "";
-}
-function extractAttachmentAliases(attachment) {
-  const aliases = new Set();
-
-  if (typeof attachment === "string") {
-    const base = path.basename(String(attachment || "").trim());
-    if (base) aliases.add(base.toLowerCase());
-  }
-
-  if (attachment && typeof attachment === "object") {
-    [
-      attachment.url,
-      attachment.path,
-      attachment.filename,
-      attachment.originalName,
-      attachment.name
-    ].forEach((value) => {
-      const base = path.basename(String(value || "").trim());
-      if (base) aliases.add(base.toLowerCase());
-    });
-  }
-
-  return aliases;
 }
 function toBoolean(value, fallback = false) {
   if (typeof value === "boolean") return value;
@@ -345,7 +287,7 @@ router.post("/requirement", auth, buyerOnly, async (req, res) => {
         }
       : undefined
   });
-  res.json(requirement);
+  res.json(normalizeRequirementAttachmentsForResponse(requirement));
 
   setImmediate(async () => {
     try {
@@ -416,7 +358,7 @@ router.get("/my-posts/:buyerId", auth, buyerOnly, async (req, res) => {
   });
 
   const withCounts = posts.map((post) => {
-    const data = post.toObject();
+    const data = normalizeRequirementAttachmentsForResponse(post);
     data.offerCount = countMap.get(String(post._id)) || 0;
     const sellersMap = sellersByRequirement.get(String(post._id));
     data.sellerFirms = sellersMap
@@ -439,7 +381,7 @@ router.get("/requirement/:id", auth, buyerOnly, async (req, res) => {
   if (String(requirement.buyerId) !== String(req.user._id)) {
     return res.status(403).json({ message: "Not allowed" });
   }
-  res.json(requirement);
+  res.json(normalizeRequirementAttachmentsForResponse(requirement));
 });
 
 /**
@@ -497,7 +439,7 @@ router.put("/requirement/:id", auth, buyerOnly, async (req, res) => {
     }
   }
 
-  res.json(requirement);
+  res.json(normalizeRequirementAttachmentsForResponse(requirement));
 });
 
 /**
@@ -824,6 +766,26 @@ router.get("/attachments/:filename", auth, async (req, res) => {
     const storedName = extractStoredRequirementFilename(matchedAttachment);
     if (storedName) {
       resolvedFilename = storedName;
+    }
+  }
+
+  if (!matchedAttachment && attachments.length > 0) {
+    const suffixMatch = attachments
+      .map((attachment) => extractStoredRequirementFilename(attachment))
+      .find((stored) => {
+        const lower = String(stored || "").toLowerCase();
+        return lower === requested || lower.endsWith(`_${requested}`);
+      });
+    if (suffixMatch) {
+      resolvedFilename = suffixMatch;
+    } else if (attachments.length === 1) {
+      const single = extractStoredRequirementFilename(attachments[0]);
+      if (single) {
+        const singleDisplay = displayNameFromStoredFilename(single).toLowerCase();
+        if (singleDisplay && singleDisplay === requested) {
+          resolvedFilename = single;
+        }
+      }
     }
   }
 

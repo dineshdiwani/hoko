@@ -2,6 +2,7 @@ const express = require("express");
 const Requirement = require("../models/Requirement");
 const Offer = require("../models/Offer");
 const auth = require("../middleware/auth");
+const { normalizeRequirementAttachmentsForResponse } = require("../utils/attachments");
 const router = express.Router();
 
 router.get("/city/:city", auth, async (req, res) => {
@@ -25,7 +26,7 @@ router.get("/city/:city", auth, async (req, res) => {
   );
 
   const data = requirements.map((req) => {
-    const item = req.toObject();
+    const item = normalizeRequirementAttachmentsForResponse(req);
     item.offerCount = countMap.get(String(req._id)) || 0;
     return item;
   });

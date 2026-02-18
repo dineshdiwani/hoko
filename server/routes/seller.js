@@ -12,6 +12,7 @@ const auth = require("../middleware/auth");
 const sellerOnly = require("../middleware/sellerOnly");
 const sendPush = require("../utils/sendPush");
 const { getModerationRules, checkTextForFlags } = require("../utils/moderation");
+const { normalizeRequirementAttachmentsForResponse } = require("../utils/attachments");
 
 function shouldNotifyBuyerEvent(userDoc, eventKey) {
   if (!userDoc?.roles?.buyer) return true;
@@ -39,7 +40,7 @@ function shouldSendBuyerPush(userDoc) {
 
 function mapRequirementForSeller(requirementDoc, offerMap) {
   if (!requirementDoc) return null;
-  const data = requirementDoc.toObject();
+  const data = normalizeRequirementAttachmentsForResponse(requirementDoc);
   const reqId = String(requirementDoc._id);
   const sellerOffer = offerMap.get(reqId) || null;
   data.product = data.product || data.productName;
