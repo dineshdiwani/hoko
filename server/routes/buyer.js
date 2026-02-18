@@ -31,9 +31,7 @@ const allowedExtensions = new Set([
   ".jpeg",
   ".png",
   ".pdf",
-  ".doc",
   ".docx",
-  ".xls",
   ".xlsx"
 ]);
 const MIN_POST_AUTO_EXPIRY_DAYS = 7;

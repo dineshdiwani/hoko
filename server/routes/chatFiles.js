@@ -18,7 +18,25 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ storage });
+const allowedExtensions = new Set([
+  ".jpg",
+  ".jpeg",
+  ".png",
+  ".pdf",
+  ".docx",
+  ".xlsx"
+]);
+
+const upload = multer({
+  storage,
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (!allowedExtensions.has(ext)) {
+      return cb(new Error("Unsupported file type"));
+    }
+    cb(null, true);
+  }
+});
 
 function parseChatFileParticipants(filename) {
   const safeName = path.basename(String(filename || ""));

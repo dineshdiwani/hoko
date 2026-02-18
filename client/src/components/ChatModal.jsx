@@ -236,14 +236,14 @@ export default function ChatModal({
     const files = Array.from(fileList || []);
     if (!files.length) return;
 
-    const allowed = [".jpg", ".jpeg", ".png", ".pdf", ".doc", ".docx", ".xls", ".xlsx"];
+    const allowed = [".jpg", ".jpeg", ".png", ".pdf", ".docx", ".xlsx"];
     const valid = files.filter((file) => {
       const name = String(file.name || "").toLowerCase();
       return allowed.some((ext) => name.endsWith(ext));
     });
 
     if (valid.length !== files.length) {
-      alert("Only jpg, png, pdf, docx, doc, xlsx, xls files are allowed");
+      alert("Only jpg, jpeg, png, pdf, docx, xlsx files are allowed");
     }
     if (!valid.length) return;
 
@@ -502,7 +502,7 @@ export default function ChatModal({
             ref={fileInputRef}
             type="file"
             multiple
-            accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/*"
+            accept=".jpg,.jpeg,.png,.pdf,.docx,.xlsx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/jpeg,image/png"
             className="hidden"
             onChange={(e) => uploadFiles(e.target.files)}
           />

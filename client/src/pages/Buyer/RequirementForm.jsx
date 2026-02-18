@@ -152,6 +152,13 @@ export default function RequirementForm() {
     };
   }, [cameraOpen]);
 
+  function getDisplayName(fileUrl, index) {
+    const raw = String(fileUrl || "").split("?")[0].split("#")[0];
+    const tail = decodeURIComponent(raw.split("/").pop() || "").trim();
+    if (!tail) return `Attachment ${index + 1}`;
+    return tail.replace(/^[^_]+_\d+_/, "");
+  }
+
   function handleChange(e) {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
@@ -185,15 +192,24 @@ export default function RequirementForm() {
       const ctx = canvas.getContext("2d");
       ctx.drawImage(img, 0, 0, width, height);
 
-      let quality = 0.8;
+      const originalExt = String(file.name || "").toLowerCase().endsWith(".png")
+        ? ".png"
+        : ".jpg";
+      const mimeType = originalExt === ".png" ? "image/png" : "image/jpeg";
+      let quality = mimeType === "image/jpeg" ? 0.8 : undefined;
       let blob = await new Promise((resolve) =>
-        canvas.toBlob(resolve, "image/jpeg", quality)
+        canvas.toBlob(resolve, mimeType, quality)
       );
 
-      while (blob && blob.size > maxImageBytes && quality > 0.2) {
+      while (
+        blob &&
+        blob.size > maxImageBytes &&
+        mimeType === "image/jpeg" &&
+        quality > 0.2
+      ) {
         quality -= 0.1;
         blob = await new Promise((resolve) =>
-          canvas.toBlob(resolve, "image/jpeg", quality)
+          canvas.toBlob(resolve, mimeType, quality)
         );
       }
 
@@ -206,15 +222,15 @@ export default function RequirementForm() {
         canvas.height = newHeight;
         ctx.drawImage(img, 0, 0, newWidth, newHeight);
         blob = await new Promise((resolve) =>
-          canvas.toBlob(resolve, "image/jpeg", 0.7)
+          canvas.toBlob(resolve, mimeType, mimeType === "image/jpeg" ? 0.7 : undefined)
         );
       }
 
       const baseName = (file.name || "photo")
         .replace(/\.[^/.]+$/, "")
         .slice(0, 60);
-      const fileName = `${baseName}.jpg`;
-      return new File([blob], fileName, { type: "image/jpeg" });
+      const fileName = `${baseName}${originalExt}`;
+      return new File([blob], fileName, { type: mimeType });
     } catch {
       return file;
     }
@@ -236,9 +252,7 @@ export default function RequirementForm() {
       ".jpeg",
       ".png",
       ".pdf",
-      ".doc",
       ".docx",
-      ".xls",
       ".xlsx"
     ];
 
@@ -248,7 +262,7 @@ export default function RequirementForm() {
     });
 
     if (valid.length !== incoming.length) {
-      alert("Only jpg, png, pdf, docx, doc, xlsx, xls files are allowed");
+      alert("Only jpg, jpeg, png, pdf, docx, xlsx files are allowed");
     }
 
     const processed = [];
@@ -511,7 +525,7 @@ export default function RequirementForm() {
         {/* Attachments */}
         <div className="mt-3 mb-3">
           <label className="block text-sm font-medium mb-2">
-            Attachments (jpg, pdf, docx, xlsx)
+            Attachments (jpg/jpeg, png, pdf, docx, xlsx)
           </label>
           <div className="flex flex-wrap gap-3">
             <label className="px-4 py-2 border rounded-xl cursor-pointer text-sm">
@@ -519,7 +533,7 @@ export default function RequirementForm() {
               <input
                 type="file"
                 multiple
-                accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/*"
+                accept=".jpg,.jpeg,.png,.pdf,.docx,.xlsx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/jpeg,image/png"
                 className="hidden"
                 onChange={(e) => addFiles(e.target.files)}
               />
@@ -541,7 +555,7 @@ export default function RequirementForm() {
                   className="flex items-center justify-between text-sm bg-gray-50 border rounded-lg px-3 py-2"
                 >
                   <span className="truncate">
-                    {String(fileUrl || "").split("/").pop() || `Attachment ${index + 1}`}
+                    {getDisplayName(fileUrl, index)}
                   </span>
                   <button
                     type="button"
