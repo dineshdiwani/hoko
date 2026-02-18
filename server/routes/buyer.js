@@ -386,6 +386,42 @@ router.put("/requirement/:id", auth, buyerOnly, async (req, res) => {
   }
   Object.assign(requirement, req.body);
   await requirement.save();
+
+  const requirementName = requirement.product || requirement.productName || "your requirement";
+  const sellerIds = await Offer.distinct("sellerId", {
+    requirementId: requirement._id,
+    "moderation.removed": { $ne: true }
+  });
+
+  if (sellerIds.length > 0) {
+    const message = `Buyer updated requirement: ${requirementName}. Please review and update your offer if needed.`;
+    const notifications = await Promise.all(
+      sellerIds.map((sellerId) =>
+        Notification.create({
+          userId: sellerId,
+          message,
+          type: "requirement_updated",
+          requirementId: requirement._id,
+          fromUserId: req.user._id,
+          data: {
+            action: "open_offer_edit",
+            requirementId: String(requirement._id),
+            productName: requirementName
+          }
+        })
+      )
+    );
+
+    const io = req.app.get("io");
+    if (io) {
+      notifications.forEach((notification, idx) => {
+        const sellerId = sellerIds[idx];
+        if (!sellerId) return;
+        io.to(String(sellerId)).emit("notification", notification);
+      });
+    }
+  }
+
   res.json(requirement);
 });
 

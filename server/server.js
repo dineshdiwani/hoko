@@ -366,8 +366,13 @@ app.use("/api/admin", require("./routes/adminStats"));
 app.get("/uploads/requirements/:filename", auth, async (req, res) => {
   const safeName = path.basename(String(req.params.filename || ""));
   const relativeUrl = `/uploads/requirements/${safeName}`;
+  const escapedName = safeName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const requirement = await Requirement.findOne({
-    $or: [{ attachments: relativeUrl }, { attachments: safeName }],
+    $or: [
+      { attachments: relativeUrl },
+      { attachments: safeName },
+      { attachments: { $regex: `${escapedName}$`, $options: "i" } }
+    ],
     "moderation.removed": { $ne: true }
   }).select("_id buyerId");
 
