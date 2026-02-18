@@ -47,6 +47,30 @@ function safeFilename(originalname) {
     .slice(0, 60);
   return `${base || "file"}${ext}`;
 }
+function normalizeRequirementAttachmentValues(value) {
+  const items = Array.isArray(value) ? value : [];
+  const normalized = items
+    .map((item) => {
+      if (typeof item === "string") {
+        const raw = item.trim();
+        if (!raw) return "";
+        if (raw.startsWith("/uploads/requirements/")) return raw;
+        const clean = path.basename(raw);
+        return `/uploads/requirements/${clean}`;
+      }
+      if (item && typeof item === "object") {
+        const raw = String(item.url || item.path || item.filename || "").trim();
+        if (!raw) return "";
+        if (raw.startsWith("/uploads/requirements/")) return raw;
+        const clean = path.basename(raw);
+        return `/uploads/requirements/${clean}`;
+      }
+      return "";
+    })
+    .filter(Boolean);
+
+  return Array.from(new Set(normalized));
+}
 function toBoolean(value, fallback = false) {
   if (typeof value === "boolean") return value;
   if (typeof value === "string") {
@@ -267,6 +291,7 @@ router.post("/requirement", auth, buyerOnly, async (req, res) => {
 
   const requirement = await Requirement.create({
     ...req.body,
+    attachments: normalizeRequirementAttachmentValues(req.body?.attachments),
     buyerId: req.user._id,
     moderation: flaggedReason
       ? {
@@ -384,7 +409,13 @@ router.put("/requirement/:id", auth, buyerOnly, async (req, res) => {
   if (String(requirement.buyerId) !== String(req.user._id)) {
     return res.status(403).json({ message: "Not allowed" });
   }
-  Object.assign(requirement, req.body);
+  const nextPayload = { ...req.body };
+  if (Object.prototype.hasOwnProperty.call(nextPayload, "attachments")) {
+    nextPayload.attachments = normalizeRequirementAttachmentValues(
+      nextPayload.attachments
+    );
+  }
+  Object.assign(requirement, nextPayload);
   await requirement.save();
 
   const requirementName = requirement.product || requirement.productName || "your requirement";

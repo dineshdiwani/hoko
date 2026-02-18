@@ -371,7 +371,13 @@ app.get("/uploads/requirements/:filename", auth, async (req, res) => {
     $or: [
       { attachments: relativeUrl },
       { attachments: safeName },
-      { attachments: { $regex: `${escapedName}$`, $options: "i" } }
+      { attachments: { $regex: `${escapedName}$`, $options: "i" } },
+      { "attachments.url": relativeUrl },
+      { "attachments.url": { $regex: `${escapedName}$`, $options: "i" } },
+      { "attachments.path": relativeUrl },
+      { "attachments.path": { $regex: `${escapedName}$`, $options: "i" } },
+      { "attachments.filename": safeName },
+      { "attachments.filename": { $regex: `${escapedName}$`, $options: "i" } }
     ],
     "moderation.removed": { $ne: true }
   }).select("_id buyerId");
