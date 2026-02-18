@@ -3,6 +3,11 @@ import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
 import { getSession } from "../../services/storage";
 import { confirmDialog } from "../../utils/dialogs";
+import {
+  extractAttachmentFileName,
+  getAttachmentDisplayName,
+  isImageAttachment
+} from "../../utils/attachments";
 
 export default function MyPosts() {
   const navigate = useNavigate();
@@ -13,39 +18,6 @@ export default function MyPosts() {
   const [sellerDetails, setSellerDetails] = useState(null);
   const [auctionLoadingById, setAuctionLoadingById] = useState({});
   const modalRef = useRef(null);
-
-  function parseAttachment(attachment) {
-    if (attachment && typeof attachment === "object") {
-      return {
-        url: String(attachment.url || attachment.path || attachment.filename || "").trim(),
-        originalName: String(attachment.originalName || attachment.name || "").trim(),
-        filename: String(attachment.filename || "").trim()
-      };
-    }
-    return {
-      url: String(attachment || "").trim(),
-      originalName: "",
-      filename: ""
-    };
-  }
-
-  function extractAttachmentFileName(attachment) {
-    const parsed = parseAttachment(attachment);
-    if (parsed.filename) return decodeURIComponent(parsed.filename.split("/").pop() || "");
-    const { url } = parsed;
-    if (!url) return "";
-
-    if (url.startsWith("http://") || url.startsWith("https://")) {
-      try {
-        const parsed = new URL(url);
-        return decodeURIComponent(String(parsed.pathname || "").split("/").pop() || "");
-      } catch {
-        return "";
-      }
-    }
-
-    return decodeURIComponent(url.split("/").pop() || "");
-  }
 
   async function openAttachment(attachment) {
     const newTab = window.open("", "_blank", "noopener,noreferrer");
@@ -69,21 +41,11 @@ export default function MyPosts() {
   }
 
   function getDisplayName(attachment, index) {
-    const parsed = parseAttachment(attachment);
-    if (parsed.originalName) return parsed.originalName;
-    const raw = parsed.url.split("?")[0].split("#")[0];
-    const tail = decodeURIComponent(raw.split("/").pop() || "").trim();
-    if (!tail) return `Attachment ${index + 1}`;
-    return tail.replace(/^[^_]+_\d+_/, "");
+    return getAttachmentDisplayName(attachment, index);
   }
 
   function isImage(attachment) {
-    const lower = String(parseAttachment(attachment).url || "").toLowerCase();
-    return (
-      lower.endsWith(".jpg") ||
-      lower.endsWith(".jpeg") ||
-      lower.endsWith(".png")
-    );
+    return isImageAttachment(attachment);
   }
 
   useEffect(() => {

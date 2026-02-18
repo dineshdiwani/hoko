@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { fetchOptions } from "../../services/options";
 import api from "../../services/api";
+import { getAttachmentDisplayName } from "../../utils/attachments";
 
 export default function RequirementForm() {
   const navigate = useNavigate();
@@ -152,11 +153,8 @@ export default function RequirementForm() {
     };
   }, [cameraOpen]);
 
-  function getDisplayName(fileUrl, index) {
-    const raw = String(fileUrl || "").split("?")[0].split("#")[0];
-    const tail = decodeURIComponent(raw.split("/").pop() || "").trim();
-    if (!tail) return `Attachment ${index + 1}`;
-    return tail.replace(/^[^_]+_\d+_/, "");
+  function getDisplayName(attachment, index) {
+    return getAttachmentDisplayName(attachment, index);
   }
 
   function handleChange(e) {
@@ -551,7 +549,7 @@ export default function RequirementForm() {
             <div className="mt-3 space-y-2">
               {existingAttachments.map((fileUrl, index) => (
                 <div
-                  key={`${fileUrl}-${index}`}
+                  key={`${String(fileUrl)}-${index}`}
                   className="flex items-center justify-between text-sm bg-gray-50 border rounded-lg px-3 py-2"
                 >
                   <span className="truncate">
