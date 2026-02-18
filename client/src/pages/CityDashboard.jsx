@@ -25,15 +25,28 @@ export default function CityDashboard({ city }) {
   }
 
   async function openAttachment(fileUrl) {
+    const newTab = window.open("", "_blank", "noopener,noreferrer");
     try {
       const absolute = toAbsoluteUrl(fileUrl);
       const res = await api.get(absolute, { responseType: "blob" });
       const blobUrl = window.URL.createObjectURL(res.data);
-      window.open(blobUrl, "_blank", "noopener,noreferrer");
+      if (newTab) {
+        newTab.location.href = blobUrl;
+      } else {
+        window.open(blobUrl, "_blank", "noopener,noreferrer");
+      }
       setTimeout(() => window.URL.revokeObjectURL(blobUrl), 10000);
     } catch {
+      if (newTab) newTab.close();
       alert("Unable to open attachment.");
     }
+  }
+
+  function getDisplayName(fileUrl, index) {
+    const raw = String(fileUrl || "").split("?")[0].split("#")[0];
+    const tail = decodeURIComponent(raw.split("/").pop() || "").trim();
+    if (!tail) return `Attachment ${index + 1}`;
+    return tail.replace(/^[^_]+_\d+_/, "");
   }
 
   function isImage(url) {
@@ -333,10 +346,7 @@ export default function CityDashboard({ city }) {
                     </p>
                     <div className="space-y-2">
                       {attachments.map((fileUrl, index) => {
-                        const name =
-                          String(fileUrl || "")
-                            .split("/")
-                            .pop() || `Attachment ${index + 1}`;
+                        const name = getDisplayName(fileUrl, index);
                         return (
                           <div
                             key={`${fileUrl}-${index}`}
