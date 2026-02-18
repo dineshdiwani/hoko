@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../../services/api";
 import socket from "../../services/socket";
@@ -21,6 +21,10 @@ export default function OfferList() {
   const [reviewTarget, setReviewTarget] = useState(null);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportTarget, setReportTarget] = useState(null);
+  const [sellerModalOpen, setSellerModalOpen] = useState(false);
+  const [sellerLoading, setSellerLoading] = useState(false);
+  const [sellerDetails, setSellerDetails] = useState(null);
+  const sellerModalRef = useRef(null);
 
   /* ---------------- FETCH DATA ---------------- */
   useEffect(() => {
@@ -47,6 +51,25 @@ export default function OfferList() {
     }
     load();
   }, [id]);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (
+        sellerModalRef.current &&
+        !sellerModalRef.current.contains(event.target)
+      ) {
+        setSellerModalOpen(false);
+      }
+    }
+    if (sellerModalOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () =>
+      document.removeEventListener(
+        "mousedown",
+        handleClickOutside
+      );
+  }, [sellerModalOpen]);
 
   /* ---------------- SOCKET UPDATES ---------------- */
   useEffect(() => {
@@ -222,6 +245,21 @@ export default function OfferList() {
     }
   }
 
+  async function openSellerDetails(sellerId) {
+    if (!sellerId) return;
+    setSellerModalOpen(true);
+    setSellerLoading(true);
+    setSellerDetails(null);
+    try {
+      const res = await api.get(`/buyer/seller/${sellerId}`);
+      setSellerDetails(res.data || null);
+    } catch {
+      setSellerDetails(null);
+    } finally {
+      setSellerLoading(false);
+    }
+  }
+
   return (
     <div className="page">
       {/* ================= HEADER ================= */}
@@ -322,8 +360,30 @@ export default function OfferList() {
                   <p className="text-xl font-semibold">
                     Rs {offer.price}
                   </p>
-                  <p className="text-sm text-[var(--ui-muted)]">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openSellerDetails(offer.sellerId);
+                    }}
+                    className="text-sm text-indigo-700 hover:underline"
+                  >
                     {offer.sellerFirm}
+                  </button>
+                  <p className="text-sm text-[var(--ui-muted)] mt-1">
+                    Business: {offer.sellerDetails?.businessName || offer.sellerFirm || "Not provided"}
+                  </p>
+                  <p className="text-sm text-[var(--ui-muted)]">
+                    Owner: {offer.sellerDetails?.ownerName || "Not provided"}
+                  </p>
+                  <p className="text-sm text-[var(--ui-muted)]">
+                    Manager: {offer.sellerDetails?.managerName || "Not provided"}
+                  </p>
+                  <p className="text-sm text-[var(--ui-muted)]">
+                    City: {offer.sellerDetails?.city || offer.sellerCity || "Not provided"}
+                  </p>
+                  <p className="text-sm text-[var(--ui-muted)]">
+                    Email: {offer.sellerDetails?.email || "Not provided"}
                   </p>
                   <p className="text-sm text-[var(--ui-muted)] mt-1">
                     Delivery: {offer.deliveryTime || "-"}
@@ -440,6 +500,104 @@ export default function OfferList() {
         reportedUserId={reportTarget}
         requirementId={id}
       />
+
+      {sellerModalOpen && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div
+            className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6"
+            ref={sellerModalRef}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold">
+                Seller Details
+              </h2>
+              <button
+                onClick={() => setSellerModalOpen(false)}
+                className="text-gray-500 hover:text-gray-800"
+              >
+                Close
+              </button>
+            </div>
+
+            {sellerLoading && (
+              <div className="text-sm text-gray-600">
+                Loading details...
+              </div>
+            )}
+
+            {!sellerLoading && !sellerDetails && (
+              <div className="text-sm text-gray-600">
+                Seller details not available.
+              </div>
+            )}
+
+            {!sellerLoading && sellerDetails && (
+              <div className="space-y-2 text-sm text-gray-700">
+                <div>
+                  <span className="text-gray-500">
+                    Firm Name:
+                  </span>{" "}
+                  {sellerDetails.sellerProfile?.firmName ||
+                    "-"}
+                </div>
+                <div>
+                  <span className="text-gray-500">
+                    Business Name:
+                  </span>{" "}
+                  {sellerDetails.sellerProfile?.businessName ||
+                    "-"}
+                </div>
+                <div>
+                  <span className="text-gray-500">
+                    Owner:
+                  </span>{" "}
+                  {sellerDetails.sellerProfile?.ownerName ||
+                    "-"}
+                </div>
+                <div>
+                  <span className="text-gray-500">
+                    Registration:
+                  </span>{" "}
+                  {sellerDetails.sellerProfile
+                    ?.registrationDetails || "-"}
+                </div>
+                <div>
+                  <span className="text-gray-500">
+                    Address:
+                  </span>{" "}
+                  {sellerDetails.sellerProfile
+                    ?.businessAddress || "-"}
+                </div>
+                <div>
+                  <span className="text-gray-500">
+                    Website:
+                  </span>{" "}
+                  {sellerDetails.sellerProfile?.website ||
+                    "-"}
+                </div>
+                <div>
+                  <span className="text-gray-500">
+                    Tax ID:
+                  </span>{" "}
+                  {sellerDetails.sellerProfile?.taxId || "-"}
+                </div>
+                <div>
+                  <span className="text-gray-500">
+                    City:
+                  </span>{" "}
+                  {sellerDetails.city || "-"}
+                </div>
+                <div>
+                  <span className="text-gray-500">
+                    Email:
+                  </span>{" "}
+                  {sellerDetails.email || "-"}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
