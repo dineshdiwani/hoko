@@ -35,6 +35,7 @@ const allowedExtensions = new Set([
 
 const upload = multer({
   storage,
+  limits: { fileSize: 10 * 1024 * 1024, files: 1 },
   fileFilter: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
     if (!allowedExtensions.has(ext)) {
@@ -44,6 +45,20 @@ const upload = multer({
   }
 });
 
+function uploadSingleFile(req, res, next) {
+  upload.single("file")(req, res, (err) => {
+    if (!err) return next();
+    const message = String(err.message || "Upload failed");
+    if (err instanceof multer.MulterError) {
+      if (err.code === "LIMIT_FILE_SIZE") {
+        return res.status(413).json({ error: "File too large (max 10MB)" });
+      }
+      return res.status(400).json({ error: message });
+    }
+    return res.status(400).json({ error: message });
+  });
+}
+
 function parseChatFileParticipants(filename) {
   const safeName = path.basename(String(filename || ""));
   const withoutExt = safeName.replace(/\.[^/.]+$/, "");
@@ -52,7 +67,7 @@ function parseChatFileParticipants(filename) {
   return { safeName, from, to };
 }
 
-router.post("/upload", auth, upload.single("file"), async (req, res) => {
+router.post("/upload", auth, uploadSingleFile, async (req, res) => {
   const currentUserId = String(req.user?._id || "");
   const from = String(req.body?.from || "");
   const to = String(req.body?.to || "");

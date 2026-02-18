@@ -274,7 +274,9 @@ export default function ChatModal({
       }
       alert("Document(s) uploaded");
     } catch (err) {
-      alert(err?.response?.data?.error || "Failed to upload document(s).");
+      const serverError = err?.response?.data?.error;
+      const status = err?.response?.status;
+      alert(serverError || (status ? `Upload failed (${status})` : "Failed to upload document(s)."));
     } finally {
       setUploading(false);
     }
