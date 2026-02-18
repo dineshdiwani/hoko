@@ -13,6 +13,12 @@ const Offer = require("./models/Offer");
 const User = require("./models/User");
 const auth = require("./middleware/auth");
 const { getModerationRules, checkTextForFlags } = require("./utils/moderation");
+const {
+  extractStoredRequirementFilename,
+  extractAttachmentAliases,
+  displayNameFromStoredFilename,
+  resolveAttachmentFilenameOnDisk
+} = require("./utils/attachments");
 
 dotenv.config();
 
@@ -380,7 +386,7 @@ app.get("/uploads/requirements/:filename", auth, async (req, res) => {
       { "attachments.filename": { $regex: `${escapedName}$`, $options: "i" } }
     ],
     "moderation.removed": { $ne: true }
-  }).select("_id buyerId");
+  }).select("_id buyerId attachments");
 
   if (!requirement) {
     return res.status(404).json({ message: "File not found" });
@@ -392,7 +398,49 @@ app.get("/uploads/requirements/:filename", auth, async (req, res) => {
     return res.status(403).json({ message: "Not allowed" });
   }
 
-  const filePath = path.join(__dirname, "uploads", "requirements", safeName);
+  const requested = safeName.toLowerCase();
+  const attachments = Array.isArray(requirement.attachments) ? requirement.attachments : [];
+  let resolvedFilename = safeName;
+
+  const matchedAttachment = attachments.find((attachment) => {
+    const aliases = extractAttachmentAliases(attachment);
+    return aliases.has(requested);
+  });
+
+  if (matchedAttachment) {
+    const storedName = extractStoredRequirementFilename(matchedAttachment);
+    if (storedName) {
+      resolvedFilename = storedName;
+    }
+  }
+
+  if (!matchedAttachment && attachments.length > 0) {
+    const suffixMatch = attachments
+      .map((attachment) => extractStoredRequirementFilename(attachment))
+      .find((stored) => {
+        const lower = String(stored || "").toLowerCase();
+        return lower === requested || lower.endsWith(`_${requested}`);
+      });
+    if (suffixMatch) {
+      resolvedFilename = suffixMatch;
+    } else if (attachments.length === 1) {
+      const single = extractStoredRequirementFilename(attachments[0]);
+      if (single) {
+        const singleDisplay = displayNameFromStoredFilename(single).toLowerCase();
+        if (singleDisplay && singleDisplay === requested) {
+          resolvedFilename = single;
+        }
+      }
+    }
+  }
+
+  const diskFilename =
+    resolveAttachmentFilenameOnDisk(path.join(__dirname, "uploads", "requirements"), {
+      preferredFilename: resolvedFilename,
+      requestedFilename: safeName,
+      buyerId
+    }) || path.basename(resolvedFilename);
+  const filePath = path.join(__dirname, "uploads", "requirements", diskFilename);
   if (!fs.existsSync(filePath)) {
     return res.status(404).json({ message: "File not found" });
   }

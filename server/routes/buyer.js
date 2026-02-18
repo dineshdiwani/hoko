@@ -17,7 +17,8 @@ const {
   normalizeRequirementAttachmentsForResponse,
   extractStoredRequirementFilename,
   extractAttachmentAliases,
-  displayNameFromStoredFilename
+  displayNameFromStoredFilename,
+  resolveAttachmentFilenameOnDisk
 } = require("../utils/attachments");
 const sendPush = require("../utils/sendPush");
 const { triggerWhatsAppCampaignForRequirement } = require("../services/whatsAppCampaign");
@@ -789,7 +790,14 @@ router.get("/attachments/:filename", auth, async (req, res) => {
     }
   }
 
-  const filePath = path.join(uploadDir, path.basename(resolvedFilename));
+  const diskFilename =
+    resolveAttachmentFilenameOnDisk(uploadDir, {
+      preferredFilename: resolvedFilename,
+      requestedFilename: safeName,
+      buyerId
+    }) || path.basename(resolvedFilename);
+
+  const filePath = path.join(uploadDir, diskFilename);
   if (!fs.existsSync(filePath)) {
     return res.status(404).json({ message: "File not found" });
   }

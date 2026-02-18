@@ -1,3 +1,4 @@
+const fs = require("fs");
 const path = require("path");
 
 function stripQueryAndHash(value) {
@@ -138,5 +139,60 @@ module.exports = {
   normalizeRequirementAttachmentsForResponse,
   extractStoredRequirementFilename,
   extractAttachmentAliases,
-  displayNameFromStoredFilename
+  displayNameFromStoredFilename,
+  resolveAttachmentFilenameOnDisk
 };
+
+function resolveAttachmentFilenameOnDisk(
+  uploadDir,
+  { preferredFilename = "", requestedFilename = "", buyerId = "" } = {}
+) {
+  const preferred = basenameSafe(preferredFilename);
+  const requested = basenameSafe(requestedFilename).toLowerCase();
+  const buyerPrefix = String(buyerId || "").trim();
+
+  if (!requested && !preferred) return "";
+
+  const directCandidates = Array.from(
+    new Set([preferred, requested].map((v) => basenameSafe(v)).filter(Boolean))
+  );
+
+  for (const candidate of directCandidates) {
+    const fullPath = path.join(uploadDir, candidate);
+    if (fs.existsSync(fullPath)) {
+      return candidate;
+    }
+  }
+
+  let files = [];
+  try {
+    files = fs.readdirSync(uploadDir);
+  } catch {
+    return "";
+  }
+
+  const normalized = files
+    .map((name) => basenameSafe(name))
+    .filter(Boolean);
+  const lowerByName = new Map(normalized.map((name) => [name.toLowerCase(), name]));
+
+  if (requested && lowerByName.has(requested)) {
+    return lowerByName.get(requested);
+  }
+
+  const scoped = buyerPrefix
+    ? normalized.filter((name) => name.startsWith(`${buyerPrefix}_`))
+    : normalized;
+
+  const suffixMatch = scoped.find((name) =>
+    name.toLowerCase().endsWith(`_${requested}`)
+  );
+  if (suffixMatch) return suffixMatch;
+
+  const displayMatch = scoped.find(
+    (name) => displayNameFromStoredFilename(name).toLowerCase() === requested
+  );
+  if (displayMatch) return displayMatch;
+
+  return "";
+}
