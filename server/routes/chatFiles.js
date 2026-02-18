@@ -3,6 +3,11 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 const auth = require("../middleware/auth");
+const ChatMessage = require("../models/ChatMessage");
+const Offer = require("../models/Offer");
+const Requirement = require("../models/Requirement");
+const User = require("../models/User");
+const Notification = require("../models/Notification");
 
 const router = express.Router();
 
@@ -46,12 +51,13 @@ function parseChatFileParticipants(filename) {
   return { safeName, from, to };
 }
 
-router.post("/upload", auth, upload.single("file"), (req, res) => {
+router.post("/upload", auth, upload.single("file"), async (req, res) => {
   const currentUserId = String(req.user?._id || "");
   const from = String(req.body?.from || "");
   const to = String(req.body?.to || "");
+  const requirementId = String(req.body?.requirementId || "");
 
-  if (!req.file || !from || !to) {
+  if (!req.file || !from || !to || !requirementId) {
     if (req.file?.filename) {
       try {
         fs.unlinkSync(path.join(uploadDir, req.file.filename));
@@ -71,10 +77,102 @@ router.post("/upload", auth, upload.single("file"), (req, res) => {
     return res.status(403).json({ error: "Not allowed" });
   }
 
-  res.json({
-    filename: req.file.filename,
-    originalName: req.file.originalname
-  });
+  try {
+    const [fromUser, toUser, requirement] = await Promise.all([
+      User.findById(from),
+      User.findById(to),
+      Requirement.findById(requirementId)
+    ]);
+
+    if (fromUser?.chatDisabled || toUser?.chatDisabled || requirement?.chatDisabled) {
+      throw new Error("Chat not allowed");
+    }
+    if (!requirement) {
+      throw new Error("Requirement not found");
+    }
+
+    const buyerId = String(requirement.buyerId || "");
+    const involvesBuyer = from === buyerId || to === buyerId;
+    if (!involvesBuyer) {
+      throw new Error("Not allowed");
+    }
+
+    const sellerId = from === buyerId ? to : from;
+    const offer = await Offer.findOne({
+      requirementId,
+      sellerId,
+      "moderation.removed": { $ne: true }
+    }).select("contactEnabledByBuyer");
+
+    if (!offer || offer.contactEnabledByBuyer !== true) {
+      throw new Error("Chat not enabled by buyer");
+    }
+
+    const savedMessage = await ChatMessage.create({
+      requirementId,
+      fromUserId: from,
+      toUserId: to,
+      messageType: "file",
+      message: req.file.originalname || "File",
+      attachment: {
+        filename: req.file.filename,
+        originalName: req.file.originalname,
+        mimetype: req.file.mimetype || "",
+        size: Number(req.file.size || 0)
+      }
+    });
+
+    const io = req.app.get("io");
+    const payload = {
+      _id: savedMessage._id,
+      requirementId,
+      fromUserId: from,
+      toUserId: to,
+      messageType: "file",
+      attachment: savedMessage.attachment,
+      message: savedMessage.message,
+      isRead: false,
+      readAt: null,
+      createdAt: savedMessage.createdAt
+    };
+
+    if (io) {
+      io.to(String(to)).emit("receive_message", payload);
+    }
+
+    try {
+      const chatNotificationsEnabled =
+        !toUser?.roles?.buyer ||
+        toUser?.buyerSettings?.notificationToggles?.chat !== false;
+      if (chatNotificationsEnabled) {
+        const notif = await Notification.create({
+          userId: to,
+          fromUserId: from,
+          requirementId: requirementId || null,
+          type: "new_message",
+          message: "New file shared in chat"
+        });
+        if (io) {
+          io.to(String(to)).emit("notification", notif);
+        }
+      }
+    } catch {
+      // Non-blocking notification errors.
+    }
+
+    return res.json({
+      filename: req.file.filename,
+      originalName: req.file.originalname,
+      message: payload
+    });
+  } catch (err) {
+    try {
+      fs.unlinkSync(path.join(uploadDir, req.file.filename));
+    } catch {
+      // ignore cleanup error
+    }
+    return res.status(403).json({ error: err.message || "Unable to upload file" });
+  }
 });
 
 router.get("/list", auth, (req, res) => {

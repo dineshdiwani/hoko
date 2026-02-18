@@ -17,7 +17,18 @@ const ChatMessageSchema = new mongoose.Schema(
       ref: "User",
       required: true
     },
+    messageType: {
+      type: String,
+      enum: ["text", "file"],
+      default: "text"
+    },
     message: { type: String, required: true },
+    attachment: {
+      filename: { type: String, default: "" },
+      originalName: { type: String, default: "" },
+      mimetype: { type: String, default: "" },
+      size: { type: Number, default: 0 }
+    },
     isRead: {
       type: Boolean,
       default: false

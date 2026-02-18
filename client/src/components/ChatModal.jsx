@@ -32,6 +32,7 @@ function formatDate(value) {
 function toMessageShape(msg, currentUserId) {
   const fromSelf = String(msg.fromUserId) === String(currentUserId);
   const isRead = Boolean(msg.isRead);
+  const messageType = msg.messageType === "file" ? "file" : "text";
   return {
     id: msg._id || msg.id || null,
     tempId: msg.tempId || null,
@@ -39,6 +40,8 @@ function toMessageShape(msg, currentUserId) {
     requirementId: msg.requirementId || null,
     fromUserId: msg.fromUserId || msg.from || null,
     toUserId: msg.toUserId || null,
+    messageType,
+    attachment: msg.attachment || null,
     createdAt: msg.createdAt || msg.time || new Date().toISOString(),
     isRead,
     readAt: msg.readAt || null,
@@ -254,9 +257,20 @@ export default function ChatModal({
         formData.append("file", file);
         formData.append("from", currentUserId);
         formData.append("to", peerUserId);
-        await api.post("/chat-files/upload", formData, {
+        formData.append("requirementId", requirementId);
+        const res = await api.post("/chat-files/upload", formData, {
           headers: { "Content-Type": "multipart/form-data" }
         });
+        const message = res?.data?.message;
+        if (message) {
+          setMessages((prev) => {
+            const nextMsg = toMessageShape(message, currentUserId);
+            if (nextMsg.id && prev.some((m) => String(m.id) === String(nextMsg.id))) {
+              return prev;
+            }
+            return [...prev, nextMsg];
+          });
+        }
       }
       alert("Document(s) uploaded");
     } catch {
@@ -325,6 +339,30 @@ export default function ChatModal({
     );
   }
 
+  async function openAttachment(message) {
+    const filename = String(message?.attachment?.filename || "").trim();
+    if (!filename) {
+      alert("Unable to open file.");
+      return;
+    }
+    const newTab = window.open("", "_blank", "noopener,noreferrer");
+    try {
+      const res = await api.get(`/chat-files/file/${encodeURIComponent(filename)}`, {
+        responseType: "blob"
+      });
+      const blobUrl = window.URL.createObjectURL(res.data);
+      if (newTab) {
+        newTab.location.href = blobUrl;
+      } else {
+        window.open(blobUrl, "_blank", "noopener,noreferrer");
+      }
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 10000);
+    } catch {
+      if (newTab) newTab.close();
+      alert("Unable to open file.");
+    }
+  }
+
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
       <div
@@ -374,7 +412,19 @@ export default function ChatModal({
                       m.fromSelf ? "bg-green-600 text-white ml-auto" : "bg-white border"
                     }`}
                   >
-                    <div className="whitespace-pre-wrap break-words">{m.message}</div>
+                    {m.messageType === "file" ? (
+                      <button
+                        type="button"
+                        onClick={() => openAttachment(m)}
+                        className={`text-left underline underline-offset-2 break-all ${
+                          m.fromSelf ? "text-white" : "text-blue-700"
+                        }`}
+                      >
+                        {(m.attachment?.originalName || m.message || "Attachment")}
+                      </button>
+                    ) : (
+                      <div className="whitespace-pre-wrap break-words">{m.message}</div>
+                    )}
                     <div
                       className={`text-[10px] mt-1 flex items-center gap-2 ${
                         m.fromSelf ? "justify-end text-green-100" : "text-gray-500"

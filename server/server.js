@@ -206,6 +206,7 @@ io.on("connection", (socket) => {
           requirementId,
           fromUserId: effectiveFrom,
           toUserId: effectiveTo,
+          messageType: "text",
           message,
           moderation: flaggedReason
             ? {
@@ -231,6 +232,8 @@ io.on("connection", (socket) => {
         requirementId,
         fromUserId: effectiveFrom,
         toUserId: effectiveTo,
+        messageType: savedMessage?.messageType || "text",
+        attachment: savedMessage?.attachment || null,
         message,
         isRead: false,
         readAt: null,
