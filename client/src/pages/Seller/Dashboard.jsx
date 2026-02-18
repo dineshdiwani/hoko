@@ -34,7 +34,7 @@ export default function SellerDashboard() {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [cities, setCities] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [selectedCity, setSelectedCity] = useState(session?.city || "");
+  const [selectedCity, setSelectedCity] = useState("all");
   const [activeSmartTab, setActiveSmartTab] = useState("all");
   const [chatOpen, setChatOpen] = useState(false);
   const [chatPeer, setChatPeer] = useState(null);
@@ -90,9 +90,6 @@ export default function SellerDashboard() {
   useEffect(() => {
     const stored = getSellerDashboardCategories();
     setDashboardCategories(stored);
-    if (stored.length) {
-      setSelectedCategory(stored[0]);
-    }
   }, []);
 
   useEffect(() => {
@@ -100,6 +97,15 @@ export default function SellerDashboard() {
       .then((data) => {
         setCities(Array.isArray(data?.cities) ? data.cities : []);
         setCategories(Array.isArray(data?.categories) ? data.categories : []);
+        const defaults = data?.defaults || {};
+        const defaultCity = String(
+          defaults.sellerDashboardCity || "all"
+        ).trim();
+        const defaultCategory = String(
+          defaults.sellerDashboardCategory || "all"
+        ).trim();
+        setSelectedCity(defaultCity || "all");
+        setSelectedCategory(defaultCategory || "all");
       })
       .catch(() => {});
   }, []);
@@ -415,19 +421,12 @@ export default function SellerDashboard() {
               aria-label="Filter posts by city"
               title="Filter posts by city"
             >
-              {selectedCity &&
-                !cities.some((city) => normalizeCity(city) === normalizeCity(selectedCity)) && (
-                <option value={selectedCity}>{selectedCity}</option>
-                )}
-              <option value={session?.city || ""}>{session?.city || "Select city"}</option>
-              <option value="">All cities</option>
-              {cities
-                .filter((city) => normalizeCity(city) !== normalizeCity(session?.city))
-                .map((city) => (
-                  <option key={city} value={city}>
-                    {city}
-                  </option>
-                ))}
+              <option value="all">All cities</option>
+              {cities.map((city) => (
+                <option key={city} value={city}>
+                  {city}
+                </option>
+              ))}
             </select>
             <select
               value={selectedCategory}

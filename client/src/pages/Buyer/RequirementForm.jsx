@@ -53,14 +53,54 @@ export default function RequirementForm() {
   useEffect(() => {
     fetchOptions()
       .then((data) => {
+        const defaults = data?.defaults || {};
         if (Array.isArray(data.cities) && data.cities.length) {
           setCities(data.cities);
+          const desiredCity = String(defaults.city || "").trim();
+          if (desiredCity) {
+            setForm((prev) => {
+              if (prev.city) return prev;
+              const matchedCity = data.cities.find(
+                (cityName) =>
+                  String(cityName).toLowerCase() ===
+                  desiredCity.toLowerCase()
+              );
+              if (!matchedCity) return prev;
+              return { ...prev, city: matchedCity };
+            });
+          }
         }
         if (Array.isArray(data.categories) && data.categories.length) {
           setCategories(data.categories);
+          const desiredCategory = String(defaults.category || "").trim();
+          if (desiredCategory) {
+            setForm((prev) => {
+              if (prev.category) return prev;
+              const matchedCategory = data.categories.find(
+                (categoryName) =>
+                  String(categoryName).toLowerCase() ===
+                  desiredCategory.toLowerCase()
+              );
+              if (!matchedCategory) return prev;
+              return { ...prev, category: matchedCategory };
+            });
+          }
         }
         if (Array.isArray(data.units) && data.units.length) {
           setUnits(data.units);
+          const desiredUnit = String(defaults.unit || "").trim();
+          if (desiredUnit) {
+            setForm((prev) => {
+              if (prev.unit) return prev;
+              const matchedUnit = data.units.find(
+                (unitName) =>
+                  String(unitName).toLowerCase() ===
+                  desiredUnit.toLowerCase()
+              );
+              if (!matchedUnit) return prev;
+              return { ...prev, unit: matchedUnit };
+            });
+          }
         }
       })
       .catch(() => {});

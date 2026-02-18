@@ -385,15 +385,16 @@ export default function SellerSettings() {
               <button
                 type="button"
                 onClick={() => setCategoriesOpen((prev) => !prev)}
-                className="w-full border rounded-xl px-4 py-3 text-sm text-left bg-white"
+                className="inline-flex w-auto max-w-full items-center gap-2 border rounded-xl px-4 py-2 text-sm text-left bg-white"
               >
                 {profile.categories.length
                   ? `${profile.categories.length} categories selected`
                   : "Select categories"}
+                <span className="text-xs text-gray-500">v</span>
               </button>
 
               {categoriesOpen && (
-                <div className="absolute z-20 mt-2 w-full max-h-60 overflow-auto rounded-xl border bg-white p-2 shadow-lg">
+                <div className="absolute z-20 mt-2 w-max min-w-[220px] max-h-60 overflow-auto rounded-xl border bg-white p-2 shadow-lg">
                   {categoryOptions.map((cat) => {
                     const checked = profile.categories.includes(cat.value);
                     return (

@@ -51,13 +51,53 @@ export default function SellerRegister() {
       .then((data) => {
         if (Array.isArray(data.cities) && data.cities.length) {
           setCities(data.cities);
+          const defaults = data?.defaults || {};
+          const desiredCity = String(
+            defaults.sellerRegisterCity || defaults.city || ""
+          ).trim();
+          if (!hasSessionCity && desiredCity) {
+            setSeller((prev) => {
+              if (prev.city) return prev;
+              const matchedCity = data.cities.find(
+                (cityName) =>
+                  String(cityName).toLowerCase() ===
+                  desiredCity.toLowerCase()
+              );
+              if (!matchedCity) return prev;
+              return {
+                ...prev,
+                city: matchedCity
+              };
+            });
+          }
         }
         if (Array.isArray(data.categories) && data.categories.length) {
           setCategories(data.categories);
+          const defaults = data?.defaults || {};
+          const desiredCategory = String(
+            defaults.sellerRegisterCategory || defaults.category || ""
+          ).trim();
+          if (desiredCategory) {
+            setSeller((prev) => {
+              if (Array.isArray(prev.categories) && prev.categories.length) {
+                return prev;
+              }
+              const matchedCategory = data.categories.find(
+                (categoryName) =>
+                  String(categoryName).toLowerCase() ===
+                  desiredCategory.toLowerCase()
+              );
+              if (!matchedCategory) return prev;
+              return {
+                ...prev,
+                categories: [matchedCategory]
+              };
+            });
+          }
         }
       })
       .catch(() => {});
-  }, []);
+  }, [hasSessionCity]);
 
   useEffect(() => {
     if (!hasSessionCity) return;

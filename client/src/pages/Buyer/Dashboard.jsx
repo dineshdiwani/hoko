@@ -110,10 +110,28 @@ export default function BuyerDashboard() {
   useEffect(() => {
     fetchOptions()
       .then((data) => {
+        const defaults = data?.defaults || {};
         if (Array.isArray(data.cities) && data.cities.length) {
           setCities(data.cities);
           setCity((prevCity) => {
             if (prevCity) return prevCity;
+            const adminDefaultCity = String(
+              defaults.buyerDashboardCity || defaults.city || ""
+            ).trim();
+            if (
+              adminDefaultCity &&
+              data.cities.some(
+                (cityName) =>
+                  String(cityName).toLowerCase() ===
+                  adminDefaultCity.toLowerCase()
+              )
+            ) {
+              return data.cities.find(
+                (cityName) =>
+                  String(cityName).toLowerCase() ===
+                  adminDefaultCity.toLowerCase()
+              );
+            }
             const preferredCity = session?.city || "";
             if (preferredCity && data.cities.includes(preferredCity)) {
               return preferredCity;
@@ -123,6 +141,24 @@ export default function BuyerDashboard() {
         }
         if (Array.isArray(data.categories) && data.categories.length) {
           setCategories(data.categories);
+          const adminDefaultCategory = String(
+            defaults.buyerDashboardCategory || defaults.category || "all"
+          ).trim();
+          setSelectedCategory((prevCategory) => {
+            if (prevCategory && prevCategory !== "all") return prevCategory;
+            if (
+              adminDefaultCategory.toLowerCase() === "all" ||
+              !adminDefaultCategory
+            ) {
+              return "all";
+            }
+            const matchedCategory = data.categories.find(
+              (categoryName) =>
+                String(categoryName).toLowerCase() ===
+                adminDefaultCategory.toLowerCase()
+            );
+            return matchedCategory || prevCategory || "all";
+          });
         }
       })
       .catch(() => {});
