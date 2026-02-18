@@ -13,17 +13,21 @@ export default function CityDashboard({ city }) {
     if (attachment && typeof attachment === "object") {
       return {
         url: String(attachment.url || attachment.path || attachment.filename || "").trim(),
-        originalName: String(attachment.originalName || attachment.name || "").trim()
+        originalName: String(attachment.originalName || attachment.name || "").trim(),
+        filename: String(attachment.filename || "").trim()
       };
     }
     return {
       url: String(attachment || "").trim(),
-      originalName: ""
+      originalName: "",
+      filename: ""
     };
   }
 
   function extractAttachmentFileName(attachment) {
-    const { url } = parseAttachment(attachment);
+    const parsed = parseAttachment(attachment);
+    if (parsed.filename) return decodeURIComponent(parsed.filename.split("/").pop() || "");
+    const { url } = parsed;
     if (!url) return "";
 
     if (url.startsWith("http://") || url.startsWith("https://")) {

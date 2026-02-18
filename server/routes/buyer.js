@@ -74,6 +74,47 @@ function normalizeRequirementAttachmentValues(value) {
 function escapeRegex(value) {
   return String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
+function extractStoredRequirementFilename(attachment) {
+  if (!attachment) return "";
+
+  if (typeof attachment === "string") {
+    return path.basename(String(attachment || "").trim());
+  }
+
+  if (typeof attachment === "object") {
+    const fromUrl = path.basename(String(attachment.url || "").trim());
+    if (fromUrl) return fromUrl;
+    const fromPath = path.basename(String(attachment.path || "").trim());
+    if (fromPath) return fromPath;
+    const fromFilename = path.basename(String(attachment.filename || "").trim());
+    if (fromFilename) return fromFilename;
+  }
+
+  return "";
+}
+function extractAttachmentAliases(attachment) {
+  const aliases = new Set();
+
+  if (typeof attachment === "string") {
+    const base = path.basename(String(attachment || "").trim());
+    if (base) aliases.add(base.toLowerCase());
+  }
+
+  if (attachment && typeof attachment === "object") {
+    [
+      attachment.url,
+      attachment.path,
+      attachment.filename,
+      attachment.originalName,
+      attachment.name
+    ].forEach((value) => {
+      const base = path.basename(String(value || "").trim());
+      if (base) aliases.add(base.toLowerCase());
+    });
+  }
+
+  return aliases;
+}
 function toBoolean(value, fallback = false) {
   if (typeof value === "boolean") return value;
   if (typeof value === "string") {
@@ -758,7 +799,7 @@ router.get("/attachments/:filename", auth, async (req, res) => {
       { "attachments.filename": { $regex: `${escapedName}$`, $options: "i" } }
     ],
     "moderation.removed": { $ne: true }
-  }).select("_id buyerId");
+  }).select("_id buyerId attachments");
 
   if (!requirement) {
     return res.status(404).json({ message: "File not found" });
@@ -770,7 +811,23 @@ router.get("/attachments/:filename", auth, async (req, res) => {
     return res.status(403).json({ message: "Not allowed" });
   }
 
-  const filePath = path.join(uploadDir, safeName);
+  const requested = safeName.toLowerCase();
+  const attachments = Array.isArray(requirement.attachments) ? requirement.attachments : [];
+  let resolvedFilename = safeName;
+
+  const matchedAttachment = attachments.find((attachment) => {
+    const aliases = extractAttachmentAliases(attachment);
+    return aliases.has(requested);
+  });
+
+  if (matchedAttachment) {
+    const storedName = extractStoredRequirementFilename(matchedAttachment);
+    if (storedName) {
+      resolvedFilename = storedName;
+    }
+  }
+
+  const filePath = path.join(uploadDir, path.basename(resolvedFilename));
   if (!fs.existsSync(filePath)) {
     return res.status(404).json({ message: "File not found" });
   }
