@@ -7,7 +7,7 @@ const platformSettingsSchema = new mongoose.Schema(
     units: [{ type: String }],
     currencies: [{ type: String }],
     defaults: {
-      city: { type: String, default: "" },
+      city: { type: String, default: "user_default" },
       category: { type: String, default: "" },
       unit: { type: String, default: "" },
       currency: { type: String, default: "" },

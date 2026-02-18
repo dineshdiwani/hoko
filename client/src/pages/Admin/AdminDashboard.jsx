@@ -24,7 +24,7 @@ export default function AdminDashboard() {
     units: [],
     currencies: [],
     defaults: {
-      city: "",
+      city: "user_default",
       category: "",
       unit: "",
       currency: "",
@@ -1785,18 +1785,28 @@ export default function AdminDashboard() {
               <div className="grid gap-3 md:grid-cols-2 mt-2">
                 <label className="text-xs text-gray-600">
                   Default City
-                  <select
-                    className="w-full border rounded-lg p-2 mt-1 text-sm"
-                    value={options.defaults?.city || ""}
-                    onChange={(e) => updateDefaultSelection("city", e.target.value)}
-                  >
-                    <option value="">None</option>
-                    {(options.cities || []).map((city) => (
-                      <option key={`default-city-${city}`} value={city}>
-                        {city}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="mt-1 space-y-2 rounded-lg border p-2">
+                    <label className="flex items-center gap-2 text-sm text-gray-700">
+                      <input
+                        type="radio"
+                        name="default-city-mode"
+                        checked={(options.defaults?.city || "user_default") === "all"}
+                        onChange={() => updateDefaultSelection("city", "all")}
+                      />
+                      <span>All cities</span>
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-gray-700">
+                      <input
+                        type="radio"
+                        name="default-city-mode"
+                        checked={(options.defaults?.city || "user_default") === "user_default"}
+                        onChange={() =>
+                          updateDefaultSelection("city", "user_default")
+                        }
+                      />
+                      <span>User default city</span>
+                    </label>
+                  </div>
                 </label>
 
                 <label className="text-xs text-gray-600">

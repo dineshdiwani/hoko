@@ -176,7 +176,7 @@ const DEFAULT_MODERATION_RULES = {
 };
 
 const DEFAULT_SELECTIONS = {
-  city: "",
+  city: "user_default",
   category: "",
   unit: "",
   currency: "",
@@ -205,8 +205,12 @@ function pickValid(options, value, fallback = "") {
 
 function sanitizeSelections(rawSelections, merged) {
   const source = rawSelections || {};
+  const cityMode = String(source.city || "").trim().toLowerCase();
   return {
-    city: pickValid(merged.cities, source.city, ""),
+    city:
+      cityMode === "all" || cityMode === "user_default"
+        ? cityMode
+        : "user_default",
     category: pickValid(merged.categories, source.category, ""),
     unit: pickValid(merged.units, source.unit, ""),
     currency: pickValid(merged.currencies, source.currency, ""),
