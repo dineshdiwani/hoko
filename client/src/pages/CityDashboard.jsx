@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import api, { getAssetBaseUrl } from "../services/api";
+import api from "../services/api";
 import { getSession } from "../services/storage";
 
 export default function CityDashboard({ city }) {
@@ -9,26 +9,44 @@ export default function CityDashboard({ city }) {
   const [auctionLoadingById, setAuctionLoadingById] = useState({});
   const session = getSession();
   const currentBuyerId = String(session?._id || session?.id || "");
-  const baseUrl = getAssetBaseUrl();
-
-  function toAbsoluteUrl(url) {
-    if (!url) return "";
-    if (url.startsWith("http://") || url.startsWith("https://")) {
-      return url;
+  function parseAttachment(attachment) {
+    if (attachment && typeof attachment === "object") {
+      return {
+        url: String(attachment.url || attachment.path || attachment.filename || "").trim(),
+        originalName: String(attachment.originalName || attachment.name || "").trim()
+      };
     }
-    if (!url.startsWith("/uploads/")) {
-      const clean = String(url).split("/").pop();
-      return `${baseUrl}/uploads/requirements/${clean}`;
-    }
-    const prefix = url.startsWith("/") ? "" : "/";
-    return `${baseUrl}${prefix}${url}`;
+    return {
+      url: String(attachment || "").trim(),
+      originalName: ""
+    };
   }
 
-  async function openAttachment(fileUrl) {
+  function normalizeAttachmentPath(attachment) {
+    const { url } = parseAttachment(attachment);
+    if (!url) return "";
+
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+      try {
+        const parsed = new URL(url);
+        return parsed.pathname || "";
+      } catch {
+        return "";
+      }
+    }
+
+    if (url.startsWith("/uploads/")) return url;
+
+    const clean = decodeURIComponent(url.split("/").pop() || "");
+    return `/uploads/requirements/${encodeURIComponent(clean)}`;
+  }
+
+  async function openAttachment(attachment) {
     const newTab = window.open("", "_blank", "noopener,noreferrer");
     try {
-      const absolute = toAbsoluteUrl(fileUrl);
-      const res = await api.get(absolute, { responseType: "blob" });
+      const path = normalizeAttachmentPath(attachment);
+      if (!path) throw new Error("Invalid attachment path");
+      const res = await api.get(path, { responseType: "blob" });
       const blobUrl = window.URL.createObjectURL(res.data);
       if (newTab) {
         newTab.location.href = blobUrl;
@@ -42,15 +60,17 @@ export default function CityDashboard({ city }) {
     }
   }
 
-  function getDisplayName(fileUrl, index) {
-    const raw = String(fileUrl || "").split("?")[0].split("#")[0];
+  function getDisplayName(attachment, index) {
+    const parsed = parseAttachment(attachment);
+    if (parsed.originalName) return parsed.originalName;
+    const raw = parsed.url.split("?")[0].split("#")[0];
     const tail = decodeURIComponent(raw.split("/").pop() || "").trim();
     if (!tail) return `Attachment ${index + 1}`;
     return tail.replace(/^[^_]+_\d+_/, "");
   }
 
-  function isImage(url) {
-    const lower = String(url || "").toLowerCase();
+  function isImage(attachment) {
+    const lower = String(parseAttachment(attachment).url || "").toLowerCase();
     return (
       lower.endsWith(".jpg") ||
       lower.endsWith(".jpeg") ||
@@ -345,22 +365,24 @@ export default function CityDashboard({ city }) {
                       Attachments
                     </p>
                     <div className="space-y-2">
-                      {attachments.map((fileUrl, index) => {
-                        const name = getDisplayName(fileUrl, index);
+                      {attachments.map((attachment, index) => {
+                        const path = normalizeAttachmentPath(attachment);
+                        const name = getDisplayName(attachment, index);
                         return (
                           <div
-                            key={`${fileUrl}-${index}`}
+                            key={`${name}-${index}`}
                             className="flex items-center gap-3"
                           >
-                            {isImage(fileUrl) && (
+                            {isImage(attachment) && (
                               <span className="w-10 h-10 rounded-lg border bg-gray-50 inline-flex items-center justify-center text-gray-500 text-[10px]">
                                 IMG
                               </span>
                             )}
                             <button
                               type="button"
-                              onClick={() => openAttachment(fileUrl)}
+                              onClick={() => openAttachment(attachment)}
                               className="text-xs text-amber-700 hover:underline break-all"
+                              title={path || "Attachment path missing"}
                             >
                               {name}
                             </button>
