@@ -27,6 +27,8 @@ const whatsAppContactSchema = new mongoose.Schema(
       type: String,
       required: true
     },
+    categories: [{ type: String }],
+    categoriesNormalized: [{ type: String, index: true }],
     active: {
       type: Boolean,
       default: true

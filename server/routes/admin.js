@@ -99,12 +99,23 @@ function parseWhatsAppContactsFromWorkbook(buffer) {
   });
 
   const contacts = [];
+  const parseCategoryList = (value) =>
+    Array.from(
+      new Set(
+        String(value || "")
+          .split(/[;|/]+/)
+          .map((item) => item.trim())
+          .filter(Boolean)
+      )
+    );
+
   for (let index = 0; index < rows.length; index += 1) {
     const row = rows[index] || [];
     const firmName = String(row[0] || "").trim();
     const city = String(row[1] || "").trim();
     const countryCodeRaw = toDigits(row[2]);
     const mobileRaw = toDigits(row[3]);
+    const categories = parseCategoryList(row[4]);
     if (!city || !countryCodeRaw || !mobileRaw) {
       continue;
     }
@@ -117,6 +128,8 @@ function parseWhatsAppContactsFromWorkbook(buffer) {
       countryCode: `+${countryCodeRaw}`,
       mobileNumber: mobileRaw,
       mobileE164,
+      categories,
+      categoriesNormalized: categories.map((item) => normalizeText(item)),
       active: true,
       optInStatus: "opted_in",
       optInSource: "admin_excel_upload",
@@ -1258,7 +1271,7 @@ router.post(
     if (!parsedContacts.length) {
       return res.status(400).json({
         message:
-          "No valid rows found. Expected columns in order: A Firm Name, B City, C Country Code, D Mobile Number."
+          "No valid rows found. Expected columns in order: A Firm Name, B City, C Country Code, D Mobile Number, E Categories."
       });
     }
 
