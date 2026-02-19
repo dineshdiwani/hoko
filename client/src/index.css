@@ -37,6 +37,7 @@
     --ui-radius-lg: 18px;
     --ui-radius-xl: 22px;
     --ui-shadow: 0 18px 40px rgba(31, 26, 23, 0.08);
+    --ui-button-shadow-soft: 0 12px 30px rgba(107, 114, 128, 0.16);
     --hoko-flag-gradient: linear-gradient(
       135deg,
       #ffd9b0 0%,
@@ -90,7 +91,7 @@
     justify-content: center;
     width: fit-content;
     max-width: 100%;
-    box-shadow: 0 12px 30px rgba(204, 47, 47, 0.28);
+    box-shadow: var(--ui-button-shadow-soft);
   }
 
   button.tab-stretch {
@@ -302,7 +303,7 @@
   .btn-brand {
     @apply inline-flex items-center justify-center rounded-xl px-3.5 py-2 text-sm font-semibold text-white transition;
     background: var(--hoko-button);
-    box-shadow: 0 12px 30px rgba(204, 47, 47, 0.28);
+    box-shadow: var(--ui-button-shadow-soft);
     width: fit-content !important;
   }
 
@@ -437,7 +438,7 @@
     font-size: 0.85rem;
     font-weight: 600;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
-    box-shadow: 0 12px 30px rgba(204, 47, 47, 0.28);
+    box-shadow: var(--ui-button-shadow-soft);
     width: fit-content !important;
   }
 
