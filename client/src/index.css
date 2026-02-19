@@ -37,7 +37,7 @@
     --ui-radius-lg: 18px;
     --ui-radius-xl: 22px;
     --ui-shadow: 0 18px 40px rgba(31, 26, 23, 0.08);
-    --ui-button-shadow-soft: 0 12px 30px rgba(107, 114, 128, 0.16);
+    --ui-button-shadow-soft: 0 8px 18px rgba(15, 23, 42, 0.1);
     --hoko-flag-gradient: linear-gradient(
       135deg,
       #ffd9b0 0%,
