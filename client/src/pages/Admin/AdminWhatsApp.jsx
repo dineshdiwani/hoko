@@ -142,6 +142,17 @@ export default function AdminWhatsApp() {
     return `${manualSelectedCities.length} cities selected`;
   }, [manualUseAllCities, manualSelectedCities]);
 
+  const manualCategoryOptions = useMemo(() => {
+    const selected = String(manualCategory || "").trim();
+    const selectedExists = availableManualCategories.some(
+      (item) => normalizeText(item) === normalizeText(selected)
+    );
+    if (!selected || selectedExists) {
+      return availableManualCategories;
+    }
+    return [selected, ...availableManualCategories];
+  }, [availableManualCategories, manualCategory]);
+
   const loadData = useCallback(async () => {
     const settled = await Promise.allSettled([
       api.get("/admin/options"),
@@ -539,15 +550,20 @@ export default function AdminWhatsApp() {
                     setManualRequirementId(nextRequirementId);
                     const req = requirements.find((item) => String(item._id) === String(nextRequirementId));
                     if (req) {
-                      const matchingCategory = availableManualCategories.find(
-                        (item) => normalizeText(item) === normalizeText(req.category)
-                      );
-                      setManualCategory(matchingCategory || req.category || "");
+                      const reqCategory = String(req.category || "").trim();
                       const reqCity = String(req.city || "").trim();
+                      const matchingCategory = availableManualCategories.find(
+                        (item) => normalizeText(item) === normalizeText(reqCategory)
+                      );
+                      const matchingCity = availableManualCities.find(
+                        (city) => normalizeText(city) === normalizeText(reqCity)
+                      );
+                      setManualCategory(matchingCategory || reqCategory);
                       if (reqCity) {
                         setManualUseAllCities(false);
-                        setManualSelectedCities([reqCity]);
+                        setManualSelectedCities([matchingCity || reqCity]);
                       }
+                      setManualCityMenuOpen(false);
                       setManualMessagePreview(buildManualMessage(req));
                     }
                   }}>
@@ -562,7 +578,7 @@ export default function AdminWhatsApp() {
                     onChange={(e) => setManualCategory(e.target.value)}
                   >
                     <option value="">Select Category</option>
-                    {availableManualCategories.map((category) => (
+                    {manualCategoryOptions.map((category) => (
                       <option key={`manual-category-${category}`} value={category}>
                         {category}
                       </option>
