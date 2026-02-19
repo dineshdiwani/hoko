@@ -30,9 +30,10 @@ export default function AdminWhatsApp() {
   const [testRequirementId, setTestRequirementId] = useState("");
   const [testMobile, setTestMobile] = useState("");
   const [manualRequirementId, setManualRequirementId] = useState("");
+  const [manualCategory, setManualCategory] = useState("");
   const [manualSelectedCities, setManualSelectedCities] = useState([]);
   const [manualUseAllCities, setManualUseAllCities] = useState(true);
-  const [manualSelectedCategories, setManualSelectedCategories] = useState([]);
+  const [manualCityMenuOpen, setManualCityMenuOpen] = useState(false);
   const [manualTemplateFields, setManualTemplateFields] = useState({
     product: true,
     makeBrand: true,
@@ -124,6 +125,13 @@ export default function AdminWhatsApp() {
     setManualSelectedCities(availableManualCities);
   }, [availableManualCities, manualUseAllCities]);
 
+  const manualCitySelectionLabel = useMemo(() => {
+    if (manualUseAllCities) return "All cities";
+    if (!manualSelectedCities.length) return "Select cities";
+    if (manualSelectedCities.length === 1) return manualSelectedCities[0];
+    return `${manualSelectedCities.length} cities selected`;
+  }, [manualUseAllCities, manualSelectedCities]);
+
   const loadData = useCallback(async () => {
     const [optionsRes, summaryRes, runsRes, contactsRes, requirementsRes] =
       await Promise.all([
@@ -151,44 +159,6 @@ export default function AdminWhatsApp() {
   useEffect(() => {
     loadData().catch(() => {});
   }, [loadData]);
-
-  const toggleWhatsAppCity = (city) => {
-    setOptions((prev) => {
-      const current = prev.whatsAppCampaign?.cities || [];
-      const next = current.includes(city)
-        ? current.filter((c) => c !== city)
-        : [...current, city];
-      return {
-        ...prev,
-        whatsAppCampaign: {
-          ...prev.whatsAppCampaign,
-          cities: next
-        }
-      };
-    });
-  };
-
-  const toggleWhatsAppCategory = (cat) => {
-    setOptions((prev) => {
-      const current = prev.whatsAppCampaign?.categories || [];
-      const next = current.includes(cat)
-        ? current.filter((c) => c !== cat)
-        : [...current, cat];
-      return {
-        ...prev,
-        whatsAppCampaign: {
-          ...prev.whatsAppCampaign,
-          categories: next
-        }
-      };
-    });
-  };
-
-  const saveWhatsAppSettings = async () => {
-    await api.put("/admin/options", options);
-    alert("WhatsApp settings saved");
-    await loadData();
-  };
 
   const handleNotificationFile = (event) => {
     const file = event.target.files?.[0] || null;
@@ -349,21 +319,15 @@ export default function AdminWhatsApp() {
     }));
   };
 
-  const toggleManualCategory = (category) => {
-    setManualSelectedCategories((prev) =>
-      prev.includes(category)
-        ? prev.filter((item) => item !== category)
-        : [...prev, category]
-    );
-  };
-
   const toggleManualCity = (city) => {
+    setManualSelectedCities((prev) => {
+      const source = manualUseAllCities ? availableManualCities : prev;
+      const next = source.includes(city)
+        ? source.filter((item) => item !== city)
+        : [...source, city];
+      return Array.from(new Set(next));
+    });
     setManualUseAllCities(false);
-    setManualSelectedCities((prev) =>
-      prev.includes(city)
-        ? prev.filter((item) => item !== city)
-        : [...prev, city]
-    );
   };
 
   const createManualQueue = () => {
@@ -371,8 +335,8 @@ export default function AdminWhatsApp() {
       alert("Select a requirement");
       return;
     }
-    if (!manualSelectedCategories.length) {
-      alert("Please select at least one category");
+    if (!manualCategory) {
+      alert("Please select category");
       return;
     }
     if (!manualUseAllCities && !manualSelectedCities.length) {
@@ -389,9 +353,7 @@ export default function AdminWhatsApp() {
     const selectedCityKeys = manualUseAllCities
       ? []
       : manualSelectedCities.map((city) => normalizeText(city)).filter(Boolean);
-    const selectedCategoryKeys = manualSelectedCategories
-      .map((category) => normalizeText(category))
-      .filter(Boolean);
+    const selectedCategoryKey = normalizeText(manualCategory);
 
     const queue = contacts
       .filter((contact) =>
@@ -401,7 +363,7 @@ export default function AdminWhatsApp() {
         const contactCategories = Array.isArray(contact?.categoriesNormalized) && contact.categoriesNormalized.length
           ? contact.categoriesNormalized.map((item) => normalizeText(item))
           : (Array.isArray(contact?.categories) ? contact.categories.map((item) => normalizeText(item)) : []);
-        return contactCategories.some((item) => selectedCategoryKeys.includes(item));
+        return contactCategories.includes(selectedCategoryKey);
       })
       .filter((contact) => contact.active !== false)
       .filter((contact) => contact.optInStatus === "opted_in")
@@ -419,7 +381,7 @@ export default function AdminWhatsApp() {
     setManualMessagePreview(message);
     setManualQueue(queue);
     if (!queue.length) {
-      alert("No eligible contacts found for selected categories/cities");
+      alert("No eligible contacts found for selected category/cities");
       return;
     }
     alert(`Manual queue created with ${queue.length} pending contacts`);
@@ -489,64 +451,6 @@ export default function AdminWhatsApp() {
           </div>
 
           <div>
-            <h2 className="text-lg font-bold mb-3">WhatsApp Auto Campaign</h2>
-            <div className="bg-white border rounded-2xl p-3 space-y-3">
-              <label className="flex items-center gap-2 text-xs text-gray-700">
-                <input
-                  type="checkbox"
-                  checked={options.whatsAppCampaign?.enabled ?? false}
-                  onChange={(e) =>
-                    setOptions((prev) => ({
-                      ...prev,
-                      whatsAppCampaign: {
-                        ...prev.whatsAppCampaign,
-                        enabled: e.target.checked
-                      }
-                    }))
-                  }
-                />
-                Enabled
-              </label>
-
-              <div>
-                <p className="text-xs font-semibold text-gray-600 mb-2">Cities</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-48 overflow-auto pr-1">
-                  {(options.cities || []).map((city) => (
-                    <label key={`wa-${city}`} className="flex items-center gap-2 text-xs text-gray-700 border rounded-lg px-3 py-2">
-                      <input
-                        type="checkbox"
-                        checked={(options.whatsAppCampaign?.cities || []).includes(city)}
-                        onChange={() => toggleWhatsAppCity(city)}
-                      />
-                      {city}
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <p className="text-xs font-semibold text-gray-600 mb-2">Categories</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-48 overflow-auto pr-1">
-                  {(options.categories || []).map((cat) => (
-                    <label key={`wa-cat-${cat}`} className="flex items-center gap-2 text-xs text-gray-700 border rounded-lg px-3 py-2">
-                      <input
-                        type="checkbox"
-                        checked={(options.whatsAppCampaign?.categories || []).includes(cat)}
-                        onChange={() => toggleWhatsAppCategory(cat)}
-                      />
-                      {cat}
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <button onClick={saveWhatsAppSettings} className="btn-primary w-auto px-3 py-2 text-sm rounded-lg">
-                Save WhatsApp Settings
-              </button>
-            </div>
-          </div>
-
-          <div>
             <h2 className="text-lg font-bold mb-3">WhatsApp Compliance Controls</h2>
             <div className="bg-white border rounded-2xl p-3 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -590,7 +494,7 @@ export default function AdminWhatsApp() {
             <div className="bg-white border rounded-2xl p-3 space-y-4">
               <div className="border rounded-xl p-3 space-y-3">
                 <p className="text-sm font-semibold">Manual WhatsApp Queue (Device App Send)</p>
-                <div className="grid grid-cols-1 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <select className="w-full border rounded-lg px-3 py-2 text-sm" value={manualRequirementId} onChange={(e) => {
                     const nextRequirementId = e.target.value;
                     setManualRequirementId(nextRequirementId);
@@ -599,9 +503,7 @@ export default function AdminWhatsApp() {
                       const matchingCategory = availableManualCategories.find(
                         (item) => normalizeText(item) === normalizeText(req.category)
                       );
-                      if (matchingCategory) {
-                        setManualSelectedCategories([matchingCategory]);
-                      }
+                      setManualCategory(matchingCategory || req.category || "");
                       setManualMessagePreview(buildManualMessage(req));
                     }
                   }}>
@@ -610,51 +512,52 @@ export default function AdminWhatsApp() {
                       <option key={req._id} value={req._id}>{getRequirementDisplay(req)}</option>
                     ))}
                   </select>
-                  <div className="border rounded-lg p-3 space-y-2">
-                    <p className="text-xs font-semibold text-gray-700">Categories (required)</p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-40 overflow-auto pr-1">
-                      {availableManualCategories.map((category) => (
-                        <label key={`manual-category-${category}`} className="flex items-center gap-2 text-xs text-gray-700 border rounded-lg px-3 py-2">
+                  <select
+                    className="w-full border rounded-lg px-3 py-2 text-sm"
+                    value={manualCategory}
+                    onChange={(e) => setManualCategory(e.target.value)}
+                  >
+                    <option value="">Select Category</option>
+                    {availableManualCategories.map((category) => (
+                      <option key={`manual-category-${category}`} value={category}>
+                        {category}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      className="w-full border rounded-lg px-3 py-2 text-sm text-left bg-white"
+                      onClick={() => setManualCityMenuOpen((prev) => !prev)}
+                    >
+                      {manualCitySelectionLabel}
+                    </button>
+                    {manualCityMenuOpen && (
+                      <div className="absolute z-20 mt-2 w-full max-h-60 overflow-auto rounded-xl border bg-white p-2 shadow-lg">
+                        <label className="flex items-center gap-2 text-xs text-gray-700 border rounded-lg px-3 py-2 mb-2">
                           <input
                             type="checkbox"
-                            checked={manualSelectedCategories.includes(category)}
-                            onChange={() => toggleManualCategory(category)}
+                            checked={manualUseAllCities}
+                            onChange={(e) => {
+                              const checked = e.target.checked;
+                              setManualUseAllCities(checked);
+                              setManualSelectedCities(checked ? availableManualCities : []);
+                            }}
                           />
-                          {category}
+                          All cities (default)
                         </label>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="border rounded-lg p-3 space-y-2">
-                    <label className="flex items-center gap-2 text-xs text-gray-700">
-                      <input
-                        type="checkbox"
-                        checked={manualUseAllCities}
-                        onChange={(e) => {
-                          const checked = e.target.checked;
-                          setManualUseAllCities(checked);
-                          if (checked) {
-                            setManualSelectedCities(availableManualCities);
-                          } else {
-                            setManualSelectedCities([]);
-                          }
-                        }}
-                      />
-                      All cities (default)
-                    </label>
-                    <p className="text-xs font-semibold text-gray-700">Cities (optional if all cities selected)</p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-40 overflow-auto pr-1">
-                      {availableManualCities.map((city) => (
-                        <label key={`manual-city-${city}`} className="flex items-center gap-2 text-xs text-gray-700 border rounded-lg px-3 py-2">
-                          <input
-                            type="checkbox"
-                            checked={manualUseAllCities ? true : manualSelectedCities.includes(city)}
-                            onChange={() => toggleManualCity(city)}
-                          />
-                          {city}
-                        </label>
-                      ))}
-                    </div>
+                        {availableManualCities.map((city) => (
+                          <label key={`manual-city-${city}`} className="flex items-center gap-2 text-xs text-gray-700 border rounded-lg px-3 py-2 mb-1">
+                            <input
+                              type="checkbox"
+                              checked={manualUseAllCities ? true : manualSelectedCities.includes(city)}
+                              onChange={() => toggleManualCity(city)}
+                            />
+                            {city}
+                          </label>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
@@ -677,7 +580,7 @@ export default function AdminWhatsApp() {
                   Create Pending Queue
                 </button>
                 <pre className="text-xs whitespace-pre-wrap bg-gray-50 border rounded-lg p-3 text-gray-700">
-                  {manualMessagePreview || "Select post and categories to preview message"}
+                  {manualMessagePreview || "Select post to preview message"}
                 </pre>
                 <div className="space-y-2 max-h-72 overflow-auto">
                   {manualQueue.map((entry) => (
