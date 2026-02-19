@@ -24,14 +24,13 @@ function formatMessage({ requirement, deepLink }) {
   const details = firstNonEmpty([requirement.details]) || "-";
 
   return [
-    "New buyer requirement posted on Hoko.",
-    `Post: ${product}`,
+    `Post: *${product}*`,
     `Make/Brand: ${makeBrand}`,
     `Type Model: ${typeModel}`,
     `Quantity: ${quantity} ${unit}`.trim(),
     `City: ${city}`,
     `Details: ${details}`,
-    `Open: ${deepLink}`
+    `Go to link to submit your offer: ${deepLink}`
   ].join("\n");
 }
 

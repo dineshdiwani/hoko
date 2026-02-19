@@ -66,9 +66,9 @@ export default function AdminWhatsApp() {
   const buildManualMessage = useCallback(
     (requirement) => {
       if (!requirement?._id) return "";
-      const lines = ["New buyer requirement posted on Hoko."];
+      const lines = [];
       if (manualTemplateFields.product) {
-        lines.push(`Post: ${requirement.product || requirement.productName || "-"}`);
+        lines.push(`Post: *${requirement.product || requirement.productName || "-"}*`);
       }
       if (manualTemplateFields.makeBrand) {
         lines.push(`Make/Brand: ${requirement.makeBrand || requirement.brand || "-"}`);
@@ -91,7 +91,7 @@ export default function AdminWhatsApp() {
         const baseUrl = window.location.origin.replace(/\/+$/, "");
         const cityParam = encodeURIComponent(requirement.city || "");
         const reqIdParam = encodeURIComponent(requirement._id || "");
-        lines.push(`Open: ${baseUrl}/seller/deeplink/${reqIdParam}?city=${cityParam}&postId=${reqIdParam}`);
+        lines.push(`Go to link to submit your offer: ${baseUrl}/seller/deeplink/${reqIdParam}?city=${cityParam}&postId=${reqIdParam}`);
       }
       return lines.join("\n");
     },
