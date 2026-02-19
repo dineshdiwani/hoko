@@ -7,6 +7,7 @@ export default function AdminNav() {
   const isDashboard = location.pathname === "/admin/dashboard";
   const isAnalytics = location.pathname === "/admin/analytics";
   const isWhatsApp = location.pathname === "/admin/whatsapp";
+  const isOperations = location.pathname === "/admin/operations";
 
   function handleAdminLogout() {
     localStorage.removeItem("admin_token");
@@ -38,6 +39,14 @@ export default function AdminNav() {
         }`}
       >
         WhatsApp
+      </button>
+      <button
+        onClick={() => navigate("/admin/operations")}
+        className={`px-3 py-2 text-sm rounded-lg ${
+          isOperations ? "btn-primary" : "border border-gray-300 bg-white"
+        }`}
+      >
+        Operations
       </button>
       <button
         onClick={handleAdminLogout}

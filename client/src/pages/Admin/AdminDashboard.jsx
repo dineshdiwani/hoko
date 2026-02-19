@@ -824,101 +824,21 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="space-y-4">
-          {users.map(user => (
-            <div
-              key={user._id}
-              className="bg-white border rounded-2xl p-3 flex flex-col md:flex-row md:justify-between md:items-center gap-3"
-            >
-              <div>
-                <p className="font-semibold text-sm">{user.email || "No email"}</p>
-                <p className="text-xs text-gray-500">
-                  {user.roles?.admin
-                    ? "Admin"
-                    : user.roles?.seller
-                    ? "Seller"
-                    : "Buyer"}{" "}
-                  | {user.city || "N/A"}
-                </p>
-
-                {user.roles?.seller && (
-                  <p className="text-xs text-gray-600 mt-1">
-                    Firm: {user.sellerProfile?.firmName || "-"}
-                  </p>
-                )}
-
-                {expandedUsers.has(user._id) && (
-                  <div className="mt-2 text-xs text-gray-600 space-y-1">
-                    <div>User ID: {user._id}</div>
-                    <div>Blocked: {user.blocked ? "Yes" : "No"}</div>
-                    {user.createdAt && (
-                      <div>Joined: {new Date(user.createdAt).toLocaleString()}</div>
-                    )}
-                    {user.roles?.seller && (
-                      <div>
-                        Approved: {user.sellerProfile?.approved ? "Yes" : "No"}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => toggleUserDetails(user._id)}
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-300 text-gray-700 hover:bg-gray-50"
-                >
-                  {expandedUsers.has(user._id) ? "Hide Details" : "User Details"}
-                </button>
-                <button
-                  onClick={() => forceLogoutUser(user._id)}
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-300 text-gray-700 hover:bg-gray-50"
-                >
-                  Force Logout
-                </button>
-                <button
-                  onClick={() => toggleUserChat(user._id, !user.chatDisabled)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
-                    user.chatDisabled
-                      ? "bg-amber-600 text-white"
-                      : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
-                  }`}
-                >
-                  {user.chatDisabled ? "Enable Chat" : "Disable Chat"}
-                </button>
-                {!user.roles?.admin && (
-                  <button
-                    onClick={() =>
-                      toggleUserBlock(user._id, !user.blocked)
-                    }
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold text-white ${
-                      user.blocked ? "bg-gray-600" : "bg-red-600"
-                    }`}
-                  >
-                    {user.blocked ? "Unblock" : "Block"}
-                  </button>
-                )}
-
-                {user.roles?.seller && !user.roles?.admin && (
-                  <button
-                    onClick={() =>
-                      toggleSellerApproval(
-                        user._id,
-                        !user.sellerProfile?.approved
-                      )
-                    }
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold text-white ${
-                      user.sellerProfile?.approved
-                        ? "bg-red-600"
-                        : "bg-green-600"
-                    }`}
-                  >
-                    {user.sellerProfile?.approved ? "Revoke" : "Approve"}
-                  </button>
-                )}
-              </div>
+        <div className="mt-2">
+          <div className="bg-white border rounded-2xl p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-bold">Operations & Reports</h2>
+              <p className="text-sm text-gray-600">
+                Users, requirements, offers, chats, and reports are now in a dedicated page for easier control.
+              </p>
             </div>
-          ))}
+            <button
+              onClick={() => navigate("/admin/operations")}
+              className="btn-primary w-auto px-3 py-2 text-sm rounded-lg"
+            >
+              Open Operations Page
+            </button>
+          </div>
         </div>
 
         <div className="mt-8">
@@ -1322,196 +1242,10 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="mt-10">
-          <h2 className="text-lg font-bold mb-3">Recent Requirements</h2>
-          <div className="space-y-3">
-            {requirements.slice(0, 10).map((req) => (
-              <div
-                key={req._id}
-                className="bg-white border rounded-2xl p-3 flex flex-col md:flex-row md:justify-between md:items-center gap-3"
-              >
-                <div>
-                  <p className="font-semibold text-sm">
-                    {req.product || req.productName} * {req.city}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {req.category || "Category"} *{" "}
-                    {req.buyerId?.email || "Buyer"}
-                  </p>
-                  {req.moderation?.removed && (
-                    <p className="text-xs text-red-600 mt-1">
-                      Removed by admin
-                    </p>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  {req.moderation?.removed ? (
-                    <button
-                      onClick={() => restoreRequirement(req._id)}
-                      className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-gray-700"
-                    >
-                      Restore
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => deleteRequirement(req._id)}
-                      className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-red-600"
-                    >
-                      Remove
-                    </button>
-                  )}
-                  <button
-                    onClick={() =>
-                      toggleRequirementChat(
-                        req._id,
-                        !req.chatDisabled
-                      )
-                    }
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
-                      req.chatDisabled
-                        ? "bg-amber-600 text-white"
-                        : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
-                    }`}
-                  >
-                    {req.chatDisabled ? "Enable Chat" : "Disable Chat"}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-10">
-          <h2 className="text-lg font-bold mb-3">Recent Offers</h2>
-          <div className="space-y-3">
-            {offers.slice(0, 10).map((offer) => (
-              <div
-                key={offer._id}
-                className="bg-white border rounded-2xl p-3 flex flex-col md:flex-row md:justify-between md:items-center gap-3"
-              >
-                <div>
-                  <p className="font-semibold text-sm">
-                    Rs {offer.price} *{" "}
-                    {offer.requirementId?.product ||
-                      offer.requirementId?.productName}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {offer.sellerId?.sellerProfile?.firmName || "Seller"} *
-                    {offer.sellerId?.email || "-"}
-                  </p>
-                  {offer.moderation?.removed && (
-                    <p className="text-xs text-red-600 mt-1">
-                      Removed by admin
-                    </p>
-                  )}
-                </div>
-                {offer.moderation?.removed ? (
-                  <button
-                    onClick={() => moderateOffer(offer, false)}
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-gray-700"
-                  >
-                    Restore
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => moderateOffer(offer, true)}
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-red-600"
-                  >
-                    Remove
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-10">
-          <h2 className="text-lg font-bold mb-3">Reports</h2>
-          <div className="space-y-3">
-            {reports.slice(0, 20).map((report) => (
-              <div
-                key={report._id}
-                className="bg-white border rounded-2xl p-3 flex flex-col md:flex-row md:justify-between md:items-center gap-3"
-              >
-                <div>
-                  <p className="font-semibold text-sm">{report.category}</p>
-                  <p className="text-xs text-gray-600">
-                    Reporter: {report.reporterId?.email || "-"} | Reported:{" "}
-                    {report.reportedUserId?.email || "-"}
-                  </p>
-                  {report.details && (
-                    <p className="text-xs text-gray-700 mt-2">
-                      {report.details}
-                    </p>
-                  )}
-                  <p className="text-xs text-gray-500 mt-1">
-                    Status: {report.status}
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => updateReportStatus(report, "reviewing")}
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-amber-600"
-                  >
-                    Mark Reviewing
-                  </button>
-                  <button
-                    onClick={() => updateReportStatus(report, "resolved")}
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-green-700"
-                  >
-                    Resolve
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-10">
-          <h2 className="text-lg font-bold mb-3">Recent Chats</h2>
-          <div className="space-y-3">
-            {chats.slice(0, 10).map((chat) => (
-              <div
-                key={chat._id}
-                className="bg-white border rounded-2xl p-3 flex flex-col md:flex-row md:justify-between md:items-center gap-3"
-              >
-                <div>
-                  <p className="font-semibold text-sm">
-                    {chat.requirementId?.product ||
-                      chat.requirementId?.productName ||
-                      "Requirement"}
-                  </p>
-                  <p className="text-xs text-gray-600">
-                    {chat.fromUserId?.email || "User"} →{" "}
-                    {chat.toUserId?.email || "User"}
-                  </p>
-                  <p className="text-xs text-gray-800 mt-2">
-                    {chat.message}
-                  </p>
-                  {chat.moderation?.removed && (
-                    <p className="text-xs text-red-600 mt-1">
-                      Removed by admin
-                    </p>
-                  )}
-                </div>
-                {chat.moderation?.removed ? (
-                  <button
-                    onClick={() => moderateChat(chat, false)}
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-gray-700"
-                  >
-                    Restore
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => moderateChat(chat, true)}
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-red-600"
-                  >
-                    Remove
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
+        <div className="mt-10 bg-white border rounded-2xl p-4">
+          <p className="text-sm text-gray-700">
+            Detailed requirements, offers, reports, and chats are now available in Admin Operations.
+          </p>
         </div>
       </div>
     </div>
