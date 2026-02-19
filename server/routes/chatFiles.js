@@ -29,7 +29,9 @@ const allowedExtensions = new Set([
   ".jpeg",
   ".png",
   ".pdf",
-  ".docx",
+  ".doc",
+  ".docs",
+  ".xls",
   ".xlsx"
 ]);
 

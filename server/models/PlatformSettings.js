@@ -15,6 +15,15 @@ const platformSettingsSchema = new mongoose.Schema(
       cities: [{ type: String }],
       categories: [{ type: String }]
     },
+    emailNotifications: {
+      enabled: { type: Boolean, default: false },
+      adminCopy: { type: Boolean, default: true },
+      events: {
+        newOfferToBuyer: { type: Boolean, default: true },
+        requirementUpdatedToSellers: { type: Boolean, default: true },
+        reverseAuctionToSellers: { type: Boolean, default: true }
+      }
+    },
     whatsAppCampaign: {
       enabled: { type: Boolean, default: false },
       cities: [{ type: String }],

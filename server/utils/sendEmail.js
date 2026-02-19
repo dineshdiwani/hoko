@@ -49,6 +49,28 @@ async function sendOtpEmail({ email, otp, subject }) {
   });
 }
 
+async function sendEmailToRecipient({ to, subject, text, html }) {
+  const transport = getTransport();
+  const target = String(to || "").trim();
+  if (!transport || !target || !/\S+@\S+\.\S+/.test(target)) {
+    return { ok: false, skipped: true, reason: "email_not_configured_or_invalid" };
+  }
+
+  const from = process.env.SMTP_FROM || "no-reply@hoko.app";
+  await transport.sendMail({
+    from,
+    to: target,
+    subject: String(subject || "Hoko notification").slice(0, 180),
+    text: String(text || "").trim() || "Hoko event notification",
+    html:
+      html ||
+      `<div style="font-family:Arial,sans-serif;color:#0f172a;line-height:1.5;white-space:pre-line;">${String(
+        text || ""
+      )}</div>`
+  });
+  return { ok: true };
+}
+
 function getAdminNotificationEmail() {
   const raw =
     process.env.ADMIN_NOTIFICATION_EMAIL ||
@@ -61,25 +83,11 @@ function getAdminNotificationEmail() {
 }
 
 async function sendAdminEventEmail({ subject, text, html }) {
-  const transport = getTransport();
   const to = getAdminNotificationEmail();
-  if (!transport || !to) {
+  if (!to) {
     return { ok: false, skipped: true, reason: "email_not_configured" };
   }
-
-  const from = process.env.SMTP_FROM || "no-reply@hoko.app";
-  await transport.sendMail({
-    from,
-    to,
-    subject: String(subject || "Hoko notification").slice(0, 180),
-    text: String(text || "").trim() || "Hoko event notification",
-    html:
-      html ||
-      `<div style="font-family:Arial,sans-serif;color:#0f172a;line-height:1.5;white-space:pre-line;">${String(
-        text || ""
-      )}</div>`
-  });
-  return { ok: true };
+  return sendEmailToRecipient({ to, subject, text, html });
 }
 
-module.exports = { sendOtpEmail, sendAdminEventEmail };
+module.exports = { sendOtpEmail, sendAdminEventEmail, sendEmailToRecipient };

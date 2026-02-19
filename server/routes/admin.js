@@ -28,6 +28,7 @@ const {
   DEFAULT_UNITS,
   DEFAULT_CURRENCIES,
   DEFAULT_NOTIFICATIONS,
+  DEFAULT_EMAIL_NOTIFICATIONS,
   DEFAULT_WHATSAPP_CAMPAIGN,
   DEFAULT_MODERATION_RULES,
   DEFAULT_SELECTIONS,
@@ -840,6 +841,10 @@ router.put("/options", adminAuth, requireAdminPermission("options.manage"), asyn
     currencies: uniqueNormalizedList(Array.isArray(payload.currencies) ? payload.currencies : (current?.currencies || DEFAULT_CURRENCIES)),
     defaults: payload.defaults || current?.defaults || DEFAULT_SELECTIONS,
     notifications: payload.notifications || current?.notifications || DEFAULT_NOTIFICATIONS,
+    emailNotifications:
+      payload.emailNotifications ||
+      current?.emailNotifications ||
+      DEFAULT_EMAIL_NOTIFICATIONS,
     whatsAppCampaign:
       payload.whatsAppCampaign ||
       current?.whatsAppCampaign ||

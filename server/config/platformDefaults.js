@@ -167,6 +167,15 @@ const DEFAULT_WHATSAPP_CAMPAIGN = {
   cities: [],
   categories: []
 };
+const DEFAULT_EMAIL_NOTIFICATIONS = {
+  enabled: false,
+  adminCopy: true,
+  events: {
+    newOfferToBuyer: true,
+    requirementUpdatedToSellers: true,
+    reverseAuctionToSellers: true
+  }
+};
 
 const DEFAULT_MODERATION_RULES = {
   enabled: true,
@@ -227,6 +236,14 @@ function buildOptionsResponse(doc) {
     currencies: merged.currencies,
     defaults: sanitizeSelections(raw?.defaults || DEFAULT_SELECTIONS, merged),
     notifications: raw?.notifications || DEFAULT_NOTIFICATIONS,
+    emailNotifications: {
+      ...DEFAULT_EMAIL_NOTIFICATIONS,
+      ...(raw?.emailNotifications || {}),
+      events: {
+        ...DEFAULT_EMAIL_NOTIFICATIONS.events,
+        ...(raw?.emailNotifications?.events || {})
+      }
+    },
     whatsAppCampaign: raw?.whatsAppCampaign || DEFAULT_WHATSAPP_CAMPAIGN,
     moderationRules: raw?.moderationRules || DEFAULT_MODERATION_RULES,
     termsAndConditions: raw?.termsAndConditions || {
@@ -242,6 +259,7 @@ module.exports = {
   DEFAULT_UNITS,
   DEFAULT_CURRENCIES,
   DEFAULT_NOTIFICATIONS,
+  DEFAULT_EMAIL_NOTIFICATIONS,
   DEFAULT_WHATSAPP_CAMPAIGN,
   DEFAULT_MODERATION_RULES,
   DEFAULT_SELECTIONS,

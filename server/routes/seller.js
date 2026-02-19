@@ -11,7 +11,7 @@ const PlatformSettings = require("../models/PlatformSettings");
 const auth = require("../middleware/auth");
 const sellerOnly = require("../middleware/sellerOnly");
 const sendPush = require("../utils/sendPush");
-const { sendAdminEventEmail } = require("../utils/sendEmail");
+const { sendAdminEventEmail, sendEmailToRecipient } = require("../utils/sendEmail");
 const { getModerationRules, checkTextForFlags } = require("../utils/moderation");
 const { normalizeRequirementAttachmentsForResponse } = require("../utils/attachments");
 
@@ -285,7 +285,7 @@ router.post("/offer", auth, sellerOnly, async (req, res) => {
         message: "You can submit offers only for requirements in your city"
       });
     }
-    const buyer = await User.findById(requirement.buyerId).select("buyerSettings roles");
+    const buyer = await User.findById(requirement.buyerId).select("buyerSettings roles email");
     const autoEnableChat =
       buyer?.buyerSettings?.chatOnlyAfterOfferAcceptance === false &&
       buyer?.buyerSettings?.hideProfileUntilApproved === false;
@@ -371,22 +371,46 @@ router.post("/offer", auth, sellerOnly, async (req, res) => {
 
       // Non-blocking admin email side-channel for operations visibility.
       setImmediate(() => {
-        const requirementName = requirement.product || requirement.productName || "Requirement";
-        const subject = `New offer on ${requirementName}`;
-        const lines = [
-          "A new offer was submitted.",
-          `Requirement: ${requirementName}`,
-          `Requirement ID: ${requirement._id}`,
-          `Buyer ID: ${requirement.buyerId}`,
-          `Seller ID: ${req.user?._id || "-"}`,
-          `Price: Rs ${price}`,
-          `City: ${requirement.city || "-"}`,
-          `Category: ${requirement.category || "-"}`
-        ];
-        sendAdminEventEmail({
-          subject,
-          text: lines.join("\n")
-        }).catch(() => {});
+        (async () => {
+          const settingsDoc = await PlatformSettings.findOne()
+            .select("emailNotifications")
+            .lean();
+          const emailSettings = settingsDoc?.emailNotifications || {};
+          const events = emailSettings?.events || {};
+          if (!emailSettings.enabled) return;
+
+          const requirementName = requirement.product || requirement.productName || "Requirement";
+          const subject = `New offer on ${requirementName}`;
+          const lines = [
+            "A new offer was submitted.",
+            `Requirement: ${requirementName}`,
+            `Requirement ID: ${requirement._id}`,
+            `Buyer ID: ${requirement.buyerId}`,
+            `Seller ID: ${req.user?._id || "-"}`,
+            `Price: Rs ${price}`,
+            `City: ${requirement.city || "-"}`,
+            `Category: ${requirement.category || "-"}`
+          ];
+          const text = lines.join("\n");
+          const tasks = [];
+
+          if (events.newOfferToBuyer !== false && buyer?.email) {
+            tasks.push(
+              sendEmailToRecipient({
+                to: buyer.email,
+                subject: `New offer received for ${requirementName}`,
+                text
+              })
+            );
+          }
+          if (emailSettings.adminCopy !== false) {
+            tasks.push(sendAdminEventEmail({ subject, text }));
+          }
+
+          if (tasks.length) {
+            await Promise.allSettled(tasks);
+          }
+        })().catch(() => {});
       });
     }
     res.json(offer);

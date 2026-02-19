@@ -21,7 +21,7 @@ const {
   resolveAttachmentFilenameOnDisk
 } = require("../utils/attachments");
 const sendPush = require("../utils/sendPush");
-const { sendAdminEventEmail } = require("../utils/sendEmail");
+const { sendAdminEventEmail, sendEmailToRecipient } = require("../utils/sendEmail");
 const { triggerWhatsAppCampaignForRequirement } = require("../services/whatsAppCampaign");
 const auth = require("../middleware/auth");
 const buyerOnly = require("../middleware/buyerOnly");
@@ -440,22 +440,55 @@ router.put("/requirement/:id", auth, buyerOnly, async (req, res) => {
       });
     }
 
-    // Non-blocking admin email notification for requirement update.
+    // Non-blocking email notifications as per admin-configured controls.
     setImmediate(() => {
-      const subject = `Buyer updated requirement: ${requirementName}`;
-      const lines = [
-        "A buyer updated a requirement.",
-        `Requirement: ${requirementName}`,
-        `Requirement ID: ${requirement._id}`,
-        `Buyer ID: ${req.user?._id || "-"}`,
-        `City: ${requirement.city || "-"}`,
-        `Category: ${requirement.category || "-"}`,
-        `Notified sellers: ${sellerIds.length}`
-      ];
-      sendAdminEventEmail({
-        subject,
-        text: lines.join("\n")
-      }).catch(() => {});
+      (async () => {
+        const settingsDoc = await PlatformSettings.findOne()
+          .select("emailNotifications")
+          .lean();
+        const emailSettings = settingsDoc?.emailNotifications || {};
+        const events = emailSettings?.events || {};
+        if (!emailSettings.enabled) return;
+
+        const subject = `Buyer updated requirement: ${requirementName}`;
+        const lines = [
+          "A buyer updated a requirement.",
+          `Requirement: ${requirementName}`,
+          `Requirement ID: ${requirement._id}`,
+          `Buyer ID: ${req.user?._id || "-"}`,
+          `City: ${requirement.city || "-"}`,
+          `Category: ${requirement.category || "-"}`,
+          `Notified sellers: ${sellerIds.length}`
+        ];
+        const text = lines.join("\n");
+        const tasks = [];
+
+        if (events.requirementUpdatedToSellers !== false && sellerIds.length) {
+          const sellers = await User.find({
+            _id: { $in: sellerIds },
+            email: { $type: "string", $ne: "" }
+          })
+            .select("email")
+            .lean();
+          sellers.forEach((seller) => {
+            tasks.push(
+              sendEmailToRecipient({
+                to: seller.email,
+                subject,
+                text
+              })
+            );
+          });
+        }
+
+        if (emailSettings.adminCopy !== false) {
+          tasks.push(sendAdminEventEmail({ subject, text }));
+        }
+
+        if (tasks.length) {
+          await Promise.allSettled(tasks);
+        }
+      })().catch(() => {});
     });
   }
 
@@ -1173,23 +1206,56 @@ router.post("/requirement/:id/reverse-auction/start", auth, buyerOnly, async (re
     })
   );
 
-  // Non-blocking admin email notification for reverse auction initiation.
+  // Non-blocking email notifications as per admin-configured controls.
   setImmediate(() => {
-    const subject = `Reverse auction initiated: ${requirementName}`;
-    const lines = [
-      "A reverse auction was initiated by a buyer.",
-      `Requirement: ${requirementName}`,
-      `Requirement ID: ${requirement._id}`,
-      `Buyer ID: ${req.user?._id || "-"}`,
-      `Lowest price: ${displayLowest !== null ? `${currencySymbol} ${displayLowest}` : "-"}`,
-      `City: ${requirement.city || "-"}`,
-      `Category: ${requirement.category || "-"}`,
-      `Seller recipients: ${sellerIds.length}`
-    ];
-    sendAdminEventEmail({
-      subject,
-      text: lines.join("\n")
-    }).catch(() => {});
+    (async () => {
+      const settingsDoc = await PlatformSettings.findOne()
+        .select("emailNotifications")
+        .lean();
+      const emailSettings = settingsDoc?.emailNotifications || {};
+      const events = emailSettings?.events || {};
+      if (!emailSettings.enabled) return;
+
+      const subject = `Reverse auction initiated: ${requirementName}`;
+      const lines = [
+        "A reverse auction was initiated by a buyer.",
+        `Requirement: ${requirementName}`,
+        `Requirement ID: ${requirement._id}`,
+        `Buyer ID: ${req.user?._id || "-"}`,
+        `Lowest price: ${displayLowest !== null ? `${currencySymbol} ${displayLowest}` : "-"}`,
+        `City: ${requirement.city || "-"}`,
+        `Category: ${requirement.category || "-"}`,
+        `Seller recipients: ${sellerIds.length}`
+      ];
+      const text = lines.join("\n");
+      const tasks = [];
+
+      if (events.reverseAuctionToSellers !== false && sellerIds.length) {
+        const sellers = await User.find({
+          _id: { $in: sellerIds },
+          email: { $type: "string", $ne: "" }
+        })
+          .select("email")
+          .lean();
+        sellers.forEach((seller) => {
+          tasks.push(
+            sendEmailToRecipient({
+              to: seller.email,
+              subject,
+              text
+            })
+          );
+        });
+      }
+
+      if (emailSettings.adminCopy !== false) {
+        tasks.push(sendAdminEventEmail({ subject, text }));
+      }
+
+      if (tasks.length) {
+        await Promise.allSettled(tasks);
+      }
+    })().catch(() => {});
   });
 
   res.json(requirement);
