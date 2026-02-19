@@ -21,6 +21,7 @@ const {
   resolveAttachmentFilenameOnDisk
 } = require("../utils/attachments");
 const sendPush = require("../utils/sendPush");
+const { sendAdminEventEmail } = require("../utils/sendEmail");
 const { triggerWhatsAppCampaignForRequirement } = require("../services/whatsAppCampaign");
 const auth = require("../middleware/auth");
 const buyerOnly = require("../middleware/buyerOnly");
@@ -438,6 +439,24 @@ router.put("/requirement/:id", auth, buyerOnly, async (req, res) => {
         io.to(String(sellerId)).emit("notification", notification);
       });
     }
+
+    // Non-blocking admin email notification for requirement update.
+    setImmediate(() => {
+      const subject = `Buyer updated requirement: ${requirementName}`;
+      const lines = [
+        "A buyer updated a requirement.",
+        `Requirement: ${requirementName}`,
+        `Requirement ID: ${requirement._id}`,
+        `Buyer ID: ${req.user?._id || "-"}`,
+        `City: ${requirement.city || "-"}`,
+        `Category: ${requirement.category || "-"}`,
+        `Notified sellers: ${sellerIds.length}`
+      ];
+      sendAdminEventEmail({
+        subject,
+        text: lines.join("\n")
+      }).catch(() => {});
+    });
   }
 
   res.json(normalizeRequirementAttachmentsForResponse(requirement));
@@ -1154,6 +1173,25 @@ router.post("/requirement/:id/reverse-auction/start", auth, buyerOnly, async (re
     })
   );
 
+  // Non-blocking admin email notification for reverse auction initiation.
+  setImmediate(() => {
+    const subject = `Reverse auction initiated: ${requirementName}`;
+    const lines = [
+      "A reverse auction was initiated by a buyer.",
+      `Requirement: ${requirementName}`,
+      `Requirement ID: ${requirement._id}`,
+      `Buyer ID: ${req.user?._id || "-"}`,
+      `Lowest price: ${displayLowest !== null ? `${currencySymbol} ${displayLowest}` : "-"}`,
+      `City: ${requirement.city || "-"}`,
+      `Category: ${requirement.category || "-"}`,
+      `Seller recipients: ${sellerIds.length}`
+    ];
+    sendAdminEventEmail({
+      subject,
+      text: lines.join("\n")
+    }).catch(() => {});
+  });
+
   res.json(requirement);
 });
 
@@ -1210,21 +1248,35 @@ router.get("/requirements/:id/offers", auth, buyerOnly, async (req, res) => {
       ? requirementData.currentLowestPrice
       : requirementData.reverseAuction?.lowestPrice ?? null;
 
-  const offersData = offers.map((offer) => ({
-    _id: offer._id,
-    price: offer.price,
-    message: offer.message,
-    deliveryTime: offer.deliveryTime || "",
-    paymentTerms: offer.paymentTerms || "",
-    viewedByBuyer: offer.viewedByBuyer || false,
-    contactEnabledByBuyer: offer.contactEnabledByBuyer === true,
-    sellerId: offer.sellerId?._id,
-    sellerFirm:
-      offer.sellerId?.sellerProfile?.firmName ||
-      offer.sellerId?.sellerProfile?.name ||
-      "Seller",
-    sellerCity: offer.sellerId?.city
-  }));
+  const offersData = offers.map((offer) => {
+    const sellerProfile = offer.sellerId?.sellerProfile || {};
+    const sellerFirm =
+      sellerProfile.firmName ||
+      sellerProfile.businessName ||
+      offer.sellerId?.email ||
+      "Seller";
+    const sellerDetails = {
+      firmName: sellerFirm,
+      businessName: sellerProfile.businessName || sellerFirm,
+      ownerName: sellerProfile.ownerName || "Not provided",
+      managerName: sellerProfile.managerName || "Not provided",
+      email: offer.sellerId?.email || "Not provided",
+      city: offer.sellerId?.city || "Not provided"
+    };
+    return {
+      _id: offer._id,
+      price: offer.price,
+      message: offer.message,
+      deliveryTime: offer.deliveryTime || "",
+      paymentTerms: offer.paymentTerms || "",
+      viewedByBuyer: offer.viewedByBuyer || false,
+      contactEnabledByBuyer: offer.contactEnabledByBuyer === true,
+      sellerId: offer.sellerId?._id,
+      sellerFirm,
+      sellerCity: sellerDetails.city,
+      sellerDetails
+    };
+  });
 
   res.json({ requirement: requirementData, offers: offersData });
 });

@@ -49,4 +49,37 @@ async function sendOtpEmail({ email, otp, subject }) {
   });
 }
 
-module.exports = { sendOtpEmail };
+function getAdminNotificationEmail() {
+  const raw =
+    process.env.ADMIN_NOTIFICATION_EMAIL ||
+    process.env.ADMIN_ALERT_EMAIL ||
+    process.env.ADMIN_EMAIL ||
+    "";
+  const email = String(raw || "").trim();
+  if (!email || !/\S+@\S+\.\S+/.test(email)) return "";
+  return email;
+}
+
+async function sendAdminEventEmail({ subject, text, html }) {
+  const transport = getTransport();
+  const to = getAdminNotificationEmail();
+  if (!transport || !to) {
+    return { ok: false, skipped: true, reason: "email_not_configured" };
+  }
+
+  const from = process.env.SMTP_FROM || "no-reply@hoko.app";
+  await transport.sendMail({
+    from,
+    to,
+    subject: String(subject || "Hoko notification").slice(0, 180),
+    text: String(text || "").trim() || "Hoko event notification",
+    html:
+      html ||
+      `<div style="font-family:Arial,sans-serif;color:#0f172a;line-height:1.5;white-space:pre-line;">${String(
+        text || ""
+      )}</div>`
+  });
+  return { ok: true };
+}
+
+module.exports = { sendOtpEmail, sendAdminEventEmail };

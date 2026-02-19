@@ -11,6 +11,7 @@ const PlatformSettings = require("../models/PlatformSettings");
 const auth = require("../middleware/auth");
 const sellerOnly = require("../middleware/sellerOnly");
 const sendPush = require("../utils/sendPush");
+const { sendAdminEventEmail } = require("../utils/sendEmail");
 const { getModerationRules, checkTextForFlags } = require("../utils/moderation");
 const { normalizeRequirementAttachmentsForResponse } = require("../utils/attachments");
 
@@ -367,6 +368,26 @@ router.post("/offer", auth, sellerOnly, async (req, res) => {
           body: `A seller submitted an offer of Rs ${price}`
         });
       }
+
+      // Non-blocking admin email side-channel for operations visibility.
+      setImmediate(() => {
+        const requirementName = requirement.product || requirement.productName || "Requirement";
+        const subject = `New offer on ${requirementName}`;
+        const lines = [
+          "A new offer was submitted.",
+          `Requirement: ${requirementName}`,
+          `Requirement ID: ${requirement._id}`,
+          `Buyer ID: ${requirement.buyerId}`,
+          `Seller ID: ${req.user?._id || "-"}`,
+          `Price: Rs ${price}`,
+          `City: ${requirement.city || "-"}`,
+          `Category: ${requirement.category || "-"}`
+        ];
+        sendAdminEventEmail({
+          subject,
+          text: lines.join("\n")
+        }).catch(() => {});
+      });
     }
     res.json(offer);
   } catch (err) {
