@@ -98,17 +98,20 @@ export default function AdminWhatsApp() {
     [manualTemplateFields]
   );
 
-  const availableManualCities = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          contacts
-            .map((contact) => String(contact?.city || "").trim())
-            .filter(Boolean)
-        )
-      ).sort((a, b) => a.localeCompare(b)),
-    [contacts]
-  );
+  const availableManualCities = useMemo(() => {
+    const fromContacts = contacts
+      .map((contact) => String(contact?.city || "").trim())
+      .filter(Boolean);
+    const fromRequirements = requirements
+      .map((req) => String(req?.city || "").trim())
+      .filter(Boolean);
+    const fromOptions = Array.isArray(options.cities)
+      ? options.cities.map((city) => String(city || "").trim()).filter(Boolean)
+      : [];
+    return Array.from(
+      new Set([...fromContacts, ...fromRequirements, ...fromOptions])
+    ).sort((a, b) => a.localeCompare(b));
+  }, [contacts, requirements, options.cities]);
 
   const availableManualCategories = useMemo(() => {
     const fromContacts = contacts.flatMap((contact) =>
@@ -116,9 +119,16 @@ export default function AdminWhatsApp() {
         ? contact.categories.map((category) => String(category || "").trim()).filter(Boolean)
         : []
     );
-    const source = fromContacts.length ? fromContacts : options.categories || [];
-    return Array.from(new Set(source)).sort((a, b) => a.localeCompare(b));
-  }, [contacts, options.categories]);
+    const fromRequirements = requirements
+      .map((req) => String(req?.category || "").trim())
+      .filter(Boolean);
+    const fromOptions = Array.isArray(options.categories)
+      ? options.categories.map((category) => String(category || "").trim()).filter(Boolean)
+      : [];
+    return Array.from(
+      new Set([...fromContacts, ...fromRequirements, ...fromOptions])
+    ).sort((a, b) => a.localeCompare(b));
+  }, [contacts, requirements, options.categories]);
 
   useEffect(() => {
     if (!manualUseAllCities) return;
@@ -133,27 +143,56 @@ export default function AdminWhatsApp() {
   }, [manualUseAllCities, manualSelectedCities]);
 
   const loadData = useCallback(async () => {
-    const [optionsRes, summaryRes, runsRes, contactsRes, requirementsRes] =
-      await Promise.all([
-        api.get("/admin/options"),
-        api.get("/admin/whatsapp/contacts/summary"),
-        api.get("/admin/whatsapp/campaign-runs"),
-        api.get("/admin/whatsapp/contacts"),
-        api.get("/admin/requirements")
-      ]);
-    const data = optionsRes.data || {};
+    const settled = await Promise.allSettled([
+      api.get("/admin/options"),
+      api.get("/admin/whatsapp/contacts/summary"),
+      api.get("/admin/whatsapp/campaign-runs"),
+      api.get("/admin/whatsapp/contacts"),
+      api.get("/admin/requirements")
+    ]);
+
+    const [
+      optionsResult,
+      summaryResult,
+      runsResult,
+      contactsResult,
+      requirementsResult
+    ] = settled;
+
+    const optionsData =
+      optionsResult.status === "fulfilled" ? optionsResult.value?.data || {} : {};
     setOptions((prev) => ({
       ...prev,
-      ...data,
+      ...optionsData,
       whatsAppCampaign: {
         ...prev.whatsAppCampaign,
-        ...(data.whatsAppCampaign || {})
+        ...(optionsData.whatsAppCampaign || {})
       }
     }));
-    setWhatsAppSummary(summaryRes.data || {});
-    setCampaignRuns(Array.isArray(runsRes.data) ? runsRes.data : []);
-    setContacts(Array.isArray(contactsRes.data) ? contactsRes.data : []);
-    setRequirements(Array.isArray(requirementsRes.data) ? requirementsRes.data : []);
+
+    setWhatsAppSummary(
+      summaryResult.status === "fulfilled" ? summaryResult.value?.data || {} : {
+        total: 0,
+        cities: [],
+        lastUpdatedAt: null,
+        uploadFile: null
+      }
+    );
+    setCampaignRuns(
+      runsResult.status === "fulfilled" && Array.isArray(runsResult.value?.data)
+        ? runsResult.value.data
+        : []
+    );
+    setContacts(
+      contactsResult.status === "fulfilled" && Array.isArray(contactsResult.value?.data)
+        ? contactsResult.value.data
+        : []
+    );
+    setRequirements(
+      requirementsResult.status === "fulfilled" && Array.isArray(requirementsResult.value?.data)
+        ? requirementsResult.value.data
+        : []
+    );
   }, []);
 
   useEffect(() => {
@@ -504,6 +543,11 @@ export default function AdminWhatsApp() {
                         (item) => normalizeText(item) === normalizeText(req.category)
                       );
                       setManualCategory(matchingCategory || req.category || "");
+                      const reqCity = String(req.city || "").trim();
+                      if (reqCity) {
+                        setManualUseAllCities(false);
+                        setManualSelectedCities([reqCity]);
+                      }
                       setManualMessagePreview(buildManualMessage(req));
                     }
                   }}>
