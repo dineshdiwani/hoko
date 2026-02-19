@@ -33,6 +33,15 @@ export default function AdminDashboard() {
       cities: [],
       categories: []
     },
+    emailNotifications: {
+      enabled: false,
+      adminCopy: true,
+      events: {
+        newOfferToBuyer: true,
+        requirementUpdatedToSellers: true,
+        reverseAuctionToSellers: true
+      }
+    },
     whatsAppCampaign: {
       enabled: false,
       cities: [],
@@ -49,11 +58,6 @@ export default function AdminDashboard() {
     }
   });
   const [reports, setReports] = useState([]);
-  const [moderationQueue, setModerationQueue] = useState({
-    requirements: [],
-    offers: [],
-    chats: []
-  });
   const [expandedUsers, setExpandedUsers] = useState(new Set());
   const [notificationFile, setNotificationFile] = useState(null);
   const [whatsAppSummary, setWhatsAppSummary] = useState({
@@ -163,7 +167,6 @@ export default function AdminDashboard() {
       "reports",
       "options",
       "whatsAppSummary",
-      "moderationQueue",
       "campaignRuns",
       "contacts"
     ];
@@ -175,7 +178,6 @@ export default function AdminDashboard() {
       api.get("/admin/reports"),
       api.get("/admin/options"),
       api.get("/admin/whatsapp/contacts/summary"),
-      api.get("/admin/moderation/queue"),
       api.get("/admin/whatsapp/campaign-runs"),
       api.get("/admin/whatsapp/contacts")
     ];
@@ -209,6 +211,14 @@ export default function AdminDashboard() {
           ...prev.notifications,
           ...(data.notifications || {})
         },
+        emailNotifications: {
+          ...prev.emailNotifications,
+          ...(data.emailNotifications || {}),
+          events: {
+            ...(prev.emailNotifications?.events || {}),
+            ...(data.emailNotifications?.events || {})
+          }
+        },
         whatsAppCampaign: {
           ...prev.whatsAppCampaign,
           ...(data.whatsAppCampaign || {})
@@ -237,13 +247,6 @@ export default function AdminDashboard() {
     );
     setCampaignRuns(Array.isArray(responseMap.campaignRuns) ? responseMap.campaignRuns : []);
     setContacts(Array.isArray(responseMap.contacts) ? responseMap.contacts : []);
-    setModerationQueue(
-      responseMap.moderationQueue || {
-        requirements: [],
-        offers: [],
-        chats: []
-      }
-    );
   }, []);
 
   useEffect(() => {
@@ -906,120 +909,6 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="mt-8">
-          <h2 className="text-lg font-bold mb-3">Moderation Queue</h2>
-          <div className="bg-white border rounded-2xl p-3 space-y-4">
-            {moderationQueue.requirements?.length === 0 &&
-              moderationQueue.offers?.length === 0 &&
-              moderationQueue.chats?.length === 0 && (
-                <p className="text-sm text-gray-500">
-                  No flagged items right now.
-                </p>
-              )}
-
-            {moderationQueue.requirements?.length > 0 && (
-              <div>
-                <p className="text-xs font-semibold text-gray-600 mb-2">
-                  Flagged Requirements
-                </p>
-                <div className="space-y-2">
-                  {moderationQueue.requirements.map((req) => (
-                    <div
-                      key={req._id}
-                      className="border rounded-lg p-2 text-xs text-gray-700 flex flex-col md:flex-row md:items-center md:justify-between gap-2"
-                    >
-                      <div>
-                        <div>
-                          {req.product || req.productName} · {req.city}
-                        </div>
-                        <div className="text-gray-500">
-                          {req.moderation?.flaggedReason || "Flagged"}
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => deleteRequirement(req._id)}
-                          className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-red-600"
-                        >
-                          Remove
-                        </button>
-                        <button
-                          onClick={() => toggleRequirementChat(req._id, true)}
-                          className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-600 text-white"
-                        >
-                          Disable Chat
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {moderationQueue.offers?.length > 0 && (
-              <div>
-                <p className="text-xs font-semibold text-gray-600 mb-2">
-                  Flagged Offers
-                </p>
-                <div className="space-y-2">
-                  {moderationQueue.offers.map((offer) => (
-                    <div
-                      key={offer._id}
-                      className="border rounded-lg p-2 text-xs text-gray-700 flex flex-col md:flex-row md:items-center md:justify-between gap-2"
-                    >
-                      <div>
-                        <div>
-                          Rs {offer.price} ·{" "}
-                          {offer.requirementId?.product ||
-                            offer.requirementId?.productName}
-                        </div>
-                        <div className="text-gray-500">
-                          {offer.moderation?.flaggedReason || "Flagged"}
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => moderateOffer(offer, true)}
-                        className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-red-600"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {moderationQueue.chats?.length > 0 && (
-              <div>
-                <p className="text-xs font-semibold text-gray-600 mb-2">
-                  Flagged Chats
-                </p>
-                <div className="space-y-2">
-                  {moderationQueue.chats.map((chat) => (
-                    <div
-                      key={chat._id}
-                      className="border rounded-lg p-2 text-xs text-gray-700 flex flex-col md:flex-row md:items-center md:justify-between gap-2"
-                    >
-                      <div>
-                        <div className="text-gray-500">
-                          {chat.moderation?.flaggedReason || "Flagged"}
-                        </div>
-                        <div className="text-gray-700">{chat.message}</div>
-                      </div>
-                      <button
-                        onClick={() => moderateChat(chat, true)}
-                        className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-red-600"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
         <div className="mt-10">
           <h2 className="text-lg font-bold mb-3">Platform Options</h2>
           <div className="bg-white border rounded-2xl p-3 space-y-4">
@@ -1230,6 +1119,104 @@ export default function AdminDashboard() {
                     </label>
                   </div>
                 </label>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs text-gray-600">Email Notification Controls</label>
+              <div className="mt-2 space-y-2 rounded-lg border p-3">
+                <label className="flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={options.emailNotifications?.enabled === true}
+                    onChange={(e) =>
+                      setOptions((prev) => ({
+                        ...prev,
+                        emailNotifications: {
+                          ...prev.emailNotifications,
+                          enabled: e.target.checked
+                        }
+                      }))
+                    }
+                  />
+                  Enable email notifications
+                </label>
+                <label className="flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={options.emailNotifications?.adminCopy !== false}
+                    onChange={(e) =>
+                      setOptions((prev) => ({
+                        ...prev,
+                        emailNotifications: {
+                          ...prev.emailNotifications,
+                          adminCopy: e.target.checked
+                        }
+                      }))
+                    }
+                  />
+                  Send admin email copy
+                </label>
+                <label className="flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={options.emailNotifications?.events?.newOfferToBuyer !== false}
+                    onChange={(e) =>
+                      setOptions((prev) => ({
+                        ...prev,
+                        emailNotifications: {
+                          ...prev.emailNotifications,
+                          events: {
+                            ...(prev.emailNotifications?.events || {}),
+                            newOfferToBuyer: e.target.checked
+                          }
+                        }
+                      }))
+                    }
+                  />
+                  New offer email to buyer
+                </label>
+                <label className="flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={options.emailNotifications?.events?.requirementUpdatedToSellers !== false}
+                    onChange={(e) =>
+                      setOptions((prev) => ({
+                        ...prev,
+                        emailNotifications: {
+                          ...prev.emailNotifications,
+                          events: {
+                            ...(prev.emailNotifications?.events || {}),
+                            requirementUpdatedToSellers: e.target.checked
+                          }
+                        }
+                      }))
+                    }
+                  />
+                  Requirement update email to sellers
+                </label>
+                <label className="flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={options.emailNotifications?.events?.reverseAuctionToSellers !== false}
+                    onChange={(e) =>
+                      setOptions((prev) => ({
+                        ...prev,
+                        emailNotifications: {
+                          ...prev.emailNotifications,
+                          events: {
+                            ...(prev.emailNotifications?.events || {}),
+                            reverseAuctionToSellers: e.target.checked
+                          }
+                        }
+                      }))
+                    }
+                  />
+                  Reverse auction email to sellers
+                </label>
+                <p className="text-xs text-gray-500">
+                  Chat emails remain disabled by design. Admin copy uses ADMIN_NOTIFICATION_EMAIL/ADMIN_ALERT_EMAIL/ADMIN_EMAIL.
+                </p>
               </div>
             </div>
 
