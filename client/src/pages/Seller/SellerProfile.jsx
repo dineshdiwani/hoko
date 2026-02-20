@@ -20,6 +20,7 @@ export default function SellerProfile() {
   const [currencies, setCurrencies] = useState([]);
 
   const [profile, setProfile] = useState({
+    email: "",
     businessName: "",
     registrationDetails: "",
     businessAddress: "",
@@ -78,6 +79,7 @@ export default function SellerProfile() {
         const data = res.data || {};
         const sellerProfile = data.sellerProfile || {};
         setProfile({
+          email: data.email || session?.email || "",
           businessName: sellerProfile.businessName || "",
           registrationDetails: sellerProfile.registrationDetails || "",
           businessAddress: sellerProfile.businessAddress || "",
@@ -114,9 +116,14 @@ export default function SellerProfile() {
   };
 
   const saveProfile = async () => {
+    if (!/\S+@\S+\.\S+/.test(String(profile.email || ""))) {
+      alert("Please enter a valid email");
+      return;
+    }
     setSaving(true);
     try {
       const res = await api.post("/seller/profile", {
+        email: profile.email,
         businessName: profile.businessName,
         registrationDetails: profile.registrationDetails,
         businessAddress: profile.businessAddress,
@@ -130,6 +137,7 @@ export default function SellerProfile() {
       });
 
       updateSession({
+        email: res.data?.email || profile.email,
         city: res.data?.city || profile.city,
         preferredCurrency:
           res.data?.preferredCurrency || profile.preferredCurrency
@@ -165,6 +173,18 @@ export default function SellerProfile() {
                 <p className="text-lg font-semibold">
                   {rating.avg.toFixed(1)} stars ({rating.count})
                 </p>
+              </div>
+              <div>
+                <label className="text-sm text-gray-600">Email *</label>
+                <input
+                  type="email"
+                  value={profile.email}
+                  onChange={(e) =>
+                    setProfile({ ...profile, email: e.target.value })
+                  }
+                  className="w-full border rounded-xl px-4 py-3"
+                  required
+                />
               </div>
               <div>
                 <label className="text-sm text-gray-600">

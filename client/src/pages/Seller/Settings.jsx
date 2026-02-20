@@ -18,6 +18,7 @@ export default function SellerSettings() {
   const [categories, setCategories] = useState([]);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [profile, setProfile] = useState({
+    email: "",
     businessName: "",
     registrationDetails: "",
     businessAddress: "",
@@ -89,6 +90,7 @@ export default function SellerSettings() {
               .map((c) => normalizeCategory(c))
               .filter(Boolean);
         setProfile({
+          email: res.data?.email || session?.email || "",
           businessName:
             sellerProfile.businessName || sellerProfile.firmName || "",
           registrationDetails: sellerProfile.registrationDetails || "",
@@ -165,9 +167,14 @@ export default function SellerSettings() {
   );
 
   const saveSettings = async () => {
+    if (!/\S+@\S+\.\S+/.test(String(profile.email || ""))) {
+      alert("Please enter a valid email");
+      return;
+    }
     setSaving(true);
     try {
       await api.post("/seller/profile", {
+        email: profile.email,
         businessName: profile.businessName,
         registrationDetails: profile.registrationDetails,
         businessAddress: profile.businessAddress,
@@ -253,6 +260,24 @@ export default function SellerSettings() {
               Business Profile
             </h2>
             <div className="grid gap-3 md:grid-cols-2">
+              <label className="block">
+                <span className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1">
+                  Email *
+                </span>
+                <input
+                  type="email"
+                  value={profile.email}
+                  onChange={(e) =>
+                    setProfile({
+                      ...profile,
+                      email: e.target.value
+                    })
+                  }
+                  placeholder="Enter email"
+                  className="w-full border rounded-xl px-4 py-3"
+                  required
+                />
+              </label>
               <label className="block">
                 <span className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1">
                   Business/Firm/Company Name

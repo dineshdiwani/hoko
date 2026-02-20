@@ -15,6 +15,7 @@ export default function SellerRegister() {
   const hasSessionCity = Boolean(sessionCity);
 
   const [seller, setSeller] = useState({
+    email: session?.email || "",
     businessName: "",
     registrationDetails: "",
     businessAddress: "",
@@ -79,6 +80,7 @@ export default function SellerRegister() {
   const handleSubmit = () => {
     setSubmitted(true);
     if (
+      !seller.email ||
       !seller.businessName ||
       !seller.businessAddress ||
       !seller.ownerName ||
@@ -88,11 +90,9 @@ export default function SellerRegister() {
       alert("Please fill all required fields");
       return;
     }
-    if (!session?.token) {
-      if (!/\S+@\S+\.\S+/.test(String(seller.email || ""))) {
-        alert("Please enter a valid email");
-        return;
-      }
+    if (!/\S+@\S+\.\S+/.test(String(seller.email || ""))) {
+      alert("Please enter a valid email");
+      return;
     }
 
     const profile = seller;
@@ -162,6 +162,17 @@ export default function SellerRegister() {
             <h2 className="text-xl font-bold mb-6">Seller Details</h2>
 
             <div className="grid gap-3 md:grid-cols-2">
+              <input
+                className="w-full border p-2 rounded"
+                type="email"
+                placeholder="Email *"
+                value={seller.email}
+                onChange={(e) =>
+                  setSeller({ ...seller, email: e.target.value })
+                }
+                required
+              />
+
               <input
                 className="w-full border p-2 rounded"
                 placeholder="Registered Business Name *"
