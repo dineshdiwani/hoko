@@ -4,8 +4,7 @@ import { getSession } from "../services/storage";
 import {
   extractAttachmentFileName,
   getAttachmentDisplayName,
-  getAttachmentTypeMeta,
-  isImageAttachment
+  getAttachmentTypeMeta
 } from "../utils/attachments";
 
 export default function CityDashboard({
@@ -43,10 +42,6 @@ export default function CityDashboard({
 
   function getDisplayName(attachment, index) {
     return getAttachmentDisplayName(attachment, index);
-  }
-
-  function isImage(attachment) {
-    return isImageAttachment(attachment);
   }
 
   const appBaseUrl =
@@ -371,11 +366,6 @@ export default function CityDashboard({
                             key={`${name}-${index}`}
                             className="flex items-center gap-3"
                           >
-                            {isImage(attachment) && (
-                              <span className="w-10 h-10 rounded-lg border bg-gray-50 inline-flex items-center justify-center text-gray-500 text-[10px]">
-                                IMG
-                              </span>
-                            )}
                             <button
                               type="button"
                               onClick={() => openAttachment(attachment)}

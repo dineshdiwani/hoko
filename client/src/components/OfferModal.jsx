@@ -3,8 +3,7 @@ import api from "../services/api";
 import {
   extractAttachmentFileName,
   getAttachmentDisplayName,
-  getAttachmentTypeMeta,
-  isImageAttachment
+  getAttachmentTypeMeta
 } from "../utils/attachments";
 
 export default function OfferModal({
@@ -102,10 +101,6 @@ export default function OfferModal({
 
   function getDisplayName(attachment, index) {
     return getAttachmentDisplayName(attachment, index);
-  }
-
-  function isImage(attachment) {
-    return isImageAttachment(attachment);
   }
 
   const isAuctionActive =
@@ -394,11 +389,6 @@ export default function OfferModal({
                     key={`${name}-${index}`}
                     className="flex items-center gap-3"
                   >
-                    {isImage(attachment) && (
-                      <span className="w-12 h-12 rounded-lg border bg-gray-50 inline-flex items-center justify-center text-gray-500 text-[10px]">
-                        IMG
-                      </span>
-                    )}
                     <button
                       type="button"
                       onClick={() => openAttachment(attachment)}
@@ -547,11 +537,6 @@ export default function OfferModal({
                     className="flex items-center justify-between gap-3 text-sm bg-gray-50 border rounded-lg px-3 py-2"
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      {isImage(attachment) && (
-                        <span className="w-10 h-10 rounded-lg border bg-gray-50 inline-flex items-center justify-center text-gray-500 text-[10px]">
-                          IMG
-                        </span>
-                      )}
                       <button
                         type="button"
                         onClick={() => openOfferAttachment(attachment, index)}

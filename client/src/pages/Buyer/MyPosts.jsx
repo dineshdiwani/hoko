@@ -6,8 +6,7 @@ import { confirmDialog } from "../../utils/dialogs";
 import {
   extractAttachmentFileName,
   getAttachmentDisplayName,
-  getAttachmentTypeMeta,
-  isImageAttachment
+  getAttachmentTypeMeta
 } from "../../utils/attachments";
 
 export default function MyPosts() {
@@ -44,10 +43,6 @@ export default function MyPosts() {
 
   function getDisplayName(attachment, index) {
     return getAttachmentDisplayName(attachment, index);
-  }
-
-  function isImage(attachment) {
-    return isImageAttachment(attachment);
   }
 
   useEffect(() => {
@@ -308,11 +303,6 @@ export default function MyPosts() {
                         className="flex items-center gap-3"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        {isImage(attachment) && (
-                          <span className="w-10 h-10 rounded-lg border bg-gray-50 inline-flex items-center justify-center text-gray-500 text-[10px]">
-                            IMG
-                          </span>
-                        )}
                         <button
                           type="button"
                           onClick={() => openAttachment(attachment)}

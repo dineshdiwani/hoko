@@ -8,8 +8,7 @@ import ReportModal from "../../components/ReportModal";
 import {
   extractAttachmentFileName,
   getAttachmentDisplayName,
-  getAttachmentTypeMeta,
-  isImageAttachment
+  getAttachmentTypeMeta
 } from "../../utils/attachments";
 
 export default function OfferList() {
@@ -493,11 +492,6 @@ export default function OfferList() {
                           key={`${displayName}-${attachmentIndex}`}
                           className="flex items-center gap-3"
                         >
-                          {isImageAttachment(attachment, attachmentIndex) && (
-                            <span className="w-10 h-10 rounded-lg border bg-gray-50 inline-flex items-center justify-center text-gray-500 text-[10px]">
-                              IMG
-                            </span>
-                          )}
                           <button
                             type="button"
                             onClick={(e) => {
