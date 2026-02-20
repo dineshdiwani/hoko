@@ -130,7 +130,6 @@ export default function ChatModal({
   const [uploading, setUploading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [loading, setLoading] = useState(false);
-  const fileInputRef = useRef(null);
   const recognitionRef = useRef(null);
   const messagesEndRef = useRef(null);
   const sendInFlightRef = useRef(false);
@@ -598,27 +597,6 @@ export default function ChatModal({
 
           <div className="flex flex-col gap-2">
             <button
-              className="w-11 h-11 border rounded-lg text-sm inline-flex items-center justify-center"
-              disabled={uploading}
-              onClick={() => fileInputRef.current?.click()}
-              title={uploading ? "Uploading..." : "Share doc"}
-              aria-label={uploading ? "Uploading..." : "Share doc"}
-            >
-              {uploading ? (
-                <span className="text-[10px]">...</span>
-              ) : (
-                <svg
-                  viewBox="0 0 24 24"
-                  className="w-5 h-5 text-gray-700"
-                  fill="currentColor"
-                  aria-hidden="true"
-                >
-                  <path d="M16.5 6a4.5 4.5 0 0 1 0 9H8a3 3 0 1 1 0-6h8.5a1.5 1.5 0 1 1 0 3H9v-1.5h7.5a.5.5 0 1 0 0-1H8a2 2 0 1 0 0 4h8.5a3.5 3.5 0 0 0 0-7H9V5h7.5Z" />
-                </svg>
-              )}
-            </button>
-
-            <button
               className={`w-11 h-11 border rounded-lg flex items-center justify-center ${
                 isListening ? "bg-green-600 border-green-600" : ""
               }`}
@@ -645,15 +623,6 @@ export default function ChatModal({
               Send
             </button>
           </div>
-
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            accept=".jpg,.jpeg,.png,.pdf,.doc,.docs,.xls,.xlsx,application/pdf,application/msword,application/vnd.ms-excel,image/jpeg,image/png"
-            className="hidden"
-            onChange={(e) => uploadFiles(e.target.files)}
-          />
         </div>
       </div>
     </div>
