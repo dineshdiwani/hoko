@@ -58,11 +58,19 @@ export default function SellerDashboard() {
   };
   const smartTabs = [
     { key: "all", label: "All" },
+    { key: "today", label: "Today" },
     { key: "week", label: "This Week" },
     { key: "month", label: "This Month" },
     { key: "year", label: "This Year" },
     { key: "auctions", label: "Auctions" }
   ];
+
+  const isToday = (value) => {
+    if (!value) return false;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return false;
+    return date.toDateString() === new Date().toDateString();
+  };
 
   const isThisWeek = (value) => {
     if (!value) return false;
@@ -100,6 +108,7 @@ export default function SellerDashboard() {
   const matchesSmartTab = (req) => {
     if (activeSmartTab === "all") return true;
     const createdAt = req.createdAt || req.created_at;
+    if (activeSmartTab === "today") return isToday(createdAt);
     if (activeSmartTab === "week") return isThisWeek(createdAt);
     if (activeSmartTab === "month") return isThisMonth(createdAt);
     if (activeSmartTab === "year") return isThisYear(createdAt);
