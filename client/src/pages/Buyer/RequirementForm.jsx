@@ -630,17 +630,6 @@ export default function RequirementForm() {
             Attachments (jpg/jpeg, png, pdf, docx, xlsx)
           </label>
           <input
-            id="buyer-requirement-camera"
-            type="file"
-            accept="image/*"
-            capture="environment"
-            className="sr-only"
-            onChange={(e) => {
-              addFiles(e.target.files);
-              e.target.value = "";
-            }}
-          />
-          <input
             id="buyer-requirement-doc"
             type="file"
             multiple
@@ -652,13 +641,12 @@ export default function RequirementForm() {
             }}
           />
           <div className="flex items-center gap-3">
-            <label
-              htmlFor="buyer-requirement-camera"
+            <button
+              type="button"
+              onClick={() => setCameraOpen(true)}
               className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-sky-200 bg-sky-50 text-sky-700 shadow-sm transition hover:bg-sky-100 hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 active:scale-95 cursor-pointer"
               aria-label="Capture photo"
               title="Capture photo"
-              role="button"
-              tabIndex={0}
             >
               <svg
                 viewBox="0 0 24 24"
@@ -668,7 +656,7 @@ export default function RequirementForm() {
               >
                 <path d="M9 4h6l1.2 2H20a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3.8L9 4Zm3 4.5A4.5 4.5 0 1 0 12 17a4.5 4.5 0 0 0 0-9Zm0 2A2.5 2.5 0 1 1 12 15a2.5 2.5 0 0 1 0-5Z" />
               </svg>
-            </label>
+            </button>
             <label
               htmlFor="buyer-requirement-doc"
               className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 shadow-sm transition hover:bg-emerald-100 hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 active:scale-95 cursor-pointer"
