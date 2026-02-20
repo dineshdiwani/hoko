@@ -5,6 +5,11 @@ import socket from "../../services/socket";
 import ChatModal from "../../components/ChatModal";
 import ReviewModal from "../../components/ReviewModal";
 import ReportModal from "../../components/ReportModal";
+import {
+  extractAttachmentFileName,
+  getAttachmentDisplayName,
+  isImageAttachment
+} from "../../utils/attachments";
 
 export default function OfferList() {
   const { id } = useParams();
@@ -263,6 +268,28 @@ export default function OfferList() {
     }
   }
 
+  async function openOfferAttachment(attachment, index = 0) {
+    const newTab = window.open("", "_blank", "noopener,noreferrer");
+    try {
+      const filename = extractAttachmentFileName(attachment, index);
+      if (!filename) throw new Error("Invalid attachment path");
+      const res = await api.get(
+        `/seller/offer-attachments/${encodeURIComponent(filename)}`,
+        { responseType: "blob" }
+      );
+      const blobUrl = window.URL.createObjectURL(res.data);
+      if (newTab) {
+        newTab.location.href = blobUrl;
+      } else {
+        window.open(blobUrl, "_blank", "noopener,noreferrer");
+      }
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 10000);
+    } catch {
+      if (newTab) newTab.close();
+      alert("Unable to open attachment.");
+    }
+  }
+
   return (
     <div className="page">
       {/* ================= HEADER ================= */}
@@ -401,6 +428,47 @@ export default function OfferList() {
                     : "New"}
                 </span>
               </div>
+
+              {Array.isArray(offer.attachments) && offer.attachments.length > 0 && (
+                <div className="mt-3 rounded-xl border border-[var(--ui-border)] p-3">
+                  <p className="text-sm font-medium mb-2">Attachments</p>
+                  <div className="space-y-2">
+                    {offer.attachments.map((attachment, attachmentIndex) => {
+                      const filename = extractAttachmentFileName(
+                        attachment,
+                        attachmentIndex
+                      );
+                      const displayName = getAttachmentDisplayName(
+                        attachment,
+                        attachmentIndex
+                      );
+                      return (
+                        <div
+                          key={`${displayName}-${attachmentIndex}`}
+                          className="flex items-center gap-3"
+                        >
+                          {isImageAttachment(attachment, attachmentIndex) && (
+                            <span className="w-10 h-10 rounded-lg border bg-gray-50 inline-flex items-center justify-center text-gray-500 text-[10px]">
+                              IMG
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openOfferAttachment(attachment, attachmentIndex);
+                            }}
+                            className="text-sm text-indigo-600 hover:underline break-all"
+                            title={filename || "Attachment path missing"}
+                          >
+                            {displayName}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* CTA icons */}
               <div className="flex flex-wrap items-center justify-start gap-2 mt-4">
