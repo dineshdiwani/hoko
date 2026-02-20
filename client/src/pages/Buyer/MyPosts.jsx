@@ -199,6 +199,9 @@ export default function MyPosts() {
           ? req.attachments
           : [];
         const offerCount = Number(req.offerCount || 0);
+        const requirementDetails = String(
+          req.details || req.description || ""
+        ).trim();
         const normalizedStatus = req.status?.toUpperCase() || "OPEN";
         const auctionLive = offerCount >= 3;
         const auctionActive = req.reverseAuction?.active === true;
@@ -261,6 +264,12 @@ export default function MyPosts() {
             <p className="text-sm text-[var(--ui-muted)]">
               {req.quantity} {req.unit} · {req.category}
             </p>
+
+            {requirementDetails && (
+              <p className="text-sm text-[var(--ui-text)] mt-1 whitespace-pre-line">
+                {requirementDetails}
+              </p>
+            )}
 
             <p className="text-xs text-gray-400 mt-1">
               Posted{" "}

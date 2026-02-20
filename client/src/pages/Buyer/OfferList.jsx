@@ -158,6 +158,9 @@ export default function OfferList() {
 
   const productName =
     requirement.product || requirement.productName || "Product";
+  const requirementDetails = String(
+    requirement.details || requirement.description || ""
+  ).trim();
   const bestOffer = offers[0];
   const auctionActive =
     requirement.reverseAuction?.active === true;
@@ -275,6 +278,11 @@ export default function OfferList() {
           <h1 className="text-lg font-bold">
             Offers for {productName}
           </h1>
+          {requirementDetails && (
+            <p className="text-sm text-gray-600 mt-1 whitespace-pre-line">
+              {requirementDetails}
+            </p>
+          )}
 
         {requirement.reverseAuction?.active === true && (
           <p className="text-sm text-red-600 mt-1">
