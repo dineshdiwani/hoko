@@ -37,6 +37,9 @@ const platformSettingsSchema = new mongoose.Schema(
     },
     termsAndConditions: {
       content: { type: String, default: "" }
+    },
+    privacyPolicy: {
+      content: { type: String, default: "" }
     }
   },
   { timestamps: true }

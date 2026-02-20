@@ -14,6 +14,16 @@ export default function AdminDashboard() {
     "You are responsible for complying with all applicable laws, taxes, and regulations related to your transactions.",
     "hoko may update these terms at any time. Continued use of the platform indicates acceptance of the updated terms."
   ].join("\n\n");
+  const defaultPrivacyPolicyContent = [
+    "We collect account, profile, and usage information needed to provide the hoko marketplace.",
+    "Buyer and seller contact details and posted requirements/offers are shared as required to enable transactions.",
+    "You are responsible for the information you publish and share on the platform.",
+    "We use data to operate the service, improve security, prevent fraud/abuse, and comply with legal obligations.",
+    "We may use trusted service providers for hosting, analytics, communication, and support operations.",
+    "We do not sell personal information. We may disclose data when required by law or valid legal process.",
+    "You can request correction or deletion of eligible personal data by contacting support.",
+    "By continuing to use hoko, you acknowledge this Privacy Policy and any future updates."
+  ].join("\n\n");
 
   const [users, setUsers] = useState([]);
   const [requirements, setRequirements] = useState([]);
@@ -55,6 +65,9 @@ export default function AdminDashboard() {
     },
     termsAndConditions: {
       content: defaultTermsContent
+    },
+    privacyPolicy: {
+      content: defaultPrivacyPolicyContent
     }
   });
   const [reports, setReports] = useState([]);
@@ -231,6 +244,10 @@ export default function AdminDashboard() {
         termsAndConditions: {
           ...prev.termsAndConditions,
           ...(data.termsAndConditions || {})
+        },
+        privacyPolicy: {
+          ...prev.privacyPolicy,
+          ...(data.privacyPolicy || {})
         }
       }));
       setCitiesText(nextCities.join(", "));
@@ -969,6 +986,29 @@ export default function AdminDashboard() {
               />
               <p className="text-xs text-gray-500 mt-1">
                 This content appears in the login Terms & Conditions modal.
+              </p>
+            </div>
+
+            <div>
+              <label className="text-xs text-gray-600">
+                Privacy Policy Content
+              </label>
+              <textarea
+                className="w-full border rounded-lg p-2 mt-2 text-sm"
+                rows={8}
+                value={options.privacyPolicy?.content || ""}
+                onChange={(e) =>
+                  setOptions((prev) => ({
+                    ...prev,
+                    privacyPolicy: {
+                      ...prev.privacyPolicy,
+                      content: e.target.value
+                    }
+                  }))
+                }
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                This content appears in the login Privacy Policy modal.
               </p>
             </div>
 

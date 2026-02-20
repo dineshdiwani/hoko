@@ -8,6 +8,17 @@ const DEFAULT_TERMS_CONTENT = [
   "hoko may update these terms at any time. Continued use of the platform indicates acceptance of the updated terms."
 ].join("\n\n");
 
+const DEFAULT_PRIVACY_POLICY_CONTENT = [
+  "We collect account, profile, and usage information needed to provide the hoko marketplace.",
+  "Buyer and seller contact details and posted requirements/offers are shared as required to enable transactions.",
+  "You are responsible for the information you publish and share on the platform.",
+  "We use data to operate the service, improve security, prevent fraud/abuse, and comply with legal obligations.",
+  "We may use trusted service providers for hosting, analytics, communication, and support operations.",
+  "We do not sell personal information. We may disclose data when required by law or valid legal process.",
+  "You can request correction or deletion of eligible personal data by contacting support.",
+  "By continuing to use hoko, you acknowledge this Privacy Policy and any future updates."
+].join("\n\n");
+
 const DEFAULT_CITIES = [
   "Mumbai",
   "Delhi",
@@ -264,12 +275,16 @@ function buildOptionsResponse(doc) {
     moderationRules: raw?.moderationRules || DEFAULT_MODERATION_RULES,
     termsAndConditions: raw?.termsAndConditions || {
       content: DEFAULT_TERMS_CONTENT
+    },
+    privacyPolicy: raw?.privacyPolicy || {
+      content: DEFAULT_PRIVACY_POLICY_CONTENT
     }
   };
 }
 
 module.exports = {
   DEFAULT_TERMS_CONTENT,
+  DEFAULT_PRIVACY_POLICY_CONTENT,
   DEFAULT_CITIES,
   DEFAULT_CATEGORIES,
   DEFAULT_UNITS,
