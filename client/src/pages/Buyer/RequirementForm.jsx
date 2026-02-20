@@ -629,24 +629,63 @@ export default function RequirementForm() {
           <label className="block text-sm font-medium mb-2">
             Attachments (jpg/jpeg, png, pdf, docx, xlsx)
           </label>
-          <div className="flex flex-wrap gap-3">
-            <label className="px-4 py-2 border rounded-xl cursor-pointer text-sm">
-              Upload Files
-              <input
-                type="file"
-                multiple
-                accept=".jpg,.jpeg,.png,.pdf,.docx,.xlsx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/jpeg,image/png"
-                className="hidden"
-                onChange={(e) => addFiles(e.target.files)}
-              />
-            </label>
-            <button
-              type="button"
-              onClick={() => setCameraOpen(true)}
-              className="px-4 py-2 border rounded-xl text-sm"
+          <input
+            id="buyer-requirement-camera"
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="sr-only"
+            onChange={(e) => {
+              addFiles(e.target.files);
+              e.target.value = "";
+            }}
+          />
+          <input
+            id="buyer-requirement-doc"
+            type="file"
+            multiple
+            accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/jpeg,image/png"
+            className="sr-only"
+            onChange={(e) => {
+              addFiles(e.target.files);
+              e.target.value = "";
+            }}
+          />
+          <div className="flex items-center gap-3">
+            <label
+              htmlFor="buyer-requirement-camera"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-sky-200 bg-sky-50 text-sky-700 shadow-sm transition hover:bg-sky-100 hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 active:scale-95 cursor-pointer"
+              aria-label="Capture photo"
+              title="Capture photo"
+              role="button"
+              tabIndex={0}
             >
-              Capture Photo
-            </button>
+              <svg
+                viewBox="0 0 24 24"
+                className="w-5 h-5"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path d="M9 4h6l1.2 2H20a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3.8L9 4Zm3 4.5A4.5 4.5 0 1 0 12 17a4.5 4.5 0 0 0 0-9Zm0 2A2.5 2.5 0 1 1 12 15a2.5 2.5 0 0 1 0-5Z" />
+              </svg>
+            </label>
+            <label
+              htmlFor="buyer-requirement-doc"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 shadow-sm transition hover:bg-emerald-100 hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 active:scale-95 cursor-pointer"
+              aria-label="Share document"
+              title="Share document"
+              role="button"
+              tabIndex={0}
+            >
+              <svg
+                viewBox="0 0 24 24"
+                className="w-5 h-5"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Zm8 1.5V8h4.5" />
+              </svg>
+            </label>
           </div>
 
           {existingAttachments.length > 0 && (

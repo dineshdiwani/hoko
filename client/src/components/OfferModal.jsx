@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import api from "../services/api";
 import {
   extractAttachmentFileName,
@@ -27,6 +27,8 @@ export default function OfferModal({
   ).trim();
   const requirementId = requirement._id || requirement.id;
   if (!requirementId) return null;
+  const cameraInputId = `offer-camera-${requirementId}`;
+  const docInputId = `offer-doc-${requirementId}`;
   const changedFieldSet = new Set(
     (Array.isArray(requirement?._changeHighlights)
       ? requirement._changeHighlights
@@ -42,7 +44,6 @@ export default function OfferModal({
   const [deliveryTime, setDeliveryTime] = useState("");
   const [paymentTerms, setPaymentTerms] = useState("");
   const [file, setFile] = useState(null);
-  const documentInputRef = useRef(null);
   const [existingOffer, setExistingOffer] = useState(false);
   const [lastUpdatedAt, setLastUpdatedAt] = useState("");
   const attachments = Array.isArray(requirement.attachments)
@@ -141,18 +142,6 @@ export default function OfferModal({
     saveAttachmentFile(fileObj);
     // Allow selecting the same file again in the next pick.
     e.target.value = "";
-  }
-
-  function openDeviceCamera() {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = "image/*";
-    input.setAttribute("capture", "environment");
-    input.onchange = () => {
-      const fileObj = input.files?.[0];
-      saveAttachmentFile(fileObj);
-    };
-    input.click();
   }
 
   const submitOffer = async () => {
@@ -370,19 +359,28 @@ export default function OfferModal({
         />
 
         <input
-          ref={documentInputRef}
+          id={cameraInputId}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={handleAttachmentPick}
+          className="sr-only"
+        />
+        <input
+          id={docInputId}
           type="file"
           accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/jpeg,image/png"
           onChange={handleAttachmentPick}
-          className="hidden"
+          className="sr-only"
         />
         <div className="mb-4 flex items-center justify-center gap-3">
-          <button
-            type="button"
-            onClick={openDeviceCamera}
+          <label
+            htmlFor={cameraInputId}
             className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-sky-200 bg-sky-50 text-sky-700 shadow-sm transition hover:bg-sky-100 hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 active:scale-95"
             aria-label="Capture photo"
             title="Capture photo"
+            role="button"
+            tabIndex={0}
           >
             <svg
               viewBox="0 0 24 24"
@@ -392,13 +390,14 @@ export default function OfferModal({
             >
               <path d="M9 4h6l1.2 2H20a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3.8L9 4Zm3 4.5A4.5 4.5 0 1 0 12 17a4.5 4.5 0 0 0 0-9Zm0 2A2.5 2.5 0 1 1 12 15a2.5 2.5 0 0 1 0-5Z" />
             </svg>
-          </button>
-          <button
-            type="button"
-            onClick={() => documentInputRef.current?.click()}
+          </label>
+          <label
+            htmlFor={docInputId}
             className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 shadow-sm transition hover:bg-emerald-100 hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 active:scale-95"
             aria-label="Share document"
             title="Share document"
+            role="button"
+            tabIndex={0}
           >
             <svg
               viewBox="0 0 24 24"
@@ -408,7 +407,7 @@ export default function OfferModal({
             >
               <path d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Zm8 1.5V8h4.5" />
             </svg>
-          </button>
+          </label>
         </div>
         {file && (
           <p className="text-xs text-gray-600 mb-4">
