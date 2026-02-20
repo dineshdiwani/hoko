@@ -89,6 +89,32 @@ function appendUniqueMessage(prev, nextMsg) {
   return [...prev, nextMsg];
 }
 
+function dedupeMessagesForDisplay(items) {
+  const list = Array.isArray(items) ? items : [];
+  const deduped = [];
+
+  for (const msg of list) {
+    const existingIndex = deduped.findIndex((item) => isNearDuplicate(item, msg));
+    if (existingIndex < 0) {
+      deduped.push(msg);
+      continue;
+    }
+
+    const existing = deduped[existingIndex];
+    const preferIncoming =
+      (!existing?.id && !!msg?.id) ||
+      (existing?.status === "sending" && msg?.status !== "sending");
+    if (preferIncoming) {
+      deduped[existingIndex] = {
+        ...existing,
+        ...msg
+      };
+    }
+  }
+
+  return deduped;
+}
+
 export default function ChatModal({
   open,
   onClose,
@@ -116,9 +142,10 @@ export default function ChatModal({
   const peerUserId = sellerId ? String(sellerId) : null;
 
   const groupedMessages = useMemo(() => {
+    const normalized = dedupeMessagesForDisplay(messages);
     const groups = [];
     const groupMap = new Map();
-    for (const msg of messages) {
+    for (const msg of normalized) {
       const key = new Date(msg.createdAt).toDateString();
       if (!groupMap.has(key)) {
         const next = { key, label: formatDate(msg.createdAt), items: [] };
