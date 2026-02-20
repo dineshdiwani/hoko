@@ -68,6 +68,7 @@ export default function ChatModal({
   const fileInputRef = useRef(null);
   const recognitionRef = useRef(null);
   const messagesEndRef = useRef(null);
+  const sendingRef = useRef(false);
 
   const session = getSession();
   const currentUserId =
@@ -285,6 +286,9 @@ export default function ChatModal({
   function sendMessage() {
     const trimmed = String(text || "").trim();
     if (!trimmed) return;
+    if (!currentUserId || !peerUserId || !requirementId) return;
+    if (sendingRef.current) return;
+    sendingRef.current = true;
 
     const tempId = `tmp-${Date.now()}-${Math.random().toString(16).slice(2)}`;
     const pendingMessage = {
@@ -304,7 +308,7 @@ export default function ChatModal({
     setMessages((prev) => [...prev, pendingMessage]);
     setText("");
 
-    socket.emit(
+    socket.timeout(10000).emit(
       "send_message",
       {
         fromUserId: currentUserId,
@@ -313,7 +317,16 @@ export default function ChatModal({
         message: trimmed,
         tempId
       },
-      (result) => {
+      (err, result) => {
+        sendingRef.current = false;
+        if (err) {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.tempId === tempId ? { ...m, status: "failed" } : m
+            )
+          );
+          return;
+        }
         if (!result?.ok) {
           setMessages((prev) =>
             prev.map((m) =>
