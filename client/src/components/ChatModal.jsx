@@ -50,6 +50,45 @@ function toMessageShape(msg, currentUserId) {
   };
 }
 
+function isNearDuplicate(a, b) {
+  if (!a || !b) return false;
+  const sameId = a.id && b.id && String(a.id) === String(b.id);
+  if (sameId) return true;
+  const sameTempId =
+    a.tempId && b.tempId && String(a.tempId) === String(b.tempId);
+  if (sameTempId) return true;
+
+  const sameCore =
+    String(a.message || "").trim() === String(b.message || "").trim() &&
+    String(a.fromUserId || "") === String(b.fromUserId || "") &&
+    String(a.toUserId || "") === String(b.toUserId || "") &&
+    String(a.requirementId || "") === String(b.requirementId || "") &&
+    String(a.messageType || "text") === String(b.messageType || "text");
+  if (!sameCore) return false;
+
+  const timeA = new Date(a.createdAt || 0).getTime();
+  const timeB = new Date(b.createdAt || 0).getTime();
+  if (!Number.isFinite(timeA) || !Number.isFinite(timeB)) return false;
+  return Math.abs(timeA - timeB) <= 2000;
+}
+
+function appendUniqueMessage(prev, nextMsg) {
+  if (!nextMsg) return prev;
+  if (
+    (nextMsg.id && prev.some((m) => String(m.id) === String(nextMsg.id))) ||
+    (nextMsg.tempId &&
+      prev.some((m) => String(m.tempId) === String(nextMsg.tempId)))
+  ) {
+    return prev;
+  }
+
+  const last = prev[prev.length - 1];
+  if (isNearDuplicate(last, nextMsg)) {
+    return prev;
+  }
+  return [...prev, nextMsg];
+}
+
 export default function ChatModal({
   open,
   onClose,
@@ -267,10 +306,7 @@ export default function ChatModal({
         if (message) {
           setMessages((prev) => {
             const nextMsg = toMessageShape(message, currentUserId);
-            if (nextMsg.id && prev.some((m) => String(m.id) === String(nextMsg.id))) {
-              return prev;
-            }
-            return [...prev, nextMsg];
+            return appendUniqueMessage(prev, nextMsg);
           });
         }
       }
@@ -317,7 +353,7 @@ export default function ChatModal({
       status: "sending"
     };
 
-    setMessages((prev) => [...prev, pendingMessage]);
+    setMessages((prev) => appendUniqueMessage(prev, pendingMessage));
     setText("");
 
     const unlockTimer = setTimeout(() => {
@@ -346,9 +382,11 @@ export default function ChatModal({
         }
 
         const saved = toMessageShape(result.message || {}, currentUserId);
-        setMessages((prev) =>
-          prev.map((m) => {
+        setMessages((prev) => {
+          let matched = false;
+          const updated = prev.map((m) => {
             if (m.tempId !== tempId) return m;
+            matched = true;
             return {
               ...m,
               id: saved.id,
@@ -357,8 +395,14 @@ export default function ChatModal({
               isRead: saved.isRead,
               readAt: saved.readAt
             };
-          })
-        );
+          });
+          if (matched) return updated;
+          return appendUniqueMessage(updated, {
+            ...saved,
+            fromSelf: true,
+            status: saved.isRead ? "read" : "sent"
+          });
+        });
       }
     );
   }
