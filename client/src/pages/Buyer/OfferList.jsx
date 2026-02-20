@@ -406,6 +406,9 @@ export default function OfferList() {
         <div className="space-y-4">
         {offers.map((offer, index) => {
           const isBest = index === 0;
+          const offerDetails = String(
+            offer.message || offer.note || offer.details || offer.description || ""
+          ).trim();
 
           return (
             <div
@@ -457,6 +460,15 @@ export default function OfferList() {
                     : "New"}
                 </span>
               </div>
+
+              {offerDetails && (
+                <div className="mt-3 rounded-xl border border-[var(--ui-border)] bg-white p-3">
+                  <p className="text-xs font-semibold text-gray-600 mb-1">Details</p>
+                  <p className="text-sm text-[var(--ui-text)] whitespace-pre-line break-words">
+                    {offerDetails}
+                  </p>
+                </div>
+              )}
 
               {Array.isArray(offer.attachments) && offer.attachments.length > 0 && (
                 <div className="mt-3 rounded-xl border border-[var(--ui-border)] p-3">
