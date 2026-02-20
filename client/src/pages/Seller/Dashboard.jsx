@@ -601,6 +601,9 @@ export default function SellerDashboard() {
               const showAuctionForSeller = req.myOffer && isAuction;
               const lowestPrice = req.reverseAuction?.lowestPrice ?? req.currentLowestPrice ?? "-";
               const attachments = Array.isArray(req.attachments) ? req.attachments : [];
+              const requirementDetails = String(
+                req.details || req.description || ""
+              ).trim();
 
               return (
                 <div key={req._id} className="relative app-card">
@@ -622,6 +625,11 @@ export default function SellerDashboard() {
                       <p className="text-sm text-[var(--ui-muted)]">
                         Buyer from {req.city || "your city"} · {req.category}
                       </p>
+                      {requirementDetails && (
+                        <p className="text-sm text-[var(--ui-text)] mt-1 whitespace-pre-line">
+                          {requirementDetails}
+                        </p>
+                      )}
                       {attachments.length > 0 && (
                         <p className="text-xs text-indigo-700 mt-1">
                           Attachments: {attachments.length}

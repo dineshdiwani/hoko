@@ -20,6 +20,9 @@ export default function OfferModal({
   const makeBrand =
     requirement.makeBrand || requirement.brand || "";
   const typeModel = requirement.typeModel || "";
+  const requirementDetails = String(
+    requirement.details || requirement.description || ""
+  ).trim();
   const requirementId = requirement._id || requirement.id;
   if (!requirementId) return null;
 
@@ -187,6 +190,14 @@ export default function OfferModal({
               </span>
             )}
           </p>
+        )}
+        {requirementDetails && (
+          <div className="mb-3 p-3 rounded-lg border border-gray-200 bg-gray-50">
+            <p className="text-xs text-gray-500 mb-1">Buyer details</p>
+            <p className="text-sm text-gray-700 whitespace-pre-line">
+              {requirementDetails}
+            </p>
+          </div>
         )}
 
         {attachments.length > 0 && (
