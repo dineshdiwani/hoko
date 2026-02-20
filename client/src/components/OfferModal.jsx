@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import api from "../services/api";
 import {
   extractAttachmentFileName,
@@ -31,6 +31,8 @@ export default function OfferModal({
   const [deliveryTime, setDeliveryTime] = useState("");
   const [paymentTerms, setPaymentTerms] = useState("");
   const [file, setFile] = useState(null);
+  const cameraInputRef = useRef(null);
+  const documentInputRef = useRef(null);
   const [existingOffer, setExistingOffer] = useState(false);
   const [lastUpdatedAt, setLastUpdatedAt] = useState("");
   const attachments = Array.isArray(requirement.attachments)
@@ -111,6 +113,20 @@ export default function OfferModal({
 
   function markDeclined() {
     // Server-side handling can be added when needed
+  }
+
+  function handleAttachmentPick(e) {
+    const fileObj = e.target.files?.[0];
+    if (!fileObj) return;
+    const reader = new FileReader();
+    reader.onload = () =>
+      setFile({
+        name: fileObj.name,
+        data: reader.result
+      });
+    reader.readAsDataURL(fileObj);
+    // Allow selecting the same file again in the next pick.
+    e.target.value = "";
   }
 
   const submitOffer = async () => {
@@ -283,20 +299,57 @@ export default function OfferModal({
         />
 
         <input
+          ref={cameraInputRef}
           type="file"
-          onChange={(e) => {
-            const fileObj = e.target.files[0];
-            if (!fileObj) return;
-            const reader = new FileReader();
-            reader.onload = () =>
-              setFile({
-                name: fileObj.name,
-                data: reader.result,
-              });
-            reader.readAsDataURL(fileObj);
-          }}
-          className="mb-4"
+          accept="image/*"
+          capture="environment"
+          onChange={handleAttachmentPick}
+          className="hidden"
         />
+        <input
+          ref={documentInputRef}
+          type="file"
+          accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/jpeg,image/png"
+          onChange={handleAttachmentPick}
+          className="hidden"
+        />
+        <div className="mb-4 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => cameraInputRef.current?.click()}
+            className="inline-flex items-center justify-center gap-2 border rounded-xl py-2 text-sm"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              className="w-4 h-4"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path d="M9 4h6l1.2 2H20a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3.8L9 4Zm3 4.5A4.5 4.5 0 1 0 12 17a4.5 4.5 0 0 0 0-9Zm0 2A2.5 2.5 0 1 1 12 15a2.5 2.5 0 0 1 0-5Z" />
+            </svg>
+            Capture Photo
+          </button>
+          <button
+            type="button"
+            onClick={() => documentInputRef.current?.click()}
+            className="inline-flex items-center justify-center gap-2 border rounded-xl py-2 text-sm"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              className="w-4 h-4"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Zm8 1.5V8h4.5" />
+            </svg>
+            Share Doc
+          </button>
+        </div>
+        {file && (
+          <p className="text-xs text-gray-600 mb-4">
+            Selected attachment: {file.name}
+          </p>
+        )}
 
         <div className="hidden md:flex gap-3">
           <button
