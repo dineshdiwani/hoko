@@ -163,6 +163,14 @@ export default function OfferModal({
     setFile(fileObj);
   }
 
+  function removeOfferAttachment(index) {
+    setOfferAttachments((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function clearSelectedAttachment() {
+    setFile(null);
+  }
+
   function handleAttachmentPick(e) {
     const fileObj = e.target.files?.[0];
     saveAttachmentFile(fileObj);
@@ -495,9 +503,16 @@ export default function OfferModal({
           </label>
         </div>
         {file && (
-          <p className="text-xs text-gray-600 mb-4">
-            Selected attachment: {file.name}
-          </p>
+          <div className="mb-4 flex items-center justify-between text-sm bg-gray-50 border rounded-lg px-3 py-2">
+            <span className="truncate">Selected attachment: {file.name}</span>
+            <button
+              type="button"
+              onClick={clearSelectedAttachment}
+              className="text-red-600"
+            >
+              Remove
+            </button>
+          </div>
         )}
         {offerAttachments.length > 0 && (
           <div className="mb-4">
@@ -509,20 +524,29 @@ export default function OfferModal({
                 return (
                   <div
                     key={`${name}-${index}`}
-                    className="flex items-center gap-3"
+                    className="flex items-center justify-between gap-3 text-sm bg-gray-50 border rounded-lg px-3 py-2"
                   >
-                    {isImage(attachment) && (
-                      <span className="w-10 h-10 rounded-lg border bg-gray-50 inline-flex items-center justify-center text-gray-500 text-[10px]">
-                        IMG
-                      </span>
-                    )}
+                    <div className="flex items-center gap-3 min-w-0">
+                      {isImage(attachment) && (
+                        <span className="w-10 h-10 rounded-lg border bg-gray-50 inline-flex items-center justify-center text-gray-500 text-[10px]">
+                          IMG
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => openOfferAttachment(attachment, index)}
+                        className="text-sm text-indigo-600 hover:underline break-all text-left"
+                        title={filename || "Attachment path missing"}
+                      >
+                        {name}
+                      </button>
+                    </div>
                     <button
                       type="button"
-                      onClick={() => openOfferAttachment(attachment, index)}
-                      className="text-sm text-indigo-600 hover:underline break-all"
-                      title={filename || "Attachment path missing"}
+                      onClick={() => removeOfferAttachment(index)}
+                      className="text-red-600 shrink-0"
                     >
-                      {name}
+                      Remove
                     </button>
                   </div>
                 );
