@@ -58,23 +58,51 @@ export default function SellerDashboard() {
   };
   const smartTabs = [
     { key: "all", label: "All" },
-    { key: "today", label: "New Today" },
-    { key: "offers", label: "My Offers" },
+    { key: "week", label: "This Week" },
+    { key: "month", label: "This Month" },
+    { key: "year", label: "This Year" },
     { key: "auctions", label: "Auctions" }
   ];
 
-  const isToday = (value) => {
+  const isThisWeek = (value) => {
     if (!value) return false;
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return false;
-    return date.toDateString() === new Date().toDateString();
+    const now = new Date();
+    const start = new Date(now);
+    const day = start.getDay();
+    const diffToMonday = day === 0 ? -6 : 1 - day;
+    start.setDate(start.getDate() + diffToMonday);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 7);
+    return date >= start && date < end;
+  };
+
+  const isThisMonth = (value) => {
+    if (!value) return false;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return false;
+    const now = new Date();
+    return (
+      date.getFullYear() === now.getFullYear() &&
+      date.getMonth() === now.getMonth()
+    );
+  };
+
+  const isThisYear = (value) => {
+    if (!value) return false;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return false;
+    return date.getFullYear() === new Date().getFullYear();
   };
 
   const matchesSmartTab = (req) => {
     if (activeSmartTab === "all") return true;
     const createdAt = req.createdAt || req.created_at;
-    if (activeSmartTab === "today") return isToday(createdAt);
-    if (activeSmartTab === "offers") return !!req.myOffer;
+    if (activeSmartTab === "week") return isThisWeek(createdAt);
+    if (activeSmartTab === "month") return isThisMonth(createdAt);
+    if (activeSmartTab === "year") return isThisYear(createdAt);
     if (activeSmartTab === "auctions") {
       return req.myOffer && req.reverseAuction?.active === true;
     }
@@ -633,8 +661,8 @@ export default function SellerDashboard() {
             visibleRequirements.length > 0 &&
             filteredRequirements.length === 0 && (
               <div className="text-center py-12 text-gray-600">
-                {activeSmartTab === "offers"
-                  ? "No submitted offers yet."
+                {activeSmartTab === "auctions"
+                  ? "No live auctions right now."
                   : "No posts match the selected filters."}
               </div>
             )}
