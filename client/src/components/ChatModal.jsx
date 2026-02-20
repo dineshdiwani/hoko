@@ -68,6 +68,8 @@ export default function ChatModal({
   const fileInputRef = useRef(null);
   const recognitionRef = useRef(null);
   const messagesEndRef = useRef(null);
+  const sendInFlightRef = useRef(false);
+  const lastSendRef = useRef({ key: "", at: 0 });
 
   const session = getSession();
   const currentUserId =
@@ -285,6 +287,20 @@ export default function ChatModal({
   function sendMessage() {
     const trimmed = String(text || "").trim();
     if (!trimmed) return;
+    if (!currentUserId || !peerUserId || !requirementId) return;
+
+    const now = Date.now();
+    const sendKey = `${currentUserId}:${peerUserId}:${requirementId}:${trimmed}`;
+    if (sendInFlightRef.current) return;
+    if (
+      lastSendRef.current.key === sendKey &&
+      now - Number(lastSendRef.current.at || 0) < 1200
+    ) {
+      return;
+    }
+
+    sendInFlightRef.current = true;
+    lastSendRef.current = { key: sendKey, at: now };
 
     const tempId = `tmp-${Date.now()}-${Math.random().toString(16).slice(2)}`;
     const pendingMessage = {
@@ -304,6 +320,10 @@ export default function ChatModal({
     setMessages((prev) => [...prev, pendingMessage]);
     setText("");
 
+    const unlockTimer = setTimeout(() => {
+      sendInFlightRef.current = false;
+    }, 8000);
+
     socket.emit(
       "send_message",
       {
@@ -314,6 +334,8 @@ export default function ChatModal({
         tempId
       },
       (result) => {
+        clearTimeout(unlockTimer);
+        sendInFlightRef.current = false;
         if (!result?.ok) {
           setMessages((prev) =>
             prev.map((m) =>
