@@ -18,6 +18,16 @@ export default function UserLogin({ role = "buyer" }) {
     "You are responsible for complying with all applicable laws, taxes, and regulations related to your transactions.",
     "hoko may update these terms at any time. Continued use of the platform indicates acceptance of the updated terms."
   ].join("\n\n");
+  const defaultPrivacyPolicyContent = [
+    "We collect account, profile, and usage information needed to provide the hoko marketplace.",
+    "Buyer and seller contact details and posted requirements/offers are shared as required to enable transactions.",
+    "You are responsible for the information you publish and share on the platform.",
+    "We use data to operate the service, improve security, prevent fraud/abuse, and comply with legal obligations.",
+    "We may use trusted service providers for hosting, analytics, communication, and support operations.",
+    "We do not sell personal information. We may disclose data when required by law or valid legal process.",
+    "You can request correction or deletion of eligible personal data by contacting support.",
+    "By continuing to use hoko, you acknowledge this Privacy Policy and any future updates."
+  ].join("\n\n");
 
   const [step, setStep] = useState("LOGIN");
   const [authMode, setAuthMode] = useState("LOGIN");
@@ -28,7 +38,8 @@ export default function UserLogin({ role = "buyer" }) {
   const [city, setCity] = useState("");
   const [loading, setLoading] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
-  const [showTerms, setShowTerms] = useState(false);
+  const [showLegalModal, setShowLegalModal] = useState(false);
+  const [legalModalType, setLegalModalType] = useState("terms");
   const [submitted, setSubmitted] = useState(false);
   const [showForgot, setShowForgot] = useState(false);
   const [forgotStep, setForgotStep] = useState("REQUEST");
@@ -40,6 +51,7 @@ export default function UserLogin({ role = "buyer" }) {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [termsContent, setTermsContent] = useState(defaultTermsContent);
+  const [privacyPolicyContent, setPrivacyPolicyContent] = useState(defaultPrivacyPolicyContent);
   const [cities, setCities] = useState([
     "Mumbai",
     "Delhi",
@@ -83,6 +95,12 @@ export default function UserLogin({ role = "buyer" }) {
         if (terms) {
           setTermsContent(terms);
         }
+        const privacy = String(
+          data?.privacyPolicy?.content || ""
+        ).trim();
+        if (privacy) {
+          setPrivacyPolicyContent(privacy);
+        }
       })
       .catch(() => {});
   }, []);
@@ -115,7 +133,7 @@ export default function UserLogin({ role = "buyer" }) {
     }
 
     if (!acceptedTerms) {
-      alert("Please accept the Terms & Conditions");
+      alert("Please accept the Terms & Conditions and Privacy Policy");
       return;
     }
 
@@ -196,7 +214,7 @@ export default function UserLogin({ role = "buyer" }) {
   function verifyOtp() {
     setSubmitted(true);
     if (!acceptedTerms) {
-      alert("Please accept the Terms & Conditions");
+      alert("Please accept the Terms & Conditions and Privacy Policy");
       return;
     }
     if (String(otp).trim().length !== 6) {
@@ -354,7 +372,7 @@ export default function UserLogin({ role = "buyer" }) {
     }
 
     if (!hasAcceptedTerms) {
-      alert("Please accept the Terms & Conditions");
+      alert("Please accept the Terms & Conditions and Privacy Policy");
       return;
     }
 
@@ -563,9 +581,23 @@ export default function UserLogin({ role = "buyer" }) {
                     <button
                       type="button"
                       className="bg-transparent shadow-none text-amber-700 hover:underline"
-                      onClick={() => setShowTerms(true)}
+                      onClick={() => {
+                        setLegalModalType("terms");
+                        setShowLegalModal(true);
+                      }}
                     >
                       Terms & Conditions
+                    </button>
+                    {" "}and{" "}
+                    <button
+                      type="button"
+                      className="bg-transparent shadow-none text-amber-700 hover:underline"
+                      onClick={() => {
+                        setLegalModalType("privacy");
+                        setShowLegalModal(true);
+                      }}
+                    >
+                      Privacy Policy
                     </button>
                   </span>
                 </div>
@@ -591,14 +623,14 @@ export default function UserLogin({ role = "buyer" }) {
                   disabled={!city || !acceptedTerms}
                   onDisabledClick={() => {
                     if (!city && !acceptedTerms) {
-                      alert("Please select city and accept Terms & Conditions first.");
+                      alert("Please select city and accept Terms & Conditions and Privacy Policy first.");
                       return;
                     }
                     if (!city) {
                       alert("Please select your city first.");
                       return;
                     }
-                    alert("Please accept the Terms & Conditions first.");
+                    alert("Please accept the Terms & Conditions and Privacy Policy first.");
                   }}
                 />
 
@@ -677,27 +709,33 @@ export default function UserLogin({ role = "buyer" }) {
         </div>
       </div>
 
-      {showTerms && (
+      {showLegalModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white w-full max-w-2xl rounded-2xl shadow-xl p-6 max-h-[80vh] overflow-auto">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-bold">
-                Terms & Conditions (Buyers and Sellers)
+                {legalModalType === "privacy"
+                  ? "Privacy Policy"
+                  : "Terms & Conditions (Buyers and Sellers)"}
               </h2>
               <button
-                onClick={() => setShowTerms(false)}
+                onClick={() => setShowLegalModal(false)}
                 className="text-gray-500 hover:text-gray-800"
               >
                 Close
               </button>
             </div>
             <div className="space-y-3 text-sm text-gray-700">
-              {String(termsContent || "")
+              {String(
+                legalModalType === "privacy"
+                  ? privacyPolicyContent
+                  : termsContent
+              )
                 .split(/\n+/)
                 .map((line) => line.trim())
                 .filter(Boolean)
                 .map((line, index) => (
-                  <p key={`term-${index}`}>{line}</p>
+                  <p key={`legal-${index}`}>{line}</p>
                 ))}
             </div>
           </div>
