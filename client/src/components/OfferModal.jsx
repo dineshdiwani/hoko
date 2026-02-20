@@ -139,6 +139,28 @@ export default function OfferModal({
     setFile(fileObj);
   }
 
+  async function openOfferAttachment(attachment) {
+    const newTab = window.open("", "_blank", "noopener,noreferrer");
+    try {
+      const filename = extractAttachmentFileName(attachment);
+      if (!filename) throw new Error("Invalid attachment path");
+      const res = await api.get(
+        `/seller/offer-attachments/${encodeURIComponent(filename)}`,
+        { responseType: "blob" }
+      );
+      const blobUrl = window.URL.createObjectURL(res.data);
+      if (newTab) {
+        newTab.location.href = blobUrl;
+      } else {
+        window.open(blobUrl, "_blank", "noopener,noreferrer");
+      }
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 10000);
+    } catch {
+      if (newTab) newTab.close();
+      alert("Unable to open attachment.");
+    }
+  }
+
   function handleAttachmentPick(e) {
     const fileObj = e.target.files?.[0];
     saveAttachmentFile(fileObj);
@@ -474,6 +496,39 @@ export default function OfferModal({
           <p className="text-xs text-gray-600 mb-4">
             Selected attachment: {file.name}
           </p>
+        )}
+        {offerAttachments.length > 0 && (
+          <div className="mb-4">
+            <p className="text-sm font-medium mb-2">
+              Your Offer Attachments
+            </p>
+            <div className="space-y-2">
+              {offerAttachments.map((attachment, index) => {
+                const filename = extractAttachmentFileName(attachment, index);
+                const name = getAttachmentDisplayName(attachment, index);
+                return (
+                  <div
+                    key={`${name}-${index}`}
+                    className="flex items-center gap-3"
+                  >
+                    {isImageAttachment(attachment, index) && (
+                      <span className="w-10 h-10 rounded border bg-gray-50 inline-flex items-center justify-center text-gray-500 text-[10px]">
+                        IMG
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => openOfferAttachment(attachment)}
+                      className="text-xs text-indigo-700 hover:underline break-all"
+                      title={filename || "Attachment path missing"}
+                    >
+                      {name}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         )}
 
         <div className="hidden md:flex gap-3">
