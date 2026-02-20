@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getAttachmentTypeMeta } from "../utils/attachments";
 
 export default function ShareDocModal({ open, onClose }) {
   const [file, setFile] = useState(null);
@@ -30,7 +31,20 @@ export default function ShareDocModal({ open, onClose }) {
 
         {file && (
           <p className="text-sm text-gray-600 mb-3">
-            Selected: <strong>{file.name}</strong>
+            Selected:{" "}
+            {(() => {
+              const typeMeta = getAttachmentTypeMeta(file);
+              return (
+                <strong className="inline-flex items-center gap-2">
+                  <span
+                    className={`inline-flex items-center justify-center rounded-md border px-1.5 py-0.5 text-[10px] font-semibold ${typeMeta.className}`}
+                  >
+                    {typeMeta.label}
+                  </span>
+                  {file.name}
+                </strong>
+              );
+            })()}
           </p>
         )}
 

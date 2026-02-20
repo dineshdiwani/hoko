@@ -3,6 +3,7 @@ import api from "../services/api";
 import {
   extractAttachmentFileName,
   getAttachmentDisplayName,
+  getAttachmentTypeMeta,
   isImageAttachment
 } from "../utils/attachments";
 
@@ -387,6 +388,7 @@ export default function OfferModal({
               {attachments.map((attachment, index) => {
                 const filename = extractAttachmentFileName(attachment);
                 const name = getDisplayName(attachment, index);
+                const typeMeta = getAttachmentTypeMeta(attachment, index);
                 return (
                   <div
                     key={`${name}-${index}`}
@@ -400,9 +402,14 @@ export default function OfferModal({
                     <button
                       type="button"
                       onClick={() => openAttachment(attachment)}
-                      className="text-sm text-indigo-600 hover:underline break-all"
+                      className="text-sm text-indigo-600 hover:underline break-all inline-flex items-center gap-2"
                       title={filename || "Attachment path missing"}
                     >
+                      <span
+                        className={`inline-flex items-center justify-center rounded-md border px-1.5 py-0.5 text-[10px] font-semibold ${typeMeta.className}`}
+                      >
+                        {typeMeta.label}
+                      </span>
                       {name}
                     </button>
                   </div>
@@ -504,7 +511,19 @@ export default function OfferModal({
         </div>
         {file && (
           <div className="mb-4 flex items-center justify-between text-sm bg-gray-50 border rounded-lg px-3 py-2">
-            <span className="truncate">Selected attachment: {file.name}</span>
+            {(() => {
+              const typeMeta = getAttachmentTypeMeta(file);
+              return (
+                <span className="truncate inline-flex items-center gap-2">
+                  <span
+                    className={`inline-flex items-center justify-center rounded-md border px-1.5 py-0.5 text-[10px] font-semibold ${typeMeta.className}`}
+                  >
+                    {typeMeta.label}
+                  </span>
+                  <span>Selected attachment: {file.name}</span>
+                </span>
+              );
+            })()}
             <button
               type="button"
               onClick={clearSelectedAttachment}
@@ -521,6 +540,7 @@ export default function OfferModal({
               {offerAttachments.map((attachment, index) => {
                 const filename = extractAttachmentFileName(attachment, index);
                 const name = getDisplayName(attachment, index);
+                const typeMeta = getAttachmentTypeMeta(attachment, index);
                 return (
                   <div
                     key={`${name}-${index}`}
@@ -535,9 +555,14 @@ export default function OfferModal({
                       <button
                         type="button"
                         onClick={() => openOfferAttachment(attachment, index)}
-                        className="text-sm text-indigo-600 hover:underline break-all text-left"
+                        className="text-sm text-indigo-600 hover:underline break-all text-left inline-flex items-center gap-2"
                         title={filename || "Attachment path missing"}
                       >
+                        <span
+                          className={`inline-flex items-center justify-center rounded-md border px-1.5 py-0.5 text-[10px] font-semibold ${typeMeta.className}`}
+                        >
+                          {typeMeta.label}
+                        </span>
                         {name}
                       </button>
                     </div>

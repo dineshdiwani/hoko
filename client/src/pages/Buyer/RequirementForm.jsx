@@ -2,7 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { fetchOptions } from "../../services/options";
 import api from "../../services/api";
-import { getAttachmentDisplayName } from "../../utils/attachments";
+import {
+  getAttachmentDisplayName,
+  getAttachmentTypeMeta
+} from "../../utils/attachments";
 
 const LAST_REQUIREMENT_PREFS_KEY = "buyer_last_requirement_prefs";
 
@@ -679,21 +682,31 @@ export default function RequirementForm() {
           {existingAttachments.length > 0 && (
             <div className="mt-3 space-y-2">
               {existingAttachments.map((fileUrl, index) => (
-                <div
-                  key={`${String(fileUrl)}-${index}`}
-                  className="flex items-center justify-between text-sm bg-gray-50 border rounded-lg px-3 py-2"
-                >
-                  <span className="truncate">
-                    {getDisplayName(fileUrl, index)}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => removeExistingAttachment(index)}
-                    className="text-red-600"
-                  >
-                    Remove
-                  </button>
-                </div>
+                (() => {
+                  const typeMeta = getAttachmentTypeMeta(fileUrl, index);
+                  return (
+                    <div
+                      key={`${String(fileUrl)}-${index}`}
+                      className="flex items-center justify-between text-sm bg-gray-50 border rounded-lg px-3 py-2"
+                    >
+                      <span className="truncate inline-flex items-center gap-2">
+                        <span
+                          className={`inline-flex items-center justify-center rounded-md border px-1.5 py-0.5 text-[10px] font-semibold ${typeMeta.className}`}
+                        >
+                          {typeMeta.label}
+                        </span>
+                        {getDisplayName(fileUrl, index)}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => removeExistingAttachment(index)}
+                        className="text-red-600"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  );
+                })()
               ))}
             </div>
           )}
@@ -701,21 +714,31 @@ export default function RequirementForm() {
           {attachments.length > 0 && (
             <div className="mt-3 space-y-2">
               {attachments.map((file, index) => (
-                <div
-                  key={`${file.name}-${index}`}
-                  className="flex items-center justify-between text-sm bg-gray-50 border rounded-lg px-3 py-2"
-                >
-                  <span className="truncate">
-                    {file.name}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => removeAttachment(index)}
-                    className="text-red-600"
-                  >
-                    Remove
-                  </button>
-                </div>
+                (() => {
+                  const typeMeta = getAttachmentTypeMeta(file, index);
+                  return (
+                    <div
+                      key={`${file.name}-${index}`}
+                      className="flex items-center justify-between text-sm bg-gray-50 border rounded-lg px-3 py-2"
+                    >
+                      <span className="truncate inline-flex items-center gap-2">
+                        <span
+                          className={`inline-flex items-center justify-center rounded-md border px-1.5 py-0.5 text-[10px] font-semibold ${typeMeta.className}`}
+                        >
+                          {typeMeta.label}
+                        </span>
+                        {file.name}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => removeAttachment(index)}
+                        className="text-red-600"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  );
+                })()
               ))}
             </div>
           )}

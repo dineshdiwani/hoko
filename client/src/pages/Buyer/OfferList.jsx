@@ -8,6 +8,7 @@ import ReportModal from "../../components/ReportModal";
 import {
   extractAttachmentFileName,
   getAttachmentDisplayName,
+  getAttachmentTypeMeta,
   isImageAttachment
 } from "../../utils/attachments";
 
@@ -433,7 +434,7 @@ export default function OfferList() {
                       e.stopPropagation();
                       openSellerDetails(offer.sellerId);
                     }}
-                    className="text-sm text-indigo-700 hover:underline"
+                    className="text-sm font-bold text-indigo-700 hover:underline"
                   >
                     {offer.sellerFirm}
                   </button>
@@ -483,6 +484,10 @@ export default function OfferList() {
                         attachment,
                         attachmentIndex
                       );
+                      const typeMeta = getAttachmentTypeMeta(
+                        attachment,
+                        attachmentIndex
+                      );
                       return (
                         <div
                           key={`${displayName}-${attachmentIndex}`}
@@ -499,9 +504,14 @@ export default function OfferList() {
                               e.stopPropagation();
                               openOfferAttachment(attachment, attachmentIndex);
                             }}
-                            className="text-sm text-indigo-600 hover:underline break-all"
+                            className="text-sm text-indigo-600 hover:underline break-all inline-flex items-center gap-2"
                             title={filename || "Attachment path missing"}
                           >
+                            <span
+                              className={`inline-flex items-center justify-center rounded-md border px-1.5 py-0.5 text-[10px] font-semibold ${typeMeta.className}`}
+                            >
+                              {typeMeta.label}
+                            </span>
                             {displayName}
                           </button>
                         </div>

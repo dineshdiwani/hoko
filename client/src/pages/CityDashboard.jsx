@@ -4,6 +4,7 @@ import { getSession } from "../services/storage";
 import {
   extractAttachmentFileName,
   getAttachmentDisplayName,
+  getAttachmentTypeMeta,
   isImageAttachment
 } from "../utils/attachments";
 
@@ -364,6 +365,7 @@ export default function CityDashboard({
                       {attachments.map((attachment, index) => {
                         const filename = extractAttachmentFileName(attachment);
                         const name = getDisplayName(attachment, index);
+                        const typeMeta = getAttachmentTypeMeta(attachment, index);
                         return (
                           <div
                             key={`${name}-${index}`}
@@ -377,9 +379,14 @@ export default function CityDashboard({
                             <button
                               type="button"
                               onClick={() => openAttachment(attachment)}
-                              className="text-xs text-amber-700 hover:underline break-all"
+                              className="text-xs text-amber-700 hover:underline break-all inline-flex items-center gap-2"
                               title={filename || "Attachment path missing"}
                             >
+                              <span
+                                className={`inline-flex items-center justify-center rounded-md border px-1.5 py-0.5 text-[10px] font-semibold ${typeMeta.className}`}
+                              >
+                                {typeMeta.label}
+                              </span>
                               {name}
                             </button>
                           </div>

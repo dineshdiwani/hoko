@@ -12,6 +12,11 @@ import ReviewModal from "../../components/ReviewModal";
 import ReportModal from "../../components/ReportModal";
 import ChatModal from "../../components/ChatModal";
 import { confirmDialog } from "../../utils/dialogs";
+import {
+  extractAttachmentFileName,
+  getAttachmentDisplayName,
+  getAttachmentTypeMeta
+} from "../../utils/attachments";
 
 export default function SellerDashboard() {
   const navigate = useNavigate();
@@ -360,6 +365,27 @@ export default function SellerDashboard() {
       return next;
     });
     setChatOpen(true);
+  }
+
+  async function openRequirementAttachment(attachment, index = 0) {
+    const newTab = window.open("", "_blank", "noopener,noreferrer");
+    try {
+      const filename = extractAttachmentFileName(attachment, index);
+      if (!filename) throw new Error("Invalid attachment path");
+      const res = await api.get(`/buyer/attachments/${encodeURIComponent(filename)}`, {
+        responseType: "blob"
+      });
+      const blobUrl = window.URL.createObjectURL(res.data);
+      if (newTab) {
+        newTab.location.href = blobUrl;
+      } else {
+        window.open(blobUrl, "_blank", "noopener,noreferrer");
+      }
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 10000);
+    } catch {
+      if (newTab) newTab.close();
+      alert("Unable to open attachment.");
+    }
   }
 
   async function openRequirementWithHighlights(requirementId, changedFields = []) {
@@ -712,9 +738,32 @@ export default function SellerDashboard() {
                         </p>
                       )}
                       {attachments.length > 0 && (
-                        <p className="text-xs text-indigo-700 mt-1">
-                          Attachments: {attachments.length}
-                        </p>
+                        <div className="mt-2 space-y-1">
+                          <p className="text-xs font-medium text-indigo-700">
+                            Attachments
+                          </p>
+                          {attachments.map((attachment, index) => {
+                            const filename = extractAttachmentFileName(attachment, index);
+                            const displayName = getAttachmentDisplayName(attachment, index);
+                            const typeMeta = getAttachmentTypeMeta(attachment, index);
+                            return (
+                              <button
+                                key={`${displayName}-${index}`}
+                                type="button"
+                                onClick={() => openRequirementAttachment(attachment, index)}
+                                className="text-xs text-indigo-700 hover:underline break-all inline-flex items-center gap-2"
+                                title={filename || "Attachment path missing"}
+                              >
+                                <span
+                                  className={`inline-flex items-center justify-center rounded-md border px-1.5 py-0.5 text-[10px] font-semibold ${typeMeta.className}`}
+                                >
+                                  {typeMeta.label}
+                                </span>
+                                {displayName}
+                              </button>
+                            );
+                          })}
+                        </div>
                       )}
                     </div>
 
