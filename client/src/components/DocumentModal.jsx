@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
 import api from "../services/api";
+import {
+  getAttachmentDisplayName,
+  getAttachmentTypeMeta
+} from "../utils/attachments";
 
 export default function DocumentModal({
   open,
@@ -51,6 +55,8 @@ export default function DocumentModal({
         ) : (
           <ul className="space-y-2">
             {docs.map((filename, i) => {
+              const typeMeta = getAttachmentTypeMeta(filename, i);
+              const displayName = getAttachmentDisplayName(filename, i);
               return (
                 <li
                   key={`${filename}-${i}`}
@@ -59,9 +65,14 @@ export default function DocumentModal({
                   <button
                     type="button"
                     onClick={() => openFile(filename)}
-                    className="text-blue-600 underline text-sm break-all"
+                    className="text-blue-600 underline text-sm break-all inline-flex items-center gap-2"
                   >
-                    {filename}
+                    <span
+                      className={`inline-flex items-center justify-center rounded-md border px-1.5 py-0.5 text-[10px] font-semibold ${typeMeta.className}`}
+                    >
+                      {typeMeta.label}
+                    </span>
+                    {displayName}
                   </button>
                 </li>
               );

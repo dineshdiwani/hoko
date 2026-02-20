@@ -2,6 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import socket from "../services/socket";
 import api from "../services/api";
 import { getSession } from "../services/storage";
+import {
+  getAttachmentDisplayName,
+  getAttachmentTypeMeta
+} from "../utils/attachments";
 
 function formatTime(value) {
   if (!value) return "";
@@ -507,15 +511,36 @@ export default function ChatModal({
                     }`}
                   >
                     {m.messageType === "file" ? (
-                      <button
-                        type="button"
-                        onClick={() => openAttachment(m)}
-                        className={`text-left underline underline-offset-2 break-all ${
-                          m.fromSelf ? "text-white" : "text-blue-700"
-                        }`}
-                      >
-                        {(m.attachment?.originalName || m.message || "Attachment")}
-                      </button>
+                      (() => {
+                        const displayName = getAttachmentDisplayName(
+                          m.attachment || m.message,
+                          0
+                        );
+                        const typeMeta = getAttachmentTypeMeta(
+                          m.attachment || m.message,
+                          0
+                        );
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => openAttachment(m)}
+                            className={`text-left underline underline-offset-2 break-all inline-flex items-center gap-2 ${
+                              m.fromSelf ? "text-white" : "text-blue-700"
+                            }`}
+                          >
+                            <span
+                              className={`inline-flex items-center justify-center rounded-md border px-1.5 py-0.5 text-[10px] font-semibold ${
+                                m.fromSelf
+                                  ? "border-white/40 bg-white/20 text-white"
+                                  : typeMeta.className
+                              }`}
+                            >
+                              {typeMeta.label}
+                            </span>
+                            {displayName}
+                          </button>
+                        );
+                      })()
                     ) : (
                       <div className="whitespace-pre-wrap break-words">{m.message}</div>
                     )}
