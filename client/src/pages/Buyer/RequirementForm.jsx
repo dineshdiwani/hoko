@@ -1,8 +1,38 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { fetchOptions } from "../../services/options";
 import api from "../../services/api";
 import { getAttachmentDisplayName } from "../../utils/attachments";
+
+const LAST_REQUIREMENT_PREFS_KEY = "buyer_last_requirement_prefs";
+
+function readLastRequirementPrefs() {
+  try {
+    const parsed = JSON.parse(
+      localStorage.getItem(LAST_REQUIREMENT_PREFS_KEY) || "{}"
+    );
+    return {
+      city: String(parsed.city || "").trim(),
+      category: String(parsed.category || "").trim(),
+      unit: String(parsed.unit || "").trim()
+    };
+  } catch {
+    return { city: "", category: "", unit: "" };
+  }
+}
+
+function saveLastRequirementPrefs({ city, category, unit }) {
+  try {
+    localStorage.setItem(
+      LAST_REQUIREMENT_PREFS_KEY,
+      JSON.stringify({
+        city: String(city || "").trim(),
+        category: String(category || "").trim(),
+        unit: String(unit || "").trim()
+      })
+    );
+  } catch {}
+}
 
 export default function RequirementForm() {
   const navigate = useNavigate();
@@ -49,6 +79,16 @@ export default function RequirementForm() {
     "litre",
     "service"
   ]);
+  const categoryOptions = useMemo(() => {
+    const currentCategory = String(form.category || "").trim();
+    if (!currentCategory) return categories;
+    const exists = categories.some(
+      (categoryName) =>
+        String(categoryName || "").toLowerCase() ===
+        currentCategory.toLowerCase()
+    );
+    return exists ? categories : [currentCategory, ...categories];
+  }, [categories, form.category]);
 
   useEffect(() => {
     fetchOptions()
@@ -143,11 +183,16 @@ export default function RequirementForm() {
         localStorage.getItem("hoko_settings") || "{}"
       );
       const buyerPrefs = stored?.buyer || {};
+      const lastPrefs = readLastRequirementPrefs();
       setForm((prev) => ({
         ...prev,
-        city: prev.city || buyerPrefs.defaultCity || "",
-        category: prev.category || buyerPrefs.defaultCategory || "",
-        unit: prev.unit || buyerPrefs.defaultUnit || ""
+        city: prev.city || lastPrefs.city || buyerPrefs.defaultCity || "",
+        category:
+          prev.category ||
+          lastPrefs.category ||
+          buyerPrefs.defaultCategory ||
+          "",
+        unit: prev.unit || lastPrefs.unit || buyerPrefs.defaultUnit || ""
       }));
     } catch {}
   }, []);
@@ -395,6 +440,11 @@ export default function RequirementForm() {
       } else {
         await api.post("/buyer/requirement", payload);
       }
+      saveLastRequirementPrefs({
+        city: payload.city,
+        category: payload.category,
+        unit: payload.type
+      });
 
       alert(
         isEditMode
@@ -504,7 +554,7 @@ export default function RequirementForm() {
           required
         >
           <option value="">Select Category *</option>
-          {categories.map((c) => (
+          {categoryOptions.map((c) => (
             <option key={c} value={c}>
               {c.charAt(0).toUpperCase() + c.slice(1)}
             </option>
