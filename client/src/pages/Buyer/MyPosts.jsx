@@ -17,6 +17,7 @@ export default function MyPosts() {
   const [sellerLoading, setSellerLoading] = useState(false);
   const [sellerDetails, setSellerDetails] = useState(null);
   const [auctionLoadingById, setAuctionLoadingById] = useState({});
+  const [auctionHintReqId, setAuctionHintReqId] = useState("");
   const modalRef = useRef(null);
 
   async function openAttachment(attachment) {
@@ -207,6 +208,8 @@ export default function MyPosts() {
         const auctionActive = req.reverseAuction?.active === true;
         const reqId = String(req._id || req.id || "");
         const isAuctionBusy = Boolean(auctionLoadingById[reqId]);
+        const showDisabledInvokeHint =
+          !auctionActive && offerCount < 3;
         const statusText = auctionLive
           ? auctionActive
             ? "AUCTION LIVE"
@@ -359,38 +362,65 @@ export default function MyPosts() {
                   ? `${offerCount} offer received`
                   : "No offers received yet"}
               </span>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleReverseAuction(req);
+              <div
+                className="relative inline-flex"
+                onMouseEnter={() => {
+                  if (showDisabledInvokeHint) {
+                    setAuctionHintReqId(reqId);
+                  }
                 }}
-                disabled={
-                  isAuctionBusy ||
-                  (!auctionActive && offerCount < 3)
-                }
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-                  auctionActive
-                    ? "bg-red-600 text-white"
-                    : offerCount >= 3
-                    ? "btn-primary text-white"
-                    : "bg-gray-300 text-gray-600 cursor-not-allowed"
-                }`}
-                title={
-                  !auctionActive && offerCount < 3
-                    ? "Requires 3 or more offers"
-                    : auctionActive
-                    ? "Stop reverse auction"
-                    : "Invoke reverse auction"
-                }
+                onMouseLeave={() => {
+                  if (auctionHintReqId === reqId) {
+                    setAuctionHintReqId("");
+                  }
+                }}
+                onClick={(e) => {
+                  if (!showDisabledInvokeHint) return;
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setAuctionHintReqId(reqId);
+                }}
               >
-                {isAuctionBusy
-                  ? auctionActive
-                    ? "Stopping..."
-                    : "Invoking..."
-                  : auctionActive
-                  ? "Stop Reverse Auction"
-                  : "Invoke Reverse Auction"}
-              </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (showDisabledInvokeHint) {
+                      setAuctionHintReqId(reqId);
+                      return;
+                    }
+                    toggleReverseAuction(req);
+                  }}
+                  aria-disabled={showDisabledInvokeHint || isAuctionBusy}
+                  disabled={isAuctionBusy}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                    auctionActive
+                      ? "bg-red-600 text-white"
+                      : offerCount >= 3
+                      ? "btn-primary text-white"
+                      : "bg-gray-300 text-gray-600 cursor-not-allowed"
+                  }`}
+                  title={
+                    !auctionActive && offerCount < 3
+                      ? "You must receive 3 or more offers before you invoke reverse auction."
+                      : auctionActive
+                      ? "Stop reverse auction"
+                      : "Invoke reverse auction"
+                  }
+                >
+                  {isAuctionBusy
+                    ? auctionActive
+                      ? "Stopping..."
+                      : "Invoking..."
+                    : auctionActive
+                    ? "Stop Reverse Auction"
+                    : "Invoke Reverse Auction"}
+                </button>
+                {showDisabledInvokeHint && auctionHintReqId === reqId && (
+                  <div className="absolute right-0 top-full z-20 mt-2 whitespace-nowrap rounded-lg bg-black px-3 py-2 text-xs text-white shadow-lg">
+                    You must receive 3 or more offers before you invoke reverse auction.
+                  </div>
+                )}
+              </div>
             </div>
 
             <div

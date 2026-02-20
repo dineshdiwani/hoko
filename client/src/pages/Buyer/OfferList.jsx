@@ -22,6 +22,7 @@ export default function OfferList() {
   const [chatSeller, setChatSeller] = useState(null);
   const [contactEnabled, setContactEnabled] = useState(false);
   const [startingAuction, setStartingAuction] = useState(false);
+  const [showAuctionHint, setShowAuctionHint] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [reviewTarget, setReviewTarget] = useState(null);
   const [reportOpen, setReportOpen] = useState(false);
@@ -176,6 +177,7 @@ export default function OfferList() {
   const hasMinimumOffers = offers.length >= 3;
   const canInvokeAuction = hasMinimumOffers && !auctionActive && !startingAuction;
   const canStopAuction = auctionActive && !startingAuction;
+  const showDisabledInvokeHint = !auctionActive && !hasMinimumOffers;
 
   async function startReverseAuction() {
     if (!canInvokeAuction) {
@@ -319,33 +321,60 @@ export default function OfferList() {
               : ""}
           </p>
         )}
-        <button
-          onClick={
-            auctionActive
-              ? stopReverseAuction
-              : startReverseAuction
-          }
-          className={`mt-3 ml-2 text-sm rounded-xl px-4 py-2 font-semibold transition ${
-            auctionActive
-              ? canStopAuction
-                ? "bg-red-600 text-white"
-                : "bg-gray-300 text-gray-600 cursor-not-allowed"
-              : canInvokeAuction
-              ? "btn-primary"
-              : "bg-gray-300 text-gray-600 cursor-not-allowed"
-          }`}
-          disabled={
-            auctionActive ? !canStopAuction : !canInvokeAuction
-          }
+        <div
+          className="relative inline-flex"
+          onMouseEnter={() => {
+            if (showDisabledInvokeHint) setShowAuctionHint(true);
+          }}
+          onMouseLeave={() => setShowAuctionHint(false)}
         >
-          {startingAuction
-            ? auctionActive
-              ? "Stopping..."
-              : "Invoking..."
-            : auctionActive
-            ? "Stop Reverse Auction"
-            : "Invoke Reverse Auction"}
-        </button>
+          <button
+            onClick={(e) => {
+              if (showDisabledInvokeHint) {
+                e.preventDefault();
+                e.stopPropagation();
+                setShowAuctionHint(true);
+                return;
+              }
+              if (auctionActive) {
+                stopReverseAuction();
+              } else {
+                startReverseAuction();
+              }
+            }}
+            className={`mt-3 ml-2 text-sm rounded-xl px-4 py-2 font-semibold transition ${
+              auctionActive
+                ? canStopAuction
+                  ? "bg-red-600 text-white"
+                  : "bg-gray-300 text-gray-600 cursor-not-allowed"
+                : canInvokeAuction
+                ? "btn-primary"
+                : "bg-gray-300 text-gray-600 cursor-not-allowed"
+            }`}
+            aria-disabled={showDisabledInvokeHint || (auctionActive ? !canStopAuction : startingAuction)}
+            disabled={auctionActive ? !canStopAuction : startingAuction}
+            title={
+              showDisabledInvokeHint
+                ? "You must receive 3 or more offers before you invoke reverse auction."
+                : auctionActive
+                ? "Stop reverse auction"
+                : "Invoke reverse auction"
+            }
+          >
+            {startingAuction
+              ? auctionActive
+                ? "Stopping..."
+                : "Invoking..."
+              : auctionActive
+              ? "Stop Reverse Auction"
+              : "Invoke Reverse Auction"}
+          </button>
+          {showDisabledInvokeHint && showAuctionHint && (
+            <div className="absolute left-1/2 top-full z-20 mt-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-black px-3 py-2 text-xs text-white shadow-lg">
+              You must receive 3 or more offers before you invoke reverse auction.
+            </div>
+          )}
+        </div>
       </div>
       </div>
 
