@@ -30,6 +30,11 @@ const offerSchema = new mongoose.Schema(
       type: String,
       default: ""
     },
+    attachments: [
+      {
+        type: String
+      }
+    ],
 
     viewedByBuyer: {
       type: Boolean,

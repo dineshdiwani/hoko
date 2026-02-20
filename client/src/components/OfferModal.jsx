@@ -43,6 +43,7 @@ export default function OfferModal({
   const [deliveryTime, setDeliveryTime] = useState("");
   const [paymentTerms, setPaymentTerms] = useState("");
   const [file, setFile] = useState(null);
+  const [offerAttachments, setOfferAttachments] = useState([]);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [cameraError, setCameraError] = useState("");
   const videoRef = useRef(null);
@@ -112,6 +113,9 @@ export default function OfferModal({
         setNote(res.data.message || "");
         setDeliveryTime(res.data.deliveryTime || "");
         setPaymentTerms(res.data.paymentTerms || "");
+        setOfferAttachments(
+          Array.isArray(res.data.attachments) ? res.data.attachments : []
+        );
         setExistingOffer(true);
         setLastUpdatedAt(res.data.updatedAt || res.data.createdAt || "");
       })
@@ -120,6 +124,7 @@ export default function OfferModal({
         setNote("");
         setDeliveryTime("");
         setPaymentTerms("");
+        setOfferAttachments([]);
         setExistingOffer(false);
         setLastUpdatedAt("");
       });
@@ -131,13 +136,7 @@ export default function OfferModal({
 
   function saveAttachmentFile(fileObj) {
     if (!fileObj) return;
-    const reader = new FileReader();
-    reader.onload = () =>
-      setFile({
-        name: fileObj.name,
-        data: reader.result
-      });
-    reader.readAsDataURL(fileObj);
+    setFile(fileObj);
   }
 
   function handleAttachmentPick(e) {
@@ -216,13 +215,29 @@ export default function OfferModal({
     }
 
     try {
+      let nextAttachments = Array.isArray(offerAttachments)
+        ? [...offerAttachments]
+        : [];
+      if (file) {
+        const formData = new FormData();
+        formData.append("file", file);
+        const uploadRes = await api.post("/seller/offer/attachments", formData, {
+          headers: { "Content-Type": "multipart/form-data" }
+        });
+        const uploadedUrls =
+          uploadRes?.data?.files?.map((item) => item.url).filter(Boolean) || [];
+        nextAttachments = Array.from(new Set([...nextAttachments, ...uploadedUrls]));
+      }
       await api.post("/seller/offer", {
         requirementId: requirementId,
         price: Number(price),
         message: note,
         deliveryTime,
-        paymentTerms
+        paymentTerms,
+        attachments: nextAttachments
       });
+      setOfferAttachments(nextAttachments);
+      setFile(null);
     } catch {
       alert("Failed to submit offer. Try again.");
       return;

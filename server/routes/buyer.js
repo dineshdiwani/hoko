@@ -1377,6 +1377,7 @@ router.get("/requirements/:id/offers", auth, buyerOnly, async (req, res) => {
       message: offer.message,
       deliveryTime: offer.deliveryTime || "",
       paymentTerms: offer.paymentTerms || "",
+      attachments: Array.isArray(offer.attachments) ? offer.attachments : [],
       viewedByBuyer: offer.viewedByBuyer || false,
       contactEnabledByBuyer: offer.contactEnabledByBuyer === true,
       sellerId: offer.sellerId?._id,
