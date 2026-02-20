@@ -110,6 +110,8 @@ export default function AdminDashboard() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [changingPassword, setChangingPassword] = useState(false);
+  const [showLegalPreviewModal, setShowLegalPreviewModal] = useState(false);
+  const [legalPreviewType, setLegalPreviewType] = useState("terms");
   const navigate = useNavigate();
 
   const parseOptionList = (value) =>
@@ -987,6 +989,16 @@ export default function AdminDashboard() {
               <p className="text-xs text-gray-500 mt-1">
                 This content appears in the login Terms & Conditions modal.
               </p>
+              <button
+                type="button"
+                className="mt-2 text-xs text-amber-700 hover:underline bg-transparent shadow-none"
+                onClick={() => {
+                  setLegalPreviewType("terms");
+                  setShowLegalPreviewModal(true);
+                }}
+              >
+                Preview Terms & Conditions modal
+              </button>
             </div>
 
             <div>
@@ -1010,6 +1022,16 @@ export default function AdminDashboard() {
               <p className="text-xs text-gray-500 mt-1">
                 This content appears in the login Privacy Policy modal.
               </p>
+              <button
+                type="button"
+                className="mt-2 text-xs text-amber-700 hover:underline bg-transparent shadow-none"
+                onClick={() => {
+                  setLegalPreviewType("privacy");
+                  setShowLegalPreviewModal(true);
+                }}
+              >
+                Preview Privacy Policy modal
+              </button>
             </div>
 
             <div>
@@ -1216,6 +1238,39 @@ export default function AdminDashboard() {
           </p>
         </div>
       </div>
+
+      {showLegalPreviewModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white w-full max-w-2xl rounded-2xl shadow-xl p-6 max-h-[80vh] overflow-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-bold">
+                {legalPreviewType === "privacy"
+                  ? "Privacy Policy"
+                  : "Terms & Conditions (Buyers and Sellers)"}
+              </h2>
+              <button
+                onClick={() => setShowLegalPreviewModal(false)}
+                className="text-gray-500 hover:text-gray-800"
+              >
+                Close
+              </button>
+            </div>
+            <div className="space-y-3 text-sm text-gray-700">
+              {String(
+                legalPreviewType === "privacy"
+                  ? options.privacyPolicy?.content || defaultPrivacyPolicyContent
+                  : options.termsAndConditions?.content || defaultTermsContent
+              )
+                .split(/\n+/)
+                .map((line) => line.trim())
+                .filter(Boolean)
+                .map((line, index) => (
+                  <p key={`admin-legal-preview-${index}`}>{line}</p>
+                ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

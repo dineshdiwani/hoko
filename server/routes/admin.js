@@ -35,7 +35,8 @@ const {
   DEFAULT_WHATSAPP_CAMPAIGN,
   DEFAULT_MODERATION_RULES,
   DEFAULT_SELECTIONS,
-  DEFAULT_TERMS_CONTENT
+  DEFAULT_TERMS_CONTENT,
+  DEFAULT_PRIVACY_POLICY_CONTENT
 } = require("../config/platformDefaults");
 const router = require("express").Router();
 const jwt = require("jsonwebtoken");
@@ -855,6 +856,9 @@ router.put("/options", adminAuth, requireAdminPermission("options.manage"), asyn
     moderationRules: payload.moderationRules || current?.moderationRules || DEFAULT_MODERATION_RULES,
     termsAndConditions: payload.termsAndConditions || current?.termsAndConditions || {
       content: DEFAULT_TERMS_CONTENT
+    },
+    privacyPolicy: payload.privacyPolicy || current?.privacyPolicy || {
+      content: DEFAULT_PRIVACY_POLICY_CONTENT
     }
   };
 
