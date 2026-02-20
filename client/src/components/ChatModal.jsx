@@ -577,7 +577,10 @@ export default function ChatModal({
         </div>
 
         <div className="px-4 pt-3">
-          <p className="text-xs text-gray-500">
+          <p
+            className="text-xs"
+            style={{ color: "#dc2626", fontWeight: 700 }}
+          >
             Note: Buyer and Seller may share personal mobile and emails contacts on their discretion.
           </p>
         </div>
