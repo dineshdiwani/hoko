@@ -194,6 +194,22 @@ function mergeUnique(existing = [], defaults = []) {
   return Array.from(set);
 }
 
+function listOrDefault(existing, defaults = []) {
+  if (!Array.isArray(existing) || existing.length === 0) {
+    return Array.isArray(defaults) ? [...defaults] : [];
+  }
+  const seen = new Set();
+  return existing
+    .map((item) => String(item || "").trim())
+    .filter(Boolean)
+    .filter((item) => {
+      const key = item.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}
+
 function pickValid(options, value, fallback = "") {
   const target = String(value || "").trim();
   if (!target) return String(fallback || "");
@@ -222,10 +238,10 @@ function sanitizeSelections(rawSelections, merged) {
 function buildOptionsResponse(doc) {
   const raw = doc ? (typeof doc.toObject === "function" ? doc.toObject() : doc) : null;
   const merged = {
-    cities: mergeUnique(raw?.cities, DEFAULT_CITIES),
-    categories: mergeUnique(raw?.categories, DEFAULT_CATEGORIES),
-    units: mergeUnique(raw?.units, DEFAULT_UNITS),
-    currencies: mergeUnique(raw?.currencies, DEFAULT_CURRENCIES)
+    cities: listOrDefault(raw?.cities, DEFAULT_CITIES),
+    categories: listOrDefault(raw?.categories, DEFAULT_CATEGORIES),
+    units: listOrDefault(raw?.units, DEFAULT_UNITS),
+    currencies: listOrDefault(raw?.currencies, DEFAULT_CURRENCIES)
   };
 
   return {
