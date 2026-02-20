@@ -403,8 +403,49 @@ router.put("/requirement/:id", auth, buyerOnly, async (req, res) => {
       nextPayload.attachments
     );
   }
+
+  const beforeUpdate = {
+    city: String(requirement.city || "").trim(),
+    category: String(requirement.category || "").trim().toLowerCase(),
+    product: String(requirement.product || requirement.productName || "").trim(),
+    makeBrand: String(requirement.makeBrand || requirement.brand || "").trim(),
+    typeModel: String(requirement.typeModel || "").trim(),
+    quantity: String(requirement.quantity || "").trim(),
+    type: String(requirement.type || "").trim(),
+    details: String(requirement.details || "").trim(),
+    attachments: normalizeRequirementAttachmentValues(requirement.attachments || [])
+  };
+
   Object.assign(requirement, nextPayload);
   await requirement.save();
+
+  const afterUpdate = {
+    city: String(requirement.city || "").trim(),
+    category: String(requirement.category || "").trim().toLowerCase(),
+    product: String(requirement.product || requirement.productName || "").trim(),
+    makeBrand: String(requirement.makeBrand || requirement.brand || "").trim(),
+    typeModel: String(requirement.typeModel || "").trim(),
+    quantity: String(requirement.quantity || "").trim(),
+    type: String(requirement.type || "").trim(),
+    details: String(requirement.details || "").trim(),
+    attachments: normalizeRequirementAttachmentValues(requirement.attachments || [])
+  };
+
+  const changedFields = [];
+  if (beforeUpdate.city !== afterUpdate.city) changedFields.push("city");
+  if (beforeUpdate.category !== afterUpdate.category) changedFields.push("category");
+  if (beforeUpdate.product !== afterUpdate.product) changedFields.push("product");
+  if (beforeUpdate.makeBrand !== afterUpdate.makeBrand) changedFields.push("makeBrand");
+  if (beforeUpdate.typeModel !== afterUpdate.typeModel) changedFields.push("typeModel");
+  if (beforeUpdate.quantity !== afterUpdate.quantity) changedFields.push("quantity");
+  if (beforeUpdate.type !== afterUpdate.type) changedFields.push("type");
+  if (beforeUpdate.details !== afterUpdate.details) changedFields.push("details");
+  if (
+    JSON.stringify(beforeUpdate.attachments) !==
+    JSON.stringify(afterUpdate.attachments)
+  ) {
+    changedFields.push("attachments");
+  }
 
   const requirementName = requirement.product || requirement.productName || "your requirement";
   const sellerIds = await Offer.distinct("sellerId", {
@@ -425,7 +466,8 @@ router.put("/requirement/:id", auth, buyerOnly, async (req, res) => {
           data: {
             action: "open_offer_edit",
             requirementId: String(requirement._id),
-            productName: requirementName
+            productName: requirementName,
+            changedFields
           }
         })
       )

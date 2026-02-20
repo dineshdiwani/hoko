@@ -325,6 +325,39 @@ export default function SellerDashboard() {
     setChatOpen(true);
   }
 
+  async function openRequirementWithHighlights(requirementId, changedFields = []) {
+    if (!requirementId) return;
+    const existingRequirement = requirements.find(
+      (req) => String(req._id) === String(requirementId)
+    );
+    const highlightPayload = {
+      _changeHighlights: Array.isArray(changedFields) ? changedFields : []
+    };
+    if (existingRequirement) {
+      setActiveRequirement({
+        ...existingRequirement,
+        ...highlightPayload
+      });
+      return;
+    }
+    try {
+      const res = await api.get(`/seller/requirement/${requirementId}`);
+      const latestRequirement = res?.data || null;
+      if (!latestRequirement) return;
+      setActiveRequirement({
+        ...latestRequirement,
+        ...highlightPayload
+      });
+    } catch {
+      setActiveRequirement({
+        _id: requirementId,
+        product: "Requirement",
+        productName: "Requirement",
+        ...highlightPayload
+      });
+    }
+  }
+
   function handleNotificationClick(notification) {
     if (!notification) return;
 
@@ -391,6 +424,17 @@ export default function SellerDashboard() {
         reverseAuctionActive: true,
         currentLowestPrice: notification?.data?.lowestPrice ?? null
       });
+      return;
+    }
+
+    if (notification.type === "requirement_updated") {
+      const notificationReqId =
+        notification?.data?.requirementId || notification.requirementId;
+      if (!notificationReqId) return;
+      const changedFields = Array.isArray(notification?.data?.changedFields)
+        ? notification.data.changedFields
+        : [];
+      openRequirementWithHighlights(notificationReqId, changedFields);
     }
   }
 

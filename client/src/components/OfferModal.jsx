@@ -20,11 +20,22 @@ export default function OfferModal({
   const makeBrand =
     requirement.makeBrand || requirement.brand || "";
   const typeModel = requirement.typeModel || "";
+  const quantity = String(requirement.quantity || "").trim();
+  const unit = String(requirement.type || requirement.unit || "").trim();
   const requirementDetails = String(
     requirement.details || requirement.description || ""
   ).trim();
   const requirementId = requirement._id || requirement.id;
   if (!requirementId) return null;
+  const changedFieldSet = new Set(
+    (Array.isArray(requirement?._changeHighlights)
+      ? requirement._changeHighlights
+      : []
+    ).map((field) => String(field || "").trim())
+  );
+  const hasHighlights = changedFieldSet.size > 0;
+  const highlightBlockClass = "rounded-lg border border-amber-300 bg-amber-50";
+  const highlightTextClass = "text-amber-900";
 
   const [price, setPrice] = useState("");
   const [note, setNote] = useState("");
@@ -172,13 +183,28 @@ export default function OfferModal({
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 pb-24 md:pb-6 max-h-[90vh] overflow-y-auto">
+        {hasHighlights && (
+          <div className="mb-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            Buyer updated this post. Changed fields are highlighted below.
+          </div>
+        )}
         <h2 className="text-xl font-bold mb-4">
           {existingOffer ? "Edit Offer" : "Submit Offer"}
         </h2>
-        <p className="text-sm text-gray-600 mb-3">
+        <p
+          className={`text-sm text-gray-600 mb-3 ${
+            changedFieldSet.has("product") ? `${highlightBlockClass} px-2 py-1 ${highlightTextClass}` : ""
+          }`}
+        >
           For <strong>{productName}</strong>
         </p>
-        <p className="text-sm text-gray-600 mb-3">
+        <p
+          className={`text-sm text-gray-600 mb-3 ${
+            changedFieldSet.has("city") || changedFieldSet.has("category")
+              ? `${highlightBlockClass} px-2 py-1 ${highlightTextClass}`
+              : ""
+          }`}
+        >
           Buyer from <strong>{requirement.city || "your city"}</strong>
         </p>
         {existingOffer && lastUpdatedAt && (
@@ -187,7 +213,13 @@ export default function OfferModal({
           </p>
         )}
         {(makeBrand || typeModel) && (
-          <p className="text-sm text-gray-600 mb-3">
+          <p
+            className={`text-sm text-gray-600 mb-3 ${
+              changedFieldSet.has("makeBrand") || changedFieldSet.has("typeModel")
+                ? `${highlightBlockClass} px-2 py-1 ${highlightTextClass}`
+                : ""
+            }`}
+          >
             {makeBrand && (
               <span>
                 <span className="text-gray-500">
@@ -207,8 +239,26 @@ export default function OfferModal({
             )}
           </p>
         )}
+        {(quantity || unit) && (
+          <p
+            className={`text-sm text-gray-600 mb-3 ${
+              changedFieldSet.has("quantity") || changedFieldSet.has("type")
+                ? `${highlightBlockClass} px-2 py-1 ${highlightTextClass}`
+                : ""
+            }`}
+          >
+            <span className="text-gray-500">Quantity:</span>{" "}
+            {quantity || "-"} {unit || ""}
+          </p>
+        )}
         {requirementDetails && (
-          <div className="mb-3 p-3 rounded-lg border border-gray-200 bg-gray-50">
+          <div
+            className={`mb-3 p-3 rounded-lg border ${
+              changedFieldSet.has("details")
+                ? "border-amber-300 bg-amber-50"
+                : "border-gray-200 bg-gray-50"
+            }`}
+          >
             <p className="text-xs text-gray-500 mb-1">Buyer details</p>
             <p className="text-sm text-gray-700 whitespace-pre-line">
               {requirementDetails}
@@ -217,7 +267,13 @@ export default function OfferModal({
         )}
 
         {attachments.length > 0 && (
-          <div className="mb-4">
+          <div
+            className={`mb-4 ${
+              changedFieldSet.has("attachments")
+                ? `${highlightBlockClass} px-2 py-2`
+                : ""
+            }`}
+          >
             <p className="text-sm font-medium mb-2">
               Buyer Attachments
             </p>
