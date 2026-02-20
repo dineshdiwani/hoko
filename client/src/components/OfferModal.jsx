@@ -317,32 +317,34 @@ export default function OfferModal({
           <button
             type="button"
             onClick={() => cameraInputRef.current?.click()}
-            className="inline-flex items-center justify-center gap-2 border rounded-xl py-2 text-sm"
+            className="inline-flex items-center justify-center rounded-xl border border-sky-200 bg-sky-50 text-sky-700 py-2.5 hover:bg-sky-100 active:scale-[0.98] transition"
+            aria-label="Capture photo"
+            title="Capture photo"
           >
             <svg
               viewBox="0 0 24 24"
-              className="w-4 h-4"
+              className="w-5 h-5"
               fill="currentColor"
               aria-hidden="true"
             >
               <path d="M9 4h6l1.2 2H20a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3.8L9 4Zm3 4.5A4.5 4.5 0 1 0 12 17a4.5 4.5 0 0 0 0-9Zm0 2A2.5 2.5 0 1 1 12 15a2.5 2.5 0 0 1 0-5Z" />
             </svg>
-            Capture Photo
           </button>
           <button
             type="button"
             onClick={() => documentInputRef.current?.click()}
-            className="inline-flex items-center justify-center gap-2 border rounded-xl py-2 text-sm"
+            className="inline-flex items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 py-2.5 hover:bg-emerald-100 active:scale-[0.98] transition"
+            aria-label="Share document"
+            title="Share document"
           >
             <svg
               viewBox="0 0 24 24"
-              className="w-4 h-4"
+              className="w-5 h-5"
               fill="currentColor"
               aria-hidden="true"
             >
               <path d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Zm8 1.5V8h4.5" />
             </svg>
-            Share Doc
           </button>
         </div>
         {file && (
