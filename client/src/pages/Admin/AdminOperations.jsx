@@ -9,21 +9,34 @@ export default function AdminOperations() {
   const [offers, setOffers] = useState([]);
   const [chats, setChats] = useState([]);
   const [reports, setReports] = useState([]);
+  const [moderationQueue, setModerationQueue] = useState({
+    requirements: [],
+    offers: [],
+    chats: []
+  });
   const [expandedUsers, setExpandedUsers] = useState(new Set());
 
   const loadData = useCallback(async () => {
-    const [usersRes, requirementsRes, offersRes, chatsRes, reportsRes] = await Promise.all([
+    const [usersRes, requirementsRes, offersRes, chatsRes, reportsRes, moderationRes] = await Promise.all([
       api.get("/admin/users"),
       api.get("/admin/requirements"),
       api.get("/admin/offers"),
       api.get("/admin/chats"),
-      api.get("/admin/reports")
+      api.get("/admin/reports"),
+      api.get("/admin/moderation/queue")
     ]);
     setUsers(Array.isArray(usersRes.data) ? usersRes.data : []);
     setRequirements(Array.isArray(requirementsRes.data) ? requirementsRes.data : []);
     setOffers(Array.isArray(offersRes.data) ? offersRes.data : []);
     setChats(Array.isArray(chatsRes.data) ? chatsRes.data : []);
     setReports(Array.isArray(reportsRes.data) ? reportsRes.data : []);
+    setModerationQueue(
+      moderationRes.data || {
+        requirements: [],
+        offers: [],
+        chats: []
+      }
+    );
   }, []);
 
   useEffect(() => {
@@ -121,6 +134,100 @@ export default function AdminOperations() {
         </div>
 
         <div className="space-y-10">
+          <div>
+            <h2 className="text-lg font-bold mb-3">Moderation Queue</h2>
+            <div className="bg-white border rounded-2xl p-3 space-y-4">
+              {moderationQueue.requirements?.length === 0 &&
+                moderationQueue.offers?.length === 0 &&
+                moderationQueue.chats?.length === 0 && (
+                  <p className="text-sm text-gray-500">No flagged items right now.</p>
+                )}
+
+              {moderationQueue.requirements?.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-600 mb-2">Flagged Requirements</p>
+                  <div className="space-y-2">
+                    {moderationQueue.requirements.map((req) => (
+                      <div
+                        key={req._id}
+                        className="border rounded-lg p-2 text-xs text-gray-700 flex flex-col md:flex-row md:items-center md:justify-between gap-2"
+                      >
+                        <div>
+                          <div>{req.product || req.productName} | {req.city}</div>
+                          <div className="text-gray-500">{req.moderation?.flaggedReason || "Flagged"}</div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => deleteRequirement(req._id)}
+                            className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-red-600"
+                          >
+                            Remove
+                          </button>
+                          <button
+                            onClick={() => toggleRequirementChat(req._id, true)}
+                            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-600 text-white"
+                          >
+                            Disable Chat
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {moderationQueue.offers?.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-600 mb-2">Flagged Offers</p>
+                  <div className="space-y-2">
+                    {moderationQueue.offers.map((offer) => (
+                      <div
+                        key={offer._id}
+                        className="border rounded-lg p-2 text-xs text-gray-700 flex flex-col md:flex-row md:items-center md:justify-between gap-2"
+                      >
+                        <div>
+                          <div>Rs {offer.price} | {offer.requirementId?.product || offer.requirementId?.productName}</div>
+                          <div className="text-gray-500">{offer.moderation?.flaggedReason || "Flagged"}</div>
+                        </div>
+                        <button
+                          onClick={() => moderateOffer(offer, true)}
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-red-600"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {moderationQueue.chats?.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-600 mb-2">Flagged Chats</p>
+                  <div className="space-y-2">
+                    {moderationQueue.chats.map((chat) => (
+                      <div
+                        key={chat._id}
+                        className="border rounded-lg p-2 text-xs text-gray-700 flex flex-col md:flex-row md:items-center md:justify-between gap-2"
+                      >
+                        <div>
+                          <div className="text-gray-500">{chat.moderation?.flaggedReason || "Flagged"}</div>
+                          <div className="text-gray-700">{chat.message}</div>
+                        </div>
+                        <button
+                          onClick={() => moderateChat(chat, true)}
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-red-600"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
           <div>
             <h2 className="text-lg font-bold mb-3">Users Signed List</h2>
             <div className="space-y-3">

@@ -9,7 +9,7 @@ const whatsAppCampaignRunSchema = new mongoose.Schema(
     },
     triggerType: {
       type: String,
-      enum: ["buyer_post", "manual_test"],
+      enum: ["buyer_post", "manual_test", "manual_resend"],
       default: "buyer_post"
     },
     status: {

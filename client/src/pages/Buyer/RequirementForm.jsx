@@ -82,12 +82,39 @@ export default function RequirementForm() {
   const categoryOptions = useMemo(() => {
     const currentCategory = String(form.category || "").trim();
     if (!currentCategory) return categories;
-    const exists = categories.some(
+    const exactMatch = categories.some(
+      (categoryName) => String(categoryName || "") === currentCategory
+    );
+    if (exactMatch) return categories;
+
+    const caseInsensitiveMatch = categories.find(
       (categoryName) =>
         String(categoryName || "").toLowerCase() ===
         currentCategory.toLowerCase()
     );
-    return exists ? categories : [currentCategory, ...categories];
+    if (caseInsensitiveMatch) {
+      return [caseInsensitiveMatch, ...categories];
+    }
+    return [currentCategory, ...categories];
+  }, [categories, form.category]);
+
+  useEffect(() => {
+    const currentCategory = String(form.category || "").trim();
+    if (!currentCategory || !categories.length) return;
+    const exactMatch = categories.some(
+      (categoryName) => String(categoryName || "") === currentCategory
+    );
+    if (exactMatch) return;
+    const caseInsensitiveMatch = categories.find(
+      (categoryName) =>
+        String(categoryName || "").toLowerCase() ===
+        currentCategory.toLowerCase()
+    );
+    if (!caseInsensitiveMatch) return;
+    setForm((prev) => {
+      if (prev.category === caseInsensitiveMatch) return prev;
+      return { ...prev, category: caseInsensitiveMatch };
+    });
   }, [categories, form.category]);
 
   useEffect(() => {

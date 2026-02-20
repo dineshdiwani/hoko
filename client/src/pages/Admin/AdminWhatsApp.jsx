@@ -15,6 +15,8 @@ export default function AdminWhatsApp() {
   const [requirements, setRequirements] = useState([]);
   const [contacts, setContacts] = useState([]);
   const [campaignRuns, setCampaignRuns] = useState([]);
+  const [postStatuses, setPostStatuses] = useState([]);
+  const [pendingPosts, setPendingPosts] = useState([]);
   const [whatsAppSummary, setWhatsAppSummary] = useState({
     total: 0,
     cities: [],
@@ -45,10 +47,11 @@ export default function AdminWhatsApp() {
   });
   const [manualQueue, setManualQueue] = useState([]);
   const [manualMessagePreview, setManualMessagePreview] = useState("");
+  const [resendingPost, setResendingPost] = useState(false);
 
   const normalizeText = (value) => String(value || "").trim().toLowerCase();
-  const getRequirementDisplay = (req) =>
-    `${req?.product || req?.productName || "Requirement"} | ${req?.city || "-"} | ${req?.category || "-"}`;
+  const getPostStatusDisplay = (item) =>
+    `${item?.product || "Requirement"} | ${item?.city || "-"} | ${item?.category || "-"}`;
 
   const formatDateTime = (value) => {
     if (!value) return "N/A";
@@ -159,7 +162,8 @@ export default function AdminWhatsApp() {
       api.get("/admin/whatsapp/contacts/summary"),
       api.get("/admin/whatsapp/campaign-runs"),
       api.get("/admin/whatsapp/contacts"),
-      api.get("/admin/requirements")
+      api.get("/admin/requirements"),
+      api.get("/admin/whatsapp/post-statuses")
     ]);
 
     const [
@@ -167,7 +171,8 @@ export default function AdminWhatsApp() {
       summaryResult,
       runsResult,
       contactsResult,
-      requirementsResult
+      requirementsResult,
+      postStatusesResult
     ] = settled;
 
     const optionsData =
@@ -204,6 +209,10 @@ export default function AdminWhatsApp() {
         ? requirementsResult.value.data
         : []
     );
+    const statusPayload =
+      postStatusesResult.status === "fulfilled" ? postStatusesResult.value?.data || {} : {};
+    setPostStatuses(Array.isArray(statusPayload.posts) ? statusPayload.posts : []);
+    setPendingPosts(Array.isArray(statusPayload.pendingPosts) ? statusPayload.pendingPosts : []);
   }, []);
 
   useEffect(() => {
@@ -442,6 +451,37 @@ export default function AdminWhatsApp() {
     window.open(entry.whatsappLink, "_blank", "noopener,noreferrer");
   };
 
+  const selectedPostStatus = useMemo(
+    () =>
+      postStatuses.find(
+        (item) => String(item?.requirementId || "") === String(manualRequirementId || "")
+      ) || null,
+    [postStatuses, manualRequirementId]
+  );
+
+  const resendSelectedPost = async () => {
+    if (!manualRequirementId) {
+      alert("Select a pending post first");
+      return;
+    }
+    try {
+      setResendingPost(true);
+      const res = await api.post("/admin/whatsapp/resend", {
+        requirementId: manualRequirementId
+      });
+      const stats = res.data || {};
+      alert(
+        `Resend complete. Attempted: ${stats.attempted || 0}, Sent: ${stats.sent || 0}, Failed: ${stats.failed || 0}, Skipped: ${stats.skipped || 0}`
+      );
+      await loadData();
+      setManualQueue([]);
+    } catch (err) {
+      alert(err?.response?.data?.message || err?.response?.data?.reason || "Failed to resend post");
+    } finally {
+      setResendingPost(false);
+    }
+  };
+
   return (
     <div className="page">
       <div className="page-shell pt-20 md:pt-10">
@@ -544,6 +584,9 @@ export default function AdminWhatsApp() {
             <div className="bg-white border rounded-2xl p-3 space-y-4">
               <div className="border rounded-xl p-3 space-y-3">
                 <p className="text-sm font-semibold">Manual WhatsApp Queue (Device App Send)</p>
+                <p className="text-xs text-gray-500">
+                  First dropdown shows only pending posts (not yet sent successfully to sellers).
+                </p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <select className="w-full border rounded-lg px-3 py-2 text-sm" value={manualRequirementId} onChange={(e) => {
                     const nextRequirementId = e.target.value;
@@ -567,9 +610,11 @@ export default function AdminWhatsApp() {
                       setManualMessagePreview(buildManualMessage(req));
                     }
                   }}>
-                    <option value="">Select Post (Requirement)</option>
-                    {requirements.slice(0, 200).map((req) => (
-                      <option key={req._id} value={req._id}>{getRequirementDisplay(req)}</option>
+                    <option value="">Select Pending Post (Requirement)</option>
+                    {pendingPosts.slice(0, 300).map((item) => (
+                      <option key={item.requirementId} value={item.requirementId}>
+                        {getPostStatusDisplay(item)}
+                      </option>
                     ))}
                   </select>
                   <select
@@ -620,6 +665,21 @@ export default function AdminWhatsApp() {
                     )}
                   </div>
                 </div>
+                {selectedPostStatus && (
+                  <div className="rounded-lg border p-2 text-xs text-gray-700">
+                    <div>
+                      Delivery state: <span className="font-semibold capitalize">{selectedPostStatus.deliveryState}</span>
+                    </div>
+                    <div>
+                      Total runs: {selectedPostStatus.totalRuns || 0} | Total sent: {selectedPostStatus.totalSent || 0} | Total failed: {selectedPostStatus.totalFailed || 0}
+                    </div>
+                    {selectedPostStatus.latestRun && (
+                      <div className="text-gray-500">
+                        Latest run: {selectedPostStatus.latestRun.triggerType} | {selectedPostStatus.latestRun.status} | {new Date(selectedPostStatus.latestRun.createdAt).toLocaleString()}
+                      </div>
+                    )}
+                  </div>
+                )}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                   {[
                     ["product", "Post"],
@@ -638,6 +698,13 @@ export default function AdminWhatsApp() {
                 </div>
                 <button onClick={createManualQueue} className="px-3 py-2 rounded-lg text-sm font-semibold btn-primary">
                   Create Pending Queue
+                </button>
+                <button
+                  onClick={resendSelectedPost}
+                  disabled={!manualRequirementId || resendingPost}
+                  className="px-3 py-2 rounded-lg text-sm font-semibold border border-amber-300 text-amber-700 disabled:opacity-60"
+                >
+                  {resendingPost ? "Resending..." : "Resend to Sellers (API)"}
                 </button>
                 <pre className="text-xs whitespace-pre-wrap bg-gray-50 border rounded-lg p-3 text-gray-700">
                   {manualMessagePreview || "Select post to preview message"}

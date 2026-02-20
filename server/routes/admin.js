@@ -20,7 +20,10 @@ const { otpSendLimiter, otpVerifyLimiter } = require("../middleware/rateLimit");
 const { setOtp, verifyOtp } = require("../utils/otpStore");
 const { sendOtpEmail } = require("../utils/sendEmail");
 const { normalizeE164 } = require("../utils/sendWhatsApp");
-const { sendTestWhatsAppCampaign } = require("../services/whatsAppCampaign");
+const {
+  sendTestWhatsAppCampaign,
+  triggerWhatsAppCampaignForRequirement
+} = require("../services/whatsAppCampaign");
 const {
   buildOptionsResponse,
   DEFAULT_CITIES,
@@ -1225,6 +1228,114 @@ router.get("/whatsapp/campaign-runs", adminAuth, requireAdminPermission("campaig
     .populate("requirementId", "product productName city category")
     .populate("createdByAdminId", "email role");
   res.json(runs);
+});
+
+router.get("/whatsapp/post-statuses", adminAuth, requireAdminPermission("campaigns.read"), async (req, res) => {
+  const limit = Math.min(Number(req.query?.limit) || 300, 1000);
+  const requirements = await Requirement.find({})
+    .sort({ createdAt: -1 })
+    .limit(limit)
+    .select("product productName city category createdAt");
+
+  const requirementIds = requirements.map((item) => item._id);
+  const runRows = requirementIds.length
+    ? await WhatsAppCampaignRun.aggregate([
+        {
+          $match: {
+            requirementId: { $in: requirementIds },
+            triggerType: { $in: ["buyer_post", "manual_resend"] }
+          }
+        },
+        { $sort: { createdAt: -1 } },
+        {
+          $group: {
+            _id: "$requirementId",
+            latestRun: { $first: "$$ROOT" },
+            totalRuns: { $sum: 1 },
+            totalSent: { $sum: "$sent" },
+            totalFailed: { $sum: "$failed" },
+            totalAttempted: { $sum: "$attempted" }
+          }
+        }
+      ])
+    : [];
+
+  const byRequirementId = new Map(
+    runRows.map((row) => [String(row._id), row])
+  );
+
+  const posts = requirements.map((requirement) => {
+    const row = byRequirementId.get(String(requirement._id));
+    const latestRun = row?.latestRun || null;
+    let deliveryState = "pending";
+    if (latestRun && Number(latestRun.sent || 0) > 0) {
+      deliveryState = "sent";
+    } else if (latestRun && String(latestRun.status || "") === "failed") {
+      deliveryState = "failed";
+    }
+
+    return {
+      requirementId: requirement._id,
+      product: requirement.product || requirement.productName || "Requirement",
+      city: requirement.city || "",
+      category: requirement.category || "",
+      createdAt: requirement.createdAt,
+      deliveryState,
+      totalRuns: Number(row?.totalRuns || 0),
+      totalSent: Number(row?.totalSent || 0),
+      totalFailed: Number(row?.totalFailed || 0),
+      totalAttempted: Number(row?.totalAttempted || 0),
+      latestRun: latestRun
+        ? {
+            _id: latestRun._id,
+            triggerType: latestRun.triggerType,
+            status: latestRun.status,
+            attempted: latestRun.attempted,
+            sent: latestRun.sent,
+            failed: latestRun.failed,
+            skipped: latestRun.skipped,
+            createdAt: latestRun.createdAt
+          }
+        : null
+    };
+  });
+
+  const pendingPosts = posts.filter((item) => item.deliveryState !== "sent");
+  res.json({
+    pendingPosts,
+    posts
+  });
+});
+
+router.post("/whatsapp/resend", adminAuth, requireAdminPermission("campaigns.manage"), async (req, res) => {
+  const requirementId = String(req.body?.requirementId || "").trim();
+  if (!requirementId) {
+    return res.status(400).json({ message: "requirementId required" });
+  }
+
+  const requirement = await Requirement.findById(requirementId).lean();
+  if (!requirement) {
+    return res.status(404).json({ message: "Requirement not found" });
+  }
+
+  const resendResult = await triggerWhatsAppCampaignForRequirement(
+    requirement,
+    {
+      triggerType: "manual_resend",
+      adminId: req.admin?._id || null,
+      notes: "Manual resend from admin"
+    }
+  );
+
+  await logAdminAction(req.admin, "whatsapp_resend_post", "requirement", requirementId, {
+    result: resendResult?.ok ? "ok" : "failed",
+    reason: resendResult?.reason || ""
+  });
+
+  if (!resendResult?.ok) {
+    return res.status(400).json(resendResult);
+  }
+  return res.json(resendResult);
 });
 
 router.post("/whatsapp/test-send", adminAuth, requireAdminPermission("campaigns.manage"), async (req, res) => {

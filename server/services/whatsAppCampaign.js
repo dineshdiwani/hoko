@@ -34,7 +34,14 @@ function formatMessage({ requirement, deepLink }) {
   ].join("\n");
 }
 
-async function triggerWhatsAppCampaignForRequirement(requirement) {
+async function triggerWhatsAppCampaignForRequirement(
+  requirement,
+  {
+    triggerType = "buyer_post",
+    adminId = null,
+    notes = ""
+  } = {}
+) {
   if (!requirement?._id) {
     return { ok: false, reason: "missing_requirement" };
   }
@@ -81,10 +88,12 @@ async function triggerWhatsAppCampaignForRequirement(requirement) {
   const body = formatMessage({ requirement, deepLink });
   const run = await WhatsAppCampaignRun.create({
     requirementId: requirement._id,
-    triggerType: "buyer_post",
+    triggerType: triggerType === "manual_resend" ? "manual_resend" : "buyer_post",
     status: "created",
     city: requirement.city || "",
-    category: requirement.category || ""
+    category: requirement.category || "",
+    createdByAdminId: adminId || null,
+    notes: String(notes || "").trim()
   });
 
   const skippedReasons = {
