@@ -42,7 +42,6 @@ export default function OfferModal({
   const [deliveryTime, setDeliveryTime] = useState("");
   const [paymentTerms, setPaymentTerms] = useState("");
   const [file, setFile] = useState(null);
-  const cameraInputRef = useRef(null);
   const documentInputRef = useRef(null);
   const [existingOffer, setExistingOffer] = useState(false);
   const [lastUpdatedAt, setLastUpdatedAt] = useState("");
@@ -126,8 +125,7 @@ export default function OfferModal({
     // Server-side handling can be added when needed
   }
 
-  function handleAttachmentPick(e) {
-    const fileObj = e.target.files?.[0];
+  function saveAttachmentFile(fileObj) {
     if (!fileObj) return;
     const reader = new FileReader();
     reader.onload = () =>
@@ -136,8 +134,25 @@ export default function OfferModal({
         data: reader.result
       });
     reader.readAsDataURL(fileObj);
+  }
+
+  function handleAttachmentPick(e) {
+    const fileObj = e.target.files?.[0];
+    saveAttachmentFile(fileObj);
     // Allow selecting the same file again in the next pick.
     e.target.value = "";
+  }
+
+  function openDeviceCamera() {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.setAttribute("capture", "environment");
+    input.onchange = () => {
+      const fileObj = input.files?.[0];
+      saveAttachmentFile(fileObj);
+    };
+    input.click();
   }
 
   const submitOffer = async () => {
@@ -355,14 +370,6 @@ export default function OfferModal({
         />
 
         <input
-          ref={cameraInputRef}
-          type="file"
-          accept="image/*"
-          capture="environment"
-          onChange={handleAttachmentPick}
-          className="hidden"
-        />
-        <input
           ref={documentInputRef}
           type="file"
           accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/jpeg,image/png"
@@ -372,7 +379,7 @@ export default function OfferModal({
         <div className="mb-4 flex items-center justify-center gap-3">
           <button
             type="button"
-            onClick={() => cameraInputRef.current?.click()}
+            onClick={openDeviceCamera}
             className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-sky-200 bg-sky-50 text-sky-700 shadow-sm transition hover:bg-sky-100 hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 active:scale-95"
             aria-label="Capture photo"
             title="Capture photo"
