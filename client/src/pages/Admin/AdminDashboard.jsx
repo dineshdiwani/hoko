@@ -105,6 +105,29 @@ export default function AdminDashboard() {
       .map((s) => s.trim())
       .filter(Boolean);
 
+  const normalizeOptionList = (list) => {
+    const seen = new Set();
+    return (Array.isArray(list) ? list : [])
+      .map((item) => String(item || "").trim())
+      .filter(Boolean)
+      .filter((item) => {
+        const key = item.toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+  };
+
+  const renameOptionListValue = (list, oldValue, newValue) =>
+    normalizeOptionList(
+      (Array.isArray(list) ? list : []).map((entry) =>
+        String(entry || "").trim().toLowerCase() ===
+        String(oldValue || "").trim().toLowerCase()
+          ? newValue
+          : entry
+      )
+    );
+
   const formatDateTime = (value) => {
     if (!value) return "N/A";
     const date = new Date(value);
@@ -393,6 +416,49 @@ export default function AdminDashboard() {
     if (type === "categories") setCategoriesText(next);
     if (type === "units") setUnitsText(next);
     if (type === "currencies") setCurrenciesText(next);
+  };
+
+  const getTaxonomyText = (type) => {
+    if (type === "cities") return citiesText;
+    if (type === "categories") return categoriesText;
+    if (type === "units") return unitsText;
+    if (type === "currencies") return currenciesText;
+    return "";
+  };
+
+  const updateTaxonomyTextList = (type, updater) => {
+    const current = parseOptionList(getTaxonomyText(type));
+    const next = normalizeOptionList(updater(current));
+    setTaxonomyText(type, next);
+  };
+
+  const addTaxonomyValueLocally = (type) => {
+    const value = prompt(`Add new ${type.slice(0, -1)} value`);
+    if (!value) return;
+    updateTaxonomyTextList(type, (current) => [...current, value]);
+  };
+
+  const renameTaxonomyValueLocally = (type) => {
+    const oldValue = prompt(`Current ${type.slice(0, -1)} value to rename`);
+    if (!oldValue) return;
+    const newValue = prompt(`New value for ${oldValue}`);
+    if (!newValue) return;
+    updateTaxonomyTextList(type, (current) =>
+      renameOptionListValue(current, oldValue, newValue)
+    );
+  };
+
+  const removeTaxonomyValueLocally = (type) => {
+    const value = prompt(`Value to remove from ${type}`);
+    if (!value) return;
+    updateTaxonomyTextList(
+      type,
+      (current) =>
+        current.filter(
+          (entry) =>
+            String(entry || "").trim().toLowerCase() !== value.trim().toLowerCase()
+        )
+    );
   };
 
   const addTaxonomyValue = async (type) => {
@@ -924,23 +990,23 @@ export default function AdminDashboard() {
               />
               <div className="mt-2 flex gap-2">
                 <button
-                  onClick={() => addTaxonomyValue("cities")}
+                  onClick={() => addTaxonomyValueLocally("cities")}
                   className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-300"
                 >
                   Add City
                 </button>
-                <button
-                  onClick={() => renameTaxonomyValue("cities")}
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-300"
-                >
-                  Rename City
-                </button>
-                <button
-                  onClick={() => removeTaxonomyValue("cities")}
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-300 text-red-700"
-                >
-                  Remove City
-                </button>
+              <button
+                onClick={() => renameTaxonomyValueLocally("cities")}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-300"
+              >
+                Rename City
+              </button>
+              <button
+                onClick={() => removeTaxonomyValueLocally("cities")}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-300 text-red-700"
+              >
+                Remove City
+              </button>
               </div>
             </div>
 
@@ -956,23 +1022,23 @@ export default function AdminDashboard() {
               />
               <div className="mt-2 flex gap-2">
                 <button
-                  onClick={() => addTaxonomyValue("categories")}
+                  onClick={() => addTaxonomyValueLocally("categories")}
                   className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-300"
                 >
                   Add Category
                 </button>
-                <button
-                  onClick={() => renameTaxonomyValue("categories")}
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-300"
-                >
-                  Rename Category
-                </button>
-                <button
-                  onClick={() => removeTaxonomyValue("categories")}
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-300 text-red-700"
-                >
-                  Remove Category
-                </button>
+              <button
+                onClick={() => renameTaxonomyValueLocally("categories")}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-300"
+              >
+                Rename Category
+              </button>
+              <button
+                onClick={() => removeTaxonomyValueLocally("categories")}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-300 text-red-700"
+              >
+                Remove Category
+              </button>
               </div>
             </div>
 
@@ -988,23 +1054,23 @@ export default function AdminDashboard() {
               />
               <div className="mt-2 flex gap-2">
                 <button
-                  onClick={() => addTaxonomyValue("units")}
+                  onClick={() => addTaxonomyValueLocally("units")}
                   className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-300"
                 >
                   Add Unit
                 </button>
-                <button
-                  onClick={() => renameTaxonomyValue("units")}
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-300"
-                >
-                  Rename Unit
-                </button>
-                <button
-                  onClick={() => removeTaxonomyValue("units")}
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-300 text-red-700"
-                >
-                  Remove Unit
-                </button>
+              <button
+                onClick={() => renameTaxonomyValueLocally("units")}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-300"
+              >
+                Rename Unit
+              </button>
+              <button
+                onClick={() => removeTaxonomyValueLocally("units")}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-300 text-red-700"
+              >
+                Remove Unit
+              </button>
               </div>
             </div>
 
