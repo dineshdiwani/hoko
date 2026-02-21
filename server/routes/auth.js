@@ -56,14 +56,17 @@ function ensureRoles(user) {
 router.post("/login", otpSendLimiter, async (req, res) => {
   const { email, password, role, city } = req.body || {};
   const normalizedEmail = normalizeEmail(email);
+  const normalizedRole = role === "seller" ? "seller" : "buyer";
 
-  if (!normalizedEmail || !password) {
-    return res
-      .status(400)
-      .json({ message: "Email and password required" });
+  if (!normalizedEmail) {
+    return res.status(400).json({ message: "Email required" });
   }
 
-  const normalizedRole = role === "seller" ? "seller" : "buyer";
+  if (normalizedRole === "seller" && !password) {
+    return res
+      .status(400)
+      .json({ message: "Password required for seller login" });
+  }
 
   let user = await User.findOne({ email: normalizedEmail });
   if (!user) {
@@ -75,10 +78,8 @@ router.post("/login", otpSendLimiter, async (req, res) => {
         message: "Complete buyer login and seller registration first"
       });
     }
-    const passwordHash = await bcrypt.hash(password, 10);
     user = await User.create({
       email: normalizedEmail,
-      passwordHash,
       city,
       roles: {
         buyer: true,
@@ -88,14 +89,16 @@ router.post("/login", otpSendLimiter, async (req, res) => {
     });
   } else {
     ensureRoles(user);
-    if (!user.passwordHash) {
-      return res.status(400).json({
-        message: "Password not set. Use forgot password."
-      });
-    }
-    const ok = await bcrypt.compare(password, user.passwordHash);
-    if (!ok) {
-      return res.status(401).json({ message: "Invalid credentials" });
+    if (normalizedRole === "seller") {
+      if (!user.passwordHash) {
+        return res.status(400).json({
+          message: "Password not set. Use forgot password."
+        });
+      }
+      const ok = await bcrypt.compare(password, user.passwordHash);
+      if (!ok) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
     }
   }
 

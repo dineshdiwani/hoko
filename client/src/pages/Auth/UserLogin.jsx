@@ -7,6 +7,7 @@ import GoogleLoginButton from "../../components/GoogleLoginButton";
 
 export default function UserLogin({ role = "buyer" }) {
   const isSeller = role === "seller";
+  const requiresPassword = isSeller;
   const currentRole = isSeller ? "seller" : "buyer";
   const navigate = useNavigate();
   const defaultTermsContent = [
@@ -127,21 +128,23 @@ export default function UserLogin({ role = "buyer" }) {
       alert("Please enter a valid email");
       return;
     }
-    if (!password || String(password).length < 6) {
-      alert("Password must be at least 6 characters");
-      return;
+    if (requiresPassword) {
+      if (!password || String(password).length < 6) {
+        alert("Password must be at least 6 characters");
+        return;
+      }
+
+      if (authMode === "SIGNUP") {
+        if (password !== confirmPassword) {
+          alert("Passwords do not match");
+          return;
+        }
+      }
     }
 
     if (!acceptedTerms) {
       alert("Please accept the Terms & Conditions and Privacy Policy");
       return;
-    }
-
-    if (authMode === "SIGNUP") {
-      if (password !== confirmPassword) {
-        alert("Passwords do not match");
-        return;
-      }
     }
 
     if (!city) {
@@ -158,7 +161,7 @@ export default function UserLogin({ role = "buyer" }) {
     api
       .post("/auth/login", {
         email,
-        password,
+        ...(requiresPassword ? { password } : {}),
         role: currentRole,
         city,
         acceptTerms: acceptedTerms
@@ -465,8 +468,9 @@ export default function UserLogin({ role = "buyer" }) {
               Access, fast and secure
             </h1>
             <p className="text-slate-600 text-lg leading-relaxed">
-              Sign in with your email and password, then verify with an
-              OTP sent to your inbox.
+              {requiresPassword
+                ? "Sign in with your email and password, then verify with an OTP sent to your inbox."
+                : "Sign in with your email and verify instantly using an OTP sent to your inbox."}
             </p>
             <div className="mt-8 hidden lg:block">
               <div className="inline-flex items-center gap-3 rounded-full border border-slate-200 px-4 py-2 text-slate-500 text-sm">
@@ -485,7 +489,7 @@ export default function UserLogin({ role = "buyer" }) {
                 Login
               </h1>
               <p className="text-center text-gray-500 mb-4">
-                {authMode === "SIGNUP"
+                {requiresPassword && authMode === "SIGNUP"
                   ? "Create account with email OTP"
                   : "Continue with email OTP"}
               </p>
@@ -519,50 +523,54 @@ export default function UserLogin({ role = "buyer" }) {
                   required
                 />
 
-                <label className="block text-sm font-medium mb-1 text-gray-700">
-                  Password
-                </label>
-                <div className="relative mb-4">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter your password"
-                    className="w-full border border-gray-300 rounded-xl px-4 py-3 pr-16"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((v) => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-amber-700"
-                  >
-                    {showPassword ? "Hide" : "Show"}
-                  </button>
-                </div>
-
-                {authMode === "SIGNUP" && (
+                {requiresPassword && (
                   <>
+                    <label className="block text-sm font-medium mb-1 text-gray-700">
+                      Password
+                    </label>
                     <div className="relative mb-4">
                       <input
-                        type={showConfirmPassword ? "text" : "password"}
-                        value={confirmPassword}
-                        onChange={(e) =>
-                          setConfirmPassword(e.target.value)
-                        }
-                        placeholder="Confirm your password"
+                        type={showPassword ? "text" : "password"}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Enter your password"
                         className="w-full border border-gray-300 rounded-xl px-4 py-3 pr-16"
                         required
                       />
                       <button
                         type="button"
-                        onClick={() =>
-                          setShowConfirmPassword((v) => !v)
-                        }
+                        onClick={() => setShowPassword((v) => !v)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-amber-700"
                       >
-                        {showConfirmPassword ? "Hide" : "Show"}
+                        {showPassword ? "Hide" : "Show"}
                       </button>
                     </div>
+
+                    {authMode === "SIGNUP" && (
+                      <>
+                        <div className="relative mb-4">
+                          <input
+                            type={showConfirmPassword ? "text" : "password"}
+                            value={confirmPassword}
+                            onChange={(e) =>
+                              setConfirmPassword(e.target.value)
+                            }
+                            placeholder="Confirm your password"
+                            className="w-full border border-gray-300 rounded-xl px-4 py-3 pr-16"
+                            required
+                          />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setShowConfirmPassword((v) => !v)
+                            }
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-amber-700"
+                          >
+                            {showConfirmPassword ? "Hide" : "Show"}
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </>
                 )}
 
@@ -634,7 +642,7 @@ export default function UserLogin({ role = "buyer" }) {
                   }}
                 />
 
-                {authMode === "LOGIN" ? (
+                {requiresPassword && authMode === "LOGIN" ? (
                   <div className="mt-3 flex items-center justify-between text-sm">
                     <button
                       type="button"
@@ -654,7 +662,7 @@ export default function UserLogin({ role = "buyer" }) {
                       Sign up
                     </button>
                   </div>
-                ) : (
+                ) : requiresPassword ? (
                   <div className="mt-3 text-right text-sm">
                     <button
                       type="button"
@@ -668,6 +676,11 @@ export default function UserLogin({ role = "buyer" }) {
                       Already have an account? Login
                     </button>
                   </div>
+                ) : null}
+                {!requiresPassword && (
+                  <p className="mt-3 text-center text-xs text-slate-500">
+                    Buyer login uses email OTP only.
+                  </p>
                 )}
                 </>
               )}
@@ -742,7 +755,7 @@ export default function UserLogin({ role = "buyer" }) {
         </div>
       )}
 
-      {showForgot && (
+      {requiresPassword && showForgot && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white w-full max-w-md rounded-2xl shadow-xl p-6">
             <div className="flex justify-between items-center mb-4">
