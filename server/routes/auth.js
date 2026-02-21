@@ -1,6 +1,5 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
-const bcrypt = require("bcryptjs");
 const User = require("../models/User");
 const router = express.Router();
 const { setOtp, verifyOtp } = require("../utils/otpStore");
@@ -54,18 +53,12 @@ function ensureRoles(user) {
 
 /* -------- LOGIN (SEND OTP) -------- */
 router.post("/login", otpSendLimiter, async (req, res) => {
-  const { email, password, role, city } = req.body || {};
+  const { email, role, city } = req.body || {};
   const normalizedEmail = normalizeEmail(email);
   const normalizedRole = role === "seller" ? "seller" : "buyer";
 
   if (!normalizedEmail) {
     return res.status(400).json({ message: "Email required" });
-  }
-
-  if (normalizedRole === "seller" && !password) {
-    return res
-      .status(400)
-      .json({ message: "Password required for seller login" });
   }
 
   let user = await User.findOne({ email: normalizedEmail });
@@ -89,17 +82,6 @@ router.post("/login", otpSendLimiter, async (req, res) => {
     });
   } else {
     ensureRoles(user);
-    if (normalizedRole === "seller") {
-      if (!user.passwordHash) {
-        return res.status(400).json({
-          message: "Password not set. Use forgot password."
-        });
-      }
-      const ok = await bcrypt.compare(password, user.passwordHash);
-      if (!ok) {
-        return res.status(401).json({ message: "Invalid credentials" });
-      }
-    }
   }
 
   const otp = generateOtp();
@@ -210,76 +192,6 @@ router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
       sellerProfile: user.sellerProfile
     }
   });
-});
-
-/* -------- FORGOT PASSWORD -------- */
-router.post("/forgot-password", otpSendLimiter, async (req, res) => {
-  const normalizedEmail = normalizeEmail(req.body?.email);
-  if (!normalizedEmail) {
-    return res.status(400).json({ message: "Email required" });
-  }
-
-  const user = await User.findOne({ email: normalizedEmail });
-  if (!user) {
-    return res.json({ success: true });
-  }
-
-  const otp = generateOtp();
-  try {
-    await sendOtpEmail({
-      email: normalizedEmail,
-      otp,
-      subject: "Your Hoko password reset OTP"
-    });
-    setOtp(`forgot:${normalizedEmail}`, otp, OTP_TTL_MS);
-    return res.json({ success: true });
-  } catch (err) {
-    console.error("Forgot password email failed:", err.message);
-    const body = { message: "Failed to send OTP" };
-    if (process.env.NODE_ENV !== "production") {
-      body.error = err?.response || err?.message || "Unknown SMTP error";
-    }
-    return res.status(500).json(body);
-  }
-});
-
-/* -------- RESET PASSWORD -------- */
-router.post("/reset-password", otpVerifyLimiter, async (req, res) => {
-  const { email, otp, newPassword } = req.body || {};
-  const normalizedEmail = normalizeEmail(email);
-  if (!normalizedEmail || !otp || !newPassword) {
-    return res.status(400).json({ message: "Missing data" });
-  }
-  if (String(newPassword).length < 6) {
-    return res
-      .status(400)
-      .json({ message: "Password must be at least 6 characters" });
-  }
-
-  const otpResult = verifyOtp(
-    `forgot:${normalizedEmail}`,
-    otp,
-    OTP_MAX_ATTEMPTS
-  );
-  if (!otpResult.ok) {
-    const message =
-      otpResult.reason === "expired"
-        ? "OTP expired"
-        : otpResult.reason === "locked"
-        ? "Too many OTP attempts"
-        : "Invalid OTP";
-    const status = otpResult.reason === "locked" ? 429 : 401;
-    return res.status(status).json({ message });
-  }
-
-  const user = await User.findOne({ email: normalizedEmail });
-  if (!user) {
-    return res.status(404).json({ message: "User not found" });
-  }
-
-  user.passwordHash = await bcrypt.hash(newPassword, 10);
-  await user.save();
-  return res.json({ success: true });
 });
 
 /* -------- GOOGLE LOGIN -------- */

@@ -7,7 +7,6 @@ import GoogleLoginButton from "../../components/GoogleLoginButton";
 
 export default function UserLogin({ role = "buyer" }) {
   const isSeller = role === "seller";
-  const requiresPassword = isSeller;
   const currentRole = isSeller ? "seller" : "buyer";
   const navigate = useNavigate();
   const defaultTermsContent = [
@@ -31,10 +30,7 @@ export default function UserLogin({ role = "buyer" }) {
   ].join("\n\n");
 
   const [step, setStep] = useState("LOGIN");
-  const [authMode, setAuthMode] = useState("LOGIN");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [otp, setOtp] = useState("");
   const [city, setCity] = useState("");
   const [loading, setLoading] = useState(false);
@@ -42,15 +38,6 @@ export default function UserLogin({ role = "buyer" }) {
   const [showLegalModal, setShowLegalModal] = useState(false);
   const [legalModalType, setLegalModalType] = useState("terms");
   const [submitted, setSubmitted] = useState(false);
-  const [showForgot, setShowForgot] = useState(false);
-  const [forgotStep, setForgotStep] = useState("REQUEST");
-  const [forgotEmail, setForgotEmail] = useState("");
-  const [forgotOtp, setForgotOtp] = useState("");
-  const [forgotPassword, setForgotPassword] = useState("");
-  const [forgotLoading, setForgotLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [termsContent, setTermsContent] = useState(defaultTermsContent);
   const [privacyPolicyContent, setPrivacyPolicyContent] = useState(defaultPrivacyPolicyContent);
   const [cities, setCities] = useState([
@@ -128,19 +115,6 @@ export default function UserLogin({ role = "buyer" }) {
       alert("Please enter a valid email");
       return;
     }
-    if (requiresPassword) {
-      if (!password || String(password).length < 6) {
-        alert("Password must be at least 6 characters");
-        return;
-      }
-
-      if (authMode === "SIGNUP") {
-        if (password !== confirmPassword) {
-          alert("Passwords do not match");
-          return;
-        }
-      }
-    }
 
     if (!acceptedTerms) {
       alert("Please accept the Terms & Conditions and Privacy Policy");
@@ -161,7 +135,6 @@ export default function UserLogin({ role = "buyer" }) {
     api
       .post("/auth/login", {
         email,
-        ...(requiresPassword ? { password } : {}),
         role: currentRole,
         city,
         acceptTerms: acceptedTerms
@@ -301,62 +274,6 @@ export default function UserLogin({ role = "buyer" }) {
       .finally(() => setLoading(false));
   }
 
-  function handleForgotRequest() {
-    if (!validEmail(forgotEmail)) {
-      alert("Please enter a valid email");
-      return;
-    }
-    setForgotLoading(true);
-    api
-      .post("/auth/forgot-password", { email: forgotEmail })
-      .then(() => {
-        setForgotStep("VERIFY");
-        alert("OTP sent to your email");
-      })
-      .catch((err) => {
-        alert(
-          err?.response?.data?.error ||
-            err?.response?.data?.message ||
-            err?.message ||
-            "Failed to send OTP. Try again."
-        );
-      })
-      .finally(() => setForgotLoading(false));
-  }
-
-  function handleForgotReset() {
-    if (String(forgotOtp).trim().length !== 6) {
-      alert("Please enter a valid 6-digit OTP");
-      return;
-    }
-    if (!forgotPassword || String(forgotPassword).length < 6) {
-      alert("Password must be at least 6 characters");
-      return;
-    }
-    setForgotLoading(true);
-    api
-      .post("/auth/reset-password", {
-        email: forgotEmail,
-        otp: forgotOtp,
-        newPassword: forgotPassword
-      })
-      .then(() => {
-        alert("Password reset successful. Please login.");
-        setShowForgot(false);
-        setForgotStep("REQUEST");
-        setForgotEmail("");
-        setForgotOtp("");
-        setForgotPassword("");
-      })
-      .catch((err) => {
-        alert(
-          err?.response?.data?.message ||
-            "Failed to reset password."
-        );
-      })
-      .finally(() => setForgotLoading(false));
-  }
-
   function handleGoogleLogin(credential) {
     const selectedCity = cityRef.current || city;
     const hasAcceptedTerms =
@@ -468,9 +385,7 @@ export default function UserLogin({ role = "buyer" }) {
               Access, fast and secure
             </h1>
             <p className="text-slate-600 text-lg leading-relaxed">
-              {requiresPassword
-                ? "Sign in with your email and password, then verify with an OTP sent to your inbox."
-                : "Sign in with your email and verify instantly using an OTP sent to your inbox."}
+              Sign in with your email and verify instantly using an OTP sent to your inbox.
             </p>
             <div className="mt-8 hidden lg:block">
               <div className="inline-flex items-center gap-3 rounded-full border border-slate-200 px-4 py-2 text-slate-500 text-sm">
@@ -489,9 +404,7 @@ export default function UserLogin({ role = "buyer" }) {
                 Login
               </h1>
               <p className="text-center text-gray-500 mb-4">
-                {requiresPassword && authMode === "SIGNUP"
-                  ? "Create account with email OTP"
-                  : "Continue with email OTP"}
+                Continue with email OTP
               </p>
 
               {step === "LOGIN" && (
@@ -522,57 +435,6 @@ export default function UserLogin({ role = "buyer" }) {
                   className="w-full border border-gray-300 rounded-xl px-4 py-3 mb-4"
                   required
                 />
-
-                {requiresPassword && (
-                  <>
-                    <label className="block text-sm font-medium mb-1 text-gray-700">
-                      Password
-                    </label>
-                    <div className="relative mb-4">
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Enter your password"
-                        className="w-full border border-gray-300 rounded-xl px-4 py-3 pr-16"
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword((v) => !v)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-amber-700"
-                      >
-                        {showPassword ? "Hide" : "Show"}
-                      </button>
-                    </div>
-
-                    {authMode === "SIGNUP" && (
-                      <>
-                        <div className="relative mb-4">
-                          <input
-                            type={showConfirmPassword ? "text" : "password"}
-                            value={confirmPassword}
-                            onChange={(e) =>
-                              setConfirmPassword(e.target.value)
-                            }
-                            placeholder="Confirm your password"
-                            className="w-full border border-gray-300 rounded-xl px-4 py-3 pr-16"
-                            required
-                          />
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setShowConfirmPassword((v) => !v)
-                            }
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-amber-700"
-                          >
-                            {showConfirmPassword ? "Hide" : "Show"}
-                          </button>
-                        </div>
-                      </>
-                    )}
-                  </>
-                )}
 
                 <div className="mt-2 flex items-start gap-2 text-sm text-gray-600">
                   <input
@@ -641,48 +503,7 @@ export default function UserLogin({ role = "buyer" }) {
                     alert("Please accept the Terms & Conditions and Privacy Policy first.");
                   }}
                 />
-
-                {requiresPassword && authMode === "LOGIN" ? (
-                  <div className="mt-3 flex items-center justify-between text-sm">
-                    <button
-                      type="button"
-                      onClick={() => setShowForgot(true)}
-                      className="bg-transparent shadow-none text-amber-700 hover:underline"
-                    >
-                      Forgot password?
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAuthMode("SIGNUP");
-                        setAcceptedTerms(false);
-                      }}
-                      className="bg-transparent shadow-none text-amber-700 hover:underline"
-                    >
-                      Sign up
-                    </button>
-                  </div>
-                ) : requiresPassword ? (
-                  <div className="mt-3 text-right text-sm">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAuthMode("LOGIN");
-                        setAcceptedTerms(false);
-                        setConfirmPassword("");
-                      }}
-                      className="bg-transparent shadow-none text-amber-700 hover:underline"
-                    >
-                      Already have an account? Login
-                    </button>
-                  </div>
-                ) : null}
-                {!requiresPassword && (
-                  <p className="mt-3 text-center text-xs text-slate-500">
-                    Buyer login uses email OTP only.
-                  </p>
-                )}
-                </>
+              </>
               )}
 
               {step === "OTP" && (
@@ -751,89 +572,6 @@ export default function UserLogin({ role = "buyer" }) {
                   <p key={`legal-${index}`}>{line}</p>
                 ))}
             </div>
-          </div>
-        </div>
-      )}
-
-      {requiresPassword && showForgot && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white w-full max-w-md rounded-2xl shadow-xl p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-bold">Forgot Password</h2>
-              <button
-                onClick={() => setShowForgot(false)}
-                className="text-gray-500 hover:text-gray-800"
-              >
-                Close
-              </button>
-            </div>
-
-            {forgotStep === "REQUEST" && (
-              <>
-                <label className="block text-sm font-medium mb-1 text-gray-700">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  value={forgotEmail}
-                  onChange={(e) => setForgotEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  className="w-full border border-gray-300 rounded-xl px-4 py-3 mb-4"
-                />
-                <button
-                  onClick={handleForgotRequest}
-                  disabled={forgotLoading}
-                  className="w-full py-3 rounded-xl btn-brand font-semibold"
-                >
-                  {forgotLoading ? "Sending..." : "Send OTP"}
-                </button>
-              </>
-            )}
-
-            {forgotStep === "VERIFY" && (
-              <>
-                <label className="block text-sm font-medium mb-1 text-gray-700">
-                  OTP
-                </label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={forgotOtp}
-                  onChange={(e) => setForgotOtp(e.target.value)}
-                  placeholder="6-digit OTP"
-                  className="w-full border border-gray-300 rounded-xl px-4 py-3 mb-4"
-                />
-
-                <label className="block text-sm font-medium mb-1 text-gray-700">
-                  New Password
-                </label>
-                <div className="relative mb-4">
-                  <input
-                    type={showForgotPassword ? "text" : "password"}
-                    value={forgotPassword}
-                    onChange={(e) => setForgotPassword(e.target.value)}
-                    placeholder="Enter new password"
-                    className="w-full border border-gray-300 rounded-xl px-4 py-3 pr-16"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowForgotPassword((v) => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-amber-700"
-                  >
-                    {showForgotPassword ? "Hide" : "Show"}
-                  </button>
-                </div>
-
-                <button
-                  onClick={handleForgotReset}
-                  disabled={forgotLoading}
-                  className="w-full py-3 rounded-xl btn-brand font-semibold"
-                >
-                  {forgotLoading ? "Resetting..." : "Reset Password"}
-                </button>
-              </>
-            )}
           </div>
         </div>
       )}

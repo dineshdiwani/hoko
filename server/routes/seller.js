@@ -1,6 +1,5 @@
 const express = require("express");
 const router = express.Router();
-const bcrypt = require("bcryptjs");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
@@ -278,41 +277,19 @@ router.get("/profile", auth, sellerOnly, async (req, res) => {
       versionDate: latestPlatformSettings?.updatedAt || null
     },
     loginMethods: {
-      password: Boolean(user?.passwordHash),
+      otp: true,
       google: Boolean(user?.googleProfile?.sub)
     }
   });
 });
 
 /**
- * Change seller password
+ * Password auth disabled (OTP-only login)
  */
 router.post("/profile/password", auth, sellerOnly, async (req, res) => {
-  const { currentPassword, newPassword } = req.body || {};
-  if (!currentPassword || !newPassword) {
-    return res
-      .status(400)
-      .json({ message: "Current password and new password are required" });
-  }
-  if (String(newPassword).length < 6) {
-    return res
-      .status(400)
-      .json({ message: "Password must be at least 6 characters" });
-  }
-  if (!req.user.passwordHash) {
-    return res.status(400).json({
-      message: "Password login is not enabled for this account"
-    });
-  }
-
-  const ok = await bcrypt.compare(currentPassword, req.user.passwordHash);
-  if (!ok) {
-    return res.status(401).json({ message: "Current password is incorrect" });
-  }
-
-  req.user.passwordHash = await bcrypt.hash(newPassword, 10);
-  await req.user.save();
-  res.json({ success: true });
+  return res.status(410).json({
+    message: "Password login is disabled. Use email OTP login."
+  });
 });
 
 /**
