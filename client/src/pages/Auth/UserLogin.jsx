@@ -434,18 +434,6 @@ export default function UserLogin({ role = "buyer" }) {
                       "Google login failed to initialize.";
                     alert(reason);
                   }}
-                  disabled={!city || !acceptedTerms}
-                  onDisabledClick={() => {
-                    if (!city && !acceptedTerms) {
-                      alert("Please select city and accept Terms & Conditions and Privacy Policy first.");
-                      return;
-                    }
-                    if (!city) {
-                      alert("Please select your city first.");
-                      return;
-                    }
-                    alert("Please accept the Terms & Conditions and Privacy Policy first.");
-                  }}
                 />
 
                 <div className="my-3 flex items-center gap-3">
