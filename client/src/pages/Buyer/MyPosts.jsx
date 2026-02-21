@@ -359,65 +359,6 @@ export default function MyPosts() {
                   ? `${offerCount} offer received`
                   : "No offers received yet"}
               </span>
-              <div
-                className="relative inline-flex"
-                onMouseEnter={() => {
-                  if (showDisabledInvokeHint) {
-                    setAuctionHintReqId(reqId);
-                  }
-                }}
-                onMouseLeave={() => {
-                  if (auctionHintReqId === reqId) {
-                    setAuctionHintReqId("");
-                  }
-                }}
-                onClick={(e) => {
-                  if (!showDisabledInvokeHint) return;
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setAuctionHintReqId(reqId);
-                }}
-              >
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (showDisabledInvokeHint) {
-                      setAuctionHintReqId(reqId);
-                      return;
-                    }
-                    toggleReverseAuction(req);
-                  }}
-                  aria-disabled={showDisabledInvokeHint || isAuctionBusy}
-                  disabled={isAuctionBusy}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-                    auctionActive
-                      ? "bg-red-600 text-white"
-                      : offerCount >= 3
-                      ? "btn-primary text-white"
-                      : "bg-gray-300 text-gray-600 cursor-not-allowed"
-                  }`}
-                  title={
-                    !auctionActive && offerCount < 3
-                      ? "You must receive 3 or more offers before you invoke reverse auction."
-                      : auctionActive
-                      ? "Stop reverse auction"
-                      : "Invoke reverse auction"
-                  }
-                >
-                  {isAuctionBusy
-                    ? auctionActive
-                      ? "Stopping..."
-                      : "Invoking..."
-                    : auctionActive
-                    ? "Stop Reverse Auction"
-                    : "Invoke Reverse Auction"}
-                </button>
-                {showDisabledInvokeHint && auctionHintReqId === reqId && (
-                  <div className="absolute right-0 top-full z-20 mt-2 whitespace-nowrap rounded-lg bg-black px-3 py-2 text-xs text-white shadow-lg">
-                    You must receive 3 or more offers before you invoke reverse auction.
-                  </div>
-                )}
-              </div>
             </div>
 
             <div
@@ -468,6 +409,65 @@ export default function MyPosts() {
               >
                 Compare Offers
               </button>
+              <div
+                className="relative inline-flex"
+                onMouseEnter={() => {
+                  if (showDisabledInvokeHint) {
+                    setAuctionHintReqId(reqId);
+                  }
+                }}
+                onMouseLeave={() => {
+                  if (auctionHintReqId === reqId) {
+                    setAuctionHintReqId("");
+                  }
+                }}
+                onClick={(e) => {
+                  if (!showDisabledInvokeHint) return;
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setAuctionHintReqId(reqId);
+                }}
+              >
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (showDisabledInvokeHint) {
+                      setAuctionHintReqId(reqId);
+                      return;
+                    }
+                    toggleReverseAuction(req);
+                  }}
+                  aria-disabled={showDisabledInvokeHint || isAuctionBusy}
+                  disabled={isAuctionBusy}
+                  className={`inline-flex h-10 min-w-[160px] items-center justify-center px-4 rounded-lg text-xs font-semibold transition ${
+                    auctionActive
+                      ? "bg-red-600 text-white"
+                      : offerCount >= 3
+                      ? "btn-primary text-white"
+                      : "bg-gray-300 text-gray-600 cursor-not-allowed"
+                  }`}
+                  title={
+                    !auctionActive && offerCount < 3
+                      ? "You must receive 3 or more offers before you invoke reverse auction."
+                      : auctionActive
+                      ? "Stop reverse auction"
+                      : "Invoke reverse auction"
+                  }
+                >
+                  {isAuctionBusy
+                    ? auctionActive
+                      ? "Stopping..."
+                      : "Invoking..."
+                    : auctionActive
+                    ? "Stop Reverse Auction"
+                    : "Invoke Reverse Auction"}
+                </button>
+                {showDisabledInvokeHint && auctionHintReqId === reqId && (
+                  <div className="absolute right-0 top-full z-20 mt-2 whitespace-nowrap rounded-lg bg-black px-3 py-2 text-xs text-white shadow-lg">
+                    You must receive 3 or more offers before you invoke reverse auction.
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         );
