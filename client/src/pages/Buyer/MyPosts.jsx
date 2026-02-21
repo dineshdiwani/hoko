@@ -421,14 +421,14 @@ export default function MyPosts() {
             </div>
 
             <div
-              className="mt-3 flex flex-wrap items-center gap-2"
+              className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2"
               onClick={(e) => e.stopPropagation()}
             >
               <button
                 onClick={() =>
                   navigate(`/buyer/requirement/${reqId}/edit`)
                 }
-                className="inline-flex w-fit items-center justify-center px-3 py-2 border border-[var(--ui-border)] rounded-lg text-xs font-semibold text-[var(--ui-text)]"
+                className="inline-flex w-full h-10 items-center justify-center px-3 rounded-lg text-xs font-semibold border border-[var(--ui-border)] text-[var(--ui-text)]"
               >
                 Edit Post
               </button>
@@ -437,7 +437,7 @@ export default function MyPosts() {
                   navigate(`/buyer/requirement/${reqId}/offers`)
                 }
                 disabled={offerCount < 1}
-                className={`inline-flex w-fit items-center justify-center px-3 py-2 rounded-lg text-xs font-semibold ${
+                className={`inline-flex w-full h-10 items-center justify-center px-3 rounded-lg text-xs font-semibold ${
                   offerCount < 1
                     ? "bg-gray-300 text-gray-600 cursor-not-allowed"
                     : "btn-primary text-white"
@@ -455,7 +455,7 @@ export default function MyPosts() {
                   navigate(`/buyer/requirement/${reqId}/compare`)
                 }
                 disabled={offerCount < 2}
-                className={`inline-flex w-fit items-center justify-center px-3 py-2 rounded-lg text-xs font-semibold ${
+                className={`inline-flex w-full h-10 items-center justify-center px-3 rounded-lg text-xs font-semibold ${
                   offerCount < 2
                     ? "bg-gray-300 text-gray-600 cursor-not-allowed"
                     : "bg-slate-900 text-white hover:bg-slate-800"
