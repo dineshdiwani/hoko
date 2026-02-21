@@ -424,6 +424,38 @@ export default function UserLogin({ role = "buyer" }) {
                   ))}
                 </select>
 
+                <GoogleLoginButton
+                  onSuccess={(credential) => {
+                    handleGoogleLogin(credential);
+                  }}
+                  onError={(error) => {
+                    const reason =
+                      error?.message ||
+                      "Google login failed to initialize.";
+                    alert(reason);
+                  }}
+                  disabled={!city || !acceptedTerms}
+                  onDisabledClick={() => {
+                    if (!city && !acceptedTerms) {
+                      alert("Please select city and accept Terms & Conditions and Privacy Policy first.");
+                      return;
+                    }
+                    if (!city) {
+                      alert("Please select your city first.");
+                      return;
+                    }
+                    alert("Please accept the Terms & Conditions and Privacy Policy first.");
+                  }}
+                />
+
+                <div className="my-3 flex items-center gap-3">
+                  <div className="h-px flex-1 bg-slate-200" />
+                  <span className="text-xs font-semibold tracking-wide text-slate-500">
+                    OR
+                  </span>
+                  <div className="h-px flex-1 bg-slate-200" />
+                </div>
+
                 <label className="block text-sm font-medium mb-1 text-gray-700">
                   Email
                 </label>
@@ -436,7 +468,15 @@ export default function UserLogin({ role = "buyer" }) {
                   required
                 />
 
-                <div className="mt-2 flex items-start gap-2 text-sm text-gray-600">
+                <button
+                  onClick={sendLoginOtp}
+                  disabled={loading}
+                  className="w-full py-3 rounded-xl btn-brand font-semibold"
+                >
+                  {loading ? "Sending OTP..." : "Send OTP"}
+                </button>
+
+                <div className="mt-3 flex items-start gap-2 text-sm text-gray-600">
                   <input
                     type="checkbox"
                     checked={acceptedTerms}
@@ -471,38 +511,6 @@ export default function UserLogin({ role = "buyer" }) {
                     </button>
                   </span>
                 </div>
-
-                <button
-                  onClick={sendLoginOtp}
-                  disabled={loading}
-                  className="w-full py-3 rounded-xl btn-brand font-semibold mt-3"
-                >
-                  {loading ? "Sending OTP..." : "Send OTP"}
-                </button>
-
-                <GoogleLoginButton
-                  onSuccess={(credential) => {
-                    handleGoogleLogin(credential);
-                  }}
-                  onError={(error) => {
-                    const reason =
-                      error?.message ||
-                      "Google login failed to initialize.";
-                    alert(reason);
-                  }}
-                  disabled={!city || !acceptedTerms}
-                  onDisabledClick={() => {
-                    if (!city && !acceptedTerms) {
-                      alert("Please select city and accept Terms & Conditions and Privacy Policy first.");
-                      return;
-                    }
-                    if (!city) {
-                      alert("Please select your city first.");
-                      return;
-                    }
-                    alert("Please accept the Terms & Conditions and Privacy Policy first.");
-                  }}
-                />
               </>
               )}
 

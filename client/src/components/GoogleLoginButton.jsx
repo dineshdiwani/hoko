@@ -48,13 +48,14 @@ export default function GoogleLoginButton({
   const renderGoogleButton = useCallback(() => {
     if (buttonHostRef.current) {
       buttonHostRef.current.innerHTML = "";
+      const width = Math.max(220, Math.floor(buttonHostRef.current.offsetWidth || 0));
       window.google.accounts.id.renderButton(buttonHostRef.current, {
         theme: "outline",
         size: "large",
         text: "continue_with",
         shape: "rectangular",
         logo_alignment: "left",
-        width: Math.min(360, Math.max(220, buttonHostRef.current.offsetWidth || 0))
+        width
       });
       return true;
     }
@@ -109,22 +110,20 @@ export default function GoogleLoginButton({
 
   return (
     <div className={`w-full mt-3 relative ${disabled ? "opacity-70" : ""}`}>
-      <div className="flex justify-center">
-        <div className="relative inline-flex">
-          <div
-            ref={buttonHostRef}
-            className={disabled ? "pointer-events-none" : ""}
+      <div className="relative w-full">
+        <div
+          ref={buttonHostRef}
+          className={`w-full ${disabled ? "pointer-events-none" : ""}`}
+        />
+        {disabled && (
+          <button
+            type="button"
+            onClick={() => onDisabledClick?.()}
+            className="absolute inset-0 z-20 rounded cursor-not-allowed bg-white/0"
+            aria-label="Complete city and terms before Google login"
+            title="Select city and accept terms first"
           />
-          {disabled && (
-            <button
-              type="button"
-              onClick={() => onDisabledClick?.()}
-              className="absolute inset-0 z-20 min-h-[40px] min-w-[240px] rounded cursor-not-allowed bg-white/0"
-              aria-label="Complete city and terms before Google login"
-              title="Select city and accept terms first"
-            />
-          )}
-        </div>
+        )}
       </div>
       {!googleReady && (
         <div className="text-xs text-gray-500 text-center mt-2">
