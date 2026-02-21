@@ -115,6 +115,19 @@ export default function GoogleLoginButton({
           ref={buttonHostRef}
           className={`w-full ${disabled ? "pointer-events-none" : ""}`}
         />
+        {!googleReady && (
+          <button
+            type="button"
+            onClick={() =>
+              onErrorRef.current?.(
+                new Error("Google login is still loading. Please wait a moment and try again.")
+              )
+            }
+            className="w-full h-[44px] rounded-xl border border-slate-300 bg-white text-sm font-semibold text-slate-600"
+          >
+            Continue with Google
+          </button>
+        )}
         {disabled && (
           <button
             type="button"

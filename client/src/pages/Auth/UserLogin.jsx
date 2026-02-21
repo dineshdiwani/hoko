@@ -424,29 +424,37 @@ export default function UserLogin({ role = "buyer" }) {
                   ))}
                 </select>
 
-                <GoogleLoginButton
-                  onSuccess={(credential) => {
-                    handleGoogleLogin(credential);
-                  }}
-                  onError={(error) => {
-                    const reason =
-                      error?.message ||
-                      "Google login failed to initialize.";
-                    alert(reason);
-                  }}
-                  disabled={!city || !acceptedTerms}
-                  onDisabledClick={() => {
-                    if (!city && !acceptedTerms) {
-                      alert("Please select city and accept Terms & Conditions and Privacy Policy first.");
-                      return;
-                    }
-                    if (!city) {
-                      alert("Please select your city first.");
-                      return;
-                    }
-                    alert("Please accept the Terms & Conditions and Privacy Policy first.");
-                  }}
-                />
+                {!city || !acceptedTerms ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!city && !acceptedTerms) {
+                        alert("Please select city and accept Terms & Conditions and Privacy Policy first.");
+                        return;
+                      }
+                      if (!city) {
+                        alert("Please select your city first.");
+                        return;
+                      }
+                      alert("Please accept the Terms & Conditions and Privacy Policy first.");
+                    }}
+                    className="w-full mt-3 h-[44px] rounded-xl border border-slate-300 bg-white text-sm font-semibold text-slate-600"
+                  >
+                    Continue with Google
+                  </button>
+                ) : (
+                  <GoogleLoginButton
+                    onSuccess={(credential) => {
+                      handleGoogleLogin(credential);
+                    }}
+                    onError={(error) => {
+                      const reason =
+                        error?.message ||
+                        "Google login failed to initialize.";
+                      alert(reason);
+                    }}
+                  />
+                )}
 
                 <div className="my-3 flex items-center gap-3">
                   <div className="h-px flex-1 bg-slate-200" />
