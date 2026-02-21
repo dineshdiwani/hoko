@@ -438,9 +438,17 @@ export default function UserLogin({ role = "buyer" }) {
                       }
                       alert("Please accept the Terms & Conditions and Privacy Policy first.");
                     }}
-                    className="w-full mt-3 h-[44px] rounded-xl border border-slate-300 bg-white text-sm font-semibold text-slate-600"
+                    className="w-full mt-3 h-[44px] rounded-xl border border-slate-300 bg-white text-sm font-semibold text-slate-600 inline-flex items-center justify-center gap-2"
                   >
-                    Continue with Google
+                    <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-white">
+                      <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
+                        <path
+                          fill="#EA4335"
+                          d="M12 10.2v3.9h5.4c-.2 1.3-1.5 3.9-5.4 3.9-3.2 0-5.9-2.7-5.9-6s2.7-6 5.9-6c1.8 0 3 0.8 3.7 1.5l2.5-2.4C16.7 3.7 14.6 3 12 3 7 3 3 7 3 12s4 9 9 9c5.2 0 8.6-3.7 8.6-8.9 0-.6-.1-1.1-.2-1.6H12z"
+                        />
+                      </svg>
+                    </span>
+                    <span>Continue with Google</span>
                   </button>
                 ) : (
                   <GoogleLoginButton
