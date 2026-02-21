@@ -12,6 +12,7 @@ import BuyerLogin from "./pages/Buyer/Login";
 import BuyerDashboard from "./pages/Buyer/Dashboard";
 import RequirementForm from "./pages/Buyer/RequirementForm";
 import OfferList from "./pages/Buyer/OfferList";
+import CompareOffers from "./pages/Buyer/CompareOffers";
 import BuyerProfile from "./pages/Buyer/Profile";
 import BuyerSettings from "./pages/Buyer/Settings";
 
@@ -157,6 +158,16 @@ function AppShell() {
           element={
             requireBuyer() ? (
               <OfferList />
+            ) : (
+              <Navigate to="/buyer/login" replace />
+            )
+          }
+        />
+        <Route
+          path="/buyer/requirement/:id/compare"
+          element={
+            requireBuyer() ? (
+              <CompareOffers />
             ) : (
               <Navigate to="/buyer/login" replace />
             )

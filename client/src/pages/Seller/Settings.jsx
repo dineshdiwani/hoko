@@ -34,13 +34,8 @@ export default function SellerSettings() {
     versionDate: ""
   });
   const [loginMethods, setLoginMethods] = useState({
-    password: false,
+    otp: true,
     google: false
-  });
-  const [passwordForm, setPasswordForm] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: ""
   });
   const [prefs, setPrefs] = useState({
     notificationsLeads: true,
@@ -110,7 +105,7 @@ export default function SellerSettings() {
           versionDate: res.data?.terms?.versionDate || ""
         });
         setLoginMethods({
-          password: Boolean(res.data?.loginMethods?.password),
+          otp: true,
           google: Boolean(res.data?.loginMethods?.google)
         });
       })
@@ -194,39 +189,6 @@ export default function SellerSettings() {
       setSaving(false);
     }
   };
-
-  async function changePassword() {
-    if (!passwordForm.currentPassword || !passwordForm.newPassword) {
-      alert("Please enter current and new password");
-      return;
-    }
-    if (passwordForm.newPassword.length < 6) {
-      alert("New password must be at least 6 characters");
-      return;
-    }
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      alert("New password and confirm password do not match");
-      return;
-    }
-
-    setBusyAction("password");
-    try {
-      await api.post("/seller/profile/password", {
-        currentPassword: passwordForm.currentPassword,
-        newPassword: passwordForm.newPassword
-      });
-      setPasswordForm({
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: ""
-      });
-      alert("Password updated");
-    } catch (err) {
-      alert(err?.response?.data?.message || "Failed to update password");
-    } finally {
-      setBusyAction("");
-    }
-  }
 
   async function deleteAccountPermanently() {
     const confirmText = window.prompt('Type "DELETE" to permanently delete your account');
@@ -533,54 +495,7 @@ export default function SellerSettings() {
 
           <div className="pt-6">
             <h2 className="text-lg font-semibold mb-3">Account</h2>
-            <div className="grid gap-3 md:grid-cols-3 mb-3">
-              <input
-                type="password"
-                value={passwordForm.currentPassword}
-                onChange={(e) =>
-                  setPasswordForm({
-                    ...passwordForm,
-                    currentPassword: e.target.value
-                  })
-                }
-                placeholder="Current password"
-                className="w-full border rounded-xl px-4 py-3"
-              />
-              <input
-                type="password"
-                value={passwordForm.newPassword}
-                onChange={(e) =>
-                  setPasswordForm({
-                    ...passwordForm,
-                    newPassword: e.target.value
-                  })
-                }
-                placeholder="New password"
-                className="w-full border rounded-xl px-4 py-3"
-              />
-              <input
-                type="password"
-                value={passwordForm.confirmPassword}
-                onChange={(e) =>
-                  setPasswordForm({
-                    ...passwordForm,
-                    confirmPassword: e.target.value
-                  })
-                }
-                placeholder="Confirm new password"
-                className="w-full border rounded-xl px-4 py-3"
-              />
-            </div>
             <div className="flex flex-wrap gap-3">
-              <button
-                onClick={changePassword}
-                disabled={busyAction === "password" || !loginMethods.password}
-                className="btn-secondary"
-              >
-                {busyAction === "password"
-                  ? "Updating..."
-                  : "Change Password"}
-              </button>
               <button
                 onClick={() => logout(navigate)}
                 className="btn-secondary"
@@ -598,9 +513,7 @@ export default function SellerSettings() {
               </button>
             </div>
             <p className="text-xs text-gray-500 mt-2">
-              Login methods: {loginMethods.password ? "Password" : ""}
-              {loginMethods.password && loginMethods.google ? " + " : ""}
-              {loginMethods.google ? "Google" : ""}
+              Login methods: OTP{loginMethods.google ? " + Google" : ""}
             </p>
           </div>
 

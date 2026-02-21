@@ -38,17 +38,12 @@ export default function BuyerSettings() {
     city: "",
     preferredCurrency: "INR",
     roles: { buyer: true, seller: false, admin: false },
-    loginMethods: { password: false, google: false }
+    loginMethods: { otp: true, google: false }
   });
   const [prefs, setPrefs] = useState(DEFAULT_PREFS);
   const [terms, setTerms] = useState({
     acceptedAt: "",
     versionDate: ""
-  });
-  const [passwordForm, setPasswordForm] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: ""
   });
   const [itemDeleteForm, setItemDeleteForm] = useState({
     type: "post",
@@ -80,7 +75,7 @@ export default function BuyerSettings() {
           preferredCurrency:
             data.preferredCurrency || session.preferredCurrency || "INR",
           roles: data.roles || { buyer: true, seller: false, admin: false },
-          loginMethods: data.loginMethods || { password: false, google: false }
+          loginMethods: data.loginMethods || { otp: true, google: false }
         });
         setPrefs({
           ...DEFAULT_PREFS,
@@ -171,38 +166,6 @@ export default function BuyerSettings() {
       alert(err?.response?.data?.message || "Failed to save settings");
     } finally {
       setSaving(false);
-    }
-  }
-
-  async function handlePasswordChange() {
-    if (!passwordForm.currentPassword || !passwordForm.newPassword) {
-      alert("Please enter current and new password");
-      return;
-    }
-    if (passwordForm.newPassword.length < 6) {
-      alert("New password must be at least 6 characters");
-      return;
-    }
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      alert("New password and confirm password do not match");
-      return;
-    }
-    setBusyAction("password");
-    try {
-      await api.post("/buyer/profile/password", {
-        currentPassword: passwordForm.currentPassword,
-        newPassword: passwordForm.newPassword
-      });
-      setPasswordForm({
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: ""
-      });
-      alert("Password updated");
-    } catch (err) {
-      alert(err?.response?.data?.message || "Failed to update password");
-    } finally {
-      setBusyAction("");
     }
   }
 
@@ -437,37 +400,7 @@ export default function BuyerSettings() {
 
           <div className="pt-6">
             <h2 className="text-lg font-semibold mb-3">Security & Login</h2>
-            <div className="grid gap-3 md:grid-cols-3">
-              <input
-                type="password"
-                value={passwordForm.currentPassword}
-                onChange={(e) => setPasswordForm((prev) => ({ ...prev, currentPassword: e.target.value }))}
-                placeholder="Current password"
-                className="w-full border rounded-xl px-4 py-3"
-              />
-              <input
-                type="password"
-                value={passwordForm.newPassword}
-                onChange={(e) => setPasswordForm((prev) => ({ ...prev, newPassword: e.target.value }))}
-                placeholder="New password"
-                className="w-full border rounded-xl px-4 py-3"
-              />
-              <input
-                type="password"
-                value={passwordForm.confirmPassword}
-                onChange={(e) => setPasswordForm((prev) => ({ ...prev, confirmPassword: e.target.value }))}
-                placeholder="Confirm new password"
-                className="w-full border rounded-xl px-4 py-3"
-              />
-            </div>
             <div className="mt-3 flex flex-wrap gap-3">
-              <button
-                onClick={handlePasswordChange}
-                disabled={busyAction === "password" || !profile.loginMethods.password}
-                className="btn-secondary"
-              >
-                {busyAction === "password" ? "Updating..." : "Change Password"}
-              </button>
               <button
                 onClick={handleRoleSwitch}
                 disabled={busyAction === "switch-role"}
@@ -484,7 +417,7 @@ export default function BuyerSettings() {
               </button>
             </div>
             <p className="text-xs text-gray-500 mt-2">
-              Login methods: {profile.loginMethods.password ? "Password" : ""}{profile.loginMethods.password && profile.loginMethods.google ? " + " : ""}{profile.loginMethods.google ? "Google" : ""}
+              Login methods: OTP{profile.loginMethods.google ? " + Google" : ""}
             </p>
           </div>
 

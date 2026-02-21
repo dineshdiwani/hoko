@@ -450,6 +450,24 @@ export default function MyPosts() {
               >
                 Enable Chat
               </button>
+              <button
+                onClick={() =>
+                  navigate(`/buyer/requirement/${reqId}/compare`)
+                }
+                disabled={offerCount < 2}
+                className={`inline-flex w-fit items-center justify-center px-3 py-2 rounded-lg text-xs font-semibold ${
+                  offerCount < 2
+                    ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                    : "bg-slate-900 text-white hover:bg-slate-800"
+                }`}
+                title={
+                  offerCount < 2
+                    ? "At least 2 offers are required"
+                    : "Compare offers"
+                }
+              >
+                Compare Offers
+              </button>
             </div>
           </div>
         );
