@@ -20,7 +20,6 @@ export default function OfferList() {
   const [loading, setLoading] = useState(true);
   const [chatOpen, setChatOpen] = useState(false);
   const [chatSeller, setChatSeller] = useState(null);
-  const [contactEnabled, setContactEnabled] = useState(false);
   const [startingAuction, setStartingAuction] = useState(false);
   const [showAuctionHint, setShowAuctionHint] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
@@ -44,13 +43,9 @@ export default function OfferList() {
           (a, b) => a.price - b.price
         );
         setOffers(nextOffers);
-        setContactEnabled(
-          nextOffers.some((offer) => offer.contactEnabledByBuyer === true)
-        );
       } catch (err) {
         setRequirement(null);
         setOffers([]);
-        setContactEnabled(false);
       } finally {
         setLoading(false);
       }
@@ -222,14 +217,18 @@ export default function OfferList() {
     }
   }
 
-  async function enableContact() {
+  async function enableContact(offerId) {
     try {
-      await api.post(`/buyer/requirements/${id}/enable-contact`);
-      setContactEnabled(true);
+      await api.post(`/buyer/requirements/${id}/enable-contact`, {
+        offerId
+      });
       setOffers((prev) =>
         prev.map((offer) => ({
           ...offer,
-          contactEnabledByBuyer: true
+          contactEnabledByBuyer:
+            String(offer._id || offer.id) === String(offerId)
+              ? true
+              : offer.contactEnabledByBuyer
         }))
       );
     } catch (err) {
@@ -238,15 +237,19 @@ export default function OfferList() {
     }
   }
 
-  async function disableContact() {
+  async function disableContact(offerId) {
     try {
-      await api.post(`/buyer/requirements/${id}/disable-contact`);
-      setContactEnabled(false);
+      await api.post(`/buyer/requirements/${id}/disable-contact`, {
+        offerId
+      });
       setChatOpen(false);
       setOffers((prev) =>
         prev.map((offer) => ({
           ...offer,
-          contactEnabledByBuyer: false
+          contactEnabledByBuyer:
+            String(offer._id || offer.id) === String(offerId)
+              ? false
+              : offer.contactEnabledByBuyer
         }))
       );
     } catch (err) {
@@ -518,7 +521,7 @@ export default function OfferList() {
               {/* CTA icons */}
               <div className="flex flex-wrap items-center justify-start gap-2 mt-4">
                 {offer.sellerId &&
-                  (contactEnabled || offer.contactEnabledByBuyer) && (
+                  offer.contactEnabledByBuyer && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -538,19 +541,21 @@ export default function OfferList() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (contactEnabled || offer.contactEnabledByBuyer) {
-                        disableContact();
+                      const offerId = String(offer._id || offer.id || "");
+                      if (!offerId) return;
+                      if (offer.contactEnabledByBuyer) {
+                        disableContact(offerId);
                         return;
                       }
-                      enableContact();
+                      enableContact(offerId);
                     }}
                     className={`inline-flex w-fit items-center justify-center px-3 py-2 rounded-xl font-semibold ${
-                      contactEnabled || offer.contactEnabledByBuyer
+                      offer.contactEnabledByBuyer
                         ? "bg-red-600 text-white"
                         : "btn-primary"
                     }`}
                   >
-                    {contactEnabled || offer.contactEnabledByBuyer
+                    {offer.contactEnabledByBuyer
                       ? "Stop Chat"
                       : "Enable Chat"}
                   </button>

@@ -1394,11 +1394,21 @@ router.post("/requirements/:id/enable-contact", auth, buyerOnly, async (req, res
     return res.status(403).json({ message: "Not allowed" });
   }
 
+  const offerId = String(req.body?.offerId || "").trim();
+  let filter = {
+    requirementId: requirement._id,
+    "moderation.removed": { $ne: true }
+  };
+  if (offerId) {
+    filter = { ...filter, _id: offerId };
+    const targetOffer = await Offer.findOne(filter).select("_id");
+    if (!targetOffer) {
+      return res.status(404).json({ message: "Offer not found" });
+    }
+  }
+
   const result = await Offer.updateMany(
-    {
-      requirementId: requirement._id,
-      "moderation.removed": { $ne: true }
-    },
+    filter,
     {
       $set: { contactEnabledByBuyer: true }
     }
@@ -1422,11 +1432,21 @@ router.post("/requirements/:id/disable-contact", auth, buyerOnly, async (req, re
     return res.status(403).json({ message: "Not allowed" });
   }
 
+  const offerId = String(req.body?.offerId || "").trim();
+  let filter = {
+    requirementId: requirement._id,
+    "moderation.removed": { $ne: true }
+  };
+  if (offerId) {
+    filter = { ...filter, _id: offerId };
+    const targetOffer = await Offer.findOne(filter).select("_id");
+    if (!targetOffer) {
+      return res.status(404).json({ message: "Offer not found" });
+    }
+  }
+
   const result = await Offer.updateMany(
-    {
-      requirementId: requirement._id,
-      "moderation.removed": { $ne: true }
-    },
+    filter,
     {
       $set: { contactEnabledByBuyer: false }
     }
