@@ -425,6 +425,57 @@
     border-radius: 18px;
   }
 
+  .dashboard-layout {
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .dashboard-layout-header {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+  }
+
+  .dashboard-layout-header-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+
+  .dashboard-layout-header-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  @media (min-width: 768px) {
+    .dashboard-layout-header-row {
+      flex-wrap: nowrap;
+    }
+
+    .dashboard-layout-header-actions {
+      width: auto;
+    }
+  }
+
+  .dashboard-layout-content {
+    flex: 1 1 auto;
+  }
+
+  .dashboard-layout-fab {
+    position: fixed;
+    right: 1.5rem;
+    bottom: 1.5rem;
+    z-index: 50;
+  }
+
   .dashboard-main {
     padding-top: 1rem;
     padding-bottom: 2rem;

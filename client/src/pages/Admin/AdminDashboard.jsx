@@ -795,12 +795,13 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="page">
-      <div className="dashboard-shell pt-20 md:pt-10">
-        <div className="flex flex-col gap-4 md:flex-row md:justify-between md:items-center">
+    <div className="page dashboard-layout">
+      <header className="dashboard-header dashboard-layout-header">
+        <div className="dashboard-shell">
+          <div className="dashboard-layout-header-row">
           <h1 className="page-hero">Admin Dashboard</h1>
 
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="dashboard-layout-header-actions">
             <button
               onClick={() => loadDashboardData().catch(() => {})}
               className="ui-btn-secondary ui-button-text px-3 py-2 rounded-lg"
@@ -810,6 +811,11 @@ export default function AdminDashboard() {
             <AdminNav />
           </div>
         </div>
+        </div>
+      </header>
+
+      <main className="dashboard-layout-content">
+      <div className="dashboard-shell dashboard-main">
 
         <div className="dashboard-flow">
         <div className="dashboard-panel p-4">
@@ -1240,6 +1246,7 @@ export default function AdminDashboard() {
         </div>
         </div>
       </div>
+      </main>
 
       {showLegalPreviewModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">

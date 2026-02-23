@@ -139,10 +139,10 @@ export default function BuyerDashboard() {
   }
 
   return (
-    <div className="page flex flex-col">
+    <div className="page dashboard-layout">
       {/* HEADER */}
-      <header className="dashboard-header">
-        <div className="dashboard-shell flex flex-wrap md:flex-nowrap items-center justify-between py-3 pl-16 md:pl-20 gap-2">
+      <header className="dashboard-header dashboard-layout-header">
+        <div className="dashboard-shell dashboard-layout-header-row pl-16 md:pl-20">
           <div>
             <h1 className="ui-heading">
               Buyer Dashboard
@@ -152,7 +152,7 @@ export default function BuyerDashboard() {
             </p>
           </div>
 
-          <div className="flex items-center justify-end gap-2 w-full md:w-auto">
+          <div className="dashboard-layout-header-actions">
             <NotificationCenter onNotificationClick={handleNotificationClick} />
 
             <div className="relative" ref={menuRef}>
@@ -306,7 +306,7 @@ export default function BuyerDashboard() {
       </header>
 
       {/* CONTENT */}
-      <main className="flex-1">
+      <main className="dashboard-layout-content">
         <div className="dashboard-shell dashboard-main">
         {activeTab === "posts" && <MyPosts />}
         {activeTab === "city" && (
@@ -325,7 +325,7 @@ export default function BuyerDashboard() {
       {/* FAB */}
       <button
         onClick={() => navigate("/buyer/requirement/new")}
-        className="fixed bottom-6 right-6 btn-brand w-14 h-14 rounded-full shadow-lg text-3xl flex items-center justify-center"
+        className="dashboard-layout-fab btn-brand w-14 h-14 rounded-full shadow-lg text-3xl flex items-center justify-center"
       >
         +
       </button>

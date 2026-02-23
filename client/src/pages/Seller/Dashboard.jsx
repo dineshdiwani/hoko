@@ -502,9 +502,9 @@ export default function SellerDashboard() {
   }
 
   return (
-    <div className="page flex flex-col">
-      <header className="dashboard-header">
-        <div className="dashboard-shell flex flex-wrap md:flex-nowrap justify-between items-center py-3 pl-16 md:pl-20 gap-2">
+    <div className="page dashboard-layout">
+      <header className="dashboard-header dashboard-layout-header">
+        <div className="dashboard-shell dashboard-layout-header-row pl-16 md:pl-20">
           <div>
             <h1 className="ui-heading">Seller Dashboard</h1>
             <p className="ui-label text-[var(--ui-muted)]">Matching buyer requirements</p>
@@ -615,7 +615,7 @@ export default function SellerDashboard() {
         </div>
       </header>
 
-      <main className="flex-1">
+      <main className="dashboard-layout-content">
         <div className="dashboard-shell dashboard-main-spacious">
           <div className="dashboard-flow">
           {reverseAuctionNotice && (
