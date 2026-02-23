@@ -18,7 +18,7 @@ export default function AdminNav() {
     <div className="flex items-center gap-2 flex-wrap">
       <button
         onClick={() => navigate("/admin/dashboard")}
-        className={`px-3 py-2 text-sm rounded-lg ${
+        className={`ui-button-text px-3 py-2 rounded-lg ${
           isDashboard ? "ui-btn-primary" : "ui-btn-secondary"
         }`}
       >
@@ -26,7 +26,7 @@ export default function AdminNav() {
       </button>
       <button
         onClick={() => navigate("/admin/analytics")}
-        className={`px-3 py-2 text-sm rounded-lg ${
+        className={`ui-button-text px-3 py-2 rounded-lg ${
           isAnalytics ? "ui-btn-primary" : "ui-btn-secondary"
         }`}
       >
@@ -34,7 +34,7 @@ export default function AdminNav() {
       </button>
       <button
         onClick={() => navigate("/admin/whatsapp")}
-        className={`px-3 py-2 text-sm rounded-lg ${
+        className={`ui-button-text px-3 py-2 rounded-lg ${
           isWhatsApp ? "ui-btn-primary" : "ui-btn-secondary"
         }`}
       >
@@ -42,7 +42,7 @@ export default function AdminNav() {
       </button>
       <button
         onClick={() => navigate("/admin/operations")}
-        className={`px-3 py-2 text-sm rounded-lg ${
+        className={`ui-button-text px-3 py-2 rounded-lg ${
           isOperations ? "ui-btn-primary" : "ui-btn-secondary"
         }`}
       >
@@ -50,7 +50,7 @@ export default function AdminNav() {
       </button>
       <button
         onClick={handleAdminLogout}
-        className="ui-btn-secondary ui-btn-danger px-3 py-2 text-sm rounded-lg"
+        className="ui-btn-secondary ui-btn-danger ui-button-text px-3 py-2 rounded-lg"
       >
         Logout
       </button>

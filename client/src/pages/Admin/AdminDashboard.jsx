@@ -803,7 +803,7 @@ export default function AdminDashboard() {
           <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => loadDashboardData().catch(() => {})}
-              className="ui-btn-secondary px-3 py-2 text-sm rounded-lg"
+              className="ui-btn-secondary ui-button-text px-3 py-2 rounded-lg"
             >
               Refresh
             </button>
@@ -812,27 +812,27 @@ export default function AdminDashboard() {
         </div>
 
         <div className="dashboard-panel p-4 mb-6">
-          <h2 className="text-base font-semibold mb-3">Admin Settings</h2>
+          <h2 className="ui-heading mb-3">Admin Settings</h2>
           <div className="grid md:grid-cols-3 gap-3">
             <input
               type="password"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
-              className="border rounded-lg px-3 py-2 text-sm"
+              className="border rounded-lg px-3 py-2 ui-body"
               placeholder="Current password"
             />
             <input
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="border rounded-lg px-3 py-2 text-sm"
+              className="border rounded-lg px-3 py-2 ui-body"
               placeholder="New password (min 8 chars)"
             />
             <input
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="border rounded-lg px-3 py-2 text-sm"
+              className="border rounded-lg px-3 py-2 ui-body"
               placeholder="Confirm new password"
             />
           </div>
@@ -840,7 +840,7 @@ export default function AdminDashboard() {
             <button
               onClick={handleChangePassword}
               disabled={changingPassword}
-              className="ui-btn-primary w-auto px-3 py-2 text-sm rounded-lg"
+              className="ui-btn-primary ui-button-text w-auto px-3 py-2 rounded-lg"
             >
               {changingPassword ? "Updating..." : "Change Password"}
             </button>
@@ -850,14 +850,14 @@ export default function AdminDashboard() {
         <div className="mt-2">
           <div className="dashboard-panel p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div>
-              <h2 className="text-lg font-bold">Operations & Reports</h2>
-              <p className="text-sm text-gray-600">
+              <h2 className="ui-heading">Operations & Reports</h2>
+              <p className="ui-body text-gray-600">
                 Users, requirements, offers, chats, and reports are now in a dedicated page for easier control.
               </p>
             </div>
             <button
               onClick={() => navigate("/admin/operations")}
-              className="ui-btn-primary w-auto px-3 py-2 text-sm rounded-lg"
+              className="ui-btn-primary ui-button-text w-auto px-3 py-2 rounded-lg"
             >
               Open Operations Page
             </button>
@@ -867,14 +867,14 @@ export default function AdminDashboard() {
         <div className="mt-8">
           <div className="dashboard-panel p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div>
-              <h2 className="text-lg font-bold">WhatsApp Operations</h2>
-              <p className="text-sm text-gray-600">
+              <h2 className="ui-heading">WhatsApp Operations</h2>
+              <p className="ui-body text-gray-600">
                 WhatsApp contacts, campaigns, compliance, and sending are now in a dedicated page.
               </p>
             </div>
             <button
               onClick={() => navigate("/admin/whatsapp")}
-              className="ui-btn-primary w-auto px-3 py-2 text-sm rounded-lg"
+              className="ui-btn-primary ui-button-text w-auto px-3 py-2 rounded-lg"
             >
               Open WhatsApp Page
             </button>
@@ -882,9 +882,9 @@ export default function AdminDashboard() {
         </div>
 
         <div className="mt-8">
-          <h2 className="text-lg font-bold mb-3">Moderation Rules</h2>
+          <h2 className="ui-heading mb-3">Moderation Rules</h2>
           <div className="dashboard-panel p-3 space-y-4">
-            <label className="flex items-center gap-2 text-sm text-gray-700">
+            <label className="flex items-center gap-2 ui-body text-gray-700">
               <input
                 type="checkbox"
                 checked={options.moderationRules?.enabled ?? true}
@@ -892,7 +892,7 @@ export default function AdminDashboard() {
               />
               Enable auto-flagging
             </label>
-            <label className="flex items-center gap-2 text-sm text-gray-700">
+            <label className="flex items-center gap-2 ui-body text-gray-700">
               <input
                 type="checkbox"
                 checked={options.moderationRules?.blockPhone ?? true}
@@ -900,7 +900,7 @@ export default function AdminDashboard() {
               />
               Flag phone numbers
             </label>
-            <label className="flex items-center gap-2 text-sm text-gray-700">
+            <label className="flex items-center gap-2 ui-body text-gray-700">
               <input
                 type="checkbox"
                 checked={options.moderationRules?.blockLinks ?? true}
@@ -909,11 +909,11 @@ export default function AdminDashboard() {
               Flag external links
             </label>
             <div>
-              <label className="text-xs text-gray-600">
+              <label className="ui-label text-gray-600">
                 Flag keywords (comma separated)
               </label>
               <textarea
-                className="w-full border rounded-lg p-2 mt-2 text-sm"
+                className="w-full border rounded-lg p-2 mt-2 ui-body"
                 rows={2}
                 value={(options.moderationRules?.keywords || []).join(", ")}
                 onChange={(e) =>
@@ -930,14 +930,14 @@ export default function AdminDashboard() {
         </div>
 
         <div className="mt-10">
-          <h2 className="text-lg font-bold mb-3">Platform Options</h2>
+          <h2 className="ui-heading mb-3">Platform Options</h2>
           <div className="dashboard-panel p-3 space-y-4">
             <div>
-              <label className="text-xs text-gray-600">
+              <label className="ui-label text-gray-600">
                 Cities (comma separated)
               </label>
               <textarea
-                className="w-full border rounded-lg p-2 mt-2 text-sm"
+                className="w-full border rounded-lg p-2 mt-2 ui-body"
                 rows={3}
                 value={citiesText}
                 onChange={(e) => setCitiesText(e.target.value)}
@@ -945,11 +945,11 @@ export default function AdminDashboard() {
             </div>
 
             <div>
-              <label className="text-xs text-gray-600">
+              <label className="ui-label text-gray-600">
                 Categories (comma separated)
               </label>
               <textarea
-                className="w-full border rounded-lg p-2 mt-2 text-sm"
+                className="w-full border rounded-lg p-2 mt-2 ui-body"
                 rows={3}
                 value={categoriesText}
                 onChange={(e) => setCategoriesText(e.target.value)}
@@ -957,11 +957,11 @@ export default function AdminDashboard() {
             </div>
 
             <div>
-              <label className="text-xs text-gray-600">
+              <label className="ui-label text-gray-600">
                 Units (comma separated)
               </label>
               <textarea
-                className="w-full border rounded-lg p-2 mt-2 text-sm"
+                className="w-full border rounded-lg p-2 mt-2 ui-body"
                 rows={2}
                 value={unitsText}
                 onChange={(e) => setUnitsText(e.target.value)}
@@ -969,11 +969,11 @@ export default function AdminDashboard() {
             </div>
 
             <div>
-              <label className="text-xs text-gray-600">
+              <label className="ui-label text-gray-600">
                 Terms & Conditions Content
               </label>
               <textarea
-                className="w-full border rounded-lg p-2 mt-2 text-sm"
+                className="w-full border rounded-lg p-2 mt-2 ui-body"
                 rows={8}
                 value={options.termsAndConditions?.content || ""}
                 onChange={(e) =>
@@ -986,12 +986,12 @@ export default function AdminDashboard() {
                   }))
                 }
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="ui-label text-gray-500 mt-1">
                 This content appears in the login Terms & Conditions modal.
               </p>
               <button
                 type="button"
-                className="ui-link mt-2 text-xs bg-transparent"
+                className="ui-link ui-label mt-2 bg-transparent"
                 onClick={() => {
                   setLegalPreviewType("terms");
                   setShowLegalPreviewModal(true);
@@ -1002,11 +1002,11 @@ export default function AdminDashboard() {
             </div>
 
             <div>
-              <label className="text-xs text-gray-600">
+              <label className="ui-label text-gray-600">
                 Privacy Policy Content
               </label>
               <textarea
-                className="w-full border rounded-lg p-2 mt-2 text-sm"
+                className="w-full border rounded-lg p-2 mt-2 ui-body"
                 rows={8}
                 value={options.privacyPolicy?.content || ""}
                 onChange={(e) =>
@@ -1019,12 +1019,12 @@ export default function AdminDashboard() {
                   }))
                 }
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="ui-label text-gray-500 mt-1">
                 This content appears in the login Privacy Policy modal.
               </p>
               <button
                 type="button"
-                className="ui-link mt-2 text-xs bg-transparent"
+                className="ui-link ui-label mt-2 bg-transparent"
                 onClick={() => {
                   setLegalPreviewType("privacy");
                   setShowLegalPreviewModal(true);
@@ -1035,11 +1035,11 @@ export default function AdminDashboard() {
             </div>
 
             <div>
-              <label className="text-xs text-gray-600">
+              <label className="ui-label text-gray-600">
                 Currencies (comma separated)
               </label>
               <textarea
-                className="w-full border rounded-lg p-2 mt-2 text-sm"
+                className="w-full border rounded-lg p-2 mt-2 ui-body"
                 rows={2}
                 value={currenciesText}
                 onChange={(e) => setCurrenciesText(e.target.value)}
@@ -1047,19 +1047,19 @@ export default function AdminDashboard() {
               <div className="mt-2 flex gap-2">
                 <button
                   onClick={() => addTaxonomyValue("currencies")}
-                  className="ui-btn-secondary px-3 py-1.5 rounded-lg text-xs"
+                  className="ui-btn-secondary ui-button-text px-3 py-1.5 rounded-lg"
                 >
                   Add Currency
                 </button>
                 <button
                   onClick={() => renameTaxonomyValue("currencies")}
-                  className="ui-btn-secondary px-3 py-1.5 rounded-lg text-xs"
+                  className="ui-btn-secondary ui-button-text px-3 py-1.5 rounded-lg"
                 >
                   Rename Currency
                 </button>
                 <button
                   onClick={() => removeTaxonomyValue("currencies")}
-                  className="ui-btn-secondary ui-btn-danger px-3 py-1.5 rounded-lg text-xs"
+                  className="ui-btn-secondary ui-btn-danger ui-button-text px-3 py-1.5 rounded-lg"
                 >
                   Remove Currency
                 </button>
@@ -1067,14 +1067,14 @@ export default function AdminDashboard() {
             </div>
 
             <div>
-              <label className="text-xs text-gray-600">
+              <label className="ui-label text-gray-600">
                 Default Dropdown Selections
               </label>
               <div className="grid gap-3 md:grid-cols-2 mt-2">
-                <label className="text-xs text-gray-600">
+                <label className="ui-label text-gray-600">
                   Default City
                   <div className="mt-1 space-y-2 rounded-lg border p-2">
-                    <label className="flex items-center gap-2 text-sm text-gray-700">
+                    <label className="flex items-center gap-2 ui-body text-gray-700">
                       <input
                         type="radio"
                         name="default-city-mode"
@@ -1083,7 +1083,7 @@ export default function AdminDashboard() {
                       />
                       <span>All cities</span>
                     </label>
-                    <label className="flex items-center gap-2 text-sm text-gray-700">
+                    <label className="flex items-center gap-2 ui-body text-gray-700">
                       <input
                         type="radio"
                         name="default-city-mode"
@@ -1097,10 +1097,10 @@ export default function AdminDashboard() {
                   </div>
                 </label>
 
-                <label className="text-xs text-gray-600">
+                <label className="ui-label text-gray-600">
                   Default Category
                   <div className="mt-1 space-y-2 rounded-lg border p-2">
-                    <label className="flex items-center gap-2 text-sm text-gray-700">
+                    <label className="flex items-center gap-2 ui-body text-gray-700">
                       <input
                         type="radio"
                         name="default-category-mode"
@@ -1109,7 +1109,7 @@ export default function AdminDashboard() {
                       />
                       <span>All categories</span>
                     </label>
-                    <label className="flex items-center gap-2 text-sm text-gray-700">
+                    <label className="flex items-center gap-2 ui-body text-gray-700">
                       <input
                         type="radio"
                         name="default-category-mode"
@@ -1126,9 +1126,9 @@ export default function AdminDashboard() {
             </div>
 
             <div>
-              <label className="text-xs text-gray-600">Email Notification Controls</label>
+              <label className="ui-label text-gray-600">Email Notification Controls</label>
               <div className="mt-2 space-y-2 rounded-lg border p-3">
-                <label className="flex items-center gap-2 text-sm text-gray-700">
+                <label className="flex items-center gap-2 ui-body text-gray-700">
                   <input
                     type="checkbox"
                     checked={options.emailNotifications?.enabled === true}
@@ -1144,7 +1144,7 @@ export default function AdminDashboard() {
                   />
                   Enable email notifications
                 </label>
-                <label className="flex items-center gap-2 text-sm text-gray-700">
+                <label className="flex items-center gap-2 ui-body text-gray-700">
                   <input
                     type="checkbox"
                     checked={options.emailNotifications?.adminCopy !== false}
@@ -1160,7 +1160,7 @@ export default function AdminDashboard() {
                   />
                   Send admin email copy
                 </label>
-                <label className="flex items-center gap-2 text-sm text-gray-700">
+                <label className="flex items-center gap-2 ui-body text-gray-700">
                   <input
                     type="checkbox"
                     checked={options.emailNotifications?.events?.newOfferToBuyer !== false}
@@ -1179,7 +1179,7 @@ export default function AdminDashboard() {
                   />
                   New offer email to buyer
                 </label>
-                <label className="flex items-center gap-2 text-sm text-gray-700">
+                <label className="flex items-center gap-2 ui-body text-gray-700">
                   <input
                     type="checkbox"
                     checked={options.emailNotifications?.events?.requirementUpdatedToSellers !== false}
@@ -1198,7 +1198,7 @@ export default function AdminDashboard() {
                   />
                   Requirement update email to sellers
                 </label>
-                <label className="flex items-center gap-2 text-sm text-gray-700">
+                <label className="flex items-center gap-2 ui-body text-gray-700">
                   <input
                     type="checkbox"
                     checked={options.emailNotifications?.events?.reverseAuctionToSellers !== false}
@@ -1217,7 +1217,7 @@ export default function AdminDashboard() {
                   />
                   Reverse auction email to sellers
                 </label>
-                <p className="text-xs text-gray-500">
+                <p className="ui-label text-gray-500">
                   Chat emails remain disabled by design. Admin copy uses ADMIN_NOTIFICATION_EMAIL/ADMIN_ALERT_EMAIL/ADMIN_EMAIL.
                 </p>
               </div>
@@ -1225,7 +1225,7 @@ export default function AdminDashboard() {
 
             <button
               onClick={saveOptions}
-              className="ui-btn-primary w-auto px-3 py-2 text-sm rounded-lg"
+              className="ui-btn-primary ui-button-text w-auto px-3 py-2 rounded-lg"
             >
               Save Options
             </button>
@@ -1233,7 +1233,7 @@ export default function AdminDashboard() {
         </div>
 
         <div className="dashboard-panel mt-10 p-4">
-          <p className="text-sm text-gray-700">
+          <p className="ui-body text-gray-700">
             Detailed requirements, offers, reports, and chats are now available in Admin Operations.
           </p>
         </div>
@@ -1243,19 +1243,19 @@ export default function AdminDashboard() {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="dashboard-panel w-full max-w-2xl p-6 max-h-[80vh] overflow-auto">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-bold">
+              <h2 className="ui-heading">
                 {legalPreviewType === "privacy"
                   ? "Privacy Policy"
                   : "Terms & Conditions (Buyers and Sellers)"}
               </h2>
               <button
                 onClick={() => setShowLegalPreviewModal(false)}
-                className="ui-link text-sm"
+                className="ui-link ui-body"
               >
                 Close
               </button>
             </div>
-            <div className="space-y-3 text-sm text-gray-700">
+            <div className="space-y-3 ui-body text-gray-700">
               {String(
                 legalPreviewType === "privacy"
                   ? options.privacyPolicy?.content || defaultPrivacyPolicyContent

@@ -144,10 +144,10 @@ export default function BuyerDashboard() {
       <header className="dashboard-header">
         <div className="dashboard-shell flex flex-wrap md:flex-nowrap items-center justify-between py-3 pl-16 md:pl-20 gap-2">
           <div>
-            <h1 className="text-lg font-bold text-gray-800">
+            <h1 className="ui-heading">
               Buyer Dashboard
             </h1>
-            <p className="text-xs text-gray-500">
+            <p className="ui-label text-gray-500">
               {city || "Select city"}
             </p>
           </div>
@@ -158,7 +158,7 @@ export default function BuyerDashboard() {
             <div className="relative" ref={menuRef}>
               <button
                 onClick={() => setMenuOpen(!menuOpen)}
-                className="ui-btn-secondary flex items-center gap-1 px-2 md:px-3 py-2 text-xs md:text-sm"
+                className="ui-btn-secondary ui-button-text flex items-center gap-1 px-2 md:px-3 py-2"
               >
                 {session?.name || "Buyer"} v
               </button>
@@ -241,7 +241,7 @@ export default function BuyerDashboard() {
         {/* CITY SELECTOR */}
         <div className="dashboard-shell pb-3 pl-16 md:pl-20">
           <div className="flex flex-wrap md:flex-nowrap items-center gap-2">
-            <span className="text-sm font-semibold text-gray-700">
+            <span className="ui-label text-gray-700">
               City
             </span>
             <select
@@ -250,7 +250,7 @@ export default function BuyerDashboard() {
                 setCity(e.target.value);
                 setActiveTab("city");
               }}
-              className="w-full md:w-auto max-w-full px-4 py-3 rounded-xl border text-base"
+              className="w-full md:w-auto max-w-full px-4 py-3 rounded-xl border ui-body"
             >
               <option value="">Select city</option>
               {cities.map((c) => (
@@ -260,13 +260,13 @@ export default function BuyerDashboard() {
 
             {activeTab === "city" && (
               <>
-                <span className="text-sm font-semibold text-gray-700 md:ml-3">
+                <span className="ui-label text-gray-700 md:ml-3">
                   Category
                 </span>
                 <select
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="w-full md:w-auto max-w-full px-4 py-3 rounded-xl border text-base"
+                  className="w-full md:w-auto max-w-full px-4 py-3 rounded-xl border ui-body"
                 >
                   <option value="all">All categories</option>
                   {categories.map((cat) => (

@@ -506,8 +506,8 @@ export default function SellerDashboard() {
       <header className="dashboard-header">
         <div className="dashboard-shell flex flex-wrap md:flex-nowrap justify-between items-center py-3 pl-16 md:pl-20 gap-2">
           <div>
-            <h1 className="text-lg font-bold">Seller Dashboard</h1>
-            <p className="text-xs text-[var(--ui-muted)]">Matching buyer requirements</p>
+            <h1 className="ui-heading">Seller Dashboard</h1>
+            <p className="ui-label text-[var(--ui-muted)]">Matching buyer requirements</p>
           </div>
 
           <div className="flex items-center flex-wrap md:flex-nowrap gap-2 w-full md:w-auto">
@@ -515,7 +515,7 @@ export default function SellerDashboard() {
             <select
               value={selectedCity}
               onChange={(e) => setSelectedCity(e.target.value)}
-              className="app-select w-[calc(50%-0.25rem)] md:w-auto text-xs"
+              className="app-select ui-body w-[calc(50%-0.25rem)] md:w-auto"
               aria-label="Filter posts by city"
               title="Filter posts by city"
             >
@@ -529,7 +529,7 @@ export default function SellerDashboard() {
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="app-select w-[calc(50%-0.25rem)] md:w-auto text-xs"
+              className="app-select ui-body w-[calc(50%-0.25rem)] md:w-auto"
               aria-label="Filter posts by category"
               title="Filter posts by category"
             >
@@ -549,7 +549,7 @@ export default function SellerDashboard() {
             <div className="relative" ref={menuRef}>
               <button
                 onClick={() => setMenuOpen(!menuOpen)}
-                className="ui-btn-secondary px-2 md:px-3 py-2 text-xs md:text-sm"
+                className="ui-btn-secondary ui-button-text px-2 md:px-3 py-2"
               >
                 {session?.name || "Seller"} v
               </button>
@@ -618,11 +618,11 @@ export default function SellerDashboard() {
       <main className="flex-1">
         <div className="dashboard-shell pt-4 pb-28">
           {reverseAuctionNotice && (
-            <div className="mb-4 rounded-xl border border-red-200 bg-red-50 text-red-800 px-4 py-3 text-sm flex items-start justify-between gap-3">
+            <div className="mb-4 rounded-xl border border-red-200 bg-red-50 text-red-800 px-4 py-3 ui-body flex items-start justify-between gap-3">
               <span>{reverseAuctionNotice}</span>
               <button
                 onClick={() => setReverseAuctionNotice("")}
-                className="text-red-700 text-xs font-semibold"
+                className="text-red-700 ui-label"
               >
                 Dismiss
               </button>
@@ -648,12 +648,12 @@ export default function SellerDashboard() {
           {!loading && (
             <div className="grid grid-cols-2 gap-3 mb-4">
               <div className="app-stat">
-                <p className="text-xs text-[var(--ui-muted)]">Total Matches</p>
-                <p className="text-xl font-bold text-hoko-brand">{filteredRequirements.length}</p>
+                <p className="ui-label text-[var(--ui-muted)]">Total Matches</p>
+                <p className="ui-heading text-hoko-brand">{filteredRequirements.length}</p>
               </div>
               <div className="app-stat">
-                <p className="text-xs text-[var(--ui-muted)]">Live Auctions</p>
-                <p className="text-xl font-bold text-red-600">{liveAuctions}</p>
+                <p className="ui-label text-[var(--ui-muted)]">Live Auctions</p>
+                <p className="ui-heading text-red-600">{liveAuctions}</p>
               </div>
             </div>
           )}
@@ -728,18 +728,18 @@ export default function SellerDashboard() {
 
                   <div className="flex justify-between items-start mb-2">
                     <div>
-                      <h3 className="font-semibold text-base text-[var(--ui-text)]">{req.product}</h3>
-                      <p className="text-sm text-[var(--ui-muted)]">
+                      <h3 className="ui-heading">{req.product}</h3>
+                      <p className="ui-body text-[var(--ui-muted)]">
                         Buyer from {req.city || "your city"} · {req.category}
                       </p>
                       {requirementDetails && (
-                        <p className="text-sm text-[var(--ui-text)] mt-1 whitespace-pre-line">
+                        <p className="ui-body text-[var(--ui-text)] mt-1 whitespace-pre-line">
                           {requirementDetails}
                         </p>
                       )}
                       {attachments.length > 0 && (
                         <div className="mt-2 space-y-1">
-                          <p className="text-xs font-medium text-indigo-700">
+                          <p className="ui-label text-indigo-700">
                             Attachments
                           </p>
                           {attachments.map((attachment, index) => {
@@ -751,7 +751,7 @@ export default function SellerDashboard() {
                                 key={`${displayName}-${index}`}
                                 type="button"
                                 onClick={() => openRequirementAttachment(attachment, index)}
-                                className="text-xs text-indigo-700 hover:underline break-all inline-flex items-center gap-2"
+                                className="ui-label text-indigo-700 hover:underline break-all inline-flex items-center gap-2"
                                 title={filename || "Attachment path missing"}
                               >
                                 <span
@@ -769,7 +769,7 @@ export default function SellerDashboard() {
 
                     {showAuctionForSeller && (
                       <span
-                        className={`text-xs px-2 py-1 rounded-full bg-red-100 text-red-700 font-medium ${
+                        className={`ui-label px-2 py-1 rounded-full bg-red-100 text-red-700 ${
                           req.myOffer ? "mr-10" : ""
                         }`}
                       >
@@ -780,15 +780,15 @@ export default function SellerDashboard() {
 
                   {showAuctionForSeller && (
                     <>
-                      <p className="text-sm text-red-700 mb-1">
+                      <p className="ui-body text-red-700 mb-1">
                         Buyer has invoked Reverse Auction.
                       </p>
-                      <p className="text-sm text-red-700 mb-2">
+                      <p className="ui-body text-red-700 mb-2">
                         Current lowest price: Rs {lowestPrice}
                       </p>
                       <button
                         onClick={() => setActiveRequirement(req)}
-                        className="text-sm font-semibold text-red-700 underline"
+                        className="ui-link text-red-700"
                       >
                         Edit your offer now
                       </button>
@@ -814,7 +814,7 @@ export default function SellerDashboard() {
                           requirementId: req._id
                         })
                       }
-                      className="w-full mt-3 py-2 border border-blue-300 text-blue-700 rounded-xl text-sm font-semibold inline-flex items-center justify-center gap-2 relative"
+                      className="w-full mt-3 py-2 border border-blue-300 text-blue-700 rounded-xl ui-button-text font-semibold inline-flex items-center justify-center gap-2 relative"
                     >
                       <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor" aria-hidden="true">
                         <path d="M4 5h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H8l-4 4V7a2 2 0 0 1 2-2Zm2 4h12v2H6V9Zm0 4h8v2H6v-2Z" />
@@ -831,7 +831,7 @@ export default function SellerDashboard() {
                           setReviewRequirementId(req._id);
                           setReviewOpen(true);
                         }}
-                        className="w-full py-2 border border-gray-300 rounded-xl text-sm font-semibold"
+                        className="w-full py-2 border border-gray-300 rounded-xl ui-button-text font-semibold"
                       >
                         Rate Buyer
                       </button>
@@ -841,7 +841,7 @@ export default function SellerDashboard() {
                           setReviewRequirementId(req._id);
                           setReportOpen(true);
                         }}
-                        className="w-full py-2 border border-red-300 text-red-600 rounded-xl text-sm font-semibold"
+                        className="w-full py-2 border border-red-300 text-red-600 rounded-xl ui-button-text font-semibold"
                       >
                         Report Buyer
                       </button>
@@ -850,7 +850,7 @@ export default function SellerDashboard() {
                   )}
 
                   {req.myOffer && req.buyerId && !req.contactEnabledByBuyer && (
-                    <p className="mt-3 text-xs text-[var(--ui-muted)]">
+                    <p className="mt-3 ui-label text-[var(--ui-muted)]">
                       Buyer has not enabled chat for this post yet.
                     </p>
                   )}
