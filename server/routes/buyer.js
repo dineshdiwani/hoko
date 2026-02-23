@@ -290,6 +290,61 @@ router.post("/requirement", auth, buyerOnly, async (req, res) => {
   });
   res.json(normalizeRequirementAttachmentsForResponse(requirement));
 
+  const io = req.app.get("io");
+  const requirementName =
+    requirement.product || requirement.productName || "New requirement";
+  const normalizedCategory = String(requirement.category || "")
+    .trim()
+    .toLowerCase();
+
+  setImmediate(async () => {
+    try {
+      const sellerQuery = {
+        _id: { $ne: req.user._id },
+        "roles.seller": true,
+        blocked: { $ne: true }
+      };
+      if (normalizedCategory) {
+        sellerQuery["sellerProfile.categories"] = normalizedCategory;
+      } else {
+        sellerQuery["sellerProfile.categories.0"] = { $exists: true };
+      }
+
+      const sellerIds = await User.find(sellerQuery).distinct("_id");
+      if (!sellerIds.length) return;
+
+      const notifications = await Promise.all(
+        sellerIds.map((sellerId) =>
+          Notification.create({
+            userId: sellerId,
+            fromUserId: req.user._id,
+            requirementId: requirement._id,
+            type: "new_post",
+            message: `New post in ${requirement.category || "your"} category: ${requirementName}`,
+            data: {
+              action: "open_requirement",
+              requirementId: String(requirement._id),
+              category: normalizedCategory
+            }
+          })
+        )
+      );
+
+      if (io) {
+        notifications.forEach((notification, idx) => {
+          const sellerId = sellerIds[idx];
+          if (!sellerId) return;
+          io.to(String(sellerId)).emit("notification", notification);
+        });
+      }
+    } catch (err) {
+      console.warn(
+        "Seller new-post notification dispatch failed:",
+        err?.message || err
+      );
+    }
+  });
+
   setImmediate(async () => {
     try {
       await triggerWhatsAppCampaignForRequirement(requirement);
