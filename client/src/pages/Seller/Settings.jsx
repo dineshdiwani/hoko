@@ -49,6 +49,14 @@ export default function SellerSettings() {
   const categoriesRef = useRef(null);
   const normalizeCategory = (value) =>
     String(value || "").toLowerCase().trim();
+  const dedupeCategories = (items) =>
+    Array.from(
+      new Set(
+        (Array.isArray(items) ? items : [])
+          .map((item) => normalizeCategory(item))
+          .filter(Boolean)
+      )
+    );
   const getCategoryLabel = (option) => {
     if (typeof option === "string") return option.trim();
     if (option && typeof option === "object") {
@@ -84,6 +92,7 @@ export default function SellerSettings() {
               .split(",")
               .map((c) => normalizeCategory(c))
               .filter(Boolean);
+        const uniqueCategories = dedupeCategories(normalizedCategories);
         setProfile({
           email: res.data?.email || session?.email || "",
           businessName:
@@ -93,7 +102,7 @@ export default function SellerSettings() {
           ownerName: sellerProfile.ownerName || "",
           firmName: sellerProfile.firmName || "",
           city: res.data?.city || session?.city || "",
-          categories: normalizedCategories,
+          categories: uniqueCategories,
           website: sellerProfile.website || "",
           taxId: sellerProfile.taxId || ""
         });
@@ -168,6 +177,7 @@ export default function SellerSettings() {
     }
     setSaving(true);
     try {
+      const uniqueCategories = dedupeCategories(profile.categories);
       await api.post("/seller/profile", {
         email: profile.email,
         businessName: profile.businessName,
@@ -176,11 +186,12 @@ export default function SellerSettings() {
         ownerName: profile.ownerName,
         firmName: profile.firmName || profile.businessName,
         city: profile.city,
-        categories: profile.categories,
+        categories: uniqueCategories,
         website: profile.website,
         taxId: profile.taxId
       });
-      setSellerDashboardCategories(profile.categories);
+      setProfile((prev) => ({ ...prev, categories: uniqueCategories }));
+      setSellerDashboardCategories(uniqueCategories);
       updateSettings({ seller: prefs });
       alert("Settings saved");
     } catch {

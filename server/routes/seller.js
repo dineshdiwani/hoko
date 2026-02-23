@@ -32,6 +32,14 @@ const allowedOfferExtensions = new Set([
   ".xls",
   ".xlsx"
 ]);
+function normalizeAndDedupeCategories(categories) {
+  const normalized = Array.isArray(categories)
+    ? categories
+        .map((c) => String(c || "").toLowerCase().trim())
+        .filter(Boolean)
+    : [];
+  return Array.from(new Set(normalized));
+}
 
 function safeFilename(originalname) {
   const ext = path.extname(String(originalname || "")).toLowerCase();
@@ -167,11 +175,7 @@ router.post("/onboard", auth, async (req, res) => {
       .json({ message: "Missing required fields" });
   }
 
-  const normalizedCategories = Array.isArray(categories)
-    ? categories
-        .map((c) => String(c || "").toLowerCase().trim())
-        .filter(Boolean)
-    : [];
+  const normalizedCategories = normalizeAndDedupeCategories(categories);
 
   const update = {
     "sellerProfile.businessName": businessName,
@@ -221,11 +225,7 @@ router.post("/profile", auth, sellerOnly, async (req, res) => {
     preferredCurrency
   } = req.body || {};
 
-  const normalizedCategories = Array.isArray(categories)
-    ? categories
-        .map((c) => String(c || "").toLowerCase().trim())
-        .filter(Boolean)
-    : [];
+  const normalizedCategories = normalizeAndDedupeCategories(categories);
 
   const update = {
     ...(businessName ? { "sellerProfile.businessName": businessName } : {}),
