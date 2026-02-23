@@ -89,7 +89,7 @@ export default function BuyerWelcome() {
   return (
     <div className="mf-theme">
       <header className="mf-header">
-        <div className="mf-shell flex flex-wrap lg:flex-nowrap items-center justify-between gap-4 py-5">
+        <div className="mf-shell !px-3 sm:!px-5 flex flex-wrap lg:flex-nowrap items-center justify-between gap-4 py-5">
           <div className="flex items-center gap-2 w-full lg:w-auto justify-start lg:justify-end">
             <img
               src={logoSrc}
@@ -214,13 +214,13 @@ export default function BuyerWelcome() {
         </div>
       </header>
 
-      <main className="mf-shell pt-6 md:pt-10 pb-14 md:pb-20">
+      <main className="mf-shell !px-3 sm:!px-5 pt-6 md:pt-10 pb-14 md:pb-20">
         <section className="grid gap-6 md:gap-10 lg:grid-cols-[1.1fr_0.9fr] items-center">
           <div className="space-y-4 md:space-y-6">
             <div className="mf-chip">Market-driven pricing, instantly</div>
             <h1 className="mf-title text-[1.8rem] md:text-[3rem]">
               Get the best price for what you need.
-              <span className="mf-title-accent text-hoko-brand"> Let sellers compete.</span>
+              <span className="mf-title-accent text-hoko-brand inline-block whitespace-nowrap"> Let sellers compete.</span>
             </h1>
             <p className="text-slate-600 text-lg leading-relaxed">
               With{" "}
