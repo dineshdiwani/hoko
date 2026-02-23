@@ -1,5 +1,5 @@
-const CACHE_NAME = "hoko-pwa-v4";
-const APP_SHELL = ["/", "/index.html", "/manifest.json", "/icon-192.png", "/icon-512.png"];
+const CACHE_NAME = "hoko-pwa-v5";
+const APP_SHELL = ["/", "/index.html", "/manifest.json", "/icon-192.png", "/icon-512.jpg"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
