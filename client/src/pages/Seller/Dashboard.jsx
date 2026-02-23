@@ -619,11 +619,11 @@ export default function SellerDashboard() {
         <div className="dashboard-shell dashboard-main-spacious">
           <div className="dashboard-flow">
           {reverseAuctionNotice && (
-            <div className="dashboard-panel-soft rounded-xl border border-red-200 bg-red-50 text-red-800 px-4 py-3 ui-body flex items-start justify-between gap-3">
+            <div className="dashboard-panel-soft ui-surface-warning rounded-xl border px-4 py-3 ui-body flex items-start justify-between gap-3">
               <span>{reverseAuctionNotice}</span>
               <button
                 onClick={() => setReverseAuctionNotice("")}
-                className="text-red-700 ui-label"
+                className="ui-status-warning ui-label"
               >
                 Dismiss
               </button>
@@ -654,7 +654,7 @@ export default function SellerDashboard() {
               </div>
               <div className="app-stat">
                 <p className="ui-label text-[var(--ui-muted)]">Live Auctions</p>
-                <p className="ui-heading text-red-600">{liveAuctions}</p>
+                <p className="ui-heading ui-status-warning">{liveAuctions}</p>
               </div>
             </div>
           )}
@@ -770,7 +770,7 @@ export default function SellerDashboard() {
 
                     {showAuctionForSeller && (
                       <span
-                        className={`ui-label px-2 py-1 rounded-full bg-red-100 text-red-700 ${
+                        className={`ui-label px-2 py-1 rounded-full ui-surface-warning ${
                           req.myOffer ? "mr-10" : ""
                         }`}
                       >
@@ -781,15 +781,15 @@ export default function SellerDashboard() {
 
                   {showAuctionForSeller && (
                     <>
-                      <p className="ui-body text-red-700 mb-1">
+                      <p className="ui-body ui-status-warning mb-1">
                         Buyer has invoked Reverse Auction.
                       </p>
-                      <p className="ui-body text-red-700 mb-2">
+                      <p className="ui-body ui-status-warning mb-2">
                         Current lowest price: Rs {lowestPrice}
                       </p>
                       <button
                         onClick={() => setActiveRequirement(req)}
-                        className="ui-link text-red-700"
+                        className="ui-link ui-status-warning"
                       >
                         Edit your offer now
                       </button>

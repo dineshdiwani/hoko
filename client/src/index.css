@@ -170,6 +170,7 @@
 
   .border-indigo-200,
   .border-blue-200,
+  .border-blue-300,
   .border-amber-300,
   .border-yellow-300,
   .border-amber-400 {
@@ -648,6 +649,68 @@
   .ui-button-text {
     font-size: var(--ui-btn-font-size);
     line-height: var(--ui-btn-line-height);
+  }
+
+  .ui-status-success {
+    color: #047857;
+  }
+
+  .ui-status-warning {
+    color: #b45309;
+  }
+
+  .ui-status-danger {
+    color: #b91c1c;
+  }
+
+  .ui-status-info {
+    color: var(--ui-accent);
+  }
+
+  .ui-surface-success {
+    background: rgba(16, 185, 129, 0.12);
+    border-color: rgba(16, 185, 129, 0.35);
+    color: #047857;
+  }
+
+  .ui-surface-warning {
+    background: rgba(245, 158, 11, 0.12);
+    border-color: rgba(245, 158, 11, 0.35);
+    color: #b45309;
+  }
+
+  .ui-surface-danger {
+    background: rgba(220, 38, 38, 0.12);
+    border-color: rgba(220, 38, 38, 0.35);
+    color: #b91c1c;
+  }
+
+  .ui-surface-info {
+    background: var(--ui-accent-soft);
+    border-color: var(--ui-accent-border);
+    color: var(--ui-accent);
+  }
+
+  .ui-icon-button {
+    @apply relative inline-flex items-center justify-center rounded-full border;
+    width: 2.5rem;
+    height: 2.5rem;
+    background: #ffffff;
+    border-color: var(--ui-border);
+  }
+
+  .ui-icon-button:hover {
+    background: var(--ui-soft);
+    border-color: var(--ui-accent-border);
+  }
+
+  .ui-icon-tone {
+    color: var(--ui-accent);
+  }
+
+  .ui-dot-danger {
+    background: #dc2626;
+    color: #ffffff;
   }
 
   .mf-theme {

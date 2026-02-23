@@ -89,19 +89,19 @@ export default function NotificationCenter({ onNotificationClick }) {
     <div className="relative shrink-0" ref={menuRef}>
       <button
         onClick={() => setOpen(!open)}
-        className="relative w-10 h-10 inline-flex items-center justify-center rounded-full border border-yellow-300 bg-white hover:bg-yellow-50"
+        className="ui-icon-button"
         aria-label="Notifications"
       >
         <svg
           viewBox="0 0 24 24"
-          className="w-5 h-5 text-yellow-500"
+          className="w-5 h-5 ui-icon-tone"
           fill="currentColor"
           aria-hidden="true"
         >
           <path d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6V11a7 7 0 1 0-14 0v5l-2 2v1h18v-1l-2-2Z" />
         </svg>
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs px-1 rounded-full">
+          <span className="absolute -top-1 -right-1 ui-dot-danger text-xs px-1 rounded-full">
             {unreadCount}
           </span>
         )}
@@ -122,7 +122,7 @@ export default function NotificationCenter({ onNotificationClick }) {
               className={`px-4 py-3 border-b cursor-pointer ${
                 n.read
                   ? "bg-white"
-                  : "bg-indigo-50"
+                  : "ui-surface-info"
               }`}
             >
               <p className="text-sm">
