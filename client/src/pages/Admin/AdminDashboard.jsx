@@ -797,7 +797,7 @@ export default function AdminDashboard() {
   return (
     <div className="page">
       <div className="dashboard-shell pt-20 md:pt-10">
-        <div className="flex flex-col gap-4 md:flex-row md:justify-between md:items-center mb-6">
+        <div className="flex flex-col gap-4 md:flex-row md:justify-between md:items-center">
           <h1 className="page-hero">Admin Dashboard</h1>
 
           <div className="flex items-center gap-2 flex-wrap">
@@ -811,8 +811,9 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="dashboard-panel p-4 mb-6">
-          <h2 className="ui-heading mb-3">Admin Settings</h2>
+        <div className="dashboard-flow">
+        <div className="dashboard-panel p-4">
+          <h2 className="ui-heading dashboard-section-title">Admin Settings</h2>
           <div className="grid md:grid-cols-3 gap-3">
             <input
               type="password"
@@ -847,7 +848,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="mt-2">
+        <div>
           <div className="dashboard-panel p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div>
               <h2 className="ui-heading">Operations & Reports</h2>
@@ -864,7 +865,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="mt-8">
+        <div>
           <div className="dashboard-panel p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div>
               <h2 className="ui-heading">WhatsApp Operations</h2>
@@ -881,8 +882,8 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="mt-8">
-          <h2 className="ui-heading mb-3">Moderation Rules</h2>
+        <div>
+          <h2 className="ui-heading dashboard-section-title">Moderation Rules</h2>
           <div className="dashboard-panel p-3 space-y-4">
             <label className="flex items-center gap-2 ui-body text-gray-700">
               <input
@@ -929,8 +930,8 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="mt-10">
-          <h2 className="ui-heading mb-3">Platform Options</h2>
+        <div>
+          <h2 className="ui-heading dashboard-section-title">Platform Options</h2>
           <div className="dashboard-panel p-3 space-y-4">
             <div>
               <label className="ui-label text-gray-600">
@@ -1232,10 +1233,11 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="dashboard-panel mt-10 p-4">
+        <div className="dashboard-panel p-4">
           <p className="ui-body text-gray-700">
             Detailed requirements, offers, reports, and chats are now available in Admin Operations.
           </p>
+        </div>
         </div>
       </div>
 

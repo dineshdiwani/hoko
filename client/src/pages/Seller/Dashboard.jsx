@@ -616,9 +616,10 @@ export default function SellerDashboard() {
       </header>
 
       <main className="flex-1">
-        <div className="dashboard-shell pt-4 pb-28">
+        <div className="dashboard-shell dashboard-main-spacious">
+          <div className="dashboard-flow">
           {reverseAuctionNotice && (
-            <div className="mb-4 rounded-xl border border-red-200 bg-red-50 text-red-800 px-4 py-3 ui-body flex items-start justify-between gap-3">
+            <div className="dashboard-panel-soft rounded-xl border border-red-200 bg-red-50 text-red-800 px-4 py-3 ui-body flex items-start justify-between gap-3">
               <span>{reverseAuctionNotice}</span>
               <button
                 onClick={() => setReverseAuctionNotice("")}
@@ -630,7 +631,7 @@ export default function SellerDashboard() {
           )}
 
           {!loading && (
-            <div className="flex flex-wrap gap-2 mb-4">
+            <div className="flex flex-wrap gap-2">
               {smartTabs.map((option) => (
                 <button
                   key={option.key}
@@ -646,7 +647,7 @@ export default function SellerDashboard() {
           )}
 
           {!loading && (
-            <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="grid grid-cols-2 gap-3">
               <div className="app-stat">
                 <p className="ui-label text-[var(--ui-muted)]">Total Matches</p>
                 <p className="ui-heading text-hoko-brand">{filteredRequirements.length}</p>
@@ -659,7 +660,7 @@ export default function SellerDashboard() {
           )}
 
           {!loading && (
-            <div className="app-filter-bar mb-4">
+            <div className="app-filter-bar">
               <div className="flex flex-col md:flex-row md:items-center gap-3">
                 <input
                   value={searchQuery}
@@ -672,7 +673,7 @@ export default function SellerDashboard() {
           )}
 
           {loading && (
-            <div className="space-y-4">
+            <div className="dashboard-list">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="h-28 rounded-2xl bg-gray-200 animate-pulse" />
               ))}
@@ -680,13 +681,13 @@ export default function SellerDashboard() {
           )}
 
           {!loading && requirements.length === 0 && (
-            <div className="text-center py-12 text-[var(--ui-text)]">
+            <div className="dashboard-empty text-[var(--ui-text)]">
               No matching buyer requirements right now.
             </div>
           )}
 
           {!loading && requirements.length > 0 && visibleRequirements.length === 0 && (
-            <div className="text-center py-12 text-gray-600">
+            <div className="dashboard-empty text-gray-600">
               No posts match your dashboard categories. Update them in your profile.
             </div>
           )}
@@ -695,14 +696,14 @@ export default function SellerDashboard() {
             requirements.length > 0 &&
             visibleRequirements.length > 0 &&
             filteredRequirements.length === 0 && (
-              <div className="text-center py-12 text-gray-600">
+              <div className="dashboard-empty text-gray-600">
                 {activeSmartTab === "auctions"
                   ? "No live auctions right now."
                   : "No posts match the selected filters."}
               </div>
             )}
 
-          <div className="space-y-4">
+          <div className="dashboard-list">
             {filteredRequirements.map((req) => {
               const isAuction = req.reverseAuction?.active === true;
               const showAuctionForSeller = req.myOffer && isAuction;
@@ -857,6 +858,7 @@ export default function SellerDashboard() {
                 </div>
               );
             })}
+          </div>
           </div>
         </div>
       </main>

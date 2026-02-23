@@ -425,6 +425,35 @@
     border-radius: 18px;
   }
 
+  .dashboard-main {
+    padding-top: 1rem;
+    padding-bottom: 2rem;
+  }
+
+  .dashboard-main-spacious {
+    padding-top: 1rem;
+    padding-bottom: 7rem;
+  }
+
+  .dashboard-flow > * + * {
+    margin-top: 1.5rem;
+  }
+
+  .dashboard-section-title {
+    margin-bottom: 0.75rem;
+  }
+
+  .dashboard-list {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .dashboard-empty {
+    padding-top: 2.75rem;
+    padding-bottom: 2.75rem;
+    text-align: center;
+  }
+
   .btn-primary {
     @apply inline-flex items-center justify-center text-white px-4 py-2 rounded-xl text-[0.92rem] font-semibold transition;
     background: var(--hoko-button);

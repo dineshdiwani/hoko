@@ -131,7 +131,7 @@ export default function BuyerDashboard() {
   if (roleSyncing) {
     return (
       <div className="page">
-        <div className="dashboard-shell py-10 text-gray-600">
+        <div className="dashboard-shell dashboard-empty text-gray-600">
           Switching to buyer role...
         </div>
       </div>
@@ -307,7 +307,7 @@ export default function BuyerDashboard() {
 
       {/* CONTENT */}
       <main className="flex-1">
-        <div className="dashboard-shell pt-4 pb-8">
+        <div className="dashboard-shell dashboard-main">
         {activeTab === "posts" && <MyPosts />}
         {activeTab === "city" && (
           <CityDashboard
