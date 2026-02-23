@@ -391,6 +391,9 @@ export default function OfferList() {
             <p className="text-2xl font-bold">
               Rs {bestOffer.price}
             </p>
+            <p className="text-xs opacity-90">
+              Inclusive of all taxex
+            </p>
             <p className="text-sm opacity-90">
               {bestOffer.sellerFirm}
             </p>
@@ -429,6 +432,9 @@ export default function OfferList() {
                 <div>
                   <p className="text-xl font-semibold">
                     Rs {offer.price}
+                  </p>
+                  <p className="text-xs text-[var(--ui-muted)] mt-1">
+                    Inclusive of all taxex
                   </p>
                   <button
                     type="button"

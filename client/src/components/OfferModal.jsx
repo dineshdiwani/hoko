@@ -433,6 +433,9 @@ export default function OfferModal({
           }
           required
         />
+        <p className="mb-3 text-xs text-[var(--ui-muted)]">
+          Inclusive of all taxex
+        </p>
 
         <textarea
           value={note}
