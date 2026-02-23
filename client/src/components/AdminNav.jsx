@@ -19,7 +19,7 @@ export default function AdminNav() {
       <button
         onClick={() => navigate("/admin/dashboard")}
         className={`px-3 py-2 text-sm rounded-lg ${
-          isDashboard ? "btn-primary" : "border border-gray-300 bg-white"
+          isDashboard ? "ui-btn-primary" : "ui-btn-secondary"
         }`}
       >
         Dashboard
@@ -27,7 +27,7 @@ export default function AdminNav() {
       <button
         onClick={() => navigate("/admin/analytics")}
         className={`px-3 py-2 text-sm rounded-lg ${
-          isAnalytics ? "btn-primary" : "border border-gray-300 bg-white"
+          isAnalytics ? "ui-btn-primary" : "ui-btn-secondary"
         }`}
       >
         Analytics
@@ -35,7 +35,7 @@ export default function AdminNav() {
       <button
         onClick={() => navigate("/admin/whatsapp")}
         className={`px-3 py-2 text-sm rounded-lg ${
-          isWhatsApp ? "btn-primary" : "border border-gray-300 bg-white"
+          isWhatsApp ? "ui-btn-primary" : "ui-btn-secondary"
         }`}
       >
         WhatsApp
@@ -43,14 +43,14 @@ export default function AdminNav() {
       <button
         onClick={() => navigate("/admin/operations")}
         className={`px-3 py-2 text-sm rounded-lg ${
-          isOperations ? "btn-primary" : "border border-gray-300 bg-white"
+          isOperations ? "ui-btn-primary" : "ui-btn-secondary"
         }`}
       >
         Operations
       </button>
       <button
         onClick={handleAdminLogout}
-        className="px-3 py-2 text-sm rounded-lg border border-red-300 text-red-700 bg-white hover:bg-red-50"
+        className="ui-btn-secondary ui-btn-danger px-3 py-2 text-sm rounded-lg"
       >
         Logout
       </button>

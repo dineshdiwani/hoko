@@ -399,6 +399,91 @@
     transform: translateY(-1px);
   }
 
+  .ui-btn-primary {
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-xl text-[0.92rem] font-semibold transition;
+    background: var(--ui-accent);
+    color: #ffffff;
+    border: 1px solid transparent;
+    box-shadow: var(--ui-button-shadow-soft);
+    width: fit-content !important;
+  }
+
+  .ui-btn-primary:hover {
+    background: var(--ui-accent-hover);
+  }
+
+  .ui-btn-secondary {
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-xl text-[0.92rem] font-semibold transition;
+    background: #ffffff;
+    color: var(--ui-text);
+    border: 1px solid var(--ui-border);
+    box-shadow: none;
+    width: fit-content !important;
+  }
+
+  .ui-btn-secondary:hover {
+    background: var(--ui-soft);
+    border-color: var(--ui-accent-border);
+  }
+
+  .ui-btn-danger {
+    color: var(--ui-danger);
+    border-color: rgba(220, 38, 38, 0.35);
+  }
+
+  .ui-btn-danger:hover {
+    background: rgba(220, 38, 38, 0.1);
+    border-color: rgba(220, 38, 38, 0.5);
+  }
+
+  .ui-tab {
+    @apply tab-stretch py-3 text-sm font-semibold transition;
+    color: var(--ui-muted);
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .ui-tab:hover {
+    color: var(--ui-text);
+    background: rgba(204, 47, 47, 0.06);
+  }
+
+  .ui-tab-active {
+    color: var(--ui-accent);
+    border-bottom-color: var(--ui-accent);
+    background: var(--ui-accent-soft);
+  }
+
+  .ui-link {
+    color: var(--ui-accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    box-shadow: none;
+    background: transparent;
+  }
+
+  .ui-link:hover {
+    color: var(--ui-accent-hover);
+  }
+
+  .ui-menu-item {
+    @apply w-full text-left px-4 py-3 text-sm transition;
+    color: var(--ui-text);
+    background: transparent;
+    box-shadow: none;
+    border-radius: 0;
+  }
+
+  .ui-menu-item:hover {
+    background: var(--ui-soft);
+  }
+
+  .ui-menu-item-danger {
+    color: var(--ui-danger);
+  }
+
   .mf-theme {
     background: var(--hoko-flag-gradient);
     background-attachment: fixed;

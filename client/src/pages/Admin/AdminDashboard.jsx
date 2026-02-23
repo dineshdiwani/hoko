@@ -803,7 +803,7 @@ export default function AdminDashboard() {
           <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => loadDashboardData().catch(() => {})}
-              className="px-3 py-2 text-sm rounded-lg border border-gray-300 bg-white hover:bg-gray-50"
+              className="ui-btn-secondary px-3 py-2 text-sm rounded-lg"
             >
               Refresh
             </button>
@@ -840,7 +840,7 @@ export default function AdminDashboard() {
             <button
               onClick={handleChangePassword}
               disabled={changingPassword}
-              className="btn-primary w-auto px-3 py-2 text-sm rounded-lg"
+              className="ui-btn-primary w-auto px-3 py-2 text-sm rounded-lg"
             >
               {changingPassword ? "Updating..." : "Change Password"}
             </button>
@@ -857,7 +857,7 @@ export default function AdminDashboard() {
             </div>
             <button
               onClick={() => navigate("/admin/operations")}
-              className="btn-primary w-auto px-3 py-2 text-sm rounded-lg"
+              className="ui-btn-primary w-auto px-3 py-2 text-sm rounded-lg"
             >
               Open Operations Page
             </button>
@@ -874,7 +874,7 @@ export default function AdminDashboard() {
             </div>
             <button
               onClick={() => navigate("/admin/whatsapp")}
-              className="btn-primary w-auto px-3 py-2 text-sm rounded-lg"
+              className="ui-btn-primary w-auto px-3 py-2 text-sm rounded-lg"
             >
               Open WhatsApp Page
             </button>
@@ -991,7 +991,7 @@ export default function AdminDashboard() {
               </p>
               <button
                 type="button"
-                className="mt-2 text-xs text-amber-700 hover:underline bg-transparent shadow-none"
+                className="ui-link mt-2 text-xs bg-transparent"
                 onClick={() => {
                   setLegalPreviewType("terms");
                   setShowLegalPreviewModal(true);
@@ -1024,7 +1024,7 @@ export default function AdminDashboard() {
               </p>
               <button
                 type="button"
-                className="mt-2 text-xs text-amber-700 hover:underline bg-transparent shadow-none"
+                className="ui-link mt-2 text-xs bg-transparent"
                 onClick={() => {
                   setLegalPreviewType("privacy");
                   setShowLegalPreviewModal(true);
@@ -1047,19 +1047,19 @@ export default function AdminDashboard() {
               <div className="mt-2 flex gap-2">
                 <button
                   onClick={() => addTaxonomyValue("currencies")}
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-300"
+                  className="ui-btn-secondary px-3 py-1.5 rounded-lg text-xs"
                 >
                   Add Currency
                 </button>
                 <button
                   onClick={() => renameTaxonomyValue("currencies")}
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-300"
+                  className="ui-btn-secondary px-3 py-1.5 rounded-lg text-xs"
                 >
                   Rename Currency
                 </button>
                 <button
                   onClick={() => removeTaxonomyValue("currencies")}
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-300 text-red-700"
+                  className="ui-btn-secondary ui-btn-danger px-3 py-1.5 rounded-lg text-xs"
                 >
                   Remove Currency
                 </button>
@@ -1225,7 +1225,7 @@ export default function AdminDashboard() {
 
             <button
               onClick={saveOptions}
-              className="btn-primary w-auto px-3 py-2 text-sm rounded-lg"
+              className="ui-btn-primary w-auto px-3 py-2 text-sm rounded-lg"
             >
               Save Options
             </button>
@@ -1250,7 +1250,7 @@ export default function AdminDashboard() {
               </h2>
               <button
                 onClick={() => setShowLegalPreviewModal(false)}
-                className="text-gray-500 hover:text-gray-800"
+                className="ui-link text-sm"
               >
                 Close
               </button>

@@ -158,7 +158,7 @@ export default function BuyerDashboard() {
             <div className="relative" ref={menuRef}>
               <button
                 onClick={() => setMenuOpen(!menuOpen)}
-                className="flex items-center gap-1 px-2 md:px-3 py-2 border rounded-xl text-xs md:text-sm font-medium bg-white"
+                className="ui-btn-secondary flex items-center gap-1 px-2 md:px-3 py-2 text-xs md:text-sm"
               >
                 {session?.name || "Buyer"} v
               </button>
@@ -170,7 +170,7 @@ export default function BuyerDashboard() {
                       setMenuOpen(false);
                       navigate("/buyer/settings");
                     }}
-                    className="w-full text-left px-4 py-3 text-sm hover:bg-gray-100"
+                    className="ui-menu-item"
                   >
                     Profile Settings
                   </button>
@@ -217,7 +217,7 @@ export default function BuyerDashboard() {
                         setSwitching(false);
                       }
                     }}
-                    className="w-full text-left px-4 py-3 text-sm hover:bg-gray-100"
+                    className="ui-menu-item"
                   >
                     {switching
                       ? "Switching..."
@@ -228,7 +228,7 @@ export default function BuyerDashboard() {
 
                   <button
                     onClick={() => logout(navigate)}
-                    className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-gray-100"
+                    className="ui-menu-item ui-menu-item-danger"
                   >
                     Logout
                   </button>
@@ -284,33 +284,21 @@ export default function BuyerDashboard() {
         <div className="max-w-6xl mx-auto flex border-t px-4 pl-16 md:pl-20">
           <button
             onClick={() => setActiveTab("posts")}
-            className={`tab-stretch flex-1 py-3 text-sm font-semibold ${
-              activeTab === "posts"
-                ? "text-amber-700 border-b-2 border-indigo-600"
-                : "text-gray-500"
-            }`}
+            className={`ui-tab ${activeTab === "posts" ? "ui-tab-active" : ""}`}
           >
             My Posts
           </button>
 
           <button
             onClick={() => setActiveTab("city")}
-            className={`tab-stretch flex-1 py-3 text-sm font-semibold ${
-              activeTab === "city"
-                ? "text-amber-700 border-b-2 border-indigo-600"
-                : "text-gray-500"
-            }`}
+            className={`ui-tab ${activeTab === "city" ? "ui-tab-active" : ""}`}
           >
             City Dashboard
           </button>
 
           <button
             onClick={() => setActiveTab("offers")}
-            className={`tab-stretch flex-1 py-3 text-sm font-semibold ${
-              activeTab === "offers"
-                ? "text-amber-700 border-b-2 border-indigo-600"
-                : "text-gray-500"
-            }`}
+            className={`ui-tab ${activeTab === "offers" ? "ui-tab-active" : ""}`}
           >
             Received Offers
           </button>
