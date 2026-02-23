@@ -281,7 +281,7 @@ export default function BuyerDashboard() {
         </div>
 
         {/* TABS */}
-        <div className="dashboard-shell flex border-t pl-16 md:pl-20">
+        <div className="dashboard-shell dashboard-tabs border-t pl-16 md:pl-20">
           <button
             onClick={() => setActiveTab("posts")}
             className={`ui-tab ${activeTab === "posts" ? "ui-tab-active" : ""}`}

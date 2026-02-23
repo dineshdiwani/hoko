@@ -473,8 +473,30 @@
   .dashboard-layout-fab {
     position: fixed;
     right: 1.5rem;
-    bottom: 1.5rem;
+    bottom: calc(1.5rem + env(safe-area-inset-bottom));
     z-index: 50;
+  }
+
+  .dashboard-tabs {
+    display: flex;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .dashboard-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .dashboard-tabs .ui-tab {
+    min-width: 8.5rem;
+  }
+
+  @media (min-width: 768px) {
+    .dashboard-tabs .ui-tab {
+      min-width: 0;
+    }
   }
 
   .dashboard-main {
@@ -579,6 +601,9 @@
     font-size: var(--ui-btn-font-size);
     line-height: var(--ui-btn-line-height);
     color: var(--ui-muted);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
     border-bottom: 2px solid transparent;
     background: transparent;
     border-radius: 0;
