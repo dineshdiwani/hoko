@@ -680,7 +680,7 @@ export default function SellerDashboard() {
           )}
 
           {!loading && requirements.length === 0 && (
-            <div className="text-center py-12 text-yellow-300">
+            <div className="text-center py-12 text-[var(--ui-text)]">
               No matching buyer requirements right now.
             </div>
           )}

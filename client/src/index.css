@@ -27,6 +27,7 @@
     --ui-border: #e7e2de;
     --ui-text: #1f1a17;
     --ui-muted: #6b5f59;
+    --ui-muted-strong: #4f463f;
     --ui-soft: #f3eeeb;
     --ui-accent: #cc2f2f;
     --ui-accent-hover: #b72828;
@@ -175,10 +176,19 @@
 
   .text-gray-400:not(button):not(.cursor-not-allowed),
   .text-gray-500:not(button):not(.cursor-not-allowed),
+  .text-slate-400:not(button):not(.cursor-not-allowed),
+  .text-slate-500:not(button):not(.cursor-not-allowed) {
+    color: var(--ui-muted-strong) !important;
+  }
+
   .text-gray-600:not(button):not(.cursor-not-allowed),
   .text-gray-700:not(button):not(.cursor-not-allowed),
   .text-gray-800:not(button):not(.cursor-not-allowed),
-  .text-gray-900:not(button):not(.cursor-not-allowed) {
+  .text-gray-900:not(button):not(.cursor-not-allowed),
+  .text-slate-600:not(button):not(.cursor-not-allowed),
+  .text-slate-700:not(button):not(.cursor-not-allowed),
+  .text-slate-800:not(button):not(.cursor-not-allowed),
+  .text-slate-900:not(button):not(.cursor-not-allowed) {
     color: var(--ui-muted) !important;
   }
 
