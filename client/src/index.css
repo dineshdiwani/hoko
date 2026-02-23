@@ -306,11 +306,11 @@
   }
 
   .app-card {
-    background: var(--ui-card);
-    border: 1px solid var(--ui-border);
-    border-radius: var(--ui-radius-xl);
+    background: #ffffff;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    border-radius: 22px;
     padding: 1.25rem;
-    box-shadow: var(--ui-shadow);
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
   }
 
   .app-card-muted {
@@ -321,9 +321,9 @@
   }
 
   .app-stat {
-    background: var(--ui-card);
-    border: 1px solid var(--ui-border);
-    border-radius: var(--ui-radius-lg);
+    background: #ffffff;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    border-radius: 18px;
     padding: 1rem;
   }
 
@@ -376,10 +376,47 @@
   }
 
   .app-filter-bar {
-    background: var(--ui-card);
-    border: 1px solid var(--ui-border);
-    border-radius: var(--ui-radius-xl);
+    background: #ffffff;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    border-radius: 18px;
     padding: 0.85rem;
+  }
+
+  .dashboard-shell {
+    width: 100%;
+    max-width: 1140px;
+    margin: 0 auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  @media (min-width: 640px) {
+    .dashboard-shell {
+      padding-left: 1.25rem;
+      padding-right: 1.25rem;
+    }
+  }
+
+  .dashboard-header {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  }
+
+  .dashboard-panel {
+    background: #ffffff;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    border-radius: 22px;
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+  }
+
+  .dashboard-panel-soft {
+    background: #ffffff;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    border-radius: 18px;
   }
 
   .btn-primary {

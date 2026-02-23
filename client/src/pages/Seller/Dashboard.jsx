@@ -503,8 +503,8 @@ export default function SellerDashboard() {
 
   return (
     <div className="page flex flex-col">
-      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-[var(--ui-border)]">
-        <div className="max-w-6xl mx-auto flex flex-wrap md:flex-nowrap justify-between items-center px-4 py-3 pl-16 md:pl-20 gap-2">
+      <header className="dashboard-header">
+        <div className="dashboard-shell flex flex-wrap md:flex-nowrap justify-between items-center py-3 pl-16 md:pl-20 gap-2">
           <div>
             <h1 className="text-lg font-bold">Seller Dashboard</h1>
             <p className="text-xs text-[var(--ui-muted)]">Matching buyer requirements</p>
@@ -549,19 +549,19 @@ export default function SellerDashboard() {
             <div className="relative" ref={menuRef}>
               <button
                 onClick={() => setMenuOpen(!menuOpen)}
-                className="px-2 md:px-3 py-2 border rounded-xl text-xs md:text-sm font-medium bg-white"
+                className="ui-btn-secondary px-2 md:px-3 py-2 text-xs md:text-sm"
               >
                 {session?.name || "Seller"} v
               </button>
 
               {menuOpen && (
-                <div className="absolute right-0 mt-2 w-44 bg-white rounded-xl shadow-lg border overflow-hidden">
+                <div className="dashboard-panel absolute right-0 mt-2 w-44 overflow-hidden">
                   <button
                     onClick={() => {
                       setMenuOpen(false);
                       navigate("/seller/settings");
                     }}
-                    className="w-full text-left px-4 py-3 text-sm hover:bg-gray-100"
+                    className="ui-menu-item"
                   >
                     Profile Settings
                   </button>
@@ -592,7 +592,7 @@ export default function SellerDashboard() {
                         setSwitching(false);
                       }
                     }}
-                    className="w-full text-left px-4 py-3 text-sm hover:bg-gray-100"
+                    className="ui-menu-item"
                   >
                     {switching
                       ? "Switching..."
@@ -603,7 +603,7 @@ export default function SellerDashboard() {
 
                   <button
                     onClick={() => logout(navigate)}
-                    className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-gray-100"
+                    className="ui-menu-item ui-menu-item-danger"
                   >
                     Logout
                   </button>
@@ -616,7 +616,7 @@ export default function SellerDashboard() {
       </header>
 
       <main className="flex-1">
-        <div className="page-shell pt-4 pb-28">
+        <div className="dashboard-shell pt-4 pb-28">
           {reverseAuctionNotice && (
             <div className="mb-4 rounded-xl border border-red-200 bg-red-50 text-red-800 px-4 py-3 text-sm flex items-start justify-between gap-3">
               <span>{reverseAuctionNotice}</span>

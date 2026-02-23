@@ -796,7 +796,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="page">
-      <div className="page-shell pt-20 md:pt-10">
+      <div className="dashboard-shell pt-20 md:pt-10">
         <div className="flex flex-col gap-4 md:flex-row md:justify-between md:items-center mb-6">
           <h1 className="page-hero">Admin Dashboard</h1>
 
@@ -811,7 +811,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="bg-white border rounded-2xl p-4 mb-6">
+        <div className="dashboard-panel p-4 mb-6">
           <h2 className="text-base font-semibold mb-3">Admin Settings</h2>
           <div className="grid md:grid-cols-3 gap-3">
             <input
@@ -848,7 +848,7 @@ export default function AdminDashboard() {
         </div>
 
         <div className="mt-2">
-          <div className="bg-white border rounded-2xl p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div className="dashboard-panel p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div>
               <h2 className="text-lg font-bold">Operations & Reports</h2>
               <p className="text-sm text-gray-600">
@@ -865,7 +865,7 @@ export default function AdminDashboard() {
         </div>
 
         <div className="mt-8">
-          <div className="bg-white border rounded-2xl p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div className="dashboard-panel p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div>
               <h2 className="text-lg font-bold">WhatsApp Operations</h2>
               <p className="text-sm text-gray-600">
@@ -883,7 +883,7 @@ export default function AdminDashboard() {
 
         <div className="mt-8">
           <h2 className="text-lg font-bold mb-3">Moderation Rules</h2>
-          <div className="bg-white border rounded-2xl p-3 space-y-4">
+          <div className="dashboard-panel p-3 space-y-4">
             <label className="flex items-center gap-2 text-sm text-gray-700">
               <input
                 type="checkbox"
@@ -931,7 +931,7 @@ export default function AdminDashboard() {
 
         <div className="mt-10">
           <h2 className="text-lg font-bold mb-3">Platform Options</h2>
-          <div className="bg-white border rounded-2xl p-3 space-y-4">
+          <div className="dashboard-panel p-3 space-y-4">
             <div>
               <label className="text-xs text-gray-600">
                 Cities (comma separated)
@@ -1232,7 +1232,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="mt-10 bg-white border rounded-2xl p-4">
+        <div className="dashboard-panel mt-10 p-4">
           <p className="text-sm text-gray-700">
             Detailed requirements, offers, reports, and chats are now available in Admin Operations.
           </p>
@@ -1241,7 +1241,7 @@ export default function AdminDashboard() {
 
       {showLegalPreviewModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white w-full max-w-2xl rounded-2xl shadow-xl p-6 max-h-[80vh] overflow-auto">
+          <div className="dashboard-panel w-full max-w-2xl p-6 max-h-[80vh] overflow-auto">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-bold">
                 {legalPreviewType === "privacy"

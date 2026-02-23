@@ -131,7 +131,7 @@ export default function BuyerDashboard() {
   if (roleSyncing) {
     return (
       <div className="page">
-        <div className="page-shell py-10 text-gray-600">
+        <div className="dashboard-shell py-10 text-gray-600">
           Switching to buyer role...
         </div>
       </div>
@@ -141,8 +141,8 @@ export default function BuyerDashboard() {
   return (
     <div className="page flex flex-col">
       {/* HEADER */}
-      <header className="sticky top-0 z-40 bg-white shadow-sm">
-        <div className="max-w-6xl mx-auto flex flex-wrap md:flex-nowrap items-center justify-between px-4 py-3 pl-16 md:pl-20 gap-2">
+      <header className="dashboard-header">
+        <div className="dashboard-shell flex flex-wrap md:flex-nowrap items-center justify-between py-3 pl-16 md:pl-20 gap-2">
           <div>
             <h1 className="text-lg font-bold text-gray-800">
               Buyer Dashboard
@@ -164,7 +164,7 @@ export default function BuyerDashboard() {
               </button>
 
               {menuOpen && (
-                <div className="absolute right-0 mt-2 w-44 bg-white rounded-xl shadow-lg border overflow-hidden">
+                <div className="dashboard-panel absolute right-0 mt-2 w-44 overflow-hidden">
                   <button
                     onClick={() => {
                       setMenuOpen(false);
@@ -239,7 +239,7 @@ export default function BuyerDashboard() {
         </div>
 
         {/* CITY SELECTOR */}
-        <div className="max-w-6xl mx-auto px-4 pb-3 pl-16 md:pl-20">
+        <div className="dashboard-shell pb-3 pl-16 md:pl-20">
           <div className="flex flex-wrap md:flex-nowrap items-center gap-2">
             <span className="text-sm font-semibold text-gray-700">
               City
@@ -281,7 +281,7 @@ export default function BuyerDashboard() {
         </div>
 
         {/* TABS */}
-        <div className="max-w-6xl mx-auto flex border-t px-4 pl-16 md:pl-20">
+        <div className="dashboard-shell flex border-t pl-16 md:pl-20">
           <button
             onClick={() => setActiveTab("posts")}
             className={`ui-tab ${activeTab === "posts" ? "ui-tab-active" : ""}`}
@@ -307,7 +307,7 @@ export default function BuyerDashboard() {
 
       {/* CONTENT */}
       <main className="flex-1">
-        <div className="page-shell pt-4">
+        <div className="dashboard-shell pt-4 pb-8">
         {activeTab === "posts" && <MyPosts />}
         {activeTab === "city" && (
           <CityDashboard
