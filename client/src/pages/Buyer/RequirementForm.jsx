@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { fetchOptions } from "../../services/options";
 import api from "../../services/api";
+import { getSession } from "../../services/auth";
 import {
   getAttachmentDisplayName,
   getAttachmentTypeMeta
@@ -41,6 +42,7 @@ export default function RequirementForm() {
   const navigate = useNavigate();
   const { id: requirementId } = useParams();
   const isEditMode = Boolean(requirementId);
+  const session = getSession();
 
   const [form, setForm] = useState({
     city: "",
@@ -50,7 +52,8 @@ export default function RequirementForm() {
     typeModel: "",
     quantity: "",
     unit: "",
-    details: ""
+    details: "",
+    offerInvitedFrom: "city"
   });
   const [submitted, setSubmitted] = useState(false);
   const [attachments, setAttachments] = useState([]);
@@ -181,7 +184,8 @@ export default function RequirementForm() {
           typeModel: requirement.typeModel || "",
           quantity: requirement.quantity || "",
           unit: requirement.type || requirement.unit || "",
-          details: requirement.details || ""
+          details: requirement.details || "",
+          offerInvitedFrom: requirement.offerInvitedFrom || "city"
         }));
         setExistingAttachments(
           Array.isArray(requirement.attachments) ? requirement.attachments : []
@@ -462,6 +466,7 @@ export default function RequirementForm() {
         quantity: form.quantity,
         type: form.unit,
         details: form.details,
+        offerInvitedFrom: form.offerInvitedFrom || "city",
         attachments: [...existingAttachments, ...attachmentUrls]
       };
 
@@ -625,6 +630,33 @@ export default function RequirementForm() {
           placeholder="Additional details (optional)"
           className="md:col-span-2 w-full px-3 py-2 border rounded-xl text-sm"
         />
+        <div className="md:col-span-2">
+          <p className="text-sm font-semibold text-gray-700 mb-2">
+            Offer invited from
+          </p>
+          <div className="flex flex-col gap-2 text-sm text-gray-700">
+            <label className="inline-flex items-center gap-2">
+              <input
+                type="radio"
+                name="offerInvitedFrom"
+                value="city"
+                checked={String(form.offerInvitedFrom || "city") === "city"}
+                onChange={handleChange}
+              />
+              {session?.city || form.city || "Login city name"}
+            </label>
+            <label className="inline-flex items-center gap-2">
+              <input
+                type="radio"
+                name="offerInvitedFrom"
+                value="anywhere"
+                checked={String(form.offerInvitedFrom || "city") === "anywhere"}
+                onChange={handleChange}
+              />
+              Anywhere
+            </label>
+          </div>
+        </div>
         </div>
 
         {/* Attachments */}

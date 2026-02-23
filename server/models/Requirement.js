@@ -50,6 +50,12 @@ const requirementSchema = new mongoose.Schema(
       type: String
     },
 
+    offerInvitedFrom: {
+      type: String,
+      enum: ["city", "anywhere"],
+      default: "city"
+    },
+
     attachments: [
       {
         type: String
@@ -120,6 +126,12 @@ const requirementSchema = new mongoose.Schema(
 requirementSchema.pre("validate", function (next) {
   if (this.category) {
     this.category = String(this.category).toLowerCase().trim();
+  }
+  if (this.offerInvitedFrom) {
+    const normalized = String(this.offerInvitedFrom).toLowerCase().trim();
+    this.offerInvitedFrom = normalized === "anywhere" ? "anywhere" : "city";
+  } else {
+    this.offerInvitedFrom = "city";
   }
   if (!this.productName && this.product) {
     this.productName = this.product;

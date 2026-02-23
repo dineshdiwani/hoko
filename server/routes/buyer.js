@@ -72,6 +72,12 @@ function clamp(value, min, max, fallback) {
   if (!Number.isFinite(n)) return fallback;
   return Math.max(min, Math.min(max, Math.round(n)));
 }
+function normalizeText(value) {
+  return String(value || "").trim().toLowerCase();
+}
+function normalizeOfferInvitedFrom(value) {
+  return normalizeText(value) === "anywhere" ? "anywhere" : "city";
+}
 function getFreshBuyerSettings(user) {
   const base = user?.buyerSettings || {};
   return {
@@ -278,6 +284,7 @@ router.post("/requirement", auth, buyerOnly, async (req, res) => {
 
   const requirement = await Requirement.create({
     ...req.body,
+    offerInvitedFrom: normalizeOfferInvitedFrom(req.body?.offerInvitedFrom),
     attachments: normalizeRequirementAttachmentValues(req.body?.attachments),
     buyerId: req.user._id,
     moderation: flaggedReason
@@ -296,6 +303,10 @@ router.post("/requirement", auth, buyerOnly, async (req, res) => {
   const normalizedCategory = String(requirement.category || "")
     .trim()
     .toLowerCase();
+  const offerInvitedFrom = normalizeOfferInvitedFrom(
+    requirement.offerInvitedFrom
+  );
+  const requirementCityNormalized = normalizeText(requirement.city);
 
   setImmediate(async () => {
     try {
@@ -308,6 +319,15 @@ router.post("/requirement", auth, buyerOnly, async (req, res) => {
         sellerQuery["sellerProfile.categories"] = normalizedCategory;
       } else {
         sellerQuery["sellerProfile.categories.0"] = { $exists: true };
+      }
+      if (
+        offerInvitedFrom === "city" &&
+        requirementCityNormalized
+      ) {
+        sellerQuery.city = new RegExp(
+          `^${escapeRegex(requirement.city || "")}$`,
+          "i"
+        );
       }
 
       const sellerIds = await User.find(sellerQuery).distinct("_id");
@@ -324,7 +344,8 @@ router.post("/requirement", auth, buyerOnly, async (req, res) => {
             data: {
               action: "open_requirement",
               requirementId: String(requirement._id),
-              category: normalizedCategory
+              category: normalizedCategory,
+              offerInvitedFrom
             }
           })
         )
@@ -452,6 +473,11 @@ router.put("/requirement/:id", auth, buyerOnly, async (req, res) => {
     return res.status(403).json({ message: "Not allowed" });
   }
   const nextPayload = { ...req.body };
+  if (Object.prototype.hasOwnProperty.call(nextPayload, "offerInvitedFrom")) {
+    nextPayload.offerInvitedFrom = normalizeOfferInvitedFrom(
+      nextPayload.offerInvitedFrom
+    );
+  }
   if (Object.prototype.hasOwnProperty.call(nextPayload, "attachments")) {
     nextPayload.attachments = normalizeRequirementAttachmentValues(
       nextPayload.attachments
@@ -467,6 +493,7 @@ router.put("/requirement/:id", auth, buyerOnly, async (req, res) => {
     quantity: String(requirement.quantity || "").trim(),
     type: String(requirement.type || "").trim(),
     details: String(requirement.details || "").trim(),
+    offerInvitedFrom: normalizeOfferInvitedFrom(requirement.offerInvitedFrom),
     attachments: normalizeRequirementAttachmentValues(requirement.attachments || [])
   };
 
@@ -482,6 +509,7 @@ router.put("/requirement/:id", auth, buyerOnly, async (req, res) => {
     quantity: String(requirement.quantity || "").trim(),
     type: String(requirement.type || "").trim(),
     details: String(requirement.details || "").trim(),
+    offerInvitedFrom: normalizeOfferInvitedFrom(requirement.offerInvitedFrom),
     attachments: normalizeRequirementAttachmentValues(requirement.attachments || [])
   };
 
@@ -494,6 +522,9 @@ router.put("/requirement/:id", auth, buyerOnly, async (req, res) => {
   if (beforeUpdate.quantity !== afterUpdate.quantity) changedFields.push("quantity");
   if (beforeUpdate.type !== afterUpdate.type) changedFields.push("type");
   if (beforeUpdate.details !== afterUpdate.details) changedFields.push("details");
+  if (beforeUpdate.offerInvitedFrom !== afterUpdate.offerInvitedFrom) {
+    changedFields.push("offerInvitedFrom");
+  }
   if (
     JSON.stringify(beforeUpdate.attachments) !==
     JSON.stringify(afterUpdate.attachments)

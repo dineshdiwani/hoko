@@ -4,11 +4,18 @@ const Offer = require("../models/Offer");
 const auth = require("../middleware/auth");
 const { normalizeRequirementAttachmentsForResponse } = require("../utils/attachments");
 const router = express.Router();
+function escapeRegex(value) {
+  return String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
 router.get("/city/:city", auth, async (req, res) => {
+  const cityRegex = new RegExp(`^${escapeRegex(req.params.city || "")}$`, "i");
   const requirements = await Requirement.find({
-    city: req.params.city,
-    "moderation.removed": { $ne: true }
+    "moderation.removed": { $ne: true },
+    $or: [
+      { offerInvitedFrom: "anywhere" },
+      { city: cityRegex }
+    ]
   }).sort({ createdAt: -1 });
 
   const requirementIds = requirements.map((r) => r._id);

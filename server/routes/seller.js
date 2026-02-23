@@ -128,6 +128,15 @@ function mapRequirementForSeller(requirementDoc, offerMap) {
   data.buyerId = data.buyerId;
   return data;
 }
+function normalizeText(value) {
+  return String(value || "").trim().toLowerCase();
+}
+function normalizeOfferInvitedFrom(value) {
+  return normalizeText(value) === "anywhere" ? "anywhere" : "city";
+}
+function escapeRegex(value) {
+  return String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
 /**
  * Seller onboarding (first-time registration)
@@ -357,6 +366,16 @@ router.post("/offer", auth, sellerOnly, async (req, res) => {
     const requirement = await Requirement.findById(requirementId);
     if (!requirement) {
       return res.status(404).json({ message: "Requirement not found" });
+    }
+    const inviteMode = normalizeOfferInvitedFrom(requirement.offerInvitedFrom);
+    if (inviteMode === "city") {
+      const sellerCity = normalizeText(req.user?.city);
+      const requirementCity = normalizeText(requirement?.city);
+      if (!sellerCity || !requirementCity || sellerCity !== requirementCity) {
+        return res.status(403).json({
+          message: "Offers for this post are invited only from the buyer city"
+        });
+      }
     }
     const buyer = await User.findById(requirement.buyerId).select("buyerSettings roles email");
     const autoEnableChat =
@@ -588,6 +607,16 @@ router.get("/requirement/:requirementId", auth, sellerOnly, async (req, res) => 
   if (!requirement) {
     return res.status(404).json({ message: "Requirement not found" });
   }
+  const inviteMode = normalizeOfferInvitedFrom(requirement.offerInvitedFrom);
+  if (inviteMode === "city") {
+    const sellerCity = normalizeText(req.user?.city);
+    const requirementCity = normalizeText(requirement?.city);
+    if (!sellerCity || !requirementCity || sellerCity !== requirementCity) {
+      return res.status(403).json({
+        message: "This requirement is available only to sellers in buyer city"
+      });
+    }
+  }
   const sellerOffer = await Offer.findOne({
     requirementId: requirement._id,
     sellerId: req.user._id
@@ -616,14 +645,34 @@ router.get("/dashboard", auth, sellerOnly, async (req, res) => {
     (!requestedCity ||
       String(requestedCity).toLowerCase() === "all");
   const targetCity = requestedCity || String(seller?.city || "").trim();
+  const sellerCity = String(seller?.city || "").trim();
 
   const requirementQuery = {
-    "moderation.removed": { $ne: true }
+    "moderation.removed": { $ne: true },
+    $and: []
   };
-  if (!isAllCities && targetCity) {
-    requirementQuery.city = targetCity;
+
+  if (sellerCity) {
+    const sellerCityRegex = new RegExp(`^${escapeRegex(sellerCity)}$`, "i");
+    requirementQuery.$and.push({
+      $or: [
+        { offerInvitedFrom: "anywhere" },
+        { offerInvitedFrom: { $exists: false }, city: sellerCityRegex },
+        { offerInvitedFrom: "city", city: sellerCityRegex }
+      ]
+    });
+  } else {
+    requirementQuery.$and.push({
+      offerInvitedFrom: "anywhere"
+    });
   }
-  // Category filtering is handled client-side using localStorage prefs.
+
+  if (!isAllCities && targetCity) {
+    const targetCityRegex = new RegExp(`^${escapeRegex(targetCity)}$`, "i");
+    requirementQuery.$and.push({
+      $or: [{ offerInvitedFrom: "anywhere" }, { city: targetCityRegex }]
+    });
+  }
 
   const requirements = await Requirement.find(requirementQuery).sort({
     createdAt: -1
