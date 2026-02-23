@@ -670,7 +670,7 @@ router.get("/dashboard", auth, sellerOnly, async (req, res) => {
   if (!isAllCities && targetCity) {
     const targetCityRegex = new RegExp(`^${escapeRegex(targetCity)}$`, "i");
     requirementQuery.$and.push({
-      $or: [{ offerInvitedFrom: "anywhere" }, { city: targetCityRegex }]
+      city: targetCityRegex
     });
   }
 
