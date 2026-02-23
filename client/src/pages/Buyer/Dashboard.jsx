@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getSession, logout } from "../../services/auth";
-import { updateSession, setSession } from "../../services/storage";
+import { setSession } from "../../services/storage";
 import MyPosts from "./MyPosts";
 import OffersReceived from "./OffersReceived";
 import CityDashboard from "../CityDashboard";
@@ -99,13 +99,13 @@ export default function BuyerDashboard() {
     setChatRequirementId(String(requirementId));
     setChatOpen(true);
   }
-  // Persist city change
-  useEffect(() => {
-    if (!city || !session) return;
 
-    updateSession({ city });
-    api.post("/buyer/profile/city", { city }).catch(() => {});
-  }, [city, session]);
+  // Always reset dashboard filters to login defaults on load/re-sync.
+  useEffect(() => {
+    if (!session?.token) return;
+    setCity(session?.city || "");
+    setSelectedCategory("all");
+  }, [sessionVersion, session?.token, session?.city]);
 
   useEffect(() => {
     fetchOptions()
