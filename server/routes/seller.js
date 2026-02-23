@@ -634,7 +634,7 @@ router.get("/requirement/:requirementId", auth, sellerOnly, async (req, res) => 
  * Seller dashboard (requirements by category + city)
  */
 router.get("/dashboard", auth, sellerOnly, async (req, res) => {
-  const seller = await User.findById(req.user._id);
+  await User.findById(req.user._id).select("_id");
   const hasCityParam = Object.prototype.hasOwnProperty.call(
     req.query || {},
     "city"
@@ -644,33 +644,17 @@ router.get("/dashboard", auth, sellerOnly, async (req, res) => {
     hasCityParam &&
     (!requestedCity ||
       String(requestedCity).toLowerCase() === "all");
-  const targetCity = requestedCity || String(seller?.city || "").trim();
-  const sellerCity = String(seller?.city || "").trim();
+  const targetCity = requestedCity;
 
   const requirementQuery = {
     "moderation.removed": { $ne: true },
     $and: []
   };
 
-  if (sellerCity) {
-    const sellerCityRegex = new RegExp(`^${escapeRegex(sellerCity)}$`, "i");
-    requirementQuery.$and.push({
-      $or: [
-        { offerInvitedFrom: "anywhere" },
-        { offerInvitedFrom: { $exists: false }, city: sellerCityRegex },
-        { offerInvitedFrom: "city", city: sellerCityRegex }
-      ]
-    });
-  } else {
-    requirementQuery.$and.push({
-      offerInvitedFrom: "anywhere"
-    });
-  }
-
   if (!isAllCities && targetCity) {
     const targetCityRegex = new RegExp(`^${escapeRegex(targetCity)}$`, "i");
     requirementQuery.$and.push({
-      city: targetCityRegex
+      $or: [{ offerInvitedFrom: "anywhere" }, { city: targetCityRegex }]
     });
   }
 

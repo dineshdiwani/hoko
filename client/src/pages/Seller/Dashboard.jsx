@@ -276,12 +276,7 @@ export default function SellerDashboard() {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  const visibleRequirements = requirements.filter((req) => {
-    if (selectedCategory !== "all") return true;
-    const normalizedCategory = normalizeCategory(req.category);
-    if (!dashboardCategories.length) return true;
-    return dashboardCategories.includes(normalizedCategory);
-  });
+  const visibleRequirements = requirements;
 
   const smartTabRequirements = visibleRequirements.filter(matchesSmartTab);
 
