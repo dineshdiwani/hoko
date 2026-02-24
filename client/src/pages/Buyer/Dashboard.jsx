@@ -281,24 +281,24 @@ export default function BuyerDashboard() {
         </div>
 
         {/* TABS */}
-        <div className="dashboard-shell dashboard-tabs border-t pl-16 md:pl-20">
+        <div className="dashboard-shell dashboard-tabs dashboard-tabs-center border-t md:pl-20">
           <button
             onClick={() => setActiveTab("posts")}
-            className={`ui-tab ${activeTab === "posts" ? "ui-tab-active" : ""}`}
+            className={`ui-tab ui-tab-center ${activeTab === "posts" ? "ui-tab-active" : ""}`}
           >
             My Posts
           </button>
 
           <button
             onClick={() => setActiveTab("city")}
-            className={`ui-tab ${activeTab === "city" ? "ui-tab-active" : ""}`}
+            className={`ui-tab ui-tab-center ${activeTab === "city" ? "ui-tab-active" : ""}`}
           >
             City Dashboard
           </button>
 
           <button
             onClick={() => setActiveTab("offers")}
-            className={`ui-tab ${activeTab === "offers" ? "ui-tab-active" : ""}`}
+            className={`ui-tab ui-tab-center ${activeTab === "offers" ? "ui-tab-active" : ""}`}
           >
             Received Offers
           </button>

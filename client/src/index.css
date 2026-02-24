@@ -493,6 +493,18 @@
     min-width: 8.5rem;
   }
 
+  .dashboard-tabs-center {
+    justify-content: center;
+  }
+
+  @media (max-width: 767px) {
+    .dashboard-tabs-center .ui-tab-center {
+      min-width: 0;
+      flex: 1 1 0%;
+      text-align: center;
+    }
+  }
+
   @media (min-width: 768px) {
     .dashboard-tabs .ui-tab {
       min-width: 0;
