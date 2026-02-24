@@ -1,25 +1,85 @@
 on:
-    push:
-      branches:
-        - main
-    workflow_dispatch: {}
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch: {}
 
 jobs:
-    deploy:
-      runs-on: ubuntu-latest
-      steps:
-        - name: Checkout
-          uses: actions/checkout@v4
+  build_smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-        - name: Prepare SSH key
-          run: |
-            echo "${{ secrets.DEPLOY_SSH_KEY_B64 }}" | base64 -d > /tmp/deploy_key
-            chmod 600 /tmp/deploy_key
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            client/package-lock.json
 
-        - name: Deploy
-          env:
-            DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-            DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
-            DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
-          run: |
-            ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "cd '$DEPLOY_PATH' && bash scripts/deploy.sh '${{ github.ref_name }}'"
+      - name: Install Root Dependencies
+        run: npm ci
+
+      - name: Install Client Dependencies
+        run: npm ci --prefix client
+
+      - name: Build Client
+        run: npm run build --prefix client
+
+      - name: Check Server Syntax
+        run: node -c server/server.js
+
+      - name: Smoke Test API Health
+        shell: bash
+        env:
+          PORT: "5099"
+          NODE_ENV: test
+          JWT_SECRET: ci_jwt_secret
+          ADMIN_JWT_SECRET: ci_admin_jwt_secret
+          MONGO_URI: mongodb://127.0.0.1:27017/hoko-smoke
+          CLIENT_URL: http://localhost:5173
+          CORS_ORIGIN: http://localhost:5173
+        run: |
+          set -euo pipefail
+          node server/server.js > /tmp/hoko-smoke.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID || true' EXIT
+
+          for i in {1..30}; do
+            if curl -fsS "http://127.0.0.1:${PORT}/api/meta/health" > /tmp/hoko-health.json; then
+              cat /tmp/hoko-health.json
+              exit 0
+            fi
+            sleep 1
+          done
+
+          echo "Smoke health check failed"
+          cat /tmp/hoko-smoke.log
+          exit 1
+
+  deploy:
+    needs: build_smoke
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare SSH key
+        run: |
+          echo "${{ secrets.DEPLOY_SSH_KEY_B64 }}" | base64 -d > /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
+
+      - name: Deploy
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "cd '$DEPLOY_PATH' && bash scripts/deploy.sh '${{ github.ref_name }}'"

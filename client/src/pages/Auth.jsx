@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
-import socket from "../services/socket";
+import { refreshSocketAuth } from "../services/socket";
 
 export default function Auth() {
   const [email, setEmail] = useState("");
@@ -45,11 +45,8 @@ export default function Auth() {
     localStorage.setItem("token", token);
     localStorage.setItem("user", JSON.stringify(user));
 
-    // Connect socket after login
-    const userId = user._id || user.id || user.email;
-
-    socket.connect();
-    socket.emit("join", userId);
+    // Refresh authenticated socket after login
+    refreshSocketAuth();
 
     navigate("/dashboard");
   }

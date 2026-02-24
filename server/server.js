@@ -4,6 +4,7 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const mongoose = require("mongoose");
 const helmet = require("helmet");
+const jwt = require("jsonwebtoken");
 const path = require("path");
 const fs = require("fs");
 const ChatMessage = require("./models/ChatMessage");
@@ -101,23 +102,146 @@ const io = new Server(server, {
 
 app.set("io", io);
 
+const SOCKET_AUTH_TELEMETRY_MAX_RECENT = 50;
+const SOCKET_AUTH_SUMMARY_INTERVAL_MS = Number(
+  process.env.SOCKET_AUTH_SUMMARY_INTERVAL_MS || 300000
+);
+const socketAuthTelemetry = {
+  totalFailures: 0,
+  reasons: {},
+  recent: [],
+  lastFailureAt: null
+};
+
+function getSocketClientIp(socket) {
+  const forwarded = String(
+    socket?.handshake?.headers?.["x-forwarded-for"] || ""
+  ).split(",")[0].trim();
+  const ip = forwarded || socket?.handshake?.address || "unknown-ip";
+  return String(ip || "unknown-ip");
+}
+
+function recordSocketAuthFailure(reason, socket) {
+  const failureReason = String(reason || "unknown_reason");
+  const ip = getSocketClientIp(socket);
+  const userAgent = String(
+    socket?.handshake?.headers?.["user-agent"] || "unknown"
+  ).slice(0, 180);
+  const at = new Date().toISOString();
+
+  socketAuthTelemetry.totalFailures += 1;
+  socketAuthTelemetry.lastFailureAt = at;
+  socketAuthTelemetry.reasons[failureReason] =
+    Number(socketAuthTelemetry.reasons[failureReason] || 0) + 1;
+
+  socketAuthTelemetry.recent.push({
+    at,
+    reason: failureReason,
+    ip,
+    userAgent
+  });
+  if (socketAuthTelemetry.recent.length > SOCKET_AUTH_TELEMETRY_MAX_RECENT) {
+    socketAuthTelemetry.recent.shift();
+  }
+
+  console.warn("[socket_auth_failure]", {
+    at,
+    reason: failureReason,
+    ip,
+    userAgent
+  });
+}
+
+function extractSocketToken(socket) {
+  const authToken = String(socket?.handshake?.auth?.token || "").trim();
+  if (authToken) return authToken;
+
+  const authHeader = String(
+    socket?.handshake?.headers?.authorization ||
+      socket?.handshake?.auth?.authorization ||
+      ""
+  ).trim();
+  if (/^bearer\s+/i.test(authHeader)) {
+    return authHeader.replace(/^bearer\s+/i, "").trim();
+  }
+
+  const queryToken = String(socket?.handshake?.query?.token || "").trim();
+  if (queryToken) return queryToken;
+
+  return "";
+}
+
+io.use(async (socket, next) => {
+  try {
+    const token = extractSocketToken(socket);
+    if (!token) {
+      recordSocketAuthFailure("missing_token", socket);
+      return next(new Error("Socket auth required"));
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id).select(
+      "_id roles blocked tokenVersion"
+    );
+    if (!user) {
+      recordSocketAuthFailure("invalid_user", socket);
+      return next(new Error("Socket auth invalid user"));
+    }
+    if (user.blocked) {
+      recordSocketAuthFailure("blocked_user", socket);
+      return next(new Error("Socket auth blocked user"));
+    }
+
+    const decodedVersion =
+      typeof decoded?.tokenVersion === "number"
+        ? decoded.tokenVersion
+        : Number(decoded?.tokenVersion || 0);
+    const userVersion = Number(user.tokenVersion || 0);
+    if (decodedVersion !== userVersion) {
+      recordSocketAuthFailure("token_version_mismatch", socket);
+      return next(new Error("Socket auth token expired"));
+    }
+
+    socket.data.userId = String(user._id);
+    socket.data.userRoles = user.roles || {};
+    return next();
+  } catch {
+    recordSocketAuthFailure("jwt_verify_failed", socket);
+    return next(new Error("Socket auth failed"));
+  }
+});
+
+setInterval(() => {
+  if (socketAuthTelemetry.totalFailures === 0) return;
+  console.warn("[socket_auth_failure_summary]", {
+    totalFailures: socketAuthTelemetry.totalFailures,
+    reasons: socketAuthTelemetry.reasons,
+    lastFailureAt: socketAuthTelemetry.lastFailureAt
+  });
+}, SOCKET_AUTH_SUMMARY_INTERVAL_MS).unref();
+
 io.on("connection", (socket) => {
   console.log("Socket connected:", socket.id);
+  const currentUserId = String(socket.data?.userId || "");
+  if (currentUserId) {
+    socket.join(currentUserId);
+  }
 
   // Join user-specific room
-  socket.on("join", (userId) => {
-    if (userId) {
-      socket.join(String(userId));
-      console.log("Joined room:", userId);
+  socket.on("join", () => {
+    if (currentUserId) {
+      socket.join(currentUserId);
+      console.log("Joined room:", currentUserId);
     }
   });
 
   // Buyer viewed offer -> notify seller
   socket.on("buyer_viewed_offer", ({ sellerId, product }) => {
-    if (sellerId && product) {
+    if (socket.data?.userRoles?.buyer && currentUserId && sellerId && product) {
       const message = `Buyer viewed your offer for ${product}`;
       Notification.create({
         userId: sellerId,
+        fromUserId: currentUserId,
         message,
         type: "offer_viewed"
       }).then((notif) => {
@@ -128,10 +252,11 @@ io.on("connection", (socket) => {
 
   // Reverse auction invite -> notify seller
   socket.on("reverse_auction_invite", ({ sellerId, product, lowestPrice }) => {
-    if (sellerId && product && lowestPrice) {
+    if (socket.data?.userRoles?.buyer && currentUserId && sellerId && product && lowestPrice) {
       const message = `Reverse auction started for ${product}. Current lowest price: Rs ${lowestPrice}. Can you beat it?`;
       Notification.create({
         userId: sellerId,
+        fromUserId: currentUserId,
         message,
         type: "reverse_auction"
       }).then((notif) => {
@@ -141,10 +266,16 @@ io.on("connection", (socket) => {
   });
 
   // Message relay + DB save
-  socket.on("send_message", async ({ toUserId, message, fromUserId, requirementId, to, from, tempId }, ack) => {
-    const effectiveFrom = fromUserId || from;
+  socket.on("send_message", async ({ toUserId, message, requirementId, to, tempId }, ack) => {
+    const effectiveFrom = currentUserId;
     const effectiveTo = toUserId || to;
     const ackFn = typeof ack === "function" ? ack : null;
+    if (!effectiveFrom) {
+      if (ackFn) {
+        ackFn({ ok: false, error: "Socket not authenticated" });
+      }
+      return;
+    }
     console.log("Message:", { from: effectiveFrom, to: effectiveTo, message });
     let allowedToSend = true;
     let savedMessage = null;
@@ -273,9 +404,10 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("mark_messages_read", async ({ requirementId, readerUserId, peerUserId }, ack) => {
+  socket.on("mark_messages_read", async ({ requirementId, peerUserId }, ack) => {
     const ackFn = typeof ack === "function" ? ack : null;
-    if (!requirementId || !readerUserId || !peerUserId) {
+    const readerId = currentUserId;
+    if (!requirementId || !readerId || !peerUserId) {
       if (ackFn) {
         ackFn({ ok: false, error: "Missing data" });
       }
@@ -288,7 +420,7 @@ io.on("connection", (socket) => {
         {
           requirementId,
           fromUserId: peerUserId,
-          toUserId: readerUserId,
+          toUserId: readerId,
           isRead: false,
           "moderation.removed": { $ne: true }
         },
@@ -302,7 +434,7 @@ io.on("connection", (socket) => {
 
       io.to(String(peerUserId)).emit("messages_read", {
         requirementId,
-        byUserId: readerUserId,
+        byUserId: readerId,
         peerUserId,
         readAt: now.toISOString()
       });

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../../services/api";
-import socket from "../../services/socket";
+import socket, { connectSocket } from "../../services/socket";
 import ChatModal from "../../components/ChatModal";
 import ReviewModal from "../../components/ReviewModal";
 import ReportModal from "../../components/ReportModal";
@@ -74,6 +74,8 @@ export default function OfferList() {
 
   /* ---------------- SOCKET UPDATES ---------------- */
   useEffect(() => {
+    connectSocket();
+
     function onPriceUpdate(update) {
       if (update.requirementId !== id) return;
 

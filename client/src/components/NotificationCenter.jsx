@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import socket from "../services/socket";
+import socket, { connectSocket } from "../services/socket";
 import {
   fetchNotifications,
   markAsRead,
@@ -13,25 +13,21 @@ export default function NotificationCenter({ onNotificationClick }) {
 
   useEffect(() => {
     const session = getSession();
-    const roomId =
-      session?._id ||
-      session?.userId ||
-      session?.id ||
-      session?.mobile;
-    if (roomId) {
-      socket.emit("join", roomId);
+    if (session?.token) {
+      connectSocket();
     }
     load();
 
-    socket.on("notification", (notif) => {
+    const onNotification = (notif) => {
       setNotifications((prev) => [
         notif,
         ...prev,
       ]);
-    });
+    };
+    socket.on("notification", onNotification);
 
     return () =>
-      socket.off("notification");
+      socket.off("notification", onNotification);
   }, []);
 
   useEffect(() => {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import socket from "../services/socket";
+import socket, { connectSocket } from "../services/socket";
 import api from "../services/api";
 import { getSession } from "../services/storage";
 import {
@@ -168,7 +168,7 @@ export default function ChatModal({
   useEffect(() => {
     if (!open || !peerUserId || !currentUserId || !requirementId) return;
 
-    socket.emit("join", currentUserId);
+    connectSocket();
     let cancelled = false;
 
     async function loadHistory() {
@@ -214,7 +214,6 @@ export default function ChatModal({
 
       socket.emit("mark_messages_read", {
         requirementId,
-        readerUserId: currentUserId,
         peerUserId: peerUserId
       });
     };
@@ -243,7 +242,6 @@ export default function ChatModal({
 
     socket.emit("mark_messages_read", {
       requirementId,
-      readerUserId: currentUserId,
       peerUserId: peerUserId
     });
 

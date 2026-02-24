@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import api from "../../services/api";
-import socket from "../../services/socket";
+import socket, { connectSocket } from "../../services/socket";
 import { fetchNotifications } from "../../services/notifications";
 import { fetchOptions } from "../../services/options";
 import { getSession, logout } from "../../services/auth";
@@ -246,7 +246,7 @@ export default function SellerDashboard() {
     }
 
     if (currentUserId) {
-      socket.emit("join", currentUserId);
+      connectSocket();
     }
     loadChatNotifications();
 

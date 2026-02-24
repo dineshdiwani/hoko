@@ -1,5 +1,5 @@
 import { createContext, useEffect, useState } from "react";
-import socket from "../services/socket";
+import socket, { connectSocket } from "../services/socket";
 
 export const NotificationContext = createContext();
 
@@ -7,14 +7,15 @@ export function NotificationProvider({ userId, children }) {
   const [notifications, setNotifications] = useState([]);
 
   useEffect(() => {
-    if (userId) socket.emit("join", userId);
+    if (userId) connectSocket();
 
-    socket.on("notification", (data) => {
+    const onNotification = (data) => {
       setNotifications((prev) => [data, ...prev]);
-    });
+    };
+    socket.on("notification", onNotification);
 
     return () => {
-      socket.off("notification");
+      socket.off("notification", onNotification);
     };
   }, [userId]);
 

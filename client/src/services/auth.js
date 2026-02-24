@@ -1,5 +1,6 @@
 // auth.js
 import { getSession, clearSession } from "./storage";
+import { disconnectSocket } from "./socket";
 
 export { getSession };
 
@@ -28,6 +29,7 @@ export function requireAuth(role) {
 }
 
 export function logout(navigate) {
+  disconnectSocket();
   clearSession();
   navigate("/");
 }
