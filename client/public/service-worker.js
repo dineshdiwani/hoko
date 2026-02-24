@@ -1,11 +1,16 @@
-const CACHE_NAME = "hoko-pwa-v5";
-const APP_SHELL = ["/", "/index.html", "/manifest.json", "/icon-192.png", "/icon-512.jpg"];
+const CACHE_NAME = "hoko-pwa-v6";
+const APP_SHELL = [
+  "/",
+  "/index.html",
+  "/manifest.json",
+  "/app-icon-192.png",
+  "/app-icon-512.png"
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL))
   );
-  self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
@@ -26,7 +31,18 @@ self.addEventListener("fetch", (event) => {
 
   if (request.mode === "navigate") {
     event.respondWith(
-      fetch(request).catch(() => caches.match("/index.html"))
+      caches.match("/index.html").then((cachedShell) => {
+        const networkRequest = fetch(request)
+          .then((response) => {
+            if (response && response.status === 200) {
+              caches.open(CACHE_NAME).then((cache) => cache.put("/index.html", response.clone()));
+            }
+            return response;
+          })
+          .catch(() => cachedShell);
+
+        return cachedShell || networkRequest;
+      })
     );
     return;
   }
@@ -39,18 +55,22 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Keep JS/CSS fresh after deploys; fallback to cache only if offline.
+  // Serve cached JS/CSS first to speed up boot, then revalidate in background.
   if (request.destination === "script" || request.destination === "style") {
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          if (response && response.status === 200 && response.type === "basic") {
-            const copy = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
-          }
-          return response;
-        })
-        .catch(() => caches.match(request))
+      caches.match(request).then((cached) => {
+        const networkRequest = fetch(request)
+          .then((response) => {
+            if (response && response.status === 200 && response.type === "basic") {
+              const copy = response.clone();
+              caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+            }
+            return response;
+          })
+          .catch(() => cached);
+
+        return cached || networkRequest;
+      })
     );
     return;
   }

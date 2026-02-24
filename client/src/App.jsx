@@ -1,3 +1,4 @@
+import { Suspense, lazy } from "react";
 import {
   BrowserRouter,
   Routes,
@@ -7,31 +8,35 @@ import {
   useLocation
 } from "react-router-dom";
 
-import BuyerWelcome from "./pages/Buyer/welcome";
-import BuyerLogin from "./pages/Buyer/Login";
-import BuyerDashboard from "./pages/Buyer/Dashboard";
-import RequirementForm from "./pages/Buyer/RequirementForm";
-import OfferList from "./pages/Buyer/OfferList";
-import CompareOffers from "./pages/Buyer/CompareOffers";
-import BuyerProfile from "./pages/Buyer/Profile";
-import BuyerSettings from "./pages/Buyer/Settings";
+const BuyerWelcome = lazy(() => import("./pages/Buyer/welcome"));
+const BuyerLogin = lazy(() => import("./pages/Buyer/Login"));
+const BuyerDashboard = lazy(() => import("./pages/Buyer/Dashboard"));
+const RequirementForm = lazy(() => import("./pages/Buyer/RequirementForm"));
+const OfferList = lazy(() => import("./pages/Buyer/OfferList"));
+const CompareOffers = lazy(() => import("./pages/Buyer/CompareOffers"));
+const BuyerProfile = lazy(() => import("./pages/Buyer/Profile"));
+const BuyerSettings = lazy(() => import("./pages/Buyer/Settings"));
 
-import SellerDashboard from "./pages/Seller/Dashboard";
-import SellerRegister from "./pages/Seller/Register";
-import SellerLogin from "./pages/Seller/Login";
-import SellerProfile from "./pages/Seller/SellerProfile";
-import SellerSettings from "./pages/Seller/Settings";
-import SellerDeepLink from "./pages/Seller/SellerDeepLink";
+const SellerDashboard = lazy(() => import("./pages/Seller/Dashboard"));
+const SellerRegister = lazy(() => import("./pages/Seller/Register"));
+const SellerLogin = lazy(() => import("./pages/Seller/Login"));
+const SellerProfile = lazy(() => import("./pages/Seller/SellerProfile"));
+const SellerSettings = lazy(() => import("./pages/Seller/Settings"));
+const SellerDeepLink = lazy(() => import("./pages/Seller/SellerDeepLink"));
 
-import AdminLogin from "./pages/Admin/Login";
-import AdminDashboard from "./pages/Admin/AdminDashboard";
-import AdminAnalytics from "./pages/Admin/AdminAnalytics";
-import AdminWhatsApp from "./pages/Admin/AdminWhatsApp";
-import AdminOperations from "./pages/Admin/AdminOperations";
+const AdminLogin = lazy(() => import("./pages/Admin/Login"));
+const AdminDashboard = lazy(() => import("./pages/Admin/AdminDashboard"));
+const AdminAnalytics = lazy(() => import("./pages/Admin/AdminAnalytics"));
+const AdminWhatsApp = lazy(() => import("./pages/Admin/AdminWhatsApp"));
+const AdminOperations = lazy(() => import("./pages/Admin/AdminOperations"));
 
 import OfflineBanner from "./components/OfflineBanner";
 import AppDialog from "./components/AppDialog";
-import { requireAuth, getSession } from "./services/auth";
+import { getSession } from "./services/auth";
+
+function RouteLoader() {
+  return <div className="min-h-[35vh] w-full" aria-hidden="true" />;
+}
 
 function requireBuyer() {
   const session = getSession();
@@ -81,9 +86,10 @@ function AppShell() {
         </Link>
       )}
       <div>
-        <Routes>
-        {/* Landing */}
-        <Route path="/" element={<BuyerWelcome />} />
+        <Suspense fallback={<RouteLoader />}>
+          <Routes>
+          {/* Landing */}
+          <Route path="/" element={<BuyerWelcome />} />
 
         {/* Buyer */}
         <Route path="/buyer/login" element={<BuyerLogin />} />
@@ -238,9 +244,10 @@ function AppShell() {
           element={requireAdmin() ? <AdminOperations /> : <Navigate to="/admin/login" replace />}
         />
 
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
       </div>
     </>
   );

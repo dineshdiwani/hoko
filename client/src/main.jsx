@@ -14,23 +14,20 @@ window.alert = showAlert;
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker
-      .register("/service-worker.js")
-      .then((registration) => {
-        registration.update().catch(() => {});
-        registration.addEventListener("updatefound", () => {
-          const nextWorker = registration.installing;
-          if (!nextWorker) return;
-          nextWorker.addEventListener("statechange", () => {
-            if (
-              nextWorker.state === "installed" &&
-              navigator.serviceWorker.controller
-            ) {
-              window.location.reload();
-            }
-          });
-        });
-      })
-      .catch(() => {});
+    const registerServiceWorker = () => {
+      navigator.serviceWorker
+        .register("/service-worker.js")
+        .then((registration) => {
+          registration.update().catch(() => {});
+        })
+        .catch(() => {});
+    };
+
+    if ("requestIdleCallback" in window) {
+      window.requestIdleCallback(registerServiceWorker, { timeout: 3000 });
+      return;
+    }
+
+    window.setTimeout(registerServiceWorker, 1200);
   });
 }
