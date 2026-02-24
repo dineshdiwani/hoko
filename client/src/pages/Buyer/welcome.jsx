@@ -23,12 +23,35 @@ export default function BuyerWelcome() {
       return;
     }
     localStorage.setItem("draft_requirement_text", text.trim());
-    const session = getSession();
-    if (session?.role === "buyer" && session?.token) {
-      navigate("/buyer/requirement/new");
+    const currentSession = getSession();
+    if (!currentSession?.token) {
+      navigate("/buyer/login");
       return;
     }
-    navigate("/buyer/login");
+
+    if (currentSession.role === "buyer" || currentSession.roles?.buyer) {
+      navigate("/buyer/my-posts");
+      return;
+    }
+
+    api
+      .post("/auth/switch-role", { role: "buyer" })
+      .then((res) => {
+        setSession({
+          _id: res.data.user._id,
+          role: res.data.user.role,
+          roles: res.data.user.roles,
+          email: res.data.user.email,
+          city: res.data.user.city,
+          name: "Buyer",
+          preferredCurrency: res.data.user.preferredCurrency,
+          token: res.data.token
+        });
+        navigate("/buyer/my-posts");
+      })
+      .catch(() => {
+        navigate("/buyer/login");
+      });
   }
 
   const startVoiceInput = () => {
