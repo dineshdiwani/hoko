@@ -1,4 +1,4 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, memo } from "react";
 import {
   BrowserRouter,
   Routes,
@@ -38,6 +38,33 @@ function RouteLoader() {
   return <div className="min-h-[35vh] w-full" aria-hidden="true" />;
 }
 
+const logoSrc = `${import.meta.env.BASE_URL}logo.png`;
+
+const HomeLogo = memo(function HomeLogo({ hidden }) {
+  return (
+    <Link
+      to="/"
+      className={`fixed top-2 left-2 md:top-3 md:left-3 z-[70] flex items-center gap-2 rounded-full border border-white/80 bg-white/95 backdrop-blur p-0.5 md:p-1 shadow-lg transition-opacity duration-150 ${
+        hidden ? "pointer-events-none opacity-0" : "opacity-100"
+      }`}
+      aria-label="Go to home"
+    >
+      <img
+        src={logoSrc}
+        alt="hoko"
+        loading="eager"
+        fetchPriority="high"
+        decoding="sync"
+        draggable="false"
+        className="w-11 h-11 md:w-12 md:h-12 rounded-full object-cover"
+      />
+      <span className="hidden 2xl:inline text-sm font-extrabold text-hoko-brand whitespace-nowrap">
+        <span className="text-slate-900">h</span>oko
+      </span>
+    </Link>
+  );
+});
+
 function requireBuyer() {
   const session = getSession();
   if (!session?.token) return false;
@@ -58,33 +85,13 @@ function requireAdmin() {
 
 function AppShell() {
   const location = useLocation();
-  const showGlobalLogo = location.pathname !== "/";
-  const logoSrc = "/logo.png";
+  const hideGlobalLogo = location.pathname === "/";
 
   return (
-    <>
+      <>
       <OfflineBanner />
       <AppDialog />
-      {showGlobalLogo && (
-        <Link
-          to="/"
-          className="fixed top-2 left-2 md:top-3 md:left-3 z-[70] flex items-center gap-2 rounded-full border border-white/80 bg-white/95 backdrop-blur p-0.5 md:p-1 shadow-lg"
-          aria-label="Go to home"
-        >
-          <img
-            src={logoSrc}
-            alt="hoko"
-            onError={(e) => {
-              e.currentTarget.onerror = null;
-              e.currentTarget.src = `${import.meta.env.BASE_URL}logo.png`;
-            }}
-            className="w-11 h-11 md:w-12 md:h-12 rounded-full object-cover"
-          />
-          <span className="hidden 2xl:inline text-sm font-extrabold text-hoko-brand whitespace-nowrap">
-            <span className="text-slate-900">h</span>oko
-          </span>
-        </Link>
-      )}
+      <HomeLogo hidden={hideGlobalLogo} />
       <div>
         <Suspense fallback={<RouteLoader />}>
           <Routes>
