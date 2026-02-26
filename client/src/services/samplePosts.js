@@ -47,6 +47,16 @@ function hashCode(input) {
   return Math.abs(hash);
 }
 
+function seededRandom(seed) {
+  // Deterministic pseudo-random in [0, 1)
+  const x = Math.sin(seed * 12.9898 + 78.233) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+function randomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
 function fakeBuyerName(city, index) {
   return `Buyer ${city.split(" ")[0]}-${String(index + 1).padStart(2, "0")}`;
 }
@@ -62,12 +72,18 @@ export function generateSamplePostsForCity(city, categories = [], count = 50) {
   const items = [];
 
   for (let i = 0; i < count; i += 1) {
+    const seed = base + i * 97;
+    const rnd = seededRandom(seed);
     const domainGroup = DOMAIN_TEMPLATES[(base + i) % DOMAIN_TEMPLATES.length];
     const variant = domainGroup.products[(base + i * 3) % domainGroup.products.length];
     const [product, baseDetail] = variant;
     const offerCount = (base + i) % 8;
     const createdAt = new Date(Date.now() - ((base + i) % 27) * 24 * 60 * 60 * 1000);
-    const quantity = String(((base + i) % 90) + 10);
+    const quantity = String(
+      domainGroup.domain.includes("Services")
+        ? randomInt(1, 25)
+        : randomInt(10, 500)
+    );
     const unit = domainGroup.domain.includes("Services") ? "service" : "pcs";
 
     items.push({
