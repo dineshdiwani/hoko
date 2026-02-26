@@ -6,6 +6,7 @@ import { fetchNotifications } from "../../services/notifications";
 import { fetchOptions } from "../../services/options";
 import { getSession, logout } from "../../services/auth";
 import { getSellerDashboardCategories, setSession } from "../../services/storage";
+import { generateSamplePostsForCity } from "../../services/samplePosts";
 import NotificationCenter from "../../components/NotificationCenter";
 import OfferModal from "../../components/OfferModal";
 import ReviewModal from "../../components/ReviewModal";
@@ -46,6 +47,8 @@ export default function SellerDashboard() {
   const [chatRequirementId, setChatRequirementId] = useState(null);
   const [unreadChatRequirementIds, setUnreadChatRequirementIds] = useState(new Set());
   const [reverseAuctionNotice, setReverseAuctionNotice] = useState("");
+  const [sampleCityPostsEnabled, setSampleCityPostsEnabled] = useState(true);
+  const [showingSampleData, setShowingSampleData] = useState(false);
 
   const currentUserId = session?._id || session?.id || session?.userId || null;
 
@@ -139,6 +142,7 @@ export default function SellerDashboard() {
       .then((data) => {
         setCities(Array.isArray(data?.cities) ? data.cities : []);
         setCategories(Array.isArray(data?.categories) ? data.categories : []);
+        setSampleCityPostsEnabled(data?.sampleCityPostsEnabled !== false);
       })
       .catch(() => {});
   }, []);
@@ -152,6 +156,23 @@ export default function SellerDashboard() {
   }, [location.search, cities]);
 
   useEffect(() => {
+    const buildSamplePosts = () => {
+      const cityValue = String(selectedCity || "").trim();
+      if (cityValue && cityValue.toLowerCase() !== "all") {
+        return generateSamplePostsForCity(cityValue, categories, 50);
+      }
+      const sampleCities = (Array.isArray(cities) ? cities : []).filter(Boolean);
+      if (!sampleCities.length) {
+        const fallbackCity = String(session?.city || "").trim();
+        return fallbackCity
+          ? generateSamplePostsForCity(fallbackCity, categories, 50)
+          : [];
+      }
+      return sampleCities.flatMap((cityName) =>
+        generateSamplePostsForCity(cityName, categories, 30)
+      );
+    };
+
     async function load() {
       setLoading(true);
       try {
@@ -160,15 +181,29 @@ export default function SellerDashboard() {
             city: selectedCity || "all"
           }
         });
-        setRequirements(Array.isArray(res.data) ? res.data : []);
+        const liveRows = Array.isArray(res.data) ? res.data : [];
+        if (sampleCityPostsEnabled && liveRows.length === 0) {
+          setRequirements(buildSamplePosts());
+          setShowingSampleData(true);
+          return;
+        }
+        setRequirements(liveRows);
+        setShowingSampleData(false);
       } catch (err) {
         console.error(err);
+        if (sampleCityPostsEnabled) {
+          setRequirements(buildSamplePosts());
+          setShowingSampleData(true);
+        } else {
+          setRequirements([]);
+          setShowingSampleData(false);
+        }
       } finally {
         setLoading(false);
       }
     }
     load();
-  }, [selectedCity]);
+  }, [selectedCity, cities, categories, sampleCityPostsEnabled, session?.city]);
 
   useEffect(() => {
     if (loading) return;
@@ -654,6 +689,12 @@ export default function SellerDashboard() {
             </div>
           )}
 
+          {showingSampleData && (
+            <div className="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+              Showing sample posts for preview. These are synthetic examples, not real buyer data.
+            </div>
+          )}
+
           {!loading && (
             <div className="app-filter-bar">
               <div className="flex flex-col md:flex-row md:items-center gap-3">
@@ -700,6 +741,7 @@ export default function SellerDashboard() {
 
           <div className="dashboard-list">
             {filteredRequirements.map((req) => {
+              const isSample = Boolean(req.isSample);
               const isAuction = req.reverseAuction?.active === true;
               const showAuctionForSeller = req.myOffer && isAuction;
               const lowestPrice = req.reverseAuction?.lowestPrice ?? req.currentLowestPrice ?? "-";
@@ -772,6 +814,12 @@ export default function SellerDashboard() {
                         REVERSE AUCTION
                       </span>
                     )}
+
+                    {isSample && (
+                      <span className="ui-label px-2 py-1 rounded-full border border-amber-300 bg-amber-50 text-amber-900">
+                        SAMPLE
+                      </span>
+                    )}
                   </div>
 
                   {showAuctionForSeller && (
@@ -792,12 +840,24 @@ export default function SellerDashboard() {
                   )}
 
                   <button
-                    onClick={() => setActiveRequirement(req)}
-                    className={`mt-3 block w-fit px-4 py-2.5 rounded-xl text-center font-semibold active:scale-95 ${
-                      req.myOffer ? "bg-green-600 text-white" : "btn-brand"
+                    onClick={() => {
+                      if (isSample) return;
+                      setActiveRequirement(req);
+                    }}
+                    disabled={isSample}
+                    className={`mt-3 block w-fit px-4 py-2.5 rounded-xl text-center font-semibold ${
+                      isSample
+                        ? "bg-gray-200 text-gray-600 cursor-not-allowed"
+                        : req.myOffer
+                        ? "bg-green-600 text-white active:scale-95"
+                        : "btn-brand active:scale-95"
                     }`}
                   >
-                    {req.myOffer ? "Submitted Offer / Edit Offer" : "Submit Offer"}
+                    {isSample
+                      ? "Preview Only (Sample Post)"
+                      : req.myOffer
+                      ? "Submitted Offer / Edit Offer"
+                      : "Submit Offer"}
                   </button>
 
                   {req.myOffer && req.buyerId && req.contactEnabledByBuyer && (
