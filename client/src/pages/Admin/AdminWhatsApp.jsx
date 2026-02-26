@@ -439,7 +439,10 @@ export default function AdminWhatsApp() {
         mobileE164: contact.mobileE164,
         email: contact.email || "",
         status: "pending",
-        whatsappLink: `https://wa.me/${String(contact.mobileE164 || "").replace(/[^\d]/g, "")}?text=${encodeURIComponent(message)}`
+        whatsappLink: `https://wa.me/${String(contact.mobileE164 || "").replace(/[^\d]/g, "")}?text=${encodeURIComponent(message)}`,
+        emailLink: contact.email
+          ? `mailto:${encodeURIComponent(String(contact.email || "").trim())}?subject=${encodeURIComponent("New requirement opportunity")}&body=${encodeURIComponent(message)}`
+          : ""
       }));
 
     setManualMessagePreview(message);
@@ -706,37 +709,43 @@ export default function AdminWhatsApp() {
                     </label>
                   ))}
                 </div>
+                <div className="rounded-lg border p-3">
+                  <p className="text-xs font-semibold text-gray-700 mb-2">Trigger Channels</p>
+                  <p className="text-xs text-gray-500 mb-2">
+                    These channels are used when you click "Resend to Sellers (API)".
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <label className="flex items-center gap-2 text-xs text-gray-700 border rounded-lg px-3 py-2">
+                      <input
+                        type="checkbox"
+                        checked={manualChannels.whatsapp}
+                        onChange={(e) =>
+                          setManualChannels((prev) => ({
+                            ...prev,
+                            whatsapp: e.target.checked
+                          }))
+                        }
+                      />
+                      Trigger WhatsApp
+                    </label>
+                    <label className="flex items-center gap-2 text-xs text-gray-700 border rounded-lg px-3 py-2">
+                      <input
+                        type="checkbox"
+                        checked={manualChannels.email}
+                        onChange={(e) =>
+                          setManualChannels((prev) => ({
+                            ...prev,
+                            email: e.target.checked
+                          }))
+                        }
+                      />
+                      Trigger Email
+                    </label>
+                  </div>
+                </div>
                 <button onClick={createManualQueue} className="px-3 py-2 rounded-lg text-sm font-semibold btn-primary">
                   Create Pending Queue
                 </button>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  <label className="flex items-center gap-2 text-xs text-gray-700 border rounded-lg px-3 py-2">
-                    <input
-                      type="checkbox"
-                      checked={manualChannels.whatsapp}
-                      onChange={(e) =>
-                        setManualChannels((prev) => ({
-                          ...prev,
-                          whatsapp: e.target.checked
-                        }))
-                      }
-                    />
-                    Trigger WhatsApp
-                  </label>
-                  <label className="flex items-center gap-2 text-xs text-gray-700 border rounded-lg px-3 py-2">
-                    <input
-                      type="checkbox"
-                      checked={manualChannels.email}
-                      onChange={(e) =>
-                        setManualChannels((prev) => ({
-                          ...prev,
-                          email: e.target.checked
-                        }))
-                      }
-                    />
-                    Trigger Email
-                  </label>
-                </div>
                 <button
                   onClick={resendSelectedPost}
                   disabled={!manualRequirementId || resendingPost}
@@ -754,9 +763,18 @@ export default function AdminWhatsApp() {
                         <div className="font-semibold">{entry.firmName} | {entry.mobileE164}</div>
                         <div className="text-gray-500">{entry.city} | {entry.email || "-"} | Status: {entry.status}</div>
                       </div>
-                      <button onClick={() => openManualWhatsApp(entry)} className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-green-300 text-green-700">
-                        Send via WhatsApp
-                      </button>
+                      <div className="flex gap-2">
+                        <button onClick={() => openManualWhatsApp(entry)} className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-green-300 text-green-700">
+                          Send via WhatsApp
+                        </button>
+                        <button
+                          onClick={() => entry.emailLink && window.open(entry.emailLink, "_blank", "noopener,noreferrer")}
+                          disabled={!entry.emailLink}
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-blue-300 text-blue-700 disabled:opacity-50"
+                        >
+                          Send via Email
+                        </button>
+                      </div>
                     </div>
                   ))}
                   {manualQueue.length === 0 && <p className="text-xs text-gray-500">No pending queue created yet.</p>}
