@@ -751,8 +751,11 @@ export default function AdminWhatsApp() {
                   disabled={!manualRequirementId || resendingPost}
                   className="px-3 py-2 rounded-lg text-sm font-semibold border border-amber-300 text-amber-700 disabled:opacity-60"
                 >
-                  {resendingPost ? "Resending..." : "Resend to Sellers (API)"}
+                  {resendingPost ? "Sending..." : "Send Selected Post via API"}
                 </button>
+                <p className="text-xs text-gray-500">
+                  Use this button for automatic sending through server logic to selected channels (WhatsApp/Email). It is different from the per-contact manual send buttons below.
+                </p>
                 <pre className="text-xs whitespace-pre-wrap bg-gray-50 border rounded-lg p-3 text-gray-700">
                   {manualMessagePreview || "Select post to preview message"}
                 </pre>
