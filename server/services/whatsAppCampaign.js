@@ -2,6 +2,7 @@ const PlatformSettings = require("../models/PlatformSettings");
 const WhatsAppContact = require("../models/WhatsAppContact");
 const WhatsAppCampaignRun = require("../models/WhatsAppCampaignRun");
 const { sendWhatsAppMessage } = require("../utils/sendWhatsApp");
+const { sendEmailToRecipient } = require("../utils/sendEmail");
 
 function normalizeText(value) {
   return String(value || "").trim().toLowerCase();
@@ -34,12 +35,30 @@ function formatMessage({ requirement, deepLink }) {
   ].join("\n");
 }
 
+function normalizeChannels(input) {
+  const requested = input && typeof input === "object" ? input : {};
+  const whatsapp = requested.whatsapp !== false;
+  const email = requested.email === true;
+  if (!whatsapp && !email) {
+    return { whatsapp: true, email: false };
+  }
+  return { whatsapp, email };
+}
+
+function createChannelStats() {
+  return {
+    whatsapp: { attempted: 0, sent: 0, failed: 0, skipped: 0 },
+    email: { attempted: 0, sent: 0, failed: 0, skipped: 0 }
+  };
+}
+
 async function triggerWhatsAppCampaignForRequirement(
   requirement,
   {
     triggerType = "buyer_post",
     adminId = null,
-    notes = ""
+    notes = "",
+    channels = { whatsapp: true, email: false }
   } = {}
 ) {
   if (!requirement?._id) {
@@ -86,12 +105,15 @@ async function triggerWhatsAppCampaignForRequirement(
   const requirementId = encodeURIComponent(String(requirement._id || ""));
   const deepLink = `${appBase}/seller/deeplink/${requirementId}?city=${encodeURIComponent(requirement.city || "")}&postId=${requirementId}`;
   const body = formatMessage({ requirement, deepLink });
+  const selectedChannels = normalizeChannels(channels);
   const run = await WhatsAppCampaignRun.create({
     requirementId: requirement._id,
     triggerType: triggerType === "manual_resend" ? "manual_resend" : "buyer_post",
     status: "created",
     city: requirement.city || "",
     category: requirement.category || "",
+    channels: selectedChannels,
+    channelStats: createChannelStats(),
     createdByAdminId: adminId || null,
     notes: String(notes || "").trim()
   });
@@ -109,6 +131,8 @@ async function triggerWhatsAppCampaignForRequirement(
   let sent = 0;
   let failed = 0;
   let skipped = 0;
+  const channelStats = createChannelStats();
+  const emailSubject = `New requirement: ${firstNonEmpty([requirement.product, requirement.productName]) || "Requirement"}`;
 
   for (const contact of contacts) {
     if (contact.active === false) {
@@ -132,19 +156,50 @@ async function triggerWhatsAppCampaignForRequirement(
       continue;
     }
 
-    attempted += 1;
-    const result = await sendWhatsAppMessage({
-      to: contact.mobileE164,
-      body
-    });
-    if (result?.ok) {
-      sent += 1;
-    } else {
-      failed += 1;
+    if (selectedChannels.whatsapp) {
+      attempted += 1;
+      channelStats.whatsapp.attempted += 1;
+      const waResult = await sendWhatsAppMessage({
+        to: contact.mobileE164,
+        body
+      });
+      if (waResult?.ok) {
+        sent += 1;
+        channelStats.whatsapp.sent += 1;
+      } else {
+        failed += 1;
+        channelStats.whatsapp.failed += 1;
+      }
+    }
+
+    if (selectedChannels.email) {
+      const targetEmail = String(contact?.email || "").trim();
+      if (!targetEmail) {
+        skipped += 1;
+        channelStats.email.skipped += 1;
+      } else {
+        attempted += 1;
+        channelStats.email.attempted += 1;
+        const emailResult = await sendEmailToRecipient({
+          to: targetEmail,
+          subject: emailSubject,
+          text: body,
+          html: `<div style="font-family:Arial,sans-serif;color:#0f172a;line-height:1.5;white-space:pre-line;">${body}</div>`
+        });
+        if (emailResult?.ok) {
+          sent += 1;
+          channelStats.email.sent += 1;
+        } else {
+          failed += 1;
+          channelStats.email.failed += 1;
+        }
+      }
     }
   }
 
-  run.status = failed > 0 ? "failed" : "completed";
+  run.status = sent > 0 || attempted === 0 ? "completed" : "failed";
+  run.channels = selectedChannels;
+  run.channelStats = channelStats;
   run.attempted = attempted;
   run.sent = sent;
   run.failed = failed;

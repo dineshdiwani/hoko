@@ -19,10 +19,28 @@ const whatsAppCampaignRunSchema = new mongoose.Schema(
     },
     city: { type: String, default: "" },
     category: { type: String, default: "" },
+    channels: {
+      whatsapp: { type: Boolean, default: true },
+      email: { type: Boolean, default: false }
+    },
     attempted: { type: Number, default: 0 },
     sent: { type: Number, default: 0 },
     failed: { type: Number, default: 0 },
     skipped: { type: Number, default: 0 },
+    channelStats: {
+      whatsapp: {
+        attempted: { type: Number, default: 0 },
+        sent: { type: Number, default: 0 },
+        failed: { type: Number, default: 0 },
+        skipped: { type: Number, default: 0 }
+      },
+      email: {
+        attempted: { type: Number, default: 0 },
+        sent: { type: Number, default: 0 },
+        failed: { type: Number, default: 0 },
+        skipped: { type: Number, default: 0 }
+      }
+    },
     skippedReasons: {
       not_opted_in: { type: Number, default: 0 },
       unsubscribed: { type: Number, default: 0 },

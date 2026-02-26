@@ -48,6 +48,10 @@ export default function AdminWhatsApp() {
   const [manualQueue, setManualQueue] = useState([]);
   const [manualMessagePreview, setManualMessagePreview] = useState("");
   const [resendingPost, setResendingPost] = useState(false);
+  const [manualChannels, setManualChannels] = useState({
+    whatsapp: true,
+    email: false
+  });
 
   const normalizeText = (value) => String(value || "").trim().toLowerCase();
   const getPostStatusDisplay = (item) =>
@@ -433,6 +437,7 @@ export default function AdminWhatsApp() {
         firmName: contact.firmName || "-",
         city: contact.city || "-",
         mobileE164: contact.mobileE164,
+        email: contact.email || "",
         status: "pending",
         whatsappLink: `https://wa.me/${String(contact.mobileE164 || "").replace(/[^\d]/g, "")}?text=${encodeURIComponent(message)}`
       }));
@@ -464,10 +469,15 @@ export default function AdminWhatsApp() {
       alert("Select a pending post first");
       return;
     }
+    if (!manualChannels.whatsapp && !manualChannels.email) {
+      alert("Select at least one channel: WhatsApp and/or Email");
+      return;
+    }
     try {
       setResendingPost(true);
       const res = await api.post("/admin/whatsapp/resend", {
-        requirementId: manualRequirementId
+        requirementId: manualRequirementId,
+        channels: manualChannels
       });
       const stats = res.data || {};
       alert(
@@ -503,7 +513,7 @@ export default function AdminWhatsApp() {
                   className="mt-2 block w-full text-sm"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Columns required in order: A Firm Name, B City, C Country ISD Code, D Mobile Number, E Categories (use ; between multiple categories).
+                  Columns required in order: A Firm Name, B City, C Country ISD Code, D Mobile Number, E Categories (use ; between multiple categories), F Email.
                 </p>
               </div>
               <div className="text-xs text-gray-600">
@@ -564,7 +574,7 @@ export default function AdminWhatsApp() {
                     <div key={contact._id} className="border rounded-lg p-2 text-xs text-gray-700">
                       <div className="font-semibold">{contact.firmName || "-"} | {contact.mobileE164}</div>
                       <div className="text-gray-500">
-                        {contact.city} | Categories: {(contact.categories || []).join(", ") || "-"} | Opt-in: {contact.optInStatus} | DND: {contact.dndStatus} | Unsubscribed: {contact.unsubscribedAt ? "Yes" : "No"}
+                        {contact.city} | {contact.email || "-"} | Categories: {(contact.categories || []).join(", ") || "-"} | Opt-in: {contact.optInStatus} | DND: {contact.dndStatus} | Unsubscribed: {contact.unsubscribedAt ? "Yes" : "No"}
                       </div>
                       <div className="mt-2 flex gap-2 flex-wrap">
                         <button onClick={() => updateContactCompliance(contact._id, { optInStatus: contact.optInStatus === "opted_in" ? "not_opted_in" : "opted_in", optInSource: "admin_toggle" })} className="px-2 py-1 rounded border border-gray-300">Toggle Opt-in</button>
@@ -699,6 +709,34 @@ export default function AdminWhatsApp() {
                 <button onClick={createManualQueue} className="px-3 py-2 rounded-lg text-sm font-semibold btn-primary">
                   Create Pending Queue
                 </button>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <label className="flex items-center gap-2 text-xs text-gray-700 border rounded-lg px-3 py-2">
+                    <input
+                      type="checkbox"
+                      checked={manualChannels.whatsapp}
+                      onChange={(e) =>
+                        setManualChannels((prev) => ({
+                          ...prev,
+                          whatsapp: e.target.checked
+                        }))
+                      }
+                    />
+                    Trigger WhatsApp
+                  </label>
+                  <label className="flex items-center gap-2 text-xs text-gray-700 border rounded-lg px-3 py-2">
+                    <input
+                      type="checkbox"
+                      checked={manualChannels.email}
+                      onChange={(e) =>
+                        setManualChannels((prev) => ({
+                          ...prev,
+                          email: e.target.checked
+                        }))
+                      }
+                    />
+                    Trigger Email
+                  </label>
+                </div>
                 <button
                   onClick={resendSelectedPost}
                   disabled={!manualRequirementId || resendingPost}
@@ -714,7 +752,7 @@ export default function AdminWhatsApp() {
                     <div key={entry.id} className="border rounded-lg p-2 text-xs text-gray-700 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
                       <div>
                         <div className="font-semibold">{entry.firmName} | {entry.mobileE164}</div>
-                        <div className="text-gray-500">{entry.city} | Status: {entry.status}</div>
+                        <div className="text-gray-500">{entry.city} | {entry.email || "-"} | Status: {entry.status}</div>
                       </div>
                       <button onClick={() => openManualWhatsApp(entry)} className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-green-300 text-green-700">
                         Send via WhatsApp

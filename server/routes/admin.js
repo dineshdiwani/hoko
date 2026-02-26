@@ -55,6 +55,12 @@ function normalizeText(value) {
   return String(value || "").trim().toLowerCase();
 }
 
+function normalizeContactEmail(value) {
+  const email = String(value || "").trim().toLowerCase();
+  if (!email) return "";
+  return /\S+@\S+\.\S+/.test(email) ? email : "";
+}
+
 function toDigits(value) {
   return String(value || "").replace(/\D/g, "");
 }
@@ -121,6 +127,7 @@ function parseWhatsAppContactsFromWorkbook(buffer) {
     const countryCodeRaw = toDigits(row[2]);
     const mobileRaw = toDigits(row[3]);
     const categories = parseCategoryList(row[4]);
+    const email = normalizeContactEmail(row[5]);
     if (!city || !countryCodeRaw || !mobileRaw) {
       continue;
     }
@@ -133,6 +140,7 @@ function parseWhatsAppContactsFromWorkbook(buffer) {
       countryCode: `+${countryCodeRaw}`,
       mobileNumber: mobileRaw,
       mobileE164,
+      email,
       categories,
       categoriesNormalized: categories.map((item) => normalizeText(item)),
       active: true,
@@ -1322,18 +1330,29 @@ router.post("/whatsapp/resend", adminAuth, requireAdminPermission("campaigns.man
     return res.status(404).json({ message: "Requirement not found" });
   }
 
+  const requestedChannels = req.body?.channels || {};
+  const channels = {
+    whatsapp: requestedChannels?.whatsapp !== false,
+    email: requestedChannels?.email === true
+  };
+  if (!channels.whatsapp && !channels.email) {
+    return res.status(400).json({ message: "Select at least one channel (WhatsApp or Email)" });
+  }
+
   const resendResult = await triggerWhatsAppCampaignForRequirement(
     requirement,
     {
       triggerType: "manual_resend",
       adminId: req.admin?._id || null,
-      notes: "Manual resend from admin"
+      notes: "Manual resend from admin",
+      channels
     }
   );
 
   await logAdminAction(req.admin, "whatsapp_resend_post", "requirement", requirementId, {
     result: resendResult?.ok ? "ok" : "failed",
-    reason: resendResult?.reason || ""
+    reason: resendResult?.reason || "",
+    channels
   });
 
   if (!resendResult?.ok) {
@@ -1391,7 +1410,7 @@ router.post(
     if (!parsedContacts.length) {
       return res.status(400).json({
         message:
-          "No valid rows found. Expected columns in order: A Firm Name, B City, C Country Code, D Mobile Number, E Categories."
+          "No valid rows found. Expected columns in order: A Firm Name, B City, C Country Code, D Mobile Number, E Categories, F Email."
       });
     }
 

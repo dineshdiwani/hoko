@@ -27,6 +27,10 @@ const whatsAppContactSchema = new mongoose.Schema(
       type: String,
       required: true
     },
+    email: {
+      type: String,
+      default: ""
+    },
     categories: [{ type: String }],
     categoriesNormalized: [{ type: String, index: true }],
     active: {

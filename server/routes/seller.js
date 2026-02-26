@@ -151,6 +151,7 @@ function escapeRegex(value) {
  */
 router.post("/onboard", auth, async (req, res) => {
   const {
+    mobile,
     businessName,
     registrationDetails,
     businessAddress,
@@ -165,6 +166,7 @@ router.post("/onboard", auth, async (req, res) => {
 
   if (
     !businessName ||
+    !mobile ||
     !businessAddress ||
     !ownerName ||
     !taxId ||
@@ -178,6 +180,7 @@ router.post("/onboard", auth, async (req, res) => {
   const normalizedCategories = normalizeAndDedupeCategories(categories);
 
   const update = {
+    mobile: String(mobile || "").trim(),
     "sellerProfile.businessName": businessName,
     "sellerProfile.registrationDetails": registrationDetails || "",
     "sellerProfile.businessAddress": businessAddress,
@@ -212,6 +215,7 @@ router.post("/onboard", auth, async (req, res) => {
  */
 router.post("/profile", auth, sellerOnly, async (req, res) => {
   const {
+    mobile,
     businessName,
     registrationDetails,
     businessAddress,
@@ -228,6 +232,9 @@ router.post("/profile", auth, sellerOnly, async (req, res) => {
   const normalizedCategories = normalizeAndDedupeCategories(categories);
 
   const update = {
+    ...(typeof mobile === "string"
+      ? { mobile: String(mobile).trim() }
+      : {}),
     ...(businessName ? { "sellerProfile.businessName": businessName } : {}),
     ...(registrationDetails
       ? { "sellerProfile.registrationDetails": registrationDetails }
@@ -275,6 +282,8 @@ router.get("/profile", auth, sellerOnly, async (req, res) => {
     .select("updatedAt");
   res.json({
     sellerProfile: user?.sellerProfile || {},
+    email: user?.email || "",
+    mobile: user?.mobile || "",
     city: user?.city,
     preferredCurrency: user?.preferredCurrency || "INR",
     terms: {
