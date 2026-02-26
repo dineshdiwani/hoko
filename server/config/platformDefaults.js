@@ -200,6 +200,8 @@ const DEFAULT_SELECTIONS = {
   category: "user_default"
 };
 
+const DEFAULT_SAMPLE_CITY_POSTS_ENABLED = true;
+
 function mergeUnique(existing = [], defaults = []) {
   const set = new Set([...(Array.isArray(existing) ? existing : []), ...defaults]);
   return Array.from(set);
@@ -271,6 +273,10 @@ function buildOptionsResponse(doc) {
         ...(raw?.emailNotifications?.events || {})
       }
     },
+    sampleCityPostsEnabled:
+      typeof raw?.sampleCityPostsEnabled === "boolean"
+        ? raw.sampleCityPostsEnabled
+        : DEFAULT_SAMPLE_CITY_POSTS_ENABLED,
     whatsAppCampaign: raw?.whatsAppCampaign || DEFAULT_WHATSAPP_CAMPAIGN,
     moderationRules: raw?.moderationRules || DEFAULT_MODERATION_RULES,
     termsAndConditions: raw?.termsAndConditions || {
@@ -294,6 +300,7 @@ module.exports = {
   DEFAULT_WHATSAPP_CAMPAIGN,
   DEFAULT_MODERATION_RULES,
   DEFAULT_SELECTIONS,
+  DEFAULT_SAMPLE_CITY_POSTS_ENABLED,
   mergeUnique,
   buildOptionsResponse
 };

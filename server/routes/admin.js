@@ -35,6 +35,7 @@ const {
   DEFAULT_WHATSAPP_CAMPAIGN,
   DEFAULT_MODERATION_RULES,
   DEFAULT_SELECTIONS,
+  DEFAULT_SAMPLE_CITY_POSTS_ENABLED,
   DEFAULT_TERMS_CONTENT,
   DEFAULT_PRIVACY_POLICY_CONTENT
 } = require("../config/platformDefaults");
@@ -861,6 +862,12 @@ router.put("/options", adminAuth, requireAdminPermission("options.manage"), asyn
       payload.whatsAppCampaign ||
       current?.whatsAppCampaign ||
       DEFAULT_WHATSAPP_CAMPAIGN,
+    sampleCityPostsEnabled:
+      typeof payload.sampleCityPostsEnabled === "boolean"
+        ? payload.sampleCityPostsEnabled
+        : typeof current?.sampleCityPostsEnabled === "boolean"
+        ? current.sampleCityPostsEnabled
+        : DEFAULT_SAMPLE_CITY_POSTS_ENABLED,
     moderationRules: payload.moderationRules || current?.moderationRules || DEFAULT_MODERATION_RULES,
     termsAndConditions: payload.termsAndConditions || current?.termsAndConditions || {
       content: DEFAULT_TERMS_CONTENT

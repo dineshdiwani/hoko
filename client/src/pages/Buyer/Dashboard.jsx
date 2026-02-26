@@ -27,6 +27,8 @@ export default function BuyerDashboard() {
     "Pune"
   ]);
   const [categories, setCategories] = useState([]);
+  const [sampleCityPostsEnabled, setSampleCityPostsEnabled] = useState(true);
+  const [useSampleCityPosts, setUseSampleCityPosts] = useState(false);
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [switching, setSwitching] = useState(false);
@@ -124,9 +126,28 @@ export default function BuyerDashboard() {
         if (Array.isArray(data.categories) && data.categories.length) {
           setCategories(data.categories);
         }
+        setSampleCityPostsEnabled(data?.sampleCityPostsEnabled !== false);
       })
       .catch(() => {});
   }, [session?.city]);
+
+  useEffect(() => {
+    const sampleFlagEnabled =
+      String(import.meta.env.VITE_ENABLE_SAMPLE_CITY_POSTS ?? "true").toLowerCase() !==
+      "false";
+    if (!sampleFlagEnabled || !session?._id || !session?.token) {
+      setUseSampleCityPosts(false);
+      return;
+    }
+
+    api
+      .get(`/buyer/my-posts/${session._id}`)
+      .then((res) => {
+        const posts = Array.isArray(res.data) ? res.data : [];
+        setUseSampleCityPosts(posts.length === 0);
+      })
+      .catch(() => setUseSampleCityPosts(false));
+  }, [session?._id, session?.token]);
 
   if (roleSyncing) {
     return (
@@ -316,6 +337,8 @@ export default function BuyerDashboard() {
             category={selectedCategory}
             categories={categories}
             onCategoryChange={setSelectedCategory}
+            useSamplePosts={useSampleCityPosts}
+            samplePostsEnabled={sampleCityPostsEnabled}
           />
         )}
         {activeTab === "offers" && <OffersReceived />}

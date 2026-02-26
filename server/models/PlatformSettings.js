@@ -29,6 +29,10 @@ const platformSettingsSchema = new mongoose.Schema(
       cities: [{ type: String }],
       categories: [{ type: String }]
     },
+    sampleCityPostsEnabled: {
+      type: Boolean,
+      default: true
+    },
     moderationRules: {
       enabled: { type: Boolean, default: true },
       keywords: [{ type: String }],

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import api from "../services/api";
 import { getSession } from "../services/storage";
+import { generateSamplePostsForCity } from "../services/samplePosts";
 import {
   extractAttachmentFileName,
   getAttachmentDisplayName,
@@ -11,14 +12,21 @@ export default function CityDashboard({
   city,
   category = "all",
   categories = [],
-  onCategoryChange
+  onCategoryChange,
+  useSamplePosts = false,
+  samplePostsEnabled = true
 }) {
   const [requirements, setRequirements] = useState([]);
   const [loading, setLoading] = useState(false);
   const [timeFilter, setTimeFilter] = useState("all");
   const [auctionLoadingById, setAuctionLoadingById] = useState({});
+  const [showingSampleData, setShowingSampleData] = useState(false);
   const session = getSession();
   const currentBuyerId = String(session?._id || session?.id || "");
+  const sampleFlagEnabled =
+    samplePostsEnabled &&
+    String(import.meta.env.VITE_ENABLE_SAMPLE_CITY_POSTS ?? "true").toLowerCase() !==
+      "false";
   async function openAttachment(attachment) {
     const newTab = window.open("", "_blank", "noopener,noreferrer");
     try {
@@ -82,20 +90,40 @@ export default function CityDashboard({
     async function load() {
       setLoading(true);
       try {
+        const shouldUseSample =
+          sampleFlagEnabled && (useSamplePosts || !session?.token);
+        if (shouldUseSample) {
+          setRequirements(generateSamplePostsForCity(city, categories, 50));
+          setShowingSampleData(true);
+          return;
+        }
         const res = await api.get(
           `/dashboard/city/${encodeURIComponent(city)}`
         );
-        setRequirements(res.data || []);
+        const liveRows = Array.isArray(res.data) ? res.data : [];
+        if (sampleFlagEnabled && liveRows.length === 0) {
+          setRequirements(generateSamplePostsForCity(city, categories, 50));
+          setShowingSampleData(true);
+          return;
+        }
+        setRequirements(liveRows);
+        setShowingSampleData(false);
       } catch (err) {
         console.error(err);
-        setRequirements([]);
+        if (sampleFlagEnabled) {
+          setRequirements(generateSamplePostsForCity(city, categories, 50));
+          setShowingSampleData(true);
+        } else {
+          setRequirements([]);
+          setShowingSampleData(false);
+        }
       } finally {
         setLoading(false);
       }
     }
 
     load();
-  }, [city]);
+  }, [city, categories, sampleFlagEnabled, session?.token, useSamplePosts]);
 
   const timeOptions = [
     { key: "all", label: "All Posts" },
@@ -266,6 +294,12 @@ export default function CityDashboard({
         </div>
       </div>
 
+      {showingSampleData && (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+          Showing sample posts for preview. These are synthetic examples, not real buyer data.
+        </div>
+      )}
+
       {totalRequirements === 0 && (
         <div className="text-center py-10 text-gray-500">
           No requirements posted for {city} yet.
@@ -305,10 +339,16 @@ export default function CityDashboard({
                   )}
                 </div>
 
-                <p className="text-sm text-[var(--ui-muted)]">
-                  {req.quantity || "-"} {req.unit || ""} ·{" "}
+                                <p className="text-sm text-[var(--ui-muted)]">
+                  {req.quantity || "-"} {req.unit || ""} |{" "}
                   {req.category}
                 </p>
+
+                {req.buyerName && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Posted by {req.buyerName}
+                  </p>
+                )}
 
                 <p className="text-xs text-gray-400 mt-1">
                   Posted{" "}
@@ -317,7 +357,7 @@ export default function CityDashboard({
                   ).toLocaleDateString()}
                 </p>
 
-                {isOwnPost && (
+                {isOwnPost && !showingSampleData && (
                   <div className="mt-3">
                     <button
                       onClick={() => toggleReverseAuction(req)}
@@ -447,4 +487,5 @@ export default function CityDashboard({
     </div>
   );
 }
+
 

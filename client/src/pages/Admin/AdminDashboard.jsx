@@ -57,6 +57,7 @@ export default function AdminDashboard() {
       cities: [],
       categories: []
     },
+    sampleCityPostsEnabled: true,
     moderationRules: {
       enabled: true,
       keywords: [],
@@ -1128,6 +1129,25 @@ export default function AdminDashboard() {
                       <span>User default category</span>
                     </label>
                   </div>
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <label className="ui-label text-gray-600">Sample City Posts</label>
+              <div className="mt-2 space-y-2 rounded-lg border p-3">
+                <label className="flex items-center gap-2 ui-body text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={options.sampleCityPostsEnabled !== false}
+                    onChange={(e) =>
+                      setOptions((prev) => ({
+                        ...prev,
+                        sampleCityPostsEnabled: e.target.checked
+                      }))
+                    }
+                  />
+                  Enable synthetic sample posts for empty city dashboards/new users
                 </label>
               </div>
             </div>
