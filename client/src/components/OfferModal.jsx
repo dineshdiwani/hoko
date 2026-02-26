@@ -271,9 +271,7 @@ export default function OfferModal({
       return;
     }
     alert(
-      existingOffer
-        ? "Offer updated successfully"
-        : "Your offer has been sent to the Buyer app and on email, The moment he finds offer suitable, will contact you on chat and/or mobile/email given in your profile.Thank you."
+      "Your offer has been sent to the Buyer app and on email, The moment he finds offer suitable, will contact you on chat and/or mobile/email given in your profile.Thank you."
     );
 
     if (typeof onSubmitted === "function") {
