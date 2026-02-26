@@ -30,6 +30,8 @@ export default function OfferList() {
   const [sellerLoading, setSellerLoading] = useState(false);
   const [sellerDetails, setSellerDetails] = useState(null);
   const sellerModalRef = useRef(null);
+  const getDialableMobile = (value) =>
+    String(value || "").trim().replace(/[^\d+]/g, "");
 
   /* ---------------- FETCH DATA ---------------- */
   useEffect(() => {
@@ -714,6 +716,21 @@ export default function OfferList() {
                     Email:
                   </span>{" "}
                   {sellerDetails.email || "-"}
+                </div>
+                <div>
+                  <span className="text-gray-500">
+                    Mobile:
+                  </span>{" "}
+                  {getDialableMobile(sellerDetails.mobile) ? (
+                    <a
+                      href={`tel:${getDialableMobile(sellerDetails.mobile)}`}
+                      className="text-indigo-700 hover:underline"
+                    >
+                      {sellerDetails.mobile}
+                    </a>
+                  ) : (
+                    "-"
+                  )}
                 </div>
               </div>
             )}

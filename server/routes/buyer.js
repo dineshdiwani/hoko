@@ -1177,7 +1177,7 @@ router.delete("/account", auth, buyerOnly, async (req, res) => {
  */
 router.get("/seller/:sellerId", auth, buyerOnly, async (req, res) => {
   const seller = await User.findById(req.params.sellerId).select(
-    "email city roles sellerProfile"
+    "email mobile city roles sellerProfile"
   );
   if (!seller || !seller.roles?.seller) {
     return res.status(404).json({ message: "Seller not found" });
@@ -1186,6 +1186,7 @@ router.get("/seller/:sellerId", auth, buyerOnly, async (req, res) => {
   res.json({
     _id: seller._id,
     email: seller.email,
+    mobile: seller.mobile || "",
     city: seller.city,
     sellerProfile: seller.sellerProfile || {}
   });
