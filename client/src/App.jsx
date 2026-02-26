@@ -11,6 +11,7 @@ import {
 const BuyerWelcome = lazy(() => import("./pages/Buyer/welcome"));
 const BuyerLogin = lazy(() => import("./pages/Buyer/Login"));
 const BuyerDashboard = lazy(() => import("./pages/Buyer/Dashboard"));
+const MyPosts = lazy(() => import("./pages/Buyer/MyPosts"));
 const RequirementForm = lazy(() => import("./pages/Buyer/RequirementForm"));
 const OfferList = lazy(() => import("./pages/Buyer/OfferList"));
 const CompareOffers = lazy(() => import("./pages/Buyer/CompareOffers"));
@@ -116,7 +117,7 @@ function AppShell() {
           path="/buyer/my-posts"
           element={
             requireBuyer() ? (
-              <Navigate to="/buyer/dashboard" replace />
+              <MyPosts />
             ) : (
               <Navigate to="/buyer/login" replace />
             )

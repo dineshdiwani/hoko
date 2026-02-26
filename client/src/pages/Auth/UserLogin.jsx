@@ -51,8 +51,7 @@ export default function UserLogin({ role = "buyer" }) {
 
   const redirect = isSeller
     ? localStorage.getItem("post_login_redirect") || "/seller/dashboard"
-    : "/buyer/dashboard";
-  const loginIntent = localStorage.getItem("login_intent_role") || "buyer";
+    : "/buyer/my-posts";
   const cityRef = useRef(city);
   const acceptedTermsRef = useRef(acceptedTerms);
 
@@ -144,12 +143,22 @@ export default function UserLogin({ role = "buyer" }) {
         alert("OTP sent to your email");
       })
       .catch((err) => {
-        alert(
+        const message =
           err?.response?.data?.error ||
-            err?.response?.data?.message ||
-            err?.message ||
-            "Failed to send OTP. Try again."
-        );
+          err?.response?.data?.message ||
+          err?.message ||
+          "Failed to send OTP. Try again.";
+        if (
+          isSeller &&
+          (message ===
+            "Complete buyer login and seller registration first" ||
+            message === "Complete seller registration before login")
+        ) {
+          alert(message);
+          navigate("/seller/register");
+          return;
+        }
+        alert(message);
       })
       .finally(() => setLoading(false));
   }
@@ -230,46 +239,19 @@ export default function UserLogin({ role = "buyer" }) {
           );
         }
 
-        if (!isSeller && loginIntent === "seller") {
-          try {
-            const switchRes = await api.post("/auth/switch-role", {
-              role: "seller"
-            });
-            setSession({
-              _id: switchRes.data.user._id,
-              role: switchRes.data.user.role,
-              roles: switchRes.data.user.roles,
-              email: switchRes.data.user.email,
-              city: switchRes.data.user.city,
-              name: "Seller",
-              preferredCurrency:
-                switchRes.data.user.preferredCurrency || "INR",
-              token: switchRes.data.token
-            });
-            localStorage.removeItem("login_intent_role");
-            navigate("/seller/dashboard", { replace: true });
-            return;
-          } catch (err) {
-            const message = err?.response?.data?.message || "";
-            localStorage.removeItem("login_intent_role");
-            if (
-              message === "Seller onboarding required" ||
-              message === "Role not enabled"
-            ) {
-              navigate("/seller/register", { replace: true });
-              return;
-            }
-          }
-        }
-
         localStorage.removeItem("login_intent_role");
         navigate(redirect, { replace: true });
       })
       .catch((err) => {
-        alert(
+        const message =
           err?.response?.data?.message ||
-            "Invalid OTP. Please try again."
-        );
+          "Invalid OTP. Please try again.";
+        if (isSeller && message === "Complete seller registration before login") {
+          alert(message);
+          navigate("/seller/register", { replace: true });
+          return;
+        }
+        alert(message);
       })
       .finally(() => setLoading(false));
   }
@@ -330,48 +312,26 @@ export default function UserLogin({ role = "buyer" }) {
           );
         }
 
-        if (!isSeller && loginIntent === "seller") {
-          try {
-            const switchRes = await api.post("/auth/switch-role", {
-              role: "seller"
-            });
-            setSession({
-              _id: switchRes.data.user._id,
-              role: switchRes.data.user.role,
-              roles: switchRes.data.user.roles,
-              email: switchRes.data.user.email,
-              city: switchRes.data.user.city,
-              name: "Seller",
-              preferredCurrency:
-                switchRes.data.user.preferredCurrency || "INR",
-              token: switchRes.data.token
-            });
-            localStorage.removeItem("login_intent_role");
-            navigate("/seller/dashboard", { replace: true });
-            return;
-          } catch (err) {
-            const message = err?.response?.data?.message || "";
-            localStorage.removeItem("login_intent_role");
-            if (
-              message === "Seller onboarding required" ||
-              message === "Role not enabled"
-            ) {
-              navigate("/seller/register", { replace: true });
-              return;
-            }
-          }
-        }
-
         localStorage.removeItem("login_intent_role");
         navigate(redirect, { replace: true });
       })
       .catch((err) => {
-        alert(
+        const message =
           err?.response?.data?.message ||
-            err?.response?.data?.error ||
-            err?.message ||
-            "Google login failed."
-        );
+          err?.response?.data?.error ||
+          err?.message ||
+          "Google login failed.";
+        if (
+          isSeller &&
+          (message ===
+            "Complete seller registration before Google login" ||
+            message === "Complete seller registration before login")
+        ) {
+          alert(message);
+          navigate("/seller/register", { replace: true });
+          return;
+        }
+        alert(message);
       })
       .finally(() => setLoading(false));
   }
