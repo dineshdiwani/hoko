@@ -19,6 +19,8 @@ export default function MyPosts() {
   const [auctionLoadingById, setAuctionLoadingById] = useState({});
   const [auctionHintReqId, setAuctionHintReqId] = useState("");
   const modalRef = useRef(null);
+  const getDialableMobile = (value) =>
+    String(value || "").trim().replace(/[^\d+]/g, "");
 
   async function openAttachment(attachment) {
     const newTab = window.open("", "_blank", "noopener,noreferrer");
@@ -565,6 +567,21 @@ export default function MyPosts() {
                     Email:
                   </span>{" "}
                   {sellerDetails.email || "-"}
+                </div>
+                <div>
+                  <span className="text-gray-500">
+                    Mobile:
+                  </span>{" "}
+                  {getDialableMobile(sellerDetails.mobile) ? (
+                    <a
+                      href={`tel:${getDialableMobile(sellerDetails.mobile)}`}
+                      className="text-indigo-700 hover:underline"
+                    >
+                      {sellerDetails.mobile}
+                    </a>
+                  ) : (
+                    "-"
+                  )}
                 </div>
               </div>
             )}
