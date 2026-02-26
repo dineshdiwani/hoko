@@ -16,6 +16,7 @@ export default function SellerRegister() {
 
   const [seller, setSeller] = useState({
     email: session?.email || "",
+    mobile: session?.mobile || "",
     businessName: "",
     registrationDetails: "",
     businessAddress: "",
@@ -81,6 +82,7 @@ export default function SellerRegister() {
     setSubmitted(true);
     if (
       !seller.email ||
+      !seller.mobile ||
       !seller.businessName ||
       !seller.businessAddress ||
       !seller.ownerName ||
@@ -169,6 +171,17 @@ export default function SellerRegister() {
                 value={seller.email}
                 onChange={(e) =>
                   setSeller({ ...seller, email: e.target.value })
+                }
+                required
+              />
+
+              <input
+                className="w-full border p-2 rounded"
+                type="tel"
+                placeholder="Mobile Number *"
+                value={seller.mobile}
+                onChange={(e) =>
+                  setSeller({ ...seller, mobile: e.target.value })
                 }
                 required
               />

@@ -19,6 +19,7 @@ export default function SellerSettings() {
   const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [profile, setProfile] = useState({
     email: "",
+    mobile: "",
     businessName: "",
     registrationDetails: "",
     businessAddress: "",
@@ -95,6 +96,7 @@ export default function SellerSettings() {
         const uniqueCategories = dedupeCategories(normalizedCategories);
         setProfile({
           email: res.data?.email || session?.email || "",
+          mobile: res.data?.mobile || "",
           businessName:
             sellerProfile.businessName || sellerProfile.firmName || "",
           registrationDetails: sellerProfile.registrationDetails || "",
@@ -175,11 +177,16 @@ export default function SellerSettings() {
       alert("Please enter a valid email");
       return;
     }
+    if (!String(profile.mobile || "").trim()) {
+      alert("Please enter mobile number");
+      return;
+    }
     setSaving(true);
     try {
       const uniqueCategories = dedupeCategories(profile.categories);
       await api.post("/seller/profile", {
         email: profile.email,
+        mobile: profile.mobile,
         businessName: profile.businessName,
         registrationDetails: profile.registrationDetails,
         businessAddress: profile.businessAddress,
@@ -265,6 +272,24 @@ export default function SellerSettings() {
                   }
                   placeholder="Enter business name"
                   className="w-full border rounded-xl px-4 py-3"
+                />
+              </label>
+              <label className="block">
+                <span className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1">
+                  Mobile Number *
+                </span>
+                <input
+                  type="tel"
+                  value={profile.mobile}
+                  onChange={(e) =>
+                    setProfile({
+                      ...profile,
+                      mobile: e.target.value
+                    })
+                  }
+                  placeholder="Enter mobile number"
+                  className="w-full border rounded-xl px-4 py-3"
+                  required
                 />
               </label>
               <label className="block">
