@@ -316,6 +316,9 @@ export default function SellerDashboard() {
   const smartTabRequirements = visibleRequirements.filter(matchesSmartTab);
 
   const filteredRequirements = smartTabRequirements.filter((req) => {
+    if (selectedCity !== "all" && normalizeCity(req.city) !== normalizeCity(selectedCity)) {
+      return false;
+    }
     const normalizedCategory = normalizeCategory(req.category);
     if (
       selectedCategory !== "all" &&
@@ -326,9 +329,12 @@ export default function SellerDashboard() {
     if (!searchQuery.trim()) return true;
     const query = searchQuery.toLowerCase();
     return (
-      String(req.product || "").toLowerCase().includes(query) ||
+      String(req.product || req.productName || "").toLowerCase().includes(query) ||
+      String(req.makeBrand || req.brand || "").toLowerCase().includes(query) ||
+      String(req.typeModel || "").toLowerCase().includes(query) ||
       String(req.category || "").toLowerCase().includes(query) ||
-      String(req.city || "").toLowerCase().includes(query)
+      String(req.city || "").toLowerCase().includes(query) ||
+      String(req.details || req.description || "").toLowerCase().includes(query)
     );
   });
 
@@ -566,7 +572,7 @@ export default function SellerDashboard() {
               <option value="all">All categories</option>
               {categoryFilterOptions.map((cat) => (
                 <option key={cat.value} value={cat.value}>
-                  {cat.preferred ? `✓ ${cat.label}` : cat.label}
+                  {cat.preferred ? `[Preferred] ${cat.label}` : cat.label}
                 </option>
               ))}
             </select>
@@ -766,9 +772,18 @@ export default function SellerDashboard() {
 
                   <div className="flex justify-between items-start mb-2">
                     <div>
-                      <h3 className="ui-heading">{req.product}</h3>
+                      <h3 className="ui-heading">{req.product || req.productName || "-"}</h3>
                       <p className="ui-body text-[var(--ui-muted)]">
-                        Buyer from {req.city || "your city"} · {req.category}
+                        City: {req.city || "-"} | Category: {req.category || "-"}
+                      </p>
+                      <p className="ui-body text-[var(--ui-muted)]">
+                        Make/Brand: {req.makeBrand || req.brand || "-"} | Type/Model: {req.typeModel || "-"}
+                      </p>
+                      <p className="ui-body text-[var(--ui-muted)]">
+                        Quantity: {req.quantity || "-"} {req.type || req.unit || ""}
+                      </p>
+                      <p className="ui-body text-[var(--ui-muted)]">
+                        Offer invited from: {req.offerInvitedFrom === "anywhere" ? "Anywhere" : "City"}
                       </p>
                       {requirementDetails && (
                         <p className="ui-body text-[var(--ui-text)] mt-1 whitespace-pre-line">
