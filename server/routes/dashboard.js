@@ -9,14 +9,25 @@ function escapeRegex(value) {
 }
 
 router.get("/city/:city", auth, async (req, res) => {
-  const cityRegex = new RegExp(`^${escapeRegex(req.params.city || "")}$`, "i");
-  const requirements = await Requirement.find({
-    "moderation.removed": { $ne: true },
-    $or: [
+  const requestedCity = String(req.params.city || "").trim();
+  const isAllCities =
+    !requestedCity || requestedCity.toLowerCase() === "all";
+
+  const requirementQuery = {
+    "moderation.removed": { $ne: true }
+  };
+
+  if (!isAllCities) {
+    const cityRegex = new RegExp(`^${escapeRegex(requestedCity)}$`, "i");
+    requirementQuery.$or = [
       { offerInvitedFrom: "anywhere" },
       { city: cityRegex }
-    ]
-  }).sort({ createdAt: -1 });
+    ];
+  }
+
+  const requirements = await Requirement.find(requirementQuery).sort({
+    createdAt: -1
+  });
 
   const requirementIds = requirements.map((r) => r._id);
   const offerCounts = await Offer.aggregate([

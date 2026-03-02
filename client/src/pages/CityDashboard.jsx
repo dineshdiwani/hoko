@@ -59,6 +59,19 @@ export default function CityDashboard({
       ? window.location.origin
       : "http://localhost:5173";
 
+  function buildSampleRows(targetCity) {
+    const selected = String(targetCity || "").trim().toLowerCase();
+    if (!selected) return [];
+    if (selected === "all") {
+      const sourceCities = Array.isArray(cities) ? cities.filter(Boolean) : [];
+      if (!sourceCities.length) return [];
+      return sourceCities.flatMap((cityName) =>
+        generateSamplePostsForCity(cityName, categories, 20)
+      );
+    }
+    return generateSamplePostsForCity(targetCity, categories, 50);
+  }
+
   function getShareText(req) {
     const product = req.product || req.productName || "Requirement";
     const quantity = req.quantity ? `${req.quantity} ${req.unit || ""}` : "";
@@ -99,7 +112,7 @@ export default function CityDashboard({
         const shouldUseSample =
           sampleFlagEnabled && (useSamplePosts || !session?.token);
         if (shouldUseSample) {
-          setRequirements(generateSamplePostsForCity(city, categories, 50));
+          setRequirements(buildSampleRows(city));
           setShowingSampleData(true);
           return;
         }
@@ -108,7 +121,7 @@ export default function CityDashboard({
         );
         const liveRows = Array.isArray(res.data) ? res.data : [];
         if (sampleFlagEnabled && liveRows.length === 0) {
-          setRequirements(generateSamplePostsForCity(city, categories, 50));
+          setRequirements(buildSampleRows(city));
           setShowingSampleData(true);
           return;
         }
@@ -117,7 +130,7 @@ export default function CityDashboard({
       } catch (err) {
         console.error(err);
         if (sampleFlagEnabled) {
-          setRequirements(generateSamplePostsForCity(city, categories, 50));
+          setRequirements(buildSampleRows(city));
           setShowingSampleData(true);
         } else {
           setRequirements([]);
@@ -129,7 +142,7 @@ export default function CityDashboard({
     }
 
     load();
-  }, [city, categories, sampleFlagEnabled, session?.token, useSamplePosts]);
+  }, [city, categories, cities, sampleFlagEnabled, session?.token, useSamplePosts]);
 
   const timeOptions = [
     { key: "all", label: "All Posts" },
@@ -247,7 +260,7 @@ export default function CityDashboard({
           onChange={(e) => onCityChange?.(e.target.value)}
           className="w-full sm:w-auto max-w-full px-4 py-2.5 rounded-xl border text-sm bg-white"
         >
-          <option value="">Select city</option>
+          <option value="all">All cities</option>
           {cities.map((item) => (
             <option key={item} value={item}>
               {item}
@@ -318,7 +331,9 @@ export default function CityDashboard({
 
       {city && totalRequirements === 0 && (
         <div className="text-center py-10 text-gray-500">
-          No requirements posted for {city} yet.
+          {String(city).toLowerCase() === "all"
+            ? "No requirements posted yet."
+            : `No requirements posted for ${city} yet.`}
         </div>
       )}
 
