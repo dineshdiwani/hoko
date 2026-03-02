@@ -165,19 +165,6 @@ export default function BuyerWelcome() {
             onEnded={finishIntro}
             onError={() => setIntroPhase("done")}
           />
-          <div
-            className={`pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transition-all duration-700 ${
-              introPhase === "converge"
-                ? "left-4 top-4 -translate-x-0 -translate-y-0 scale-50 opacity-0"
-                : "scale-100 opacity-100"
-            }`}
-          >
-            <img
-              src={logoSrc}
-              alt="hoko"
-              className="w-24 h-24 rounded-full object-contain shadow-2xl"
-            />
-          </div>
           <button
             type="button"
             onClick={() => setIntroPhase("done")}
