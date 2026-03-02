@@ -9,7 +9,8 @@ export default function OffersReceived({
   cities = [],
   categories = [],
   onCityChange,
-  onCategoryChange
+  onCategoryChange,
+  onVisibleCountChange
 }) {
   const [posts, setPosts] = useState([]);
   const session = getSession();
@@ -43,6 +44,10 @@ export default function OffersReceived({
         String(selectedCategory).trim().toLowerCase();
     return cityMatch && categoryMatch;
   });
+
+  useEffect(() => {
+    onVisibleCountChange?.(filteredPosts.length);
+  }, [filteredPosts.length, onVisibleCountChange]);
 
   return (
     <div className="page">

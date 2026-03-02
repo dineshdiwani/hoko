@@ -15,7 +15,8 @@ export default function MyPosts({
   cities = [],
   categories = [],
   onCityChange,
-  onCategoryChange
+  onCategoryChange,
+  onVisibleCountChange
 }) {
   const navigate = useNavigate();
   const [requirements, setRequirements] = useState([]);
@@ -107,6 +108,10 @@ export default function MyPosts({
         String(selectedCategory).trim().toLowerCase();
     return cityMatch && categoryMatch;
   });
+
+  useEffect(() => {
+    onVisibleCountChange?.(filteredRequirements.length);
+  }, [filteredRequirements.length, onVisibleCountChange]);
 
   async function openSellerDetails(sellerId) {
     if (!sellerId) return;

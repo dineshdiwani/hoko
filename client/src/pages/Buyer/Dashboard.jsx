@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { getSession, logout } from "../../services/auth";
 import { setSession } from "../../services/storage";
@@ -62,6 +62,11 @@ export default function BuyerDashboard() {
   const [categories, setCategories] = useState([]);
   const [sampleCityPostsEnabled, setSampleCityPostsEnabled] = useState(true);
   const [useSampleCityPosts, setUseSampleCityPosts] = useState(false);
+  const [tabCounts, setTabCounts] = useState({
+    posts: 0,
+    city: 0,
+    offers: 0
+  });
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [switching, setSwitching] = useState(false);
@@ -134,6 +139,30 @@ export default function BuyerDashboard() {
     setChatRequirementId(String(requirementId));
     setChatOpen(true);
   }
+
+  const updatePostsCount = useCallback((nextCount) => {
+    setTabCounts((prev) =>
+      prev.posts === Number(nextCount || 0)
+        ? prev
+        : { ...prev, posts: Number(nextCount || 0) }
+    );
+  }, []);
+
+  const updateCityCount = useCallback((nextCount) => {
+    setTabCounts((prev) =>
+      prev.city === Number(nextCount || 0)
+        ? prev
+        : { ...prev, city: Number(nextCount || 0) }
+    );
+  }, []);
+
+  const updateOffersCount = useCallback((nextCount) => {
+    setTabCounts((prev) =>
+      prev.offers === Number(nextCount || 0)
+        ? prev
+        : { ...prev, offers: Number(nextCount || 0) }
+    );
+  }, []);
 
   // Keep selected filters/tabs on browser refresh.
   useEffect(() => {
@@ -317,21 +346,21 @@ export default function BuyerDashboard() {
             onClick={() => setActiveTab("posts")}
             className={`ui-tab ui-tab-center ${activeTab === "posts" ? "ui-tab-active" : ""}`}
           >
-            My Posts
+            My Posts ({tabCounts.posts})
           </button>
 
           <button
             onClick={() => setActiveTab("city")}
             className={`ui-tab ui-tab-center ${activeTab === "city" ? "ui-tab-active" : ""}`}
           >
-            City Dashboard
+            City Dashboard ({tabCounts.city})
           </button>
 
           <button
             onClick={() => setActiveTab("offers")}
             className={`ui-tab ui-tab-center ${activeTab === "offers" ? "ui-tab-active" : ""}`}
           >
-            Received Offers
+            Received Offers ({tabCounts.offers})
           </button>
         </div>
       </header>
@@ -347,6 +376,7 @@ export default function BuyerDashboard() {
             categories={categories}
             onCityChange={setCity}
             onCategoryChange={setSelectedCategory}
+            onVisibleCountChange={updatePostsCount}
           />
         )}
         {activeTab === "city" && (
@@ -360,6 +390,7 @@ export default function BuyerDashboard() {
             onCategoryChange={setSelectedCategory}
             useSamplePosts={useSampleCityPosts}
             samplePostsEnabled={sampleCityPostsEnabled}
+            onVisibleCountChange={updateCityCount}
           />
         )}
         {activeTab === "offers" && (
@@ -370,6 +401,7 @@ export default function BuyerDashboard() {
             categories={categories}
             onCityChange={setCity}
             onCategoryChange={setSelectedCategory}
+            onVisibleCountChange={updateOffersCount}
           />
         )}
         </div>

@@ -16,7 +16,8 @@ export default function CityDashboard({
   onCityChange,
   onCategoryChange,
   useSamplePosts = false,
-  samplePostsEnabled = true
+  samplePostsEnabled = true,
+  onVisibleCountChange
 }) {
   const [requirements, setRequirements] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -219,6 +220,9 @@ export default function CityDashboard({
       matchesCategoryFilter(req) &&
       matchesCityFilter(req)
   );
+  useEffect(() => {
+    onVisibleCountChange?.(filteredRequirements.length);
+  }, [filteredRequirements.length, onVisibleCountChange]);
   const totalRequirements = filteredRequirements.length;
   const liveAuctions = filteredRequirements.filter(
     (req) => req.reverseAuction?.active || req.reverseAuctionActive
