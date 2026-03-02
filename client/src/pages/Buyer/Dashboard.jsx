@@ -112,20 +112,22 @@ export default function BuyerDashboard() {
   useEffect(() => {
     fetchOptions()
       .then((data) => {
-        if (Array.isArray(data.cities) && data.cities.length) {
-          setCities(data.cities);
+        const nextCities = Array.isArray(data?.cities) ? data.cities : [];
+        if (nextCities.length) {
+          setCities(nextCities);
           setCity((prevCity) => {
             if (prevCity) return prevCity;
             const preferredCity = session?.city || "";
-            if (preferredCity && data.cities.includes(preferredCity)) {
+            if (preferredCity && nextCities.includes(preferredCity)) {
               return preferredCity;
             }
-            return data.cities[0];
+            return nextCities[0];
           });
         }
-        if (Array.isArray(data.categories) && data.categories.length) {
-          setCategories(data.categories);
-        }
+        const nextCategories = Array.isArray(data?.categories)
+          ? data.categories
+          : [];
+        setCategories(nextCategories);
         setSampleCityPostsEnabled(data?.sampleCityPostsEnabled !== false);
       })
       .catch(() => {});
@@ -259,48 +261,6 @@ export default function BuyerDashboard() {
           </div>
         </div>
 
-        {/* CITY SELECTOR */}
-        <div className="dashboard-shell pb-3 pl-16 md:pl-20">
-          <div className="flex flex-wrap md:flex-nowrap items-center gap-2">
-            <span className="ui-label text-gray-700">
-              City
-            </span>
-            <select
-              value={city}
-              onChange={(e) => {
-                setCity(e.target.value);
-                setActiveTab("city");
-              }}
-              className="w-full md:w-auto max-w-full px-4 py-3 rounded-xl border ui-body"
-            >
-              <option value="">Select city</option>
-              {cities.map((c) => (
-                <option key={c}>{c}</option>
-              ))}
-            </select>
-
-            {activeTab === "city" && (
-              <>
-                <span className="ui-label text-gray-700 md:ml-3">
-                  Category
-                </span>
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="w-full md:w-auto max-w-full px-4 py-3 rounded-xl border ui-body"
-                >
-                  <option value="all">All categories</option>
-                  {categories.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </select>
-              </>
-            )}
-          </div>
-        </div>
-
         {/* TABS */}
         <div className="dashboard-shell dashboard-tabs dashboard-tabs-center border-t md:pl-20">
           <button
@@ -329,19 +289,39 @@ export default function BuyerDashboard() {
       {/* CONTENT */}
       <main className="dashboard-layout-content">
         <div className="dashboard-shell dashboard-main">
-        {activeTab === "posts" && <MyPosts />}
+        {activeTab === "posts" && (
+          <MyPosts
+            city={city}
+            selectedCategory={selectedCategory}
+            cities={cities}
+            categories={categories}
+            onCityChange={setCity}
+            onCategoryChange={setSelectedCategory}
+          />
+        )}
         {activeTab === "city" && (
           <CityDashboard
             key={`${city}-${selectedCategory}`}
             city={city}
             category={selectedCategory}
             categories={categories}
+            cities={cities}
+            onCityChange={setCity}
             onCategoryChange={setSelectedCategory}
             useSamplePosts={useSampleCityPosts}
             samplePostsEnabled={sampleCityPostsEnabled}
           />
         )}
-        {activeTab === "offers" && <OffersReceived />}
+        {activeTab === "offers" && (
+          <OffersReceived
+            city={city}
+            selectedCategory={selectedCategory}
+            cities={cities}
+            categories={categories}
+            onCityChange={setCity}
+            onCategoryChange={setSelectedCategory}
+          />
+        )}
         </div>
       </main>
 

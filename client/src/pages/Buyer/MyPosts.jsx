@@ -9,7 +9,14 @@ import {
   getAttachmentTypeMeta
 } from "../../utils/attachments";
 
-export default function MyPosts() {
+export default function MyPosts({
+  city = "",
+  selectedCategory = "all",
+  cities = [],
+  categories = [],
+  onCityChange,
+  onCategoryChange
+}) {
   const navigate = useNavigate();
   const [requirements, setRequirements] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -87,6 +94,19 @@ export default function MyPosts() {
         handleClickOutside
       );
   }, [sellerModalOpen]);
+
+  const filteredRequirements = requirements.filter((req) => {
+    const cityMatch =
+      !city ||
+      String(req.city || "").trim().toLowerCase() ===
+        String(city).trim().toLowerCase();
+    const categoryMatch =
+      !selectedCategory ||
+      selectedCategory === "all" ||
+      String(req.category || "").trim().toLowerCase() ===
+        String(selectedCategory).trim().toLowerCase();
+    return cityMatch && categoryMatch;
+  });
 
   async function openSellerDetails(sellerId) {
     if (!sellerId) return;
@@ -192,8 +212,43 @@ export default function MyPosts() {
   /* ---------------- LIST ---------------- */
   return (
     <>
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <span className="ui-label text-gray-700">City</span>
+        <select
+          value={city}
+          onChange={(e) => onCityChange?.(e.target.value)}
+          className="w-full sm:w-auto max-w-full px-4 py-2.5 rounded-xl border text-sm bg-white"
+        >
+          <option value="">All cities</option>
+          {cities.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
+        <span className="ui-label text-gray-700 sm:ml-2">Category</span>
+        <select
+          value={selectedCategory}
+          onChange={(e) => onCategoryChange?.(e.target.value)}
+          className="w-full sm:w-auto max-w-full px-4 py-2.5 rounded-xl border text-sm bg-white"
+        >
+          <option value="all">All categories</option>
+          {categories.map((cat) => (
+            <option key={cat} value={cat}>
+              {cat}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {filteredRequirements.length === 0 && (
+        <div className="text-center py-8 text-gray-500">
+          No posts match the selected city/category filters.
+        </div>
+      )}
+
       <div className="space-y-4">
-        {requirements.map((req) => {
+        {filteredRequirements.map((req) => {
         const attachments = Array.isArray(req.attachments)
           ? req.attachments
           : [];
@@ -251,7 +306,7 @@ export default function MyPosts() {
             {/* Top row */}
             <div className="flex justify-between items-start mb-2">
               <h3 className="font-semibold text-base text-[var(--ui-text)]">
-                {req.product}
+                {req.product || req.productName || "-"}
               </h3>
 
               <span
@@ -263,7 +318,13 @@ export default function MyPosts() {
 
             {/* Meta */}
             <p className="text-sm text-[var(--ui-muted)]">
-              {req.quantity} {req.unit} · {req.category}
+              {req.city || "-"} | {req.category || "-"}
+            </p>
+            <p className="text-sm text-[var(--ui-muted)]">
+              Make/Brand: {req.makeBrand || req.brand || "-"} | Type/Model: {req.typeModel || req.type || "-"}
+            </p>
+            <p className="text-sm text-[var(--ui-muted)]">
+              Quantity: {req.quantity || "-"} {req.unit || req.type || ""}
             </p>
 
             {requirementDetails && (

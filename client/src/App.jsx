@@ -1,4 +1,4 @@
-import { Suspense, lazy, memo } from "react";
+import { Suspense, lazy, memo, useEffect } from "react";
 import {
   BrowserRouter,
   Routes,
@@ -87,6 +87,17 @@ function requireAdmin() {
 function AppShell() {
   const location = useLocation();
   const hideGlobalLogo = location.pathname === "/";
+
+  useEffect(() => {
+    function handlePageShow(event) {
+      if (event.persisted) {
+        window.location.reload();
+      }
+    }
+
+    window.addEventListener("pageshow", handlePageShow);
+    return () => window.removeEventListener("pageshow", handlePageShow);
+  }, []);
 
   return (
       <>

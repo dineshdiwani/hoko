@@ -11,7 +11,9 @@ import {
 export default function CityDashboard({
   city,
   category = "all",
+  cities = [],
   categories = [],
+  onCityChange,
   onCategoryChange,
   useSamplePosts = false,
   samplePostsEnabled = true
@@ -85,7 +87,11 @@ export default function CityDashboard({
   }
 
   useEffect(() => {
-    if (!city) return;
+    if (!city) {
+      setRequirements([]);
+      setShowingSampleData(false);
+      return;
+    }
 
     async function load() {
       setLoading(true);
@@ -163,17 +169,6 @@ export default function CityDashboard({
     return reqCategory === String(category).trim().toLowerCase();
   };
 
-  /* ---------------- EMPTY STATE ---------------- */
-  if (!city) {
-    return (
-      <div className="text-center py-10">
-        <p className="text-gray-500">
-          Select a city to view marketplace activity.
-        </p>
-      </div>
-    );
-  }
-
   /* ---------------- LOADING ---------------- */
   if (loading) {
     return (
@@ -245,6 +240,21 @@ export default function CityDashboard({
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-sm font-semibold text-gray-700">
+          City
+        </span>
+        <select
+          value={city}
+          onChange={(e) => onCityChange?.(e.target.value)}
+          className="w-full sm:w-auto max-w-full px-4 py-2.5 rounded-xl border text-sm bg-white"
+        >
+          <option value="">Select city</option>
+          {cities.map((item) => (
+            <option key={item} value={item}>
+              {item}
+            </option>
+          ))}
+        </select>
+        <span className="text-sm font-semibold text-gray-700">
           Category
         </span>
         <select
@@ -300,7 +310,13 @@ export default function CityDashboard({
         </div>
       )}
 
-      {totalRequirements === 0 && (
+      {!city && (
+        <div className="text-center py-10 text-gray-500">
+          Select a city to view marketplace activity.
+        </div>
+      )}
+
+      {city && totalRequirements === 0 && (
         <div className="text-center py-10 text-gray-500">
           No requirements posted for {city} yet.
         </div>
