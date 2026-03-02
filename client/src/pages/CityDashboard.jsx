@@ -74,6 +74,10 @@ export default function CityDashboard({
   }
 
   function getShareText(req) {
+    const reqId = String(req?._id || req?.id || "").trim();
+    const deepLink = `${appBaseUrl}/seller/deeplink/${encodeURIComponent(
+      reqId
+    )}?city=${encodeURIComponent(req?.city || city || "")}&postId=${encodeURIComponent(reqId)}`;
     const product = req.product || req.productName || "Requirement";
     const quantity = req.quantity ? `${req.quantity} ${req.unit || ""}` : "";
     const cityText = req.city || city || "";
@@ -83,20 +87,22 @@ export default function CityDashboard({
       category ? `Category: ${category}` : "",
       cityText ? `City: ${cityText}` : ""
     ].filter(Boolean);
-    return `${parts.join(" | ")}\nJoin hoko to respond: ${appBaseUrl}/seller/login`;
+    return `${parts.join(" | ")}\nSubmit offer on hoko: ${deepLink}`;
   }
 
   function getShareLinks(req) {
     const shareText = getShareText(req);
-    const shareUrl = `${appBaseUrl}/seller/login`;
+    const reqId = String(req?._id || req?.id || "").trim();
+    const shareUrl = `${appBaseUrl}/seller/deeplink/${encodeURIComponent(
+      reqId
+    )}?city=${encodeURIComponent(req?.city || city || "")}&postId=${encodeURIComponent(reqId)}`;
     const encodedText = encodeURIComponent(shareText);
     const encodedUrl = encodeURIComponent(shareUrl);
     return {
       whatsapp: `https://wa.me/?text=${encodedText}`,
       facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedText}`,
-      gmail: `https://mail.google.com/mail/?view=cm&fs=1&su=${encodeURIComponent(
-        "Buyer requirement on hoko"
-      )}&body=${encodedText}`
+      mail: `mailto:?subject=${encodeURIComponent("Requirement on hoko")}&body=${encodedText}`,
+      linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`
     };
   }
 
@@ -524,10 +530,8 @@ export default function CityDashboard({
                     </svg>
                   </a>
                   <a
-                    href={shareLinks.gmail}
-                    target="_blank"
-                    rel="noreferrer"
-                    aria-label="Share via Gmail"
+                    href={shareLinks.mail}
+                    aria-label="Share via Mail"
                     className="w-9 h-9 inline-flex items-center justify-center rounded-full border border-red-200 text-red-600 hover:bg-red-50"
                   >
                     <svg
@@ -537,6 +541,22 @@ export default function CityDashboard({
                       aria-hidden="true"
                     >
                       <path d="M20 4H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h4V9.7l4 3 4-3V20h4a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Zm0 4.2-8 6-8-6V6l8 6 8-6v2.2Z" />
+                    </svg>
+                  </a>
+                  <a
+                    href={shareLinks.linkedin}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label="Share on LinkedIn"
+                    className="w-9 h-9 inline-flex items-center justify-center rounded-full border border-sky-200 text-sky-700 hover:bg-sky-50"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="w-4 h-4"
+                      fill="currentColor"
+                      aria-hidden="true"
+                    >
+                      <path d="M6.94 8.5a1.56 1.56 0 1 1 0-3.12 1.56 1.56 0 0 1 0 3.12ZM5.5 9.75h2.88V19H5.5V9.75Zm4.63 0h2.75v1.26h.04c.38-.72 1.32-1.48 2.72-1.48 2.9 0 3.44 1.91 3.44 4.39V19h-2.87v-4.5c0-1.07-.02-2.45-1.5-2.45-1.5 0-1.73 1.17-1.73 2.38V19h-2.85V9.75Z" />
                     </svg>
                   </a>
                 </div>
