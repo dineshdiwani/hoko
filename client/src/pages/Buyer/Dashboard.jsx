@@ -47,7 +47,7 @@ export default function BuyerDashboard() {
   const persistedState = readBuyerDashboardState();
 
   const [activeTab, setActiveTab] = useState(persistedState.activeTab);
-  const [city, setCity] = useState(persistedState.city || session?.city || "");
+  const [city, setCity] = useState(session?.city || persistedState.city || "");
   const [selectedCategory, setSelectedCategory] = useState(
     persistedState.selectedCategory || "all"
   );
@@ -184,7 +184,7 @@ export default function BuyerDashboard() {
     setActiveTab((prev) =>
       prev === "posts" || prev === "city" || prev === "offers" ? prev : "posts"
     );
-    setCity((prev) => prev || session?.city || "");
+    setCity((prev) => session?.city || prev || "");
     setSelectedCategory((prev) => prev || "all");
   }, [sessionVersion, session?.token, session?.city]);
 
@@ -195,10 +195,12 @@ export default function BuyerDashboard() {
         if (nextCities.length) {
           setCities(nextCities);
           setCity((prevCity) => {
-            if (prevCity) return prevCity;
             const preferredCity = session?.city || "";
             if (preferredCity && nextCities.includes(preferredCity)) {
               return preferredCity;
+            }
+            if (prevCity && nextCities.includes(prevCity)) {
+              return prevCity;
             }
             return nextCities[0];
           });
