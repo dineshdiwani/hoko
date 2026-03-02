@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getSession, setSession } from "../../services/storage";
 import api from "../../services/api";
@@ -6,9 +6,11 @@ import NotificationCenter from "../../components/NotificationCenter";
 
 export default function BuyerWelcome() {
   const logoSrc = "/logo.png";
+  const introVideoSrc = "/welcome-intro.mp4";
   const [text, setText] = useState("");
   const [listening, setListening] = useState(false);
   const [speechStatus, setSpeechStatus] = useState("");
+  const [introPhase, setIntroPhase] = useState("play");
   const recognitionRef = useRef(null);
   const navigate = useNavigate();
   const session = getSession();
@@ -16,6 +18,27 @@ export default function BuyerWelcome() {
   const SpeechRecognition =
     typeof window !== "undefined" &&
     (window.SpeechRecognition || window.webkitSpeechRecognition);
+
+  useEffect(() => {
+    if (introPhase !== "converge") return;
+    const timer = setTimeout(() => {
+      setIntroPhase("done");
+    }, 900);
+    return () => clearTimeout(timer);
+  }, [introPhase]);
+
+  useEffect(() => {
+    if (introPhase === "done") return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [introPhase]);
+
+  function finishIntro() {
+    setIntroPhase((prev) => (prev === "done" ? prev : "converge"));
+  }
 
   function submitRequirement() {
     if (!text.trim()) {
@@ -111,6 +134,47 @@ export default function BuyerWelcome() {
 
   return (
     <div className="mf-theme">
+      {introPhase !== "done" && (
+        <div
+          className={`fixed inset-0 z-[140] bg-black transition-opacity duration-500 ${
+            introPhase === "converge" ? "opacity-0" : "opacity-100"
+          }`}
+        >
+          <video
+            className={`h-full w-full object-cover transition-transform duration-700 ${
+              introPhase === "converge" ? "scale-110" : "scale-100"
+            }`}
+            src={introVideoSrc}
+            autoPlay
+            muted
+            playsInline
+            preload="auto"
+            onEnded={finishIntro}
+            onError={() => setIntroPhase("done")}
+          />
+          <div
+            className={`pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transition-all duration-700 ${
+              introPhase === "converge"
+                ? "left-4 top-4 -translate-x-0 -translate-y-0 scale-50 opacity-0"
+                : "scale-100 opacity-100"
+            }`}
+          >
+            <img
+              src={logoSrc}
+              alt="hoko"
+              className="w-24 h-24 rounded-full object-contain shadow-2xl"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => setIntroPhase("done")}
+            className="absolute right-4 top-4 rounded-full bg-white/90 px-3 py-1.5 text-xs font-semibold text-slate-700"
+          >
+            Skip
+          </button>
+        </div>
+      )}
+
       <header className="mf-header">
         <div className="mf-shell !px-3 sm:!px-5 flex flex-wrap lg:flex-nowrap items-center justify-between gap-4 py-5">
           <div className="flex items-center gap-2 w-full lg:w-auto justify-start lg:justify-end">
