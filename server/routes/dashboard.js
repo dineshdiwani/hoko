@@ -19,10 +19,7 @@ router.get("/city/:city", auth, async (req, res) => {
 
   if (!isAllCities) {
     const cityRegex = new RegExp(`^${escapeRegex(requestedCity)}$`, "i");
-    requirementQuery.$or = [
-      { offerInvitedFrom: "anywhere" },
-      { city: cityRegex }
-    ];
+    requirementQuery.city = cityRegex;
   }
 
   const requirements = await Requirement.find(requirementQuery).sort({

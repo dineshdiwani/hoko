@@ -182,6 +182,14 @@ export default function CityDashboard({
     return reqCategory === String(category).trim().toLowerCase();
   };
 
+  const matchesCityFilter = (req) => {
+    if (!city || String(city).trim().toLowerCase() === "all") return true;
+    return (
+      String(req.city || "").trim().toLowerCase() ===
+      String(city).trim().toLowerCase()
+    );
+  };
+
   /* ---------------- LOADING ---------------- */
   if (loading) {
     return (
@@ -206,7 +214,10 @@ export default function CityDashboard({
   }
 
   const filteredRequirements = requirements.filter(
-    (req) => matchesTimeFilter(req) && matchesCategoryFilter(req)
+    (req) =>
+      matchesTimeFilter(req) &&
+      matchesCategoryFilter(req) &&
+      matchesCityFilter(req)
   );
   const totalRequirements = filteredRequirements.length;
   const liveAuctions = filteredRequirements.filter(
@@ -370,10 +381,24 @@ export default function CityDashboard({
                   )}
                 </div>
 
-                                <p className="text-sm text-[var(--ui-muted)]">
-                  {req.quantity || "-"} {req.unit || ""} |{" "}
-                  {req.category}
+                <p className="text-sm text-[var(--ui-muted)]">
+                  City: {req.city || "-"} | Category: {req.category || "-"}
                 </p>
+                <p className="text-sm text-[var(--ui-muted)]">
+                  Make/Brand: {req.makeBrand || req.brand || "-"} | Type/Model: {req.typeModel || "-"}
+                </p>
+                <p className="text-sm text-[var(--ui-muted)]">
+                  Quantity: {req.quantity || "-"} {req.type || req.unit || ""}
+                </p>
+                <p className="text-sm text-[var(--ui-muted)]">
+                  Offer invited from: {req.offerInvitedFrom === "anywhere" ? "Anywhere" : "City"}
+                </p>
+
+                {String(req.details || "").trim() && (
+                  <p className="text-sm text-[var(--ui-text)] mt-1 whitespace-pre-line break-words">
+                    {req.details}
+                  </p>
+                )}
 
                 {req.buyerName && (
                   <p className="text-xs text-gray-500 mt-1">

@@ -10,14 +10,47 @@ import ChatModal from "../../components/ChatModal";
 import { fetchOptions } from "../../services/options";
 import api from "../../services/api";
 
+const BUYER_DASHBOARD_STATE_KEY = "buyer_dashboard_state";
+
+function readBuyerDashboardState() {
+  if (typeof window === "undefined") {
+    return {
+      activeTab: "posts",
+      city: "",
+      selectedCategory: "all"
+    };
+  }
+  try {
+    const raw = JSON.parse(localStorage.getItem(BUYER_DASHBOARD_STATE_KEY) || "{}");
+    const safeTab =
+      raw?.activeTab === "posts" || raw?.activeTab === "city" || raw?.activeTab === "offers"
+        ? raw.activeTab
+        : "posts";
+    return {
+      activeTab: safeTab,
+      city: String(raw?.city || "").trim(),
+      selectedCategory: String(raw?.selectedCategory || "all").trim() || "all"
+    };
+  } catch {
+    return {
+      activeTab: "posts",
+      city: "",
+      selectedCategory: "all"
+    };
+  }
+}
+
 export default function BuyerDashboard() {
   const navigate = useNavigate();
   const [sessionVersion, setSessionVersion] = useState(0);
   const session = getSession();
+  const persistedState = readBuyerDashboardState();
 
-  const [activeTab, setActiveTab] = useState("posts");
-  const [city, setCity] = useState(session?.city || "");
-  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [activeTab, setActiveTab] = useState(persistedState.activeTab);
+  const [city, setCity] = useState(persistedState.city || session?.city || "");
+  const [selectedCategory, setSelectedCategory] = useState(
+    persistedState.selectedCategory || "all"
+  );
   const [cities, setCities] = useState([
     "Mumbai",
     "Delhi",
@@ -102,11 +135,28 @@ export default function BuyerDashboard() {
     setChatOpen(true);
   }
 
-  // Always reset dashboard filters to login defaults on load/re-sync.
+  // Keep selected filters/tabs on browser refresh.
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        BUYER_DASHBOARD_STATE_KEY,
+        JSON.stringify({
+          activeTab,
+          city,
+          selectedCategory
+        })
+      );
+    } catch {}
+  }, [activeTab, city, selectedCategory]);
+
+  // Ensure defaults are valid after session/token changes without overwriting persisted selections.
   useEffect(() => {
     if (!session?.token) return;
-    setCity(session?.city || "");
-    setSelectedCategory("all");
+    setActiveTab((prev) =>
+      prev === "posts" || prev === "city" || prev === "offers" ? prev : "posts"
+    );
+    setCity((prev) => prev || session?.city || "");
+    setSelectedCategory((prev) => prev || "all");
   }, [sessionVersion, session?.token, session?.city]);
 
   useEffect(() => {
