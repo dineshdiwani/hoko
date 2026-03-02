@@ -266,8 +266,10 @@ export default function OfferModal({
       });
       setOfferAttachments(nextAttachments);
       setFile(null);
-    } catch {
-      alert("Failed to submit offer. Try again.");
+    } catch (err) {
+      alert(
+        err?.response?.data?.message || "Failed to submit offer. Try again."
+      );
       return;
     }
     alert(

@@ -656,19 +656,27 @@ router.get("/dashboard", auth, sellerOnly, async (req, res) => {
   const targetCity = requestedCity;
 
   const requirementQuery = {
-    "moderation.removed": { $ne: true },
-    $and: []
+    "moderation.removed": { $ne: true }
   };
 
   if (!isAllCities && targetCity) {
-    const targetCityRegex = new RegExp(`^${escapeRegex(targetCity)}$`, "i");
-    requirementQuery.$and.push({
-      $or: [{ offerInvitedFrom: "anywhere" }, { city: targetCityRegex }]
-    });
+    requirementQuery.city = new RegExp(`^${escapeRegex(targetCity)}$`, "i");
   }
 
-  const requirements = await Requirement.find(requirementQuery).sort({
+  const sellerCityNormalized = normalizeText(req.user?.city);
+
+  const requirementsRaw = await Requirement.find(requirementQuery).sort({
     createdAt: -1
+  });
+
+  // Show only requirements that this seller can actually respond to:
+  // - "anywhere": always allowed
+  // - "city": only when requirement city equals seller city
+  const requirements = requirementsRaw.filter((requirement) => {
+    const inviteMode = normalizeOfferInvitedFrom(requirement.offerInvitedFrom);
+    if (inviteMode === "anywhere") return true;
+    if (!sellerCityNormalized) return false;
+    return normalizeText(requirement.city) === sellerCityNormalized;
   });
 
   const requirementIds = requirements.map((r) => r._id);
