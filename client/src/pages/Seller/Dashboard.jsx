@@ -54,6 +54,10 @@ export default function SellerDashboard() {
 
   const normalizeCategory = (cat) => String(cat || "").toLowerCase().trim();
   const normalizeCity = (value) => String(value || "").trim().toLowerCase();
+  const appBaseUrl =
+    typeof window !== "undefined"
+      ? window.location.origin
+      : "http://localhost:5173";
   const resolveCityValue = (value, cityList, fallback = "") => {
     const raw = String(value || "").trim();
     if (!raw) {
@@ -424,6 +428,37 @@ export default function SellerDashboard() {
     }
   }
 
+  function getShareText(req) {
+    const reqId = String(req?._id || "").trim();
+    if (!reqId) return "";
+    const deepLink = `${appBaseUrl}/seller/deeplink/${encodeURIComponent(
+      reqId
+    )}?city=${encodeURIComponent(req?.city || "")}&postId=${encodeURIComponent(reqId)}`;
+    const product = req.product || req.productName || "Requirement";
+    const quantity = req.quantity ? `${req.quantity} ${req.type || req.unit || ""}` : "";
+    const parts = [
+      `${product}${quantity ? ` (${quantity})` : ""}`,
+      req.category ? `Category: ${req.category}` : "",
+      req.city ? `City: ${req.city}` : ""
+    ].filter(Boolean);
+    return `${parts.join(" | ")}\nSubmit offer on hoko: ${deepLink}`;
+  }
+
+  function getShareLinks(req) {
+    const reqId = String(req?._id || "").trim();
+    const deepLink = `${appBaseUrl}/seller/deeplink/${encodeURIComponent(
+      reqId
+    )}?city=${encodeURIComponent(req?.city || "")}&postId=${encodeURIComponent(reqId)}`;
+    const text = encodeURIComponent(getShareText(req));
+    const url = encodeURIComponent(deepLink);
+    return {
+      whatsapp: `https://wa.me/?text=${text}`,
+      facebook: `https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${text}`,
+      mail: `mailto:?subject=${encodeURIComponent("Requirement on hoko")}&body=${text}`,
+      linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${url}`
+    };
+  }
+
   async function openRequirementWithHighlights(requirementId, changedFields = []) {
     if (!requirementId) return;
     const existingRequirement = requirements.find(
@@ -752,6 +787,7 @@ export default function SellerDashboard() {
               const showAuctionForSeller = req.myOffer && isAuction;
               const lowestPrice = req.reverseAuction?.lowestPrice ?? req.currentLowestPrice ?? "-";
               const attachments = Array.isArray(req.attachments) ? req.attachments : [];
+              const shareLinks = getShareLinks(req);
               const requirementDetails = String(
                 req.details || req.description || ""
               ).trim();
@@ -853,6 +889,52 @@ export default function SellerDashboard() {
                       </button>
                     </>
                   )}
+
+                  <div className="mt-3 flex items-center gap-2">
+                    <span className="ui-label text-[var(--ui-muted)]">Share:</span>
+                    <a
+                      href={shareLinks.whatsapp}
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label="Share on WhatsApp"
+                      className="w-9 h-9 inline-flex items-center justify-center rounded-full border border-green-200 text-green-700 hover:bg-green-50"
+                    >
+                      <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor" aria-hidden="true">
+                        <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.93.51 3.77 1.49 5.4L2 22l4.85-1.58a9.85 9.85 0 0 0 5.19 1.46h.01c5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2Zm5.74 14.1c-.24.69-1.19 1.27-1.82 1.36-.6.08-1.35.11-2.2-.14-.51-.16-1.16-.38-2.01-.73-3.54-1.53-5.85-5.09-6.03-5.34-.17-.25-1.45-1.93-1.45-3.68 0-1.75.92-2.62 1.24-2.98.32-.36.69-.45.92-.45.23 0 .46 0 .66.01.22 0 .51-.08.8.6.29.69.98 2.42 1.06 2.59.08.17.14.37.02.6-.11.23-.17.37-.34.57-.17.2-.36.45-.51.61-.17.17-.35.35-.15.69.2.34.89 1.47 1.92 2.38 1.32 1.18 2.43 1.55 2.78 1.72.34.17.55.14.75-.08.2-.23.86-1 1.08-1.35.23-.34.45-.29.75-.17.31.11 1.94.92 2.28 1.08.34.17.57.26.66.4.09.14.09.8-.15 1.49Z" />
+                      </svg>
+                    </a>
+                    <a
+                      href={shareLinks.facebook}
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label="Share on Facebook"
+                      className="w-9 h-9 inline-flex items-center justify-center rounded-full border border-blue-200 text-blue-700 hover:bg-blue-50"
+                    >
+                      <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor" aria-hidden="true">
+                        <path d="M22 12.06C22 6.51 17.52 2 12 2S2 6.51 2 12.06c0 5.02 3.66 9.18 8.44 9.94v-7.03H7.9v-2.91h2.54V9.41c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.23.2 2.23.2v2.45h-1.26c-1.24 0-1.62.77-1.62 1.56v1.87h2.76l-.44 2.91h-2.32v7.03C18.34 21.24 22 17.08 22 12.06Z" />
+                      </svg>
+                    </a>
+                    <a
+                      href={shareLinks.mail}
+                      aria-label="Share via Mail"
+                      className="w-9 h-9 inline-flex items-center justify-center rounded-full border border-red-200 text-red-600 hover:bg-red-50"
+                    >
+                      <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor" aria-hidden="true">
+                        <path d="M20 4H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Zm0 4.2-8 6-8-6V6l8 6 8-6v2.2Z" />
+                      </svg>
+                    </a>
+                    <a
+                      href={shareLinks.linkedin}
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label="Share on LinkedIn"
+                      className="w-9 h-9 inline-flex items-center justify-center rounded-full border border-sky-200 text-sky-700 hover:bg-sky-50"
+                    >
+                      <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor" aria-hidden="true">
+                        <path d="M6.94 8.5a1.56 1.56 0 1 1 0-3.12 1.56 1.56 0 0 1 0 3.12ZM5.5 9.75h2.88V19H5.5V9.75Zm4.63 0h2.75v1.26h.04c.38-.72 1.32-1.48 2.72-1.48 2.9 0 3.44 1.91 3.44 4.39V19h-2.87v-4.5c0-1.07-.02-2.45-1.5-2.45-1.5 0-1.73 1.17-1.73 2.38V19h-2.85V9.75Z" />
+                      </svg>
+                    </a>
+                  </div>
 
                   <button
                     onClick={() => {
