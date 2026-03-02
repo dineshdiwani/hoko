@@ -191,6 +191,21 @@ export default function CityDashboard({
     );
   };
 
+  const filteredRequirements = requirements.filter(
+    (req) =>
+      matchesTimeFilter(req) &&
+      matchesCategoryFilter(req) &&
+      matchesCityFilter(req)
+  );
+  const totalRequirements = filteredRequirements.length;
+  const liveAuctions = filteredRequirements.filter(
+    (req) => req.reverseAuction?.active || req.reverseAuctionActive
+  ).length;
+
+  useEffect(() => {
+    onVisibleCountChange?.(filteredRequirements.length);
+  }, [filteredRequirements.length, onVisibleCountChange]);
+
   /* ---------------- LOADING ---------------- */
   if (loading) {
     return (
@@ -213,20 +228,6 @@ export default function CityDashboard({
       </div>
     );
   }
-
-  const filteredRequirements = requirements.filter(
-    (req) =>
-      matchesTimeFilter(req) &&
-      matchesCategoryFilter(req) &&
-      matchesCityFilter(req)
-  );
-  useEffect(() => {
-    onVisibleCountChange?.(filteredRequirements.length);
-  }, [filteredRequirements.length, onVisibleCountChange]);
-  const totalRequirements = filteredRequirements.length;
-  const liveAuctions = filteredRequirements.filter(
-    (req) => req.reverseAuction?.active || req.reverseAuctionActive
-  ).length;
 
   async function toggleReverseAuction(req) {
     const reqId = String(req._id || req.id || "");
