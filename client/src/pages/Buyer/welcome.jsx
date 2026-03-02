@@ -11,6 +11,7 @@ export default function BuyerWelcome() {
   const [listening, setListening] = useState(false);
   const [speechStatus, setSpeechStatus] = useState("");
   const [introPhase, setIntroPhase] = useState("play");
+  const introVideoRef = useRef(null);
   const recognitionRef = useRef(null);
   const navigate = useNavigate();
   const session = getSession();
@@ -23,7 +24,7 @@ export default function BuyerWelcome() {
     if (introPhase !== "converge") return;
     const timer = setTimeout(() => {
       setIntroPhase("done");
-    }, 900);
+    }, 500);
     return () => clearTimeout(timer);
   }, [introPhase]);
 
@@ -38,6 +39,16 @@ export default function BuyerWelcome() {
 
   function finishIntro() {
     setIntroPhase((prev) => (prev === "done" ? prev : "converge"));
+  }
+
+  function handleIntroLoadedMetadata(event) {
+    const video = event?.currentTarget || introVideoRef.current;
+    if (!video) return;
+    const duration = Number(video.duration || 0);
+    if (!duration || Number.isNaN(duration)) return;
+    const targetSeconds = 2;
+    const nextRate = duration / targetSeconds;
+    video.playbackRate = Math.max(0.5, Math.min(nextRate, 8));
   }
 
   function submitRequirement() {
@@ -141,14 +152,16 @@ export default function BuyerWelcome() {
           }`}
         >
           <video
-            className={`h-full w-full object-cover transition-transform duration-700 ${
-              introPhase === "converge" ? "scale-110" : "scale-100"
+            ref={introVideoRef}
+            className={`h-full w-full object-contain transition-transform duration-700 ${
+              introPhase === "converge" ? "scale-105" : "scale-100"
             }`}
             src={introVideoSrc}
             autoPlay
             muted
             playsInline
             preload="auto"
+            onLoadedMetadata={handleIntroLoadedMetadata}
             onEnded={finishIntro}
             onError={() => setIntroPhase("done")}
           />
