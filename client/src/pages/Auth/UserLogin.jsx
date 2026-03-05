@@ -202,7 +202,7 @@ export default function UserLogin({ role = "buyer" }) {
       localStorage.setItem(
         "buyer_dashboard_state",
         JSON.stringify({
-          activeTab: "city",
+          activeTab: "posts",
           city: String(nextCity || city || "").trim(),
           selectedCategory: "all"
         })

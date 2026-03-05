@@ -15,7 +15,7 @@ const BUYER_DASHBOARD_STATE_KEY = "buyer_dashboard_state";
 function readBuyerDashboardState() {
   if (typeof window === "undefined") {
     return {
-      activeTab: "city",
+      activeTab: "posts",
       city: "",
       selectedCategory: "all"
     };
@@ -25,7 +25,7 @@ function readBuyerDashboardState() {
     const safeTab =
       raw?.activeTab === "posts" || raw?.activeTab === "city" || raw?.activeTab === "offers"
         ? raw.activeTab
-        : "city";
+        : "posts";
     return {
       activeTab: safeTab,
       city: String(raw?.city || "").trim(),
@@ -33,7 +33,7 @@ function readBuyerDashboardState() {
     };
   } catch {
     return {
-      activeTab: "city",
+      activeTab: "posts",
       city: "",
       selectedCategory: "all"
     };
@@ -182,7 +182,7 @@ export default function BuyerDashboard() {
   useEffect(() => {
     if (!session?.token) return;
     setActiveTab((prev) =>
-      prev === "posts" || prev === "city" || prev === "offers" ? prev : "city"
+      prev === "posts" || prev === "city" || prev === "offers" ? prev : "posts"
     );
     setCity((prev) => session?.city || prev || "");
     setSelectedCategory((prev) => prev || "all");
