@@ -114,6 +114,14 @@ export default function MyPosts({
     onVisibleCountChange?.(filteredRequirements.length);
   }, [filteredRequirements.length, onVisibleCountChange]);
 
+  const shouldShowMobileCompareHint = Boolean(
+    compareHintReqId &&
+      filteredRequirements.some((req) => {
+        const reqId = String(req._id || req.id || "");
+        return reqId === compareHintReqId && Number(req.offerCount || 0) < 2;
+      })
+  );
+
   async function openSellerDetails(sellerId) {
     if (!sellerId) return;
     setSellerModalOpen(true);
@@ -503,7 +511,7 @@ export default function MyPosts({
                   Compare Offers
                 </button>
                 {offerCount < 2 && compareHintReqId === reqId && (
-                  <div className="fixed left-1/2 bottom-4 z-20 w-[min(92vw,22rem)] -translate-x-1/2 rounded-lg bg-black px-3 py-2 text-center text-xs text-white shadow-lg whitespace-normal break-words sm:absolute sm:left-1/2 sm:bottom-auto sm:top-full sm:mt-2">
+                  <div className="absolute left-1/2 top-full z-20 mt-2 hidden w-[min(90vw,22rem)] -translate-x-1/2 rounded-lg bg-black px-3 py-2 text-center text-xs text-white shadow-lg whitespace-normal break-words sm:block">
                     You must have 2 or more offer to compare
                   </div>
                 )}
@@ -572,6 +580,12 @@ export default function MyPosts({
         );
         })}
       </div>
+
+      {shouldShowMobileCompareHint && (
+        <div className="fixed bottom-4 left-1/2 z-30 w-[calc(100vw-2rem)] max-w-sm -translate-x-1/2 rounded-lg bg-black px-3 py-2 text-center text-xs text-white shadow-lg sm:hidden">
+          You must have 2 or more offer to compare
+        </div>
+      )}
 
       {sellerModalOpen && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
