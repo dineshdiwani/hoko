@@ -7,18 +7,35 @@ import NotificationCenter from "../../components/NotificationCenter";
 export default function BuyerWelcome() {
   const logoSrc = "/logo.png";
   const introVideoSrc = "/welcome-intro.mp4";
+  const session = getSession();
+  const isLoggedIn = Boolean(session?.token);
+  const isMobileViewport =
+    typeof window !== "undefined" &&
+    window.matchMedia("(max-width: 767px)").matches;
   const [text, setText] = useState("");
   const [listening, setListening] = useState(false);
   const [speechStatus, setSpeechStatus] = useState("");
-  const [introPhase, setIntroPhase] = useState("play");
+  const [introPhase, setIntroPhase] = useState(
+    isMobileViewport && !isLoggedIn ? "play" : "done"
+  );
   const introVideoRef = useRef(null);
   const recognitionRef = useRef(null);
   const navigate = useNavigate();
-  const session = getSession();
-  const isLoggedIn = Boolean(session?.token);
   const SpeechRecognition =
     typeof window !== "undefined" &&
     (window.SpeechRecognition || window.webkitSpeechRecognition);
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      setIntroPhase("done");
+      return;
+    }
+    if (isMobileViewport) {
+      setIntroPhase((prev) => (prev === "done" ? "play" : prev));
+      return;
+    }
+    setIntroPhase("done");
+  }, [isLoggedIn, isMobileViewport]);
 
   useEffect(() => {
     if (introPhase !== "converge") return;
@@ -178,15 +195,17 @@ export default function BuyerWelcome() {
       <header className="mf-header">
         <div className="mf-shell !px-3 sm:!px-5 flex flex-wrap lg:flex-nowrap items-center justify-between gap-4 py-5">
           <div className="flex items-center gap-2 w-full lg:w-auto justify-start lg:justify-end">
-            <img
-              src={logoSrc}
-              alt="hoko"
-              onError={(e) => {
-                e.currentTarget.onerror = null;
-                e.currentTarget.src = `${import.meta.env.BASE_URL}logo.png`;
-              }}
-              className="w-[4.2rem] h-[4.2rem] rounded-full object-contain mf-logo-enter"
-            />
+            {introPhase === "done" && (
+              <img
+                src={logoSrc}
+                alt="hoko"
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = `${import.meta.env.BASE_URL}logo.png`;
+                }}
+                className="w-[4.2rem] h-[4.2rem] rounded-full object-contain mf-logo-enter"
+              />
+            )}
             <div>
               <p className="mf-wordmark mf-wordmark-enter">
                 <span className="text-slate-900">h</span>oko
