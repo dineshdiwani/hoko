@@ -496,15 +496,15 @@ export default function MyPosts({
                   aria-disabled={offerCount < 2}
                   title={
                     offerCount < 2
-                      ? "You must have minimum 2 offers to compare."
+                      ? "You must have 2 or more offer to compare"
                       : "Compare offers"
                   }
                 >
                   Compare Offers
                 </button>
                 {offerCount < 2 && compareHintReqId === reqId && (
-                  <div className="absolute left-1/2 top-full z-20 mt-2 w-[min(90vw,22rem)] -translate-x-1/2 rounded-lg bg-black px-3 py-2 text-center text-xs text-white shadow-lg whitespace-normal break-words">
-                    You must have minimum 2 offers to compare.
+                  <div className="fixed left-1/2 bottom-4 z-20 w-[min(92vw,22rem)] -translate-x-1/2 rounded-lg bg-black px-3 py-2 text-center text-xs text-white shadow-lg whitespace-normal break-words sm:absolute sm:left-1/2 sm:bottom-auto sm:top-full sm:mt-2">
+                    You must have 2 or more offer to compare
                   </div>
                 )}
               </div>
