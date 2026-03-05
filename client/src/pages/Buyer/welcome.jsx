@@ -562,8 +562,8 @@ export default function BuyerWelcome() {
             <div>
               <p className="mf-section-eyebrow">Contact</p>
               <h2 className="mf-section-title">Need help right away?</h2>
-            <p className="text-slate-600 mt-2">
-                Email support@hoko.app or call +91-90000-00000.
+              <p className="text-slate-600 mt-2">
+                Email support@hokoapp.in or call +91 9714181982.
               </p>
             </div>
             <button className="mf-btn">Talk to support</button>
