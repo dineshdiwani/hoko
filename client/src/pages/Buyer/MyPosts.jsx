@@ -27,6 +27,7 @@ export default function MyPosts({
   const [auctionLoadingById, setAuctionLoadingById] = useState({});
   const [auctionHintReqId, setAuctionHintReqId] = useState("");
   const [compareHintReqId, setCompareHintReqId] = useState("");
+  const [compareHintTop, setCompareHintTop] = useState(null);
   const modalRef = useRef(null);
   const getDialableMobile = (value) =>
     String(value || "").trim().replace(/[^\d+]/g, "");
@@ -121,6 +122,19 @@ export default function MyPosts({
         return reqId === compareHintReqId && Number(req.offerCount || 0) < 2;
       })
   );
+
+  function showCompareHint(reqId, targetEl) {
+    setCompareHintReqId(reqId);
+    if (targetEl?.getBoundingClientRect) {
+      const rect = targetEl.getBoundingClientRect();
+      const viewportHeight =
+        typeof window !== "undefined" ? window.innerHeight || 0 : 0;
+      const nextTop = Math.min(Math.max(rect.bottom + 8, 12), Math.max(viewportHeight - 60, 12));
+      setCompareHintTop(nextTop);
+      return;
+    }
+    setCompareHintTop(null);
+  }
 
   async function openSellerDetails(sellerId) {
     if (!sellerId) return;
@@ -470,28 +484,29 @@ export default function MyPosts({
               </button>
               <div
                 className="relative inline-flex"
-                onMouseEnter={() => {
+                onMouseEnter={(e) => {
                   if (offerCount < 2) {
-                    setCompareHintReqId(reqId);
+                    showCompareHint(reqId, e.currentTarget);
                   }
                 }}
                 onMouseLeave={() => {
                   if (compareHintReqId === reqId) {
                     setCompareHintReqId("");
+                    setCompareHintTop(null);
                   }
                 }}
                 onClick={(e) => {
                   if (offerCount >= 2) return;
                   e.preventDefault();
                   e.stopPropagation();
-                  setCompareHintReqId(reqId);
+                  showCompareHint(reqId, e.currentTarget);
                 }}
               >
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     if (offerCount < 2) {
-                      setCompareHintReqId(reqId);
+                      showCompareHint(reqId, e.currentTarget?.parentElement || e.currentTarget);
                       return;
                     }
                     navigate(`/buyer/requirement/${reqId}/compare`);
@@ -582,7 +597,10 @@ export default function MyPosts({
       </div>
 
       {shouldShowMobileCompareHint && (
-        <div className="fixed bottom-4 left-1/2 z-30 w-[calc(100vw-2rem)] max-w-sm -translate-x-1/2 rounded-lg bg-black px-3 py-2 text-center text-xs text-white shadow-lg sm:hidden">
+        <div
+          className="fixed left-1/2 z-30 w-[calc(100vw-2rem)] max-w-sm -translate-x-1/2 rounded-lg bg-black px-3 py-2 text-center text-xs text-white shadow-lg sm:hidden"
+          style={compareHintTop ? { top: `${compareHintTop}px` } : { top: "12px" }}
+        >
           You must have 2 or more offer to compare
         </div>
       )}
