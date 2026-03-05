@@ -26,6 +26,7 @@ export default function MyPosts({
   const [sellerDetails, setSellerDetails] = useState(null);
   const [auctionLoadingById, setAuctionLoadingById] = useState({});
   const [auctionHintReqId, setAuctionHintReqId] = useState("");
+  const [compareHintReqId, setCompareHintReqId] = useState("");
   const modalRef = useRef(null);
   const getDialableMobile = (value) =>
     String(value || "").trim().replace(/[^\d+]/g, "");
@@ -459,24 +460,54 @@ export default function MyPosts({
               >
                 Enable Chat
               </button>
-              <button
-                onClick={() =>
-                  navigate(`/buyer/requirement/${reqId}/compare`)
-                }
-                disabled={offerCount < 2}
-                className={`inline-flex h-10 min-w-[120px] items-center justify-center px-4 rounded-lg text-xs font-semibold ${
-                  offerCount < 2
-                    ? "bg-gray-300 text-gray-600 cursor-not-allowed"
-                    : "bg-slate-900 text-white hover:bg-slate-800"
-                }`}
-                title={
-                  offerCount < 2
-                    ? "At least 2 offers are required"
-                    : "Compare offers"
-                }
+              <div
+                className="relative inline-flex"
+                onMouseEnter={() => {
+                  if (offerCount < 2) {
+                    setCompareHintReqId(reqId);
+                  }
+                }}
+                onMouseLeave={() => {
+                  if (compareHintReqId === reqId) {
+                    setCompareHintReqId("");
+                  }
+                }}
+                onClick={(e) => {
+                  if (offerCount >= 2) return;
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setCompareHintReqId(reqId);
+                }}
               >
-                Compare Offers
-              </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (offerCount < 2) {
+                      setCompareHintReqId(reqId);
+                      return;
+                    }
+                    navigate(`/buyer/requirement/${reqId}/compare`);
+                  }}
+                  className={`inline-flex h-10 min-w-[120px] items-center justify-center px-4 rounded-lg text-xs font-semibold ${
+                    offerCount < 2
+                      ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                      : "bg-slate-900 text-white hover:bg-slate-800"
+                  }`}
+                  aria-disabled={offerCount < 2}
+                  title={
+                    offerCount < 2
+                      ? "You must have minimum 2 offers to compare."
+                      : "Compare offers"
+                  }
+                >
+                  Compare Offers
+                </button>
+                {offerCount < 2 && compareHintReqId === reqId && (
+                  <div className="absolute left-1/2 top-full z-20 mt-2 w-[min(90vw,22rem)] -translate-x-1/2 rounded-lg bg-black px-3 py-2 text-center text-xs text-white shadow-lg whitespace-normal break-words">
+                    You must have minimum 2 offers to compare.
+                  </div>
+                )}
+              </div>
               <div
                 className="relative inline-flex"
                 onMouseEnter={() => {
