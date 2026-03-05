@@ -51,7 +51,7 @@ export default function UserLogin({ role = "buyer" }) {
 
   const redirect = isSeller
     ? localStorage.getItem("post_login_redirect") || "/seller/dashboard"
-    : "/buyer/my-posts";
+    : "/buyer/dashboard";
   const cityRef = useRef(city);
   const acceptedTermsRef = useRef(acceptedTerms);
 
@@ -196,6 +196,20 @@ export default function UserLogin({ role = "buyer" }) {
     return user?.name || "Buyer";
   }
 
+  function setBuyerDashboardDefaultTab(nextCity) {
+    if (currentRole !== "buyer") return;
+    try {
+      localStorage.setItem(
+        "buyer_dashboard_state",
+        JSON.stringify({
+          activeTab: "city",
+          city: String(nextCity || city || "").trim(),
+          selectedCategory: "all"
+        })
+      );
+    } catch {}
+  }
+
   function verifyOtp() {
     setSubmitted(true);
     if (!acceptedTerms) {
@@ -240,6 +254,7 @@ export default function UserLogin({ role = "buyer" }) {
         }
 
         localStorage.removeItem("login_intent_role");
+        setBuyerDashboardDefaultTab(user.city || city);
         navigate(redirect, { replace: true });
       })
       .catch((err) => {
@@ -313,6 +328,7 @@ export default function UserLogin({ role = "buyer" }) {
         }
 
         localStorage.removeItem("login_intent_role");
+        setBuyerDashboardDefaultTab(user.city || selectedCity);
         navigate(redirect, { replace: true });
       })
       .catch((err) => {
