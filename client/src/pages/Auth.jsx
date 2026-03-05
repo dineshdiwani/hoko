@@ -48,7 +48,7 @@ export default function Auth() {
     // Refresh authenticated socket after login
     refreshSocketAuth();
 
-    navigate("/dashboard");
+    navigate("/buyer/dashboard");
   }
 
   return (

@@ -109,6 +109,11 @@ function AppShell() {
           <Routes>
           {/* Landing */}
           <Route path="/" element={<BuyerWelcome />} />
+          <Route path="/auth" element={<Navigate to="/buyer/login" replace />} />
+          <Route
+            path="/dashboard"
+            element={<Navigate to="/buyer/dashboard" replace />}
+          />
 
         {/* Buyer */}
         <Route path="/buyer/login" element={<BuyerLogin />} />
