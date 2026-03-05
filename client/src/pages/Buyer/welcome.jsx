@@ -64,7 +64,7 @@ export default function BuyerWelcome() {
     }
 
     if (currentSession.role === "buyer" || currentSession.roles?.buyer) {
-      navigate("/buyer/my-posts");
+      navigate("/buyer/dashboard");
       return;
     }
 
@@ -81,7 +81,7 @@ export default function BuyerWelcome() {
           preferredCurrency: res.data.user.preferredCurrency,
           token: res.data.token
         });
-        navigate("/buyer/my-posts");
+        navigate("/buyer/dashboard");
       })
       .catch(() => {
         navigate("/buyer/login");
@@ -263,7 +263,7 @@ export default function BuyerWelcome() {
               onClick={async () => {
                 if (!isLoggedIn) {
                   localStorage.setItem("login_intent_role", "seller");
-                  navigate("/buyer/login");
+                  navigate("/seller/login");
                   return;
                 }
                 try {
