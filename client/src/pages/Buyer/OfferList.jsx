@@ -377,7 +377,7 @@ export default function OfferList() {
               : "Invoke Reverse Auction"}
           </button>
           {showDisabledInvokeHint && showAuctionHint && (
-            <div className="absolute left-1/2 top-full z-20 mt-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-black px-3 py-2 text-xs text-white shadow-lg">
+            <div className="absolute left-1/2 top-full z-20 mt-2 w-[min(90vw,22rem)] -translate-x-1/2 rounded-lg bg-black px-3 py-2 text-center text-xs text-white shadow-lg whitespace-normal break-words">
               You must receive 3 or more offers before you invoke reverse auction.
             </div>
           )}
