@@ -358,6 +358,22 @@ router.post("/requirement", auth, buyerOnly, async (req, res) => {
           io.to(String(sellerId)).emit("notification", notification);
         });
       }
+
+      await Promise.all(
+        sellerIds.map(async (sellerId) => {
+          try {
+            await sendPush(String(sellerId), {
+              title: "New Buyer Post",
+              body: `New post in ${requirement.category || "your"} category: ${requirementName}`,
+              data: {
+                url: "/seller/dashboard"
+              }
+            });
+          } catch {
+            // Non-blocking push failures.
+          }
+        })
+      );
     } catch (err) {
       console.warn(
         "Seller new-post notification dispatch failed:",

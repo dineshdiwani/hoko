@@ -247,6 +247,11 @@ io.on("connection", (socket) => {
         type: "offer_viewed"
       }).then((notif) => {
         io.to(String(sellerId)).emit("notification", notif);
+        sendPush(String(sellerId), {
+          title: "Offer Viewed",
+          body: message,
+          data: { url: "/seller/dashboard" }
+        }).catch(() => {});
       });
     }
   });
@@ -262,6 +267,11 @@ io.on("connection", (socket) => {
         type: "reverse_auction"
       }).then((notif) => {
         io.to(String(sellerId)).emit("notification", notif);
+        sendPush(String(sellerId), {
+          title: `Reverse Auction: ${product}`,
+          body: message,
+          data: { url: "/seller/dashboard" }
+        }).catch(() => {});
       });
     }
   });
