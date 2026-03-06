@@ -23,7 +23,13 @@ router.post("/subscribe", auth, async (req, res) => {
 });
 
 router.post("/unsubscribe", auth, async (req, res) => {
-  await PushSubscription.deleteMany({ userId: String(req.user._id) });
+  const userId = String(req.user._id);
+  const endpoint = String(req.body?.endpoint || "").trim();
+  if (endpoint) {
+    await PushSubscription.deleteMany({ userId, endpoint });
+  } else {
+    await PushSubscription.deleteMany({ userId });
+  }
   return res.json({ success: true });
 });
 

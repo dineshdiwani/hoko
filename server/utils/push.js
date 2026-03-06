@@ -15,9 +15,14 @@ if (vapidPublicKey && vapidPrivateKey) {
  */
 
 async function subscribeToPush(userId, subscription) {
+  const endpoint = String(subscription?.endpoint || "").trim();
+  if (!endpoint) {
+    throw new Error("Invalid subscription endpoint");
+  }
+
   await PushSubscription.findOneAndUpdate(
-    { userId },
-    { subscription },
+    { userId, endpoint },
+    { userId, endpoint, subscription },
     { upsert: true }
   );
 }
