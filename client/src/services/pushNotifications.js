@@ -24,6 +24,13 @@ async function upsertSubscription(subscription) {
   });
 }
 
+function hasValidSubscriptionKeys(subscription) {
+  const endpoint = String(subscription?.endpoint || "").trim();
+  const auth = String(subscription?.toJSON?.().keys?.auth || subscription?.keys?.auth || "").trim();
+  const p256dh = String(subscription?.toJSON?.().keys?.p256dh || subscription?.keys?.p256dh || "").trim();
+  return Boolean(endpoint && auth && p256dh);
+}
+
 async function ensurePushSubscriptionInternal() {
   const session = getSession();
   if (!session?.token) return false;
@@ -46,8 +53,21 @@ async function ensurePushSubscriptionInternal() {
 
   const existing = await registration.pushManager.getSubscription();
   if (existing) {
-    await upsertSubscription(existing);
-    return true;
+    if (!hasValidSubscriptionKeys(existing)) {
+      try {
+        await existing.unsubscribe();
+      } catch {}
+    } else {
+      try {
+        await upsertSubscription(existing);
+        return true;
+      } catch {
+        // Fall through and re-create subscription if server upsert fails.
+        try {
+          await existing.unsubscribe();
+        } catch {}
+      }
+    }
   }
 
   const subscription = await registration.pushManager.subscribe({

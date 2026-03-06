@@ -21,7 +21,7 @@ module.exports = async function sendPush(userId, payload) {
         );
       } catch (error) {
         const statusCode = Number(error?.statusCode || 0);
-        if (statusCode === 404 || statusCode === 410) {
+        if ([400, 401, 403, 404, 410].includes(statusCode)) {
           await Push.deleteOne({ _id: record._id });
           return;
         }

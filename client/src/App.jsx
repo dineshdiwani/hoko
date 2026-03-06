@@ -108,6 +108,27 @@ function AppShell() {
   useEffect(() => {
     const session = getSession();
     if (!session?.token) return;
+
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        ensurePushSubscription().catch(() => {});
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
+    const timer = window.setInterval(() => {
+      ensurePushSubscription().catch(() => {});
+    }, 60000);
+
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.clearInterval(timer);
+    };
+  }, []);
+
+  useEffect(() => {
+    const session = getSession();
+    if (!session?.token) return;
     connectSocket();
 
     const onNotification = async (notif) => {
