@@ -12,6 +12,7 @@ const Notification = require("./models/Notification");
 const Requirement = require("./models/Requirement");
 const Offer = require("./models/Offer");
 const User = require("./models/User");
+const sendPush = require("./utils/sendPush");
 const auth = require("./middleware/auth");
 const { getModerationRules, checkTextForFlags } = require("./utils/moderation");
 const {
@@ -381,6 +382,12 @@ io.on("connection", (socket) => {
         const chatNotificationsEnabled =
           !toUserDoc?.roles?.buyer ||
           toUserDoc?.buyerSettings?.notificationToggles?.chat !== false;
+        const chatPushEnabled =
+          !toUserDoc?.roles?.buyer ||
+          (
+            toUserDoc?.buyerSettings?.notificationToggles?.chat !== false &&
+            toUserDoc?.buyerSettings?.notificationToggles?.pushEnabled !== false
+          );
 
         if (chatNotificationsEnabled) {
           const notif = await Notification.create({
@@ -391,6 +398,22 @@ io.on("connection", (socket) => {
             message: `New message: ${shortened || "Open chat to view message"}`
           });
           io.to(String(effectiveTo)).emit("notification", notif);
+
+          if (chatPushEnabled) {
+            try {
+              const destination =
+                toUserDoc?.roles?.seller ? "/seller/dashboard" : "/buyer/dashboard";
+              await sendPush(String(effectiveTo), {
+                title: "New Chat Message",
+                body: shortened || "Open chat to view message",
+                data: {
+                  url: destination
+                }
+              });
+            } catch {
+              // Non-blocking push failures.
+            }
+          }
         }
       } catch (err) {
         console.warn("Notification create failed:", err.message);

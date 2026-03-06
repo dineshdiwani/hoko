@@ -8,6 +8,7 @@ const Offer = require("../models/Offer");
 const Requirement = require("../models/Requirement");
 const User = require("../models/User");
 const Notification = require("../models/Notification");
+const sendPush = require("../utils/sendPush");
 
 const router = express.Router();
 
@@ -162,6 +163,12 @@ router.post("/upload", auth, uploadSingleFile, async (req, res) => {
       const chatNotificationsEnabled =
         !toUser?.roles?.buyer ||
         toUser?.buyerSettings?.notificationToggles?.chat !== false;
+      const chatPushEnabled =
+        !toUser?.roles?.buyer ||
+        (
+          toUser?.buyerSettings?.notificationToggles?.chat !== false &&
+          toUser?.buyerSettings?.notificationToggles?.pushEnabled !== false
+        );
       if (chatNotificationsEnabled) {
         const notif = await Notification.create({
           userId: to,
@@ -172,6 +179,22 @@ router.post("/upload", auth, uploadSingleFile, async (req, res) => {
         });
         if (io) {
           io.to(String(to)).emit("notification", notif);
+        }
+
+        if (chatPushEnabled) {
+          try {
+            const destination =
+              toUser?.roles?.seller ? "/seller/dashboard" : "/buyer/dashboard";
+            await sendPush(String(to), {
+              title: "New Chat File",
+              body: "A file was shared in your chat",
+              data: {
+                url: destination
+              }
+            });
+          } catch {
+            // Non-blocking push failures.
+          }
         }
       }
     } catch {
