@@ -33,6 +33,7 @@ const AdminOperations = lazy(() => import("./pages/Admin/AdminOperations"));
 
 import OfflineBanner from "./components/OfflineBanner";
 import AppDialog from "./components/AppDialog";
+import NotificationPermissionPrompt from "./components/NotificationPermissionPrompt";
 import { getSession } from "./services/auth";
 import { ensurePushSubscription } from "./services/pushNotifications";
 import socket, { connectSocket } from "./services/socket";
@@ -178,6 +179,7 @@ function AppShell() {
       <>
       <OfflineBanner />
       <AppDialog />
+      <NotificationPermissionPrompt />
       <HomeLogo hidden={hideGlobalLogo} />
       <div>
         <Suspense fallback={<RouteLoader />}>

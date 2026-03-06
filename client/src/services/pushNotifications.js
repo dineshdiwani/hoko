@@ -31,7 +31,7 @@ function hasValidSubscriptionKeys(subscription) {
   return Boolean(endpoint && auth && p256dh);
 }
 
-async function ensurePushSubscriptionInternal() {
+async function ensurePushSubscriptionInternal(allowPermissionPrompt = false) {
   const session = getSession();
   if (!session?.token) return false;
   if (typeof window === "undefined") return false;
@@ -41,7 +41,7 @@ async function ensurePushSubscriptionInternal() {
   if (!window.isSecureContext && !isLocalhost(window.location.hostname)) return false;
 
   let permission = Notification.permission;
-  if (permission === "default") {
+  if (permission === "default" && allowPermissionPrompt) {
     permission = await Notification.requestPermission();
   }
   if (permission !== "granted") return false;
@@ -78,12 +78,42 @@ async function ensurePushSubscriptionInternal() {
   return true;
 }
 
+export function getPushPermissionState() {
+  if (typeof window === "undefined") return "unsupported";
+  if (!("Notification" in window)) return "unsupported";
+  if (!window.isSecureContext && !isLocalhost(window.location.hostname)) return "blocked_context";
+  return String(Notification.permission || "default");
+}
+
+export async function requestPushPermissionAndSubscribe() {
+  const ok = await ensurePushSubscriptionInternal(true);
+  return Boolean(ok);
+}
+
 export function ensurePushSubscription() {
   if (inFlight) return inFlight;
-  inFlight = ensurePushSubscriptionInternal()
+  inFlight = ensurePushSubscriptionInternal(false)
     .catch(() => false)
     .finally(() => {
       inFlight = null;
     });
   return inFlight;
+}
+
+export function buildNotificationHelpText() {
+  const origin = typeof window !== "undefined" ? window.location.origin : "this site";
+  const ua = typeof navigator !== "undefined" ? String(navigator.userAgent || "") : "";
+  const isAndroid = /android/i.test(ua);
+  const isChrome = /chrome/i.test(ua) && !/edg|opr|opera/i.test(ua);
+  const lines = [];
+
+  if (isAndroid && isChrome) {
+    lines.push("Android Chrome: Tap lock icon > Permissions > Notifications > Allow.");
+    lines.push("If lock icon is hidden: Chrome menu > Site settings > Notifications > Allow.");
+  } else {
+    lines.push("Open your browser site permissions for this website and allow Notifications.");
+  }
+  lines.push(`Site: ${origin}`);
+  lines.push("After enabling, reload the app once.");
+  return lines.join("\n");
 }
