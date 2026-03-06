@@ -35,6 +35,7 @@ import OfflineBanner from "./components/OfflineBanner";
 import AppDialog from "./components/AppDialog";
 import { getSession } from "./services/auth";
 import { ensurePushSubscription } from "./services/pushNotifications";
+import socket, { connectSocket } from "./services/socket";
 
 function RouteLoader() {
   return <div className="min-h-[35vh] w-full" aria-hidden="true" />;
@@ -103,6 +104,54 @@ function AppShell() {
   useEffect(() => {
     ensurePushSubscription().catch(() => {});
   }, [location.pathname]);
+
+  useEffect(() => {
+    const session = getSession();
+    if (!session?.token) return;
+    connectSocket();
+
+    const onNotification = async (notif) => {
+      try {
+        if (typeof document !== "undefined" && document.visibilityState === "visible") {
+          return;
+        }
+        if (!("Notification" in window) || Notification.permission !== "granted") {
+          return;
+        }
+
+        const role = session?.role || (session?.roles?.seller ? "seller" : "buyer");
+        const fallbackUrl = role === "seller" ? "/seller/dashboard" : "/buyer/dashboard";
+        const title = String(notif?.title || "HOKO");
+        const body = String(notif?.message || notif?.body || "You have a new notification");
+        const url = String(notif?.data?.url || fallbackUrl);
+        const tag = String(notif?._id || notif?.id || `live-${Date.now()}`);
+        const options = {
+          body,
+          icon: "/app-icon-192.png",
+          badge: "/app-icon-192.png",
+          tag,
+          data: {
+            url
+          }
+        };
+
+        if ("serviceWorker" in navigator) {
+          const registration = await navigator.serviceWorker.getRegistration();
+          if (registration) {
+            await registration.showNotification(title, options);
+            return;
+          }
+        }
+
+        new Notification(title, options);
+      } catch {}
+    };
+
+    socket.on("notification", onNotification);
+    return () => {
+      socket.off("notification", onNotification);
+    };
+  }, []);
 
   return (
       <>
