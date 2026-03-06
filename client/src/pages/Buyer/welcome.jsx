@@ -5,7 +5,6 @@ import api from "../../services/api";
 import NotificationCenter from "../../components/NotificationCenter";
 
 export default function BuyerWelcome() {
-  const logoSrc = "/logo.png";
   const introVideoSrc = "/welcome-intro.mp4";
   const session = getSession();
   const isLoggedIn = Boolean(session?.token);
@@ -195,17 +194,6 @@ export default function BuyerWelcome() {
       <header className="mf-header">
         <div className="mf-shell !px-3 sm:!px-5 flex flex-wrap lg:flex-nowrap items-center justify-between gap-4 py-5">
           <div className="flex items-center gap-2 w-full lg:w-auto justify-start lg:justify-end">
-            {introPhase === "done" && (
-              <img
-                src={logoSrc}
-                alt="hoko"
-                onError={(e) => {
-                  e.currentTarget.onerror = null;
-                  e.currentTarget.src = `${import.meta.env.BASE_URL}logo.png`;
-                }}
-                className="w-[4.2rem] h-[4.2rem] rounded-full object-contain mf-logo-enter"
-              />
-            )}
             <div>
               <p className="mf-wordmark mf-wordmark-enter">
                 <span className="text-slate-900">h</span>oko
