@@ -8,6 +8,11 @@ import {
   updateSettings,
   updateSession
 } from "../../services/storage";
+import {
+  buildNotificationHelpText,
+  getPushPermissionState,
+  requestPushPermissionAndSubscribe
+} from "../../services/pushNotifications";
 
 const DEFAULT_PREFS = {
   hideProfileUntilApproved: true,
@@ -49,6 +54,7 @@ export default function BuyerSettings() {
     type: "post",
     id: ""
   });
+  const [pushPermission, setPushPermission] = useState(() => getPushPermissionState());
 
   useEffect(() => {
     if (!session?.token) {
@@ -103,6 +109,16 @@ export default function BuyerSettings() {
       });
 
   }, [navigate, session?.token, session?._id]);
+
+  useEffect(() => {
+    const update = () => setPushPermission(getPushPermissionState());
+    document.addEventListener("visibilitychange", update);
+    window.addEventListener("focus", update);
+    return () => {
+      document.removeEventListener("visibilitychange", update);
+      window.removeEventListener("focus", update);
+    };
+  }, []);
 
   function updatePrefs(partial) {
     setPrefs((prev) => ({ ...prev, ...partial }));
@@ -223,6 +239,21 @@ export default function BuyerSettings() {
       alert(err?.response?.data?.message || "Failed to delete account");
       setBusyAction("");
     }
+  }
+
+  async function enableBrowserPush() {
+    const ok = await requestPushPermissionAndSubscribe();
+    const current = getPushPermissionState();
+    setPushPermission(current);
+    if (ok || current === "granted") {
+      alert("Browser notifications enabled.");
+      return;
+    }
+    if (current === "denied") {
+      alert(buildNotificationHelpText());
+      return;
+    }
+    alert("Notification permission not granted.");
   }
 
   return (
@@ -367,6 +398,20 @@ export default function BuyerSettings() {
                 />
                 Reminder alerts
               </label>
+              <div className="mt-2 flex items-center gap-3">
+                <span className="text-xs text-gray-600">
+                  Browser permission: {pushPermission}
+                </span>
+                {pushPermission !== "granted" && (
+                  <button
+                    type="button"
+                    onClick={() => enableBrowserPush().catch(() => {})}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-300 bg-white"
+                  >
+                    Enable Browser Push
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 

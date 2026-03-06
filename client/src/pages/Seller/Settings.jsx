@@ -8,6 +8,11 @@ import {
   updateSettings,
   setSellerDashboardCategories
 } from "../../services/storage";
+import {
+  buildNotificationHelpText,
+  getPushPermissionState,
+  requestPushPermissionAndSubscribe
+} from "../../services/pushNotifications";
 
 export default function SellerSettings() {
   const navigate = useNavigate();
@@ -47,6 +52,7 @@ export default function SellerSettings() {
     termsAcceptedAt:
       localStorage.getItem("terms_accepted_at") || ""
   });
+  const [pushPermission, setPushPermission] = useState(() => getPushPermissionState());
   const categoriesRef = useRef(null);
   const normalizeCategory = (value) =>
     String(value || "").toLowerCase().trim();
@@ -128,6 +134,16 @@ export default function SellerSettings() {
       ...(stored.seller || {})
     }));
   }, [navigate, session?.token]);
+
+  useEffect(() => {
+    const update = () => setPushPermission(getPushPermissionState());
+    document.addEventListener("visibilitychange", update);
+    window.addEventListener("focus", update);
+    return () => {
+      document.removeEventListener("visibilitychange", update);
+      window.removeEventListener("focus", update);
+    };
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -219,6 +235,21 @@ export default function SellerSettings() {
       alert(err?.response?.data?.message || "Failed to delete account");
       setBusyAction("");
     }
+  }
+
+  async function enableBrowserPush() {
+    const ok = await requestPushPermissionAndSubscribe();
+    const current = getPushPermissionState();
+    setPushPermission(current);
+    if (ok || current === "granted") {
+      alert("Browser notifications enabled.");
+      return;
+    }
+    if (current === "denied") {
+      alert(buildNotificationHelpText());
+      return;
+    }
+    alert("Notification permission not granted.");
   }
 
   return (
@@ -496,6 +527,20 @@ export default function SellerSettings() {
                 />
                 Offer status
               </label>
+            </div>
+            <div className="mt-3 flex items-center gap-3">
+              <span className="text-xs text-gray-600">
+                Browser permission: {pushPermission}
+              </span>
+              {pushPermission !== "granted" && (
+                <button
+                  type="button"
+                  onClick={() => enableBrowserPush().catch(() => {})}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-300 bg-white"
+                >
+                  Enable Browser Push
+                </button>
+              )}
             </div>
           </div>
 
