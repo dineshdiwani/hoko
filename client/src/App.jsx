@@ -34,6 +34,7 @@ const AdminOperations = lazy(() => import("./pages/Admin/AdminOperations"));
 import OfflineBanner from "./components/OfflineBanner";
 import AppDialog from "./components/AppDialog";
 import { getSession } from "./services/auth";
+import { ensurePushSubscription } from "./services/pushNotifications";
 
 function RouteLoader() {
   return <div className="min-h-[35vh] w-full" aria-hidden="true" />;
@@ -98,6 +99,10 @@ function AppShell() {
     window.addEventListener("pageshow", handlePageShow);
     return () => window.removeEventListener("pageshow", handlePageShow);
   }, []);
+
+  useEffect(() => {
+    ensurePushSubscription().catch(() => {});
+  }, [location.pathname]);
 
   return (
       <>

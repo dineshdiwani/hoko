@@ -10,6 +10,7 @@ const Requirement = require("../models/Requirement");
 const Offer = require("../models/Offer");
 const ChatMessage = require("../models/ChatMessage");
 const Report = require("../models/Report");
+const PushSubscription = require("../models/PushSubscription");
 const PlatformSettings = require("../models/PlatformSettings");
 const WhatsAppContact = require("../models/WhatsAppContact");
 const WhatsAppCampaignRun = require("../models/WhatsAppCampaignRun");
@@ -513,6 +514,73 @@ router.patch("/admins/:id", adminAuth, requireAdminPermission("admins.manage"), 
 router.get("/users", adminAuth, requireAdminPermission("users.read"), async (req, res) => {
   const users = await User.find().sort({ createdAt: -1 });
   res.json(users);
+});
+
+router.get("/push/subscriptions/summary", adminAuth, requireAdminPermission("users.read"), async (req, res) => {
+  const [subs, users] = await Promise.all([
+    PushSubscription.find().select("userId subscription createdAt updatedAt").lean(),
+    User.find().select("_id roles").lean()
+  ]);
+
+  const userById = new Map(users.map((user) => [String(user._id), user]));
+  const roleCounts = {
+    buyer: 0,
+    seller: 0,
+    both: 0,
+    admin: 0,
+    unknown: 0
+  };
+  const uniqueUsers = new Set();
+  let invalidRecords = 0;
+  let orphanedUsers = 0;
+  let staleOver30d = 0;
+  const staleCutoffMs = Date.now() - 30 * 24 * 60 * 60 * 1000;
+
+  for (const row of subs) {
+    const userId = String(row?.userId || "").trim();
+    const endpoint = String(row?.subscription?.endpoint || "").trim();
+    const authKey = String(row?.subscription?.keys?.auth || "").trim();
+    const p256dhKey = String(row?.subscription?.keys?.p256dh || "").trim();
+    const updatedAtMs = row?.updatedAt ? new Date(row.updatedAt).getTime() : 0;
+
+    if (!userId || !endpoint || !authKey || !p256dhKey) {
+      invalidRecords += 1;
+    }
+    if (updatedAtMs && updatedAtMs < staleCutoffMs) {
+      staleOver30d += 1;
+    }
+
+    if (!userId) continue;
+    uniqueUsers.add(userId);
+    const user = userById.get(userId);
+    if (!user) {
+      orphanedUsers += 1;
+      roleCounts.unknown += 1;
+      continue;
+    }
+
+    const roles = user.roles || {};
+    if (roles.admin) roleCounts.admin += 1;
+    else if (roles.buyer && roles.seller) roleCounts.both += 1;
+    else if (roles.seller) roleCounts.seller += 1;
+    else if (roles.buyer) roleCounts.buyer += 1;
+    else roleCounts.unknown += 1;
+  }
+
+  res.json({
+    vapidConfigured: Boolean(
+      String(process.env.VAPID_PUBLIC_KEY || "").trim() &&
+      String(process.env.VAPID_PRIVATE_KEY || "").trim()
+    ),
+    totals: {
+      subscriptions: subs.length,
+      uniqueUsers: uniqueUsers.size,
+      invalidRecords,
+      orphanedUsers,
+      staleOver30d
+    },
+    byRole: roleCounts
+  });
 });
 
 /**

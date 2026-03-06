@@ -20,3 +20,11 @@ npm run dev
 ## Example
 
 Use `server/.env.example` for production and `server/.env.development.example` for local development.
+
+## Push Notification Keys
+
+Web push requires these variables in the server env:
+
+- `VAPID_PUBLIC_KEY`
+- `VAPID_PRIVATE_KEY`
+- `VAPID_SUBJECT` (example: `mailto:support@hokoapp.in`)

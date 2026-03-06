@@ -498,6 +498,7 @@ app.use("/api/admin/analytics", require("./routes/adminAnalytics"));
 app.use("/api/chat", require("./routes/chat"));
 app.use("/api/chat-files", require("./routes/chatFiles"));
 app.use("/api/notifications", require("./routes/notifications"));
+app.use("/api/push", require("./routes/push"));
 app.use("/api/reviews", require("./routes/reviews"));
 app.use("/api/reports", require("./routes/reports"));
 app.use("/api/meta", require("./routes/meta"));

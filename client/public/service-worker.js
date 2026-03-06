@@ -1,4 +1,4 @@
-const CACHE_NAME = "hoko-pwa-v6";
+const CACHE_NAME = "hoko-pwa-v7";
 const APP_SHELL = [
   "/",
   "/index.html",
@@ -88,5 +88,59 @@ self.addEventListener("fetch", (event) => {
           return response;
         })
     )
+  );
+});
+
+self.addEventListener("push", (event) => {
+  let payload = {};
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch {
+    payload = {
+      body: event.data ? event.data.text() : ""
+    };
+  }
+
+  const title = String(payload.title || "HOKO");
+  const body = String(payload.body || "You have a new notification");
+  const url = String(payload.url || payload?.data?.url || "/");
+  const icon = String(payload.icon || "/app-icon-192.png");
+  const badge = String(payload.badge || "/app-icon-192.png");
+  const tag = String(payload.tag || "hoko-notification");
+
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      icon,
+      badge,
+      tag,
+      data: {
+        ...payload.data,
+        url
+      }
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const destination = String(event.notification?.data?.url || "/");
+
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if ("focus" in client) {
+          client.focus();
+          if ("navigate" in client) {
+            return client.navigate(destination);
+          }
+          return client;
+        }
+      }
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(destination);
+      }
+      return null;
+    })
   );
 });

@@ -15,6 +15,7 @@ export default function AdminOperations() {
     chats: []
   });
   const [expandedUsers, setExpandedUsers] = useState(new Set());
+  const [pushSummary, setPushSummary] = useState(null);
 
   const loadData = useCallback(async () => {
     const [usersRes, requirementsRes, offersRes, chatsRes, reportsRes, moderationRes] = await Promise.all([
@@ -42,6 +43,22 @@ export default function AdminOperations() {
   useEffect(() => {
     loadData().catch(() => {});
   }, [loadData]);
+
+  const loadPushSummary = useCallback(async () => {
+    const res = await api.get("/admin/push/subscriptions/summary");
+    setPushSummary(res.data || null);
+  }, []);
+
+  useEffect(() => {
+    loadPushSummary().catch(() => setPushSummary(null));
+  }, [loadPushSummary]);
+
+  const handleRefresh = async () => {
+    await Promise.all([
+      loadData().catch(() => {}),
+      loadPushSummary().catch(() => {})
+    ]);
+  };
 
   const toggleUserDetails = (userId) => {
     setExpandedUsers((prev) => {
@@ -124,7 +141,7 @@ export default function AdminOperations() {
           <h1 className="page-hero">Admin Operations</h1>
           <div className="flex items-center gap-2 flex-wrap">
             <button
-              onClick={() => loadData().catch(() => {})}
+              onClick={() => handleRefresh().catch(() => {})}
               className="px-3 py-2 text-sm rounded-lg border border-gray-300 bg-white hover:bg-gray-50"
             >
               Refresh
@@ -134,6 +151,42 @@ export default function AdminOperations() {
         </div>
 
         <div className="space-y-10">
+          <div>
+            <h2 className="text-lg font-bold mb-3">Push Health</h2>
+            <div className="bg-white border rounded-2xl p-3 text-sm">
+              {pushSummary ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="rounded-lg border p-2">
+                    <p className="text-xs text-gray-500">VAPID Status</p>
+                    <p className={`font-semibold ${pushSummary.vapidConfigured ? "text-green-700" : "text-red-700"}`}>
+                      {pushSummary.vapidConfigured ? "Configured" : "Missing Keys"}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border p-2">
+                    <p className="text-xs text-gray-500">Subscriptions / Users</p>
+                    <p className="font-semibold">
+                      {pushSummary?.totals?.subscriptions || 0} / {pushSummary?.totals?.uniqueUsers || 0}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border p-2">
+                    <p className="text-xs text-gray-500">Invalid / Stale / Orphaned</p>
+                    <p className="font-semibold">
+                      {pushSummary?.totals?.invalidRecords || 0} / {pushSummary?.totals?.staleOver30d || 0} / {pushSummary?.totals?.orphanedUsers || 0}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border p-2 md:col-span-3">
+                    <p className="text-xs text-gray-500">Subscriptions by Role</p>
+                    <p className="font-semibold">
+                      Buyer {pushSummary?.byRole?.buyer || 0} | Seller {pushSummary?.byRole?.seller || 0} | Both {pushSummary?.byRole?.both || 0} | Admin {pushSummary?.byRole?.admin || 0} | Unknown {pushSummary?.byRole?.unknown || 0}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-gray-500">Push summary unavailable.</p>
+              )}
+            </div>
+          </div>
+
           <div>
             <h2 className="text-lg font-bold mb-3">Moderation Queue</h2>
             <div className="bg-white border rounded-2xl p-3 space-y-4">
