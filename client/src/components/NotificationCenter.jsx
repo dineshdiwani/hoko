@@ -3,6 +3,8 @@ import socket, { connectSocket } from "../services/socket";
 import {
   fetchNotifications,
   markAsRead,
+  deleteNotification,
+  clearNotifications
 } from "../services/notifications";
 import { getSession } from "../services/storage";
 
@@ -77,6 +79,23 @@ export default function NotificationCenter({ onNotificationClick }) {
     }
   }
 
+  async function handleDelete(event, id) {
+    event.stopPropagation();
+    const notifId = String(id || "").trim();
+    if (!notifId) return;
+    try {
+      await deleteNotification(notifId);
+    } catch {}
+    setNotifications((prev) => prev.filter((n) => String(n._id || n.id) !== notifId));
+  }
+
+  async function handleClearAll() {
+    try {
+      await clearNotifications();
+    } catch {}
+    setNotifications([]);
+  }
+
   const unreadCount = notifications.filter(
     (n) => !n.read
   ).length;
@@ -105,6 +124,18 @@ export default function NotificationCenter({ onNotificationClick }) {
 
       {open && (
         <div className="fixed top-16 left-2 right-2 w-auto sm:absolute sm:top-auto sm:left-auto sm:right-0 sm:w-80 mt-2 bg-white shadow-lg rounded-lg border z-50 max-h-96 overflow-auto">
+          {notifications.length > 0 && (
+            <div className="px-3 py-2 border-b bg-gray-50 flex items-center justify-end">
+              <button
+                type="button"
+                onClick={() => handleClearAll().catch(() => {})}
+                className="text-xs font-semibold text-red-700 hover:text-red-800"
+              >
+                Clear all
+              </button>
+            </div>
+          )}
+
           {notifications.length === 0 && (
             <p className="p-4 text-gray-500">
               No notifications
@@ -121,14 +152,25 @@ export default function NotificationCenter({ onNotificationClick }) {
                   : "ui-surface-info"
               }`}
             >
-              <p className="text-sm">
-                {n.message}
-              </p>
-              <p className="text-xs text-gray-400">
-                {new Date(
-                  n.createdAt || n.timestamp || Date.now()
-                ).toLocaleString()}
-              </p>
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-sm break-words">{n.message}</p>
+                  <p className="text-xs text-gray-400">
+                    {new Date(
+                      n.createdAt || n.timestamp || Date.now()
+                    ).toLocaleString()}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  aria-label="Delete notification"
+                  title="Delete notification"
+                  onClick={(event) => handleDelete(event, n._id || n.id)}
+                  className="shrink-0 text-gray-500 hover:text-red-700 text-sm leading-none px-1"
+                >
+                  x
+                </button>
+              </div>
             </div>
           ))}
         </div>

@@ -14,3 +14,17 @@ export async function fetchNotifications() {
 export async function markAsRead(notificationId) {
   await api.post(`/notifications/${notificationId}/read`);
 }
+
+/**
+ * Delete a notification
+ */
+export async function deleteNotification(notificationId) {
+  await api.delete(`/notifications/${notificationId}`);
+}
+
+/**
+ * Delete all notifications for current user
+ */
+export async function clearNotifications() {
+  await api.delete("/notifications");
+}

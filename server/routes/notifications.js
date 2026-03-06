@@ -34,4 +34,26 @@ router.post("/:id/read", auth, async (req, res) => {
   res.json({ success: true });
 });
 
+/**
+ * Delete a notification for logged-in user
+ */
+router.delete("/:id", auth, async (req, res) => {
+  const notif = await Notification.findOneAndDelete({
+    _id: req.params.id,
+    userId: req.user._id
+  });
+  if (!notif) {
+    return res.status(404).json({ message: "Not found" });
+  }
+  return res.json({ success: true });
+});
+
+/**
+ * Clear all notifications for logged-in user
+ */
+router.delete("/", auth, async (req, res) => {
+  const result = await Notification.deleteMany({ userId: req.user._id });
+  return res.json({ success: true, deletedCount: Number(result?.deletedCount || 0) });
+});
+
 module.exports = router;
