@@ -22,6 +22,7 @@ export default function SellerDeepLink() {
   const navigate = useNavigate();
   const location = useLocation();
   const { requirementId } = useParams();
+  const requirementIdValue = String(requirementId || "").trim();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [preview, setPreview] = useState(null);
@@ -39,12 +40,12 @@ export default function SellerDeepLink() {
     const next = new URLSearchParams();
     if (city) next.set("city", city);
     next.set("resume", "1");
-    return `/seller/deeplink/${encodeURIComponent(requirementId)}?${next.toString()}`;
+    return `/seller/deeplink/${encodeURIComponent(requirementIdValue)}?${next.toString()}`;
   };
 
   const savePendingOfferIntent = (payload) => {
     const record = {
-      requirementId: String(requirementId || ""),
+      requirementId: requirementIdValue,
       city,
       offerPayload: payload,
       createdAt: Date.now()
@@ -64,7 +65,7 @@ export default function SellerDeepLink() {
       return;
     }
     if (session?.token && !isSeller) {
-      navigate(`/seller/register?requirementId=${encodeURIComponent(requirementId)}`, {
+      navigate(`/seller/register?requirementId=${encodeURIComponent(requirementIdValue)}`, {
         replace: true
       });
       return;
@@ -76,7 +77,7 @@ export default function SellerDeepLink() {
     setSubmitting(true);
     try {
       await api.post("/seller/offer", {
-        requirementId,
+        requirementId: requirementIdValue,
         price: Number(payload.price),
         message: payload.message || "",
         deliveryTime: payload.deliveryTime || "",
@@ -89,7 +90,7 @@ export default function SellerDeepLink() {
           : "Offer submitted successfully."
       );
       const dashboardParams = new URLSearchParams();
-      dashboardParams.set("openRequirement", String(requirementId));
+      dashboardParams.set("openRequirement", requirementIdValue);
       if (city) dashboardParams.set("city", city);
       navigate(`/seller/dashboard?${dashboardParams.toString()}`, {
         replace: true
@@ -104,7 +105,7 @@ export default function SellerDeepLink() {
   };
 
   useEffect(() => {
-    if (!requirementId) {
+    if (!requirementIdValue) {
       navigate("/seller/login", { replace: true });
       return;
     }
@@ -114,12 +115,16 @@ export default function SellerDeepLink() {
     async function loadPreview() {
       setLoading(true);
       try {
-        const res = await api.get(`/meta/requirement-preview/${encodeURIComponent(requirementId)}`);
+        const res = await api.get(`/meta/requirement-preview/${encodeURIComponent(requirementIdValue)}`);
         if (cancelled) return;
         setPreview(res.data || null);
       } catch {
         if (cancelled) return;
-        setPreview(null);
+        setPreview({
+          _id: requirementIdValue,
+          product: "Requirement",
+          productName: "Requirement"
+        });
       } finally {
         if (!cancelled) {
           setLoading(false);
@@ -132,12 +137,12 @@ export default function SellerDeepLink() {
     return () => {
       cancelled = true;
     };
-  }, [navigate, requirementId]);
+  }, [navigate, requirementIdValue]);
 
   useEffect(() => {
-    if (loading || !requirementId || autoSubmitTriedRef.current) return;
+    if (loading || !requirementIdValue || autoSubmitTriedRef.current) return;
     const pending = readPendingOfferIntent();
-    if (!pending || String(pending.requirementId) !== String(requirementId)) return;
+    if (!pending || String(pending.requirementId) !== String(requirementIdValue)) return;
 
     setForm({
       price: String(pending.offerPayload?.price || ""),
@@ -152,7 +157,7 @@ export default function SellerDeepLink() {
 
     autoSubmitTriedRef.current = true;
     submitOffer(pending.offerPayload, { isAuto: true });
-  }, [loading, requirementId]);
+  }, [loading, requirementIdValue]);
 
   const handleSubmit = () => {
     const payload = {
@@ -184,10 +189,6 @@ export default function SellerDeepLink() {
         <h1 className="ui-heading mb-3">Submit Offer</h1>
         {loading ? (
           <p className="ui-body text-[var(--ui-muted)]">Loading requirement...</p>
-        ) : !preview ? (
-          <p className="ui-body text-red-600">
-            Requirement not found or no longer available.
-          </p>
         ) : (
           <div className="dashboard-panel p-4 space-y-3">
             <p className="ui-body">
