@@ -35,6 +35,23 @@ export default function SellerDeepLink() {
   const autoSubmitTriedRef = useRef(false);
   const params = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const city = String(params.get("city") || "").trim();
+  const queryPreview = useMemo(
+    () => ({
+      _id: requirementIdValue,
+      product: String(params.get("product") || "").trim(),
+      productName: String(params.get("product") || "").trim(),
+      category: String(params.get("category") || "").trim(),
+      city,
+      quantity: String(params.get("qty") || "").trim(),
+      unit: String(params.get("unit") || "").trim(),
+      type: String(params.get("unit") || "").trim(),
+      makeBrand: String(params.get("brand") || "").trim(),
+      typeModel: String(params.get("model") || "").trim(),
+      details: String(params.get("details") || "").trim(),
+      offerInvitedFrom: String(params.get("invite") || "").trim()
+    }),
+    [params, city, requirementIdValue]
+  );
 
   const buildRedirectTarget = () => {
     const next = new URLSearchParams();
@@ -120,11 +137,7 @@ export default function SellerDeepLink() {
         setPreview(res.data || null);
       } catch {
         if (cancelled) return;
-        setPreview({
-          _id: requirementIdValue,
-          product: "Requirement",
-          productName: "Requirement"
-        });
+        setPreview(queryPreview);
       } finally {
         if (!cancelled) {
           setLoading(false);
@@ -137,7 +150,7 @@ export default function SellerDeepLink() {
     return () => {
       cancelled = true;
     };
-  }, [navigate, requirementIdValue]);
+  }, [navigate, queryPreview, requirementIdValue]);
 
   useEffect(() => {
     if (loading || !requirementIdValue || autoSubmitTriedRef.current) return;
@@ -182,6 +195,17 @@ export default function SellerDeepLink() {
 
     submitOffer(payload);
   };
+  const postPreview = preview || queryPreview;
+  const postName = postPreview?.product || postPreview?.productName || "Requirement";
+  const postQuantity = String(postPreview?.quantity || "").trim();
+  const postUnit = String(postPreview?.type || postPreview?.unit || "").trim();
+  const postBrand = postPreview?.makeBrand || postPreview?.brand || "";
+  const postModel = postPreview?.typeModel || "";
+  const postDetails = String(postPreview?.details || postPreview?.description || "").trim();
+  const inviteScope =
+    String(postPreview?.offerInvitedFrom || "").toLowerCase() === "anywhere"
+      ? "Anywhere"
+      : "City";
 
   return (
     <div className="page">
@@ -191,12 +215,27 @@ export default function SellerDeepLink() {
           <p className="ui-body text-[var(--ui-muted)]">Loading requirement...</p>
         ) : (
           <div className="dashboard-panel p-4 space-y-3">
-            <p className="ui-body">
-              <strong>{preview.product || preview.productName || "Requirement"}</strong>
-            </p>
-            <p className="ui-body text-[var(--ui-muted)]">
-              City: {preview.city || "-"} | Category: {preview.category || "-"}
-            </p>
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <p className="ui-label text-[var(--ui-muted)] mb-1">Post Details</p>
+              <p className="ui-body">
+                <strong>{postName}</strong>
+              </p>
+              <p className="ui-body text-[var(--ui-muted)]">
+                City: {postPreview?.city || "-"} | Category: {postPreview?.category || "-"}
+              </p>
+              <p className="ui-body text-[var(--ui-muted)]">
+                Quantity: {postQuantity || "-"} {postUnit}
+              </p>
+              <p className="ui-body text-[var(--ui-muted)]">
+                Make/Brand: {postBrand || "-"} | Type/Model: {postModel || "-"}
+              </p>
+              <p className="ui-body text-[var(--ui-muted)]">
+                Offer invited from: {inviteScope}
+              </p>
+              {postDetails ? (
+                <p className="ui-body mt-1 whitespace-pre-line">{postDetails}</p>
+              ) : null}
+            </div>
             <input
               value={form.price}
               onChange={(e) => setForm((prev) => ({ ...prev, price: e.target.value }))}
