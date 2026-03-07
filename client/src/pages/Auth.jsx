@@ -19,7 +19,6 @@ export default function Auth() {
         role: "buyer",
         city
       });
-      console.log("OTP response:", res.data);
       setStep("otp");
     } catch (err) {
       console.error("OTP error:", err.response?.data || err.message);

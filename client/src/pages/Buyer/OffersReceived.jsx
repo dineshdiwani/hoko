@@ -8,6 +8,7 @@ export default function OffersReceived({
   selectedCategory = "all",
   cities = [],
   categories = [],
+  refreshToken = 0,
   onCityChange,
   onCategoryChange,
   onVisibleCountChange
@@ -19,18 +20,23 @@ export default function OffersReceived({
 
   useEffect(() => {
     if (!buyerId) return;
-    api.get(`/buyer/my-posts/${buyerId}`).then(async res => {
-      const enriched = await Promise.all(
-        res.data.map(async post => {
-          const postId = post._id || post.id;
-          if (!postId) return { ...post, offerCount: 0 };
-          const offers = await api.get(`/dashboard/offers/${postId}`);
-          return { ...post, offerCount: offers.data.length };
-        })
-      );
-      setPosts(enriched);
-    });
-  }, [buyerId]);
+    api
+      .get(`/buyer/my-posts/${buyerId}`)
+      .then(async (res) => {
+        const enriched = await Promise.all(
+          (res.data || []).map(async (post) => {
+            const postId = post._id || post.id;
+            if (!postId) return { ...post, offerCount: 0 };
+            const offers = await api.get(`/dashboard/offers/${postId}`);
+            return { ...post, offerCount: offers.data.length };
+          })
+        );
+        setPosts(enriched);
+      })
+      .catch(() => {
+        setPosts([]);
+      });
+  }, [buyerId, refreshToken]);
 
   const filteredPosts = posts.filter((post) => {
     const cityMatch =

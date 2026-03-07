@@ -649,10 +649,10 @@ router.get("/dashboard", auth, sellerOnly, async (req, res) => {
     "city"
   );
   const requestedCity = String(req.query?.city || "").trim();
+  const requestedCityNormalized = normalizeText(requestedCity);
   const isAllCities =
     hasCityParam &&
-    (!requestedCity ||
-      String(requestedCity).toLowerCase() === "all");
+    (!requestedCityNormalized || requestedCityNormalized === "all");
   const targetCity = requestedCity;
 
   const requirementQuery = {
@@ -660,7 +660,11 @@ router.get("/dashboard", auth, sellerOnly, async (req, res) => {
   };
 
   if (!isAllCities && targetCity) {
-    requirementQuery.city = new RegExp(`^${escapeRegex(targetCity)}$`, "i");
+    // Keep the DB query selective, but still normalize in-memory for safety.
+    requirementQuery.city = new RegExp(
+      `^\\s*${escapeRegex(targetCity)}\\s*$`,
+      "i"
+    );
   }
 
   const sellerCityNormalized = normalizeText(req.user?.city);
@@ -668,11 +672,18 @@ router.get("/dashboard", auth, sellerOnly, async (req, res) => {
   const requirementsRaw = await Requirement.find(requirementQuery).sort({
     createdAt: -1
   });
+  const cityMatchedRequirements =
+    !isAllCities && requestedCityNormalized
+      ? requirementsRaw.filter(
+          (requirement) =>
+            normalizeText(requirement?.city) === requestedCityNormalized
+        )
+      : requirementsRaw;
 
   // Show only requirements that this seller can actually respond to:
   // - "anywhere": always allowed
   // - "city": only when requirement city equals seller city
-  const requirements = requirementsRaw.filter((requirement) => {
+  const requirements = cityMatchedRequirements.filter((requirement) => {
     const inviteMode = normalizeOfferInvitedFrom(requirement.offerInvitedFrom);
     if (inviteMode === "anywhere") return true;
     if (!sellerCityNormalized) return false;

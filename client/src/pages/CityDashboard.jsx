@@ -13,6 +13,7 @@ export default function CityDashboard({
   category = "all",
   cities = [],
   categories = [],
+  refreshToken = 0,
   onCityChange,
   onCategoryChange,
   useSamplePosts = false,
@@ -149,7 +150,15 @@ export default function CityDashboard({
     }
 
     load();
-  }, [city, categories, cities, sampleFlagEnabled, session?.token, useSamplePosts]);
+  }, [
+    city,
+    categories,
+    cities,
+    sampleFlagEnabled,
+    session?.token,
+    useSamplePosts,
+    refreshToken
+  ]);
 
   const timeOptions = [
     { key: "all", label: "All Posts" },

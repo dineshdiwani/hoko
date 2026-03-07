@@ -43,6 +43,7 @@ function readBuyerDashboardState() {
 export default function BuyerDashboard() {
   const navigate = useNavigate();
   const [sessionVersion, setSessionVersion] = useState(0);
+  const [refreshToken, setRefreshToken] = useState(0);
   const session = getSession();
   const persistedState = readBuyerDashboardState();
 
@@ -189,6 +190,31 @@ export default function BuyerDashboard() {
   }, [sessionVersion, session?.token, session?.city]);
 
   useEffect(() => {
+    const triggerRefresh = () => setRefreshToken((prev) => prev + 1);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        triggerRefresh();
+      }
+    };
+    const onFocus = () => triggerRefresh();
+    const onPageShow = (event) => {
+      if (event.persisted) {
+        triggerRefresh();
+      }
+    };
+
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onFocus);
+    window.addEventListener("pageshow", onPageShow);
+
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onFocus);
+      window.removeEventListener("pageshow", onPageShow);
+    };
+  }, []);
+
+  useEffect(() => {
     fetchOptions()
       .then((data) => {
         const nextCities = Array.isArray(data?.cities) ? data.cities : [];
@@ -212,7 +238,7 @@ export default function BuyerDashboard() {
         setSampleCityPostsEnabled(data?.sampleCityPostsEnabled !== false);
       })
       .catch(() => {});
-  }, [session?.city]);
+  }, [session?.city, refreshToken]);
 
   useEffect(() => {
     const sampleFlagEnabled =
@@ -230,7 +256,7 @@ export default function BuyerDashboard() {
         setUseSampleCityPosts(posts.length === 0);
       })
       .catch(() => setUseSampleCityPosts(false));
-  }, [session?._id, session?.token]);
+  }, [session?._id, session?.token, refreshToken]);
 
   if (roleSyncing) {
     return (
@@ -376,6 +402,7 @@ export default function BuyerDashboard() {
             selectedCategory={selectedCategory}
             cities={cities}
             categories={categories}
+            refreshToken={refreshToken}
             onCityChange={setCity}
             onCategoryChange={setSelectedCategory}
             onVisibleCountChange={updatePostsCount}
@@ -392,6 +419,7 @@ export default function BuyerDashboard() {
             onCategoryChange={setSelectedCategory}
             useSamplePosts={useSampleCityPosts}
             samplePostsEnabled={sampleCityPostsEnabled}
+            refreshToken={refreshToken}
             onVisibleCountChange={updateCityCount}
           />
         )}
@@ -401,6 +429,7 @@ export default function BuyerDashboard() {
             selectedCategory={selectedCategory}
             cities={cities}
             categories={categories}
+            refreshToken={refreshToken}
             onCityChange={setCity}
             onCategoryChange={setSelectedCategory}
             onVisibleCountChange={updateOffersCount}

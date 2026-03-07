@@ -287,7 +287,6 @@ io.on("connection", (socket) => {
       }
       return;
     }
-    console.log("Message:", { from: effectiveFrom, to: effectiveTo, message });
     let allowedToSend = true;
     let savedMessage = null;
     let toUserDoc = null;

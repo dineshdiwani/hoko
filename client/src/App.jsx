@@ -92,17 +92,6 @@ function AppShell() {
   const hideGlobalLogo = location.pathname === "/";
 
   useEffect(() => {
-    function handlePageShow(event) {
-      if (event.persisted) {
-        window.location.reload();
-      }
-    }
-
-    window.addEventListener("pageshow", handlePageShow);
-    return () => window.removeEventListener("pageshow", handlePageShow);
-  }, []);
-
-  useEffect(() => {
     ensurePushSubscription().catch(() => {});
   }, [location.pathname]);
 

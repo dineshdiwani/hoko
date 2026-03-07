@@ -49,6 +49,7 @@ export default function SellerDashboard() {
   const [reverseAuctionNotice, setReverseAuctionNotice] = useState("");
   const [sampleCityPostsEnabled, setSampleCityPostsEnabled] = useState(true);
   const [showingSampleData, setShowingSampleData] = useState(false);
+  const [refreshToken, setRefreshToken] = useState(0);
 
   const currentUserId = session?._id || session?.id || session?.userId || null;
 
@@ -142,6 +143,31 @@ export default function SellerDashboard() {
   }, []);
 
   useEffect(() => {
+    const triggerRefresh = () => setRefreshToken((prev) => prev + 1);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        triggerRefresh();
+      }
+    };
+    const onFocus = () => triggerRefresh();
+    const onPageShow = (event) => {
+      if (event.persisted) {
+        triggerRefresh();
+      }
+    };
+
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onFocus);
+    window.addEventListener("pageshow", onPageShow);
+
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onFocus);
+      window.removeEventListener("pageshow", onPageShow);
+    };
+  }, []);
+
+  useEffect(() => {
     fetchOptions()
       .then((data) => {
         setCities(Array.isArray(data?.cities) ? data.cities : []);
@@ -149,7 +175,7 @@ export default function SellerDashboard() {
         setSampleCityPostsEnabled(data?.sampleCityPostsEnabled !== false);
       })
       .catch(() => {});
-  }, []);
+  }, [refreshToken]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -207,7 +233,14 @@ export default function SellerDashboard() {
       }
     }
     load();
-  }, [selectedCity, cities, categories, sampleCityPostsEnabled, session?.city]);
+  }, [
+    selectedCity,
+    cities,
+    categories,
+    sampleCityPostsEnabled,
+    session?.city,
+    refreshToken
+  ]);
 
   useEffect(() => {
     if (loading) return;

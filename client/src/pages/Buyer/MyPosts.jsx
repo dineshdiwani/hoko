@@ -14,6 +14,7 @@ export default function MyPosts({
   selectedCategory = "all",
   cities = [],
   categories = [],
+  refreshToken = 0,
   onCityChange,
   onCategoryChange,
   onVisibleCountChange
@@ -58,6 +59,7 @@ export default function MyPosts({
 
   useEffect(() => {
     async function load() {
+      setLoading(true);
       try {
         const session = getSession();
         if (session?._id) {
@@ -76,7 +78,7 @@ export default function MyPosts({
     }
 
     load();
-  }, []);
+  }, [refreshToken]);
 
   useEffect(() => {
     function handleClickOutside(event) {
