@@ -22,7 +22,6 @@ export default function SellerDeepLink() {
   const navigate = useNavigate();
   const location = useLocation();
   const { requirementId } = useParams();
-  const requirementIdValue = String(requirementId || "").trim();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [preview, setPreview] = useState(null);
@@ -34,20 +33,31 @@ export default function SellerDeepLink() {
   });
   const autoSubmitTriedRef = useRef(false);
   const params = useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const routeRequirementId = String(requirementId || "").trim();
+  const queryPostId = String(params.get("postId") || "").trim();
+  const requirementIdValue = routeRequirementId || queryPostId;
   const city = String(params.get("city") || "").trim();
   const queryPreview = useMemo(
     () => ({
       _id: requirementIdValue,
-      product: String(params.get("product") || "").trim(),
-      productName: String(params.get("product") || "").trim(),
+      product: String(
+        params.get("product") || params.get("productName") || ""
+      ).trim(),
+      productName: String(
+        params.get("product") || params.get("productName") || ""
+      ).trim(),
       category: String(params.get("category") || "").trim(),
       city,
-      quantity: String(params.get("qty") || "").trim(),
-      unit: String(params.get("unit") || "").trim(),
-      type: String(params.get("unit") || "").trim(),
-      makeBrand: String(params.get("brand") || "").trim(),
-      typeModel: String(params.get("model") || "").trim(),
-      details: String(params.get("details") || "").trim(),
+      quantity: String(
+        params.get("qty") || params.get("quantity") || ""
+      ).trim(),
+      unit: String(params.get("unit") || params.get("type") || "").trim(),
+      type: String(params.get("unit") || params.get("type") || "").trim(),
+      makeBrand: String(
+        params.get("brand") || params.get("makeBrand") || ""
+      ).trim(),
+      typeModel: String(params.get("model") || params.get("typeModel") || "").trim(),
+      details: String(params.get("details") || params.get("description") || "").trim(),
       offerInvitedFrom: String(params.get("invite") || "").trim()
     }),
     [params, city, requirementIdValue]
@@ -221,13 +231,13 @@ export default function SellerDeepLink() {
                 <strong>{postName}</strong>
               </p>
               <p className="ui-body text-[var(--ui-muted)]">
-                City: {postPreview?.city || "-"} | Category: {postPreview?.category || "-"}
+                City: {postPreview?.city || "Not provided"} | Category: {postPreview?.category || "Not provided"}
               </p>
               <p className="ui-body text-[var(--ui-muted)]">
-                Quantity: {postQuantity || "-"} {postUnit}
+                Quantity: {postQuantity || "Not provided"} {postUnit}
               </p>
               <p className="ui-body text-[var(--ui-muted)]">
-                Make/Brand: {postBrand || "-"} | Type/Model: {postModel || "-"}
+                Make/Brand: {postBrand || "Not provided"} | Type/Model: {postModel || "Not provided"}
               </p>
               <p className="ui-body text-[var(--ui-muted)]">
                 Offer invited from: {inviteScope}
