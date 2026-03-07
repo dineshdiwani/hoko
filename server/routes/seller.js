@@ -139,6 +139,20 @@ function mapRequirementForSeller(requirementDoc, offerMap) {
 function normalizeText(value) {
   return String(value || "").trim().toLowerCase();
 }
+function normalizeCityKey(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+function cityMatches(left, right) {
+  const a = normalizeCityKey(left);
+  const b = normalizeCityKey(right);
+  if (!a || !b) return false;
+  if (a === b) return true;
+  return a.includes(b) || b.includes(a);
+}
 function normalizeOfferInvitedFrom(value) {
   return normalizeText(value) === "anywhere" ? "anywhere" : "city";
 }
@@ -378,9 +392,9 @@ router.post("/offer", auth, sellerOnly, async (req, res) => {
     }
     const inviteMode = normalizeOfferInvitedFrom(requirement.offerInvitedFrom);
     if (inviteMode === "city") {
-      const sellerCity = normalizeText(req.user?.city);
-      const requirementCity = normalizeText(requirement?.city);
-      if (!sellerCity || !requirementCity || sellerCity !== requirementCity) {
+      const sellerCity = req.user?.city;
+      const requirementCity = requirement?.city;
+      if (!cityMatches(sellerCity, requirementCity)) {
         return res.status(403).json({
           message: "Offers for this post are invited only from the buyer city"
         });
@@ -618,9 +632,9 @@ router.get("/requirement/:requirementId", auth, sellerOnly, async (req, res) => 
   }
   const inviteMode = normalizeOfferInvitedFrom(requirement.offerInvitedFrom);
   if (inviteMode === "city") {
-    const sellerCity = normalizeText(req.user?.city);
-    const requirementCity = normalizeText(requirement?.city);
-    if (!sellerCity || !requirementCity || sellerCity !== requirementCity) {
+    const sellerCity = req.user?.city;
+    const requirementCity = requirement?.city;
+    if (!cityMatches(sellerCity, requirementCity)) {
       return res.status(403).json({
         message: "This requirement is available only to sellers in buyer city"
       });
@@ -676,7 +690,7 @@ router.get("/dashboard", auth, sellerOnly, async (req, res) => {
     !isAllCities && requestedCityNormalized
       ? requirementsRaw.filter(
           (requirement) =>
-            normalizeText(requirement?.city) === requestedCityNormalized
+            cityMatches(requirement?.city, requestedCity)
         )
       : requirementsRaw;
 
@@ -687,7 +701,7 @@ router.get("/dashboard", auth, sellerOnly, async (req, res) => {
     const inviteMode = normalizeOfferInvitedFrom(requirement.offerInvitedFrom);
     if (inviteMode === "anywhere") return true;
     if (!sellerCityNormalized) return false;
-    return normalizeText(requirement.city) === sellerCityNormalized;
+    return cityMatches(requirement?.city, req.user?.city);
   });
 
   const requirementIds = requirements.map((r) => r._id);

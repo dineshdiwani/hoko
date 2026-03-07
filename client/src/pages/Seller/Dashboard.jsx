@@ -55,6 +55,19 @@ export default function SellerDashboard() {
 
   const normalizeCategory = (cat) => String(cat || "").toLowerCase().trim();
   const normalizeCity = (value) => String(value || "").trim().toLowerCase();
+  const normalizeCityKey = (value) =>
+    String(value || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim()
+      .replace(/\s+/g, " ");
+  const cityMatches = (left, right) => {
+    const a = normalizeCityKey(left);
+    const b = normalizeCityKey(right);
+    if (!a || !b) return false;
+    if (a === b) return true;
+    return a.includes(b) || b.includes(a);
+  };
   const appBaseUrl =
     typeof window !== "undefined"
       ? window.location.origin
@@ -353,7 +366,7 @@ export default function SellerDashboard() {
   const smartTabRequirements = visibleRequirements.filter(matchesSmartTab);
 
   const filteredRequirements = smartTabRequirements.filter((req) => {
-    if (selectedCity !== "all" && normalizeCity(req.city) !== normalizeCity(selectedCity)) {
+    if (selectedCity !== "all" && !cityMatches(req.city, selectedCity)) {
       return false;
     }
     const normalizedCategory = normalizeCategory(req.category);
