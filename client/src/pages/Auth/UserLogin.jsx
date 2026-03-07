@@ -51,7 +51,9 @@ export default function UserLogin({ role = "buyer" }) {
 
   const redirect = isSeller
     ? localStorage.getItem("post_login_redirect") || "/seller/dashboard"
-    : "/buyer/dashboard";
+    : (localStorage.getItem("login_intent_role") === "seller"
+        ? "/seller/register"
+        : "/buyer/dashboard");
   const cityRef = useRef(city);
   const acceptedTermsRef = useRef(acceptedTerms);
 
@@ -245,7 +247,11 @@ export default function UserLogin({ role = "buyer" }) {
           token: res.data.token
         });
 
-        localStorage.removeItem("post_login_redirect");
+        const sellerIntent =
+          localStorage.getItem("login_intent_role") === "seller";
+        if (!(currentRole === "buyer" && sellerIntent)) {
+          localStorage.removeItem("post_login_redirect");
+        }
         if (acceptedTerms) {
           localStorage.setItem(
             "terms_accepted_at",
@@ -253,7 +259,9 @@ export default function UserLogin({ role = "buyer" }) {
           );
         }
 
-        localStorage.removeItem("login_intent_role");
+        if (!(currentRole === "buyer" && sellerIntent)) {
+          localStorage.removeItem("login_intent_role");
+        }
         setBuyerDashboardDefaultTab(user.city || city);
         navigate(redirect, { replace: true });
       })
@@ -319,7 +327,11 @@ export default function UserLogin({ role = "buyer" }) {
           token: res.data.token
         });
 
-        localStorage.removeItem("post_login_redirect");
+        const sellerIntent =
+          localStorage.getItem("login_intent_role") === "seller";
+        if (!(currentRole === "buyer" && sellerIntent)) {
+          localStorage.removeItem("post_login_redirect");
+        }
         if (hasAcceptedTerms) {
           localStorage.setItem(
             "terms_accepted_at",
@@ -327,7 +339,9 @@ export default function UserLogin({ role = "buyer" }) {
           );
         }
 
-        localStorage.removeItem("login_intent_role");
+        if (!(currentRole === "buyer" && sellerIntent)) {
+          localStorage.removeItem("login_intent_role");
+        }
         setBuyerDashboardDefaultTab(user.city || selectedCity);
         navigate(redirect, { replace: true });
       })

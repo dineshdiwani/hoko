@@ -41,6 +41,7 @@ export default function SellerDashboard() {
   const [cities, setCities] = useState([]);
   const [categories, setCategories] = useState([]);
   const [selectedCity, setSelectedCity] = useState("all");
+  const [visibilityMode, setVisibilityMode] = useState("mycity");
   const [activeSmartTab, setActiveSmartTab] = useState("all");
   const [chatOpen, setChatOpen] = useState(false);
   const [chatPeer, setChatPeer] = useState(null);
@@ -221,7 +222,8 @@ export default function SellerDashboard() {
       try {
         const res = await api.get("/seller/dashboard", {
           params: {
-            city: selectedCity || "all"
+            city: selectedCity || "all",
+            visibility: visibilityMode
           }
         });
         const liveRows = Array.isArray(res.data) ? res.data : [];
@@ -248,6 +250,7 @@ export default function SellerDashboard() {
     load();
   }, [
     selectedCity,
+    visibilityMode,
     cities,
     categories,
     sampleCityPostsEnabled,
@@ -657,6 +660,16 @@ export default function SellerDashboard() {
                 </option>
               ))}
             </select>
+            <select
+              value={visibilityMode}
+              onChange={(e) => setVisibilityMode(e.target.value)}
+              className="app-select ui-body w-full md:w-auto"
+              aria-label="Filter by invitation visibility"
+              title="Filter by invitation visibility"
+            >
+              <option value="mycity">My city only</option>
+              <option value="anywhere">Show anywhere</option>
+            </select>
 
             </div>
 
@@ -829,6 +842,7 @@ export default function SellerDashboard() {
           <div className="dashboard-list">
             {filteredRequirements.map((req) => {
               const isSample = Boolean(req.isSample);
+              const isCityLocked = req.offerBlockedByCity === true;
               const isAuction = req.reverseAuction?.active === true;
               const showAuctionForSeller = req.myOffer && isAuction;
               const lowestPrice = req.reverseAuction?.lowestPrice ?? req.currentLowestPrice ?? "-";
@@ -867,6 +881,11 @@ export default function SellerDashboard() {
                       <p className="ui-body text-[var(--ui-muted)]">
                         Offer invited from: {req.offerInvitedFrom === "anywhere" ? "Anywhere" : "City"}
                       </p>
+                      {isCityLocked && (
+                        <p className="ui-body text-red-600">
+                          Offer locked: buyer invited offers only from their city.
+                        </p>
+                      )}
                       {requirementDetails && (
                         <p className="ui-body text-[var(--ui-text)] mt-1 whitespace-pre-line">
                           {requirementDetails}
@@ -984,12 +1003,12 @@ export default function SellerDashboard() {
 
                   <button
                     onClick={() => {
-                      if (isSample) return;
+                      if (isSample || isCityLocked) return;
                       setActiveRequirement(req);
                     }}
-                    disabled={isSample}
+                    disabled={isSample || isCityLocked}
                     className={`mt-3 block w-fit px-4 py-2.5 rounded-xl text-center font-semibold ${
-                      isSample
+                      isSample || isCityLocked
                         ? "bg-gray-200 text-gray-600 cursor-not-allowed"
                         : req.myOffer
                         ? "bg-green-600 text-white active:scale-95"
@@ -998,6 +1017,8 @@ export default function SellerDashboard() {
                   >
                     {isSample
                       ? "Preview Only (Sample Post)"
+                      : isCityLocked
+                      ? "Offer Locked (City)"
                       : req.myOffer
                       ? "Submitted Offer / Edit Offer"
                       : "Submit Offer"}
