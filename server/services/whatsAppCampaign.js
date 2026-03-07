@@ -37,18 +37,20 @@ function formatMessage({ requirement, deepLink }) {
 function buildSellerDeepLink(appBase, requirement) {
   const requirementIdRaw = String(requirement?._id || "").trim();
   const requirementId = encodeURIComponent(requirementIdRaw);
-  const params = new URLSearchParams();
-  params.set("city", String(requirement?.city || ""));
-  params.set("postId", requirementIdRaw);
-  params.set("product", firstNonEmpty([requirement?.product, requirement?.productName]));
-  params.set("category", String(requirement?.category || ""));
-  params.set("qty", String(requirement?.quantity || ""));
-  params.set("unit", firstNonEmpty([requirement?.unit, requirement?.type]));
-  params.set("brand", firstNonEmpty([requirement?.makeBrand, requirement?.brand]));
-  params.set("model", firstNonEmpty([requirement?.typeModel]));
-  params.set("details", String(requirement?.details || requirement?.description || ""));
-  params.set("invite", String(requirement?.offerInvitedFrom || ""));
-  return `${appBase}/seller/deeplink/${requirementId}?${params.toString()}`;
+  const payload = {
+    postId: requirementIdRaw,
+    city: String(requirement?.city || ""),
+    product: firstNonEmpty([requirement?.product, requirement?.productName]),
+    category: String(requirement?.category || ""),
+    qty: String(requirement?.quantity || ""),
+    unit: firstNonEmpty([requirement?.unit, requirement?.type]),
+    brand: firstNonEmpty([requirement?.makeBrand, requirement?.brand]),
+    model: firstNonEmpty([requirement?.typeModel]),
+    details: String(requirement?.details || requirement?.description || ""),
+    invite: String(requirement?.offerInvitedFrom || "")
+  };
+  const packed = encodeURIComponent(JSON.stringify(payload));
+  return `${appBase}/seller/deeplink/${requirementId}?pd=${packed}`;
 }
 
 function normalizeChannels(input) {

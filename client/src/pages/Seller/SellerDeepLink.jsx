@@ -40,8 +40,20 @@ export default function SellerDeepLink() {
   });
   const autoSubmitTriedRef = useRef(false);
   const params = useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const packedData = useMemo(() => {
+    const raw = String(params.get("pd") || params.get("data") || "").trim();
+    if (!raw) return {};
+    try {
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch {
+      return {};
+    }
+  }, [params]);
   const routeRequirementId = extractObjectId(requirementId);
-  const queryPostId = extractObjectId(params.get("postId"));
+  const queryPostId = extractObjectId(
+    packedData.postId || packedData.requirementId || params.get("postId")
+  );
   const routeIdValid = OBJECT_ID_REGEX.test(routeRequirementId);
   const queryIdValid = OBJECT_ID_REGEX.test(queryPostId);
   const requirementIdValue = routeIdValid
@@ -49,31 +61,31 @@ export default function SellerDeepLink() {
     : queryIdValid
     ? queryPostId
     : routeRequirementId || queryPostId;
-  const city = String(params.get("city") || "").trim();
+  const city = String(packedData.city || params.get("city") || "").trim();
   const queryPreview = useMemo(
     () => ({
       _id: requirementIdValue,
       product: String(
-        params.get("product") || params.get("productName") || ""
+        packedData.product || packedData.productName || params.get("product") || params.get("productName") || ""
       ).trim(),
       productName: String(
-        params.get("product") || params.get("productName") || ""
+        packedData.product || packedData.productName || params.get("product") || params.get("productName") || ""
       ).trim(),
-      category: String(params.get("category") || "").trim(),
+      category: String(packedData.category || params.get("category") || "").trim(),
       city,
       quantity: String(
-        params.get("qty") || params.get("quantity") || ""
+        packedData.qty || packedData.quantity || params.get("qty") || params.get("quantity") || ""
       ).trim(),
-      unit: String(params.get("unit") || params.get("type") || "").trim(),
-      type: String(params.get("unit") || params.get("type") || "").trim(),
+      unit: String(packedData.unit || packedData.type || params.get("unit") || params.get("type") || "").trim(),
+      type: String(packedData.unit || packedData.type || params.get("unit") || params.get("type") || "").trim(),
       makeBrand: String(
-        params.get("brand") || params.get("makeBrand") || ""
+        packedData.brand || packedData.makeBrand || params.get("brand") || params.get("makeBrand") || ""
       ).trim(),
-      typeModel: String(params.get("model") || params.get("typeModel") || "").trim(),
-      details: String(params.get("details") || params.get("description") || "").trim(),
-      offerInvitedFrom: String(params.get("invite") || "").trim()
+      typeModel: String(packedData.model || packedData.typeModel || params.get("model") || params.get("typeModel") || "").trim(),
+      details: String(packedData.details || packedData.description || params.get("details") || params.get("description") || "").trim(),
+      offerInvitedFrom: String(packedData.invite || packedData.offerInvitedFrom || params.get("invite") || "").trim()
     }),
-    [params, city, requirementIdValue]
+    [packedData, params, city, requirementIdValue]
   );
 
   const buildRedirectTarget = () => {
