@@ -4,6 +4,13 @@ import api from "../../services/api";
 import { getSession } from "../../services/storage";
 
 const PENDING_OFFER_KEY = "pending_seller_offer_intent";
+const OBJECT_ID_REGEX = /^[a-f0-9]{24}$/i;
+function extractObjectId(value) {
+  const raw = String(value || "").trim();
+  if (OBJECT_ID_REGEX.test(raw)) return raw;
+  const match = raw.match(/[a-f0-9]{24}/i);
+  return match ? match[0] : "";
+}
 
 function readPendingOfferIntent() {
   try {
@@ -33,9 +40,15 @@ export default function SellerDeepLink() {
   });
   const autoSubmitTriedRef = useRef(false);
   const params = useMemo(() => new URLSearchParams(location.search), [location.search]);
-  const routeRequirementId = String(requirementId || "").trim();
-  const queryPostId = String(params.get("postId") || "").trim();
-  const requirementIdValue = routeRequirementId || queryPostId;
+  const routeRequirementId = extractObjectId(requirementId);
+  const queryPostId = extractObjectId(params.get("postId"));
+  const routeIdValid = OBJECT_ID_REGEX.test(routeRequirementId);
+  const queryIdValid = OBJECT_ID_REGEX.test(queryPostId);
+  const requirementIdValue = routeIdValid
+    ? routeRequirementId
+    : queryIdValid
+    ? queryPostId
+    : routeRequirementId || queryPostId;
   const city = String(params.get("city") || "").trim();
   const queryPreview = useMemo(
     () => ({
@@ -142,9 +155,25 @@ export default function SellerDeepLink() {
     async function loadPreview() {
       setLoading(true);
       try {
-        const res = await api.get(`/meta/requirement-preview/${encodeURIComponent(requirementIdValue)}`);
+        const candidateIds = Array.from(
+          new Set(
+            [requirementIdValue, routeRequirementId, queryPostId]
+              .map((value) => String(value || "").trim())
+              .filter((value) => OBJECT_ID_REGEX.test(value))
+          )
+        );
+        let loaded = null;
+        for (const id of candidateIds) {
+          try {
+            const res = await api.get(`/meta/requirement-preview/${encodeURIComponent(id)}`);
+            loaded = res.data || null;
+            if (loaded) break;
+          } catch {
+            // Try next candidate id.
+          }
+        }
         if (cancelled) return;
-        setPreview(res.data || null);
+        setPreview(loaded || null);
       } catch {
         if (cancelled) return;
         setPreview(queryPreview);
