@@ -166,9 +166,22 @@ export default function AdminDashboard() {
       }
       if (manualTemplateFields.link) {
         const baseUrl = window.location.origin.replace(/\/+$/, "");
-        const cityParam = encodeURIComponent(requirement.city || "");
-        const reqIdParam = encodeURIComponent(requirement._id || "");
-        lines.push(`Open: ${baseUrl}/seller/deeplink/${reqIdParam}?city=${cityParam}&postId=${reqIdParam}`);
+        const reqIdRaw = String(requirement._id || "").trim();
+        const reqIdParam = encodeURIComponent(reqIdRaw);
+        const linkParams = new URLSearchParams();
+        linkParams.set("city", String(requirement.city || ""));
+        linkParams.set("postId", reqIdRaw);
+        linkParams.set("product", String(requirement.product || requirement.productName || ""));
+        linkParams.set("category", String(requirement.category || ""));
+        linkParams.set("qty", String(requirement.quantity || ""));
+        linkParams.set("unit", String(requirement.unit || requirement.type || ""));
+        linkParams.set("brand", String(requirement.makeBrand || requirement.brand || ""));
+        linkParams.set("model", String(requirement.typeModel || ""));
+        linkParams.set("details", String(requirement.details || requirement.description || ""));
+        linkParams.set("invite", String(requirement.offerInvitedFrom || ""));
+        lines.push(
+          `Open: ${baseUrl}/seller/deeplink/${reqIdParam}?${linkParams.toString()}`
+        );
       }
       return lines.join("\n");
     },

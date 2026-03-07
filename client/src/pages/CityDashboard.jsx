@@ -76,9 +76,20 @@ export default function CityDashboard({
 
   function getShareText(req) {
     const reqId = String(req?._id || req?.id || "").trim();
+    const deepLinkParams = new URLSearchParams();
+    deepLinkParams.set("city", String(req?.city || city || ""));
+    deepLinkParams.set("postId", reqId);
+    deepLinkParams.set("product", String(req?.product || req?.productName || ""));
+    deepLinkParams.set("category", String(req?.category || ""));
+    deepLinkParams.set("qty", String(req?.quantity || ""));
+    deepLinkParams.set("unit", String(req?.type || req?.unit || ""));
+    deepLinkParams.set("brand", String(req?.makeBrand || req?.brand || ""));
+    deepLinkParams.set("model", String(req?.typeModel || ""));
+    deepLinkParams.set("details", String(req?.details || req?.description || ""));
+    deepLinkParams.set("invite", String(req?.offerInvitedFrom || ""));
     const deepLink = `${appBaseUrl}/seller/deeplink/${encodeURIComponent(
       reqId
-    )}?city=${encodeURIComponent(req?.city || city || "")}&postId=${encodeURIComponent(reqId)}`;
+    )}?${deepLinkParams.toString()}`;
     const product = req.product || req.productName || "Requirement";
     const quantity = req.quantity ? `${req.quantity} ${req.unit || ""}` : "";
     const cityText = req.city || city || "";
@@ -94,9 +105,20 @@ export default function CityDashboard({
   function getShareLinks(req) {
     const shareText = getShareText(req);
     const reqId = String(req?._id || req?.id || "").trim();
+    const deepLinkParams = new URLSearchParams();
+    deepLinkParams.set("city", String(req?.city || city || ""));
+    deepLinkParams.set("postId", reqId);
+    deepLinkParams.set("product", String(req?.product || req?.productName || ""));
+    deepLinkParams.set("category", String(req?.category || ""));
+    deepLinkParams.set("qty", String(req?.quantity || ""));
+    deepLinkParams.set("unit", String(req?.type || req?.unit || ""));
+    deepLinkParams.set("brand", String(req?.makeBrand || req?.brand || ""));
+    deepLinkParams.set("model", String(req?.typeModel || ""));
+    deepLinkParams.set("details", String(req?.details || req?.description || ""));
+    deepLinkParams.set("invite", String(req?.offerInvitedFrom || ""));
     const shareUrl = `${appBaseUrl}/seller/deeplink/${encodeURIComponent(
       reqId
-    )}?city=${encodeURIComponent(req?.city || city || "")}&postId=${encodeURIComponent(reqId)}`;
+    )}?${deepLinkParams.toString()}`;
     const encodedText = encodeURIComponent(shareText);
     const encodedUrl = encodeURIComponent(shareUrl);
     return {

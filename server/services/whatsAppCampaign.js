@@ -34,6 +34,22 @@ function formatMessage({ requirement, deepLink }) {
     `Go to link to submit your offer: ${deepLink}`
   ].join("\n");
 }
+function buildSellerDeepLink(appBase, requirement) {
+  const requirementIdRaw = String(requirement?._id || "").trim();
+  const requirementId = encodeURIComponent(requirementIdRaw);
+  const params = new URLSearchParams();
+  params.set("city", String(requirement?.city || ""));
+  params.set("postId", requirementIdRaw);
+  params.set("product", firstNonEmpty([requirement?.product, requirement?.productName]));
+  params.set("category", String(requirement?.category || ""));
+  params.set("qty", String(requirement?.quantity || ""));
+  params.set("unit", firstNonEmpty([requirement?.unit, requirement?.type]));
+  params.set("brand", firstNonEmpty([requirement?.makeBrand, requirement?.brand]));
+  params.set("model", firstNonEmpty([requirement?.typeModel]));
+  params.set("details", String(requirement?.details || requirement?.description || ""));
+  params.set("invite", String(requirement?.offerInvitedFrom || ""));
+  return `${appBase}/seller/deeplink/${requirementId}?${params.toString()}`;
+}
 
 function normalizeChannels(input) {
   const requested = input && typeof input === "object" ? input : {};
@@ -102,8 +118,7 @@ async function triggerWhatsAppCampaignForRequirement(
       .split(",")[0]
       .trim()
       .replace(/\/+$/, "") || "https://hokoapp.in";
-  const requirementId = encodeURIComponent(String(requirement._id || ""));
-  const deepLink = `${appBase}/seller/deeplink/${requirementId}?city=${encodeURIComponent(requirement.city || "")}&postId=${requirementId}`;
+  const deepLink = buildSellerDeepLink(appBase, requirement);
   const body = formatMessage({ requirement, deepLink });
   const selectedChannels = normalizeChannels(channels);
   const run = await WhatsAppCampaignRun.create({
@@ -231,8 +246,7 @@ async function sendTestWhatsAppCampaign({
       .split(",")[0]
       .trim()
       .replace(/\/+$/, "") || "https://hokoapp.in";
-  const requirementId = encodeURIComponent(String(requirement._id || ""));
-  const deepLink = `${appBase}/seller/deeplink/${requirementId}?city=${encodeURIComponent(requirement.city || "")}&postId=${requirementId}`;
+  const deepLink = buildSellerDeepLink(appBase, requirement);
   const body = formatMessage({ requirement, deepLink });
 
   const run = await WhatsAppCampaignRun.create({
