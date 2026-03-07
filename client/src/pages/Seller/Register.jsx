@@ -17,6 +17,8 @@ export default function SellerRegister() {
   const [seller, setSeller] = useState({
     email: session?.email || "",
     mobile: session?.mobile || "",
+    firmName: "",
+    managerName: "",
     businessName: "",
     registrationDetails: "",
     businessAddress: "",
@@ -83,10 +85,10 @@ export default function SellerRegister() {
     if (
       !seller.email ||
       !seller.mobile ||
-      !seller.businessName ||
-      !seller.businessAddress ||
-      !seller.ownerName ||
-      !seller.taxId ||
+      !seller.firmName ||
+      !seller.managerName ||
+      !Array.isArray(seller.categories) ||
+      seller.categories.length === 0 ||
       !(seller.city || sessionCity)
     ) {
       alert("Please fill all required fields");
@@ -188,10 +190,10 @@ export default function SellerRegister() {
 
               <input
                 className="w-full border p-2 rounded"
-                placeholder="Registered Business Name *"
-                value={seller.businessName}
+                placeholder="Firm Name *"
+                value={seller.firmName}
                 onChange={(e) =>
-                  setSeller({ ...seller, businessName: e.target.value })
+                  setSeller({ ...seller, firmName: e.target.value })
                 }
                 required
               />
@@ -199,7 +201,7 @@ export default function SellerRegister() {
               {/* Category Dropdown with checkbox list */}
               <div className="md:col-span-2">
                 <label className="block font-medium mb-2">
-                  Categories you deal in
+                  Categories you deal in *
                 </label>
                 <div className="relative">
                   <button
@@ -209,7 +211,7 @@ export default function SellerRegister() {
                   >
                     {seller.categories.length
                       ? seller.categories.join(", ")
-                      : "Select categories"}
+                      : "Select categories *"}
                     <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">
                       v
                     </span>
@@ -248,12 +250,11 @@ export default function SellerRegister() {
 
               <input
                 className="w-full border p-2 rounded"
-                placeholder="Business Address *"
+                placeholder="Business Address"
                 value={seller.businessAddress}
                 onChange={(e) =>
                   setSeller({ ...seller, businessAddress: e.target.value })
                 }
-                required
               />
 
               {!hasSessionCity ? (
@@ -283,14 +284,22 @@ export default function SellerRegister() {
 
               <input
                 className="w-full border p-2 rounded"
-                placeholder="Manager/Owner Name *"
-                value={seller.ownerName}
+                placeholder="Manager Name *"
+                value={seller.managerName}
                 onChange={(e) =>
-                  setSeller({ ...seller, ownerName: e.target.value })
+                  setSeller({ ...seller, managerName: e.target.value })
                 }
                 required
               />
 
+              <input
+                className="w-full border p-2 rounded"
+                placeholder="Registered Business Name"
+                value={seller.businessName}
+                onChange={(e) =>
+                  setSeller({ ...seller, businessName: e.target.value })
+                }
+              />
 
               <input
                 className="w-full border p-2 rounded"
@@ -303,12 +312,11 @@ export default function SellerRegister() {
 
               <input
                 className="w-full border p-2 rounded"
-                placeholder="Tax Identification Number *"
+                placeholder="Tax Identification Number"
                 value={seller.taxId}
                 onChange={(e) =>
                   setSeller({ ...seller, taxId: e.target.value })
                 }
-                required
               />
             </div>
 

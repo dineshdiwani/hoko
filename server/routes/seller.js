@@ -120,11 +120,15 @@ function shouldSendBuyerPush(userDoc) {
   return toggles.pushEnabled !== false;
 }
 
-function mapRequirementForSeller(requirementDoc, offerMap) {
+function mapRequirementForSeller(requirementDoc, offerMap, sellerCityRaw = "") {
   if (!requirementDoc) return null;
   const data = normalizeRequirementAttachmentsForResponse(requirementDoc);
   const reqId = String(requirementDoc._id);
   const sellerOffer = offerMap.get(reqId) || null;
+  const inviteMode = normalizeOfferInvitedFrom(requirementDoc.offerInvitedFrom);
+  const blockedByCity =
+    inviteMode === "city" &&
+    !cityMatches(requirementDoc.city, sellerCityRaw);
   data.product = data.product || data.productName;
   data.reverseAuctionActive = data.reverseAuction?.active === true;
   data.currentLowestPrice =
@@ -133,6 +137,8 @@ function mapRequirementForSeller(requirementDoc, offerMap) {
       : data.reverseAuction?.lowestPrice ?? null;
   data.myOffer = Boolean(sellerOffer);
   data.contactEnabledByBuyer = sellerOffer?.contactEnabledByBuyer === true;
+  data.offerBlockedByCity = blockedByCity;
+  data.offerAllowedForSeller = !blockedByCity;
   data.buyerId = data.buyerId;
   return data;
 }
@@ -177,14 +183,17 @@ router.post("/onboard", auth, async (req, res) => {
     taxId,
     city,
   } = req.body || {};
+  const mobileValue = String(mobile || "").trim();
+  const cityValue = String(city || "").trim();
+  const firmNameValue = String(firmName || "").trim();
+  const managerNameValue = String(managerName || "").trim();
 
   if (
-    !businessName ||
-    !mobile ||
-    !businessAddress ||
-    !ownerName ||
-    !taxId ||
-    !city
+    !req.user?.email ||
+    !mobileValue ||
+    !cityValue ||
+    !firmNameValue ||
+    !managerNameValue
   ) {
     return res
       .status(400)
@@ -192,19 +201,22 @@ router.post("/onboard", auth, async (req, res) => {
   }
 
   const normalizedCategories = normalizeAndDedupeCategories(categories);
+  if (!normalizedCategories.length) {
+    return res.status(400).json({ message: "Missing required fields" });
+  }
 
   const update = {
-    mobile: String(mobile || "").trim(),
-    "sellerProfile.businessName": businessName,
-    "sellerProfile.registrationDetails": registrationDetails || "",
-    "sellerProfile.businessAddress": businessAddress,
-    "sellerProfile.ownerName": ownerName,
-    "sellerProfile.firmName": firmName || "",
-    "sellerProfile.managerName": managerName || "",
+    mobile: mobileValue,
+    "sellerProfile.businessName": String(businessName || "").trim(),
+    "sellerProfile.registrationDetails": String(registrationDetails || "").trim(),
+    "sellerProfile.businessAddress": String(businessAddress || "").trim(),
+    "sellerProfile.ownerName": String(ownerName || "").trim(),
+    "sellerProfile.firmName": firmNameValue,
+    "sellerProfile.managerName": managerNameValue,
     "sellerProfile.categories": normalizedCategories,
-    "sellerProfile.website": website || "",
-    "sellerProfile.taxId": taxId,
-    city
+    "sellerProfile.website": String(website || "").trim(),
+    "sellerProfile.taxId": String(taxId || "").trim(),
+    city: cityValue
   };
 
   const user = await User.findByIdAndUpdate(
@@ -650,7 +662,7 @@ router.get("/requirement/:requirementId", auth, sellerOnly, async (req, res) => 
       : []
   );
 
-  return res.json(mapRequirementForSeller(requirement, offerMap));
+  return res.json(mapRequirementForSeller(requirement, offerMap, req.user?.city));
 });
 
 /**
@@ -668,6 +680,10 @@ router.get("/dashboard", auth, sellerOnly, async (req, res) => {
     hasCityParam &&
     (!requestedCityNormalized || requestedCityNormalized === "all");
   const targetCity = requestedCity;
+  const visibilityMode =
+    String(req.query?.visibility || "").trim().toLowerCase() === "anywhere"
+      ? "anywhere"
+      : "mycity";
 
   const requirementQuery = {
     "moderation.removed": { $ne: true }
@@ -700,6 +716,7 @@ router.get("/dashboard", auth, sellerOnly, async (req, res) => {
   const requirements = cityMatchedRequirements.filter((requirement) => {
     const inviteMode = normalizeOfferInvitedFrom(requirement.offerInvitedFrom);
     if (inviteMode === "anywhere") return true;
+    if (visibilityMode === "anywhere") return true;
     if (!sellerCityNormalized) return false;
     return cityMatches(requirement?.city, req.user?.city);
   });
@@ -713,8 +730,8 @@ router.get("/dashboard", auth, sellerOnly, async (req, res) => {
     offers.map((offer) => [String(offer.requirementId), offer])
   );
 
-  const mapped = requirements.map((req) =>
-    mapRequirementForSeller(req, offerMap)
+  const mapped = requirements.map((requirementDoc) =>
+    mapRequirementForSeller(requirementDoc, offerMap, req.user?.city)
   );
 
   res.json(mapped);

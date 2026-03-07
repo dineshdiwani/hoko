@@ -347,11 +347,16 @@ router.post("/switch-role", auth, async (req, res) => {
   }
   if (nextRole === "seller") {
     const sellerProfile = req.user?.sellerProfile || {};
+    const hasCategories =
+      Array.isArray(sellerProfile.categories) &&
+      sellerProfile.categories.filter((item) => String(item || "").trim()).length > 0;
     const hasSellerProfile = Boolean(
-      sellerProfile.businessName &&
-        sellerProfile.businessAddress &&
-        sellerProfile.ownerName &&
-        sellerProfile.taxId
+      String(req.user?.email || "").trim() &&
+        String(req.user?.mobile || "").trim() &&
+        String(req.user?.city || "").trim() &&
+        String(sellerProfile.firmName || "").trim() &&
+        String(sellerProfile.managerName || "").trim() &&
+        hasCategories
     );
     if (!hasSellerProfile) {
       return res.status(403).json({
