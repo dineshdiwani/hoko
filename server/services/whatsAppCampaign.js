@@ -1,6 +1,7 @@
 const PlatformSettings = require("../models/PlatformSettings");
 const WhatsAppContact = require("../models/WhatsAppContact");
 const WhatsAppCampaignRun = require("../models/WhatsAppCampaignRun");
+const WhatsAppLead = require("../models/WhatsAppLead");
 const { sendWhatsAppMessage } = require("../utils/sendWhatsApp");
 const { sendEmailToRecipient } = require("../utils/sendEmail");
 
@@ -92,6 +93,44 @@ function createChannelStats() {
     whatsapp: { attempted: 0, sent: 0, failed: 0, skipped: 0 },
     email: { attempted: 0, sent: 0, failed: 0, skipped: 0 }
   };
+}
+
+async function upsertWhatsAppLeadContext({
+  contact,
+  requirement,
+  campaignRunId,
+  provider = "campaign"
+}) {
+  const mobileE164 = String(contact?.mobileE164 || "").trim();
+  if (!mobileE164 || !requirement?._id) return;
+
+  const primaryCategory = Array.isArray(contact?.categories)
+    ? String(contact.categories[0] || "").trim()
+    : "";
+
+  await WhatsAppLead.findOneAndUpdate(
+    { mobileE164 },
+    {
+      $set: {
+        mobileE164,
+        provider,
+        requirementId: requirement._id,
+        latestCampaignRunId: campaignRunId || null,
+        profile: {
+          firmName: String(contact?.firmName || "").trim(),
+          managerName: String(contact?.firmName || "").trim(),
+          city: String(contact?.city || requirement?.city || "").trim(),
+          category: primaryCategory || String(requirement?.category || "").trim(),
+          email: String(contact?.email || "").trim()
+        }
+      }
+    },
+    {
+      upsert: true,
+      new: true,
+      setDefaultsOnInsert: true
+    }
+  );
 }
 
 async function triggerWhatsAppCampaignForRequirement(
@@ -198,6 +237,12 @@ async function triggerWhatsAppCampaignForRequirement(
     }
 
     if (selectedChannels.whatsapp) {
+      await upsertWhatsAppLeadContext({
+        contact,
+        requirement,
+        campaignRunId: run._id,
+        provider: "campaign"
+      });
       attempted += 1;
       channelStats.whatsapp.attempted += 1;
       const waResult = await sendWhatsAppMessage({
@@ -290,6 +335,16 @@ async function sendTestWhatsAppCampaign({
   });
 
   if (dryRun) {
+    await upsertWhatsAppLeadContext({
+      contact: {
+        mobileE164,
+        city: requirement.city || "",
+        categories: [requirement.category || ""]
+      },
+      requirement,
+      campaignRunId: run._id,
+      provider: "manual_test"
+    });
     run.status = "completed";
     run.attempted = 1;
     run.skipped = 1;
@@ -298,6 +353,16 @@ async function sendTestWhatsAppCampaign({
     return { ok: true, dryRun: true, campaignRunId: run._id };
   }
 
+  await upsertWhatsAppLeadContext({
+    contact: {
+      mobileE164,
+      city: requirement.city || "",
+      categories: [requirement.category || ""]
+    },
+    requirement,
+    campaignRunId: run._id,
+    provider: "manual_test"
+  });
   const result = await sendWhatsAppMessage({ to: mobileE164, body });
   run.status = result?.ok ? "completed" : "failed";
   run.attempted = 1;
