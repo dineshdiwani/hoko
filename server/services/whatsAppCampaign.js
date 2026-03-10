@@ -9,6 +9,11 @@ function normalizeText(value) {
   return String(value || "").trim().toLowerCase();
 }
 
+function shouldBypassCampaignGuards(triggerType) {
+  const normalized = String(triggerType || "").trim().toLowerCase();
+  return normalized === "manual_resend";
+}
+
 function firstNonEmpty(values) {
   for (const value of values) {
     if (String(value || "").trim()) return String(value).trim();
@@ -148,7 +153,8 @@ async function triggerWhatsAppCampaignForRequirement(
 
   const settingsDoc = await PlatformSettings.findOne().lean();
   const campaignSettings = settingsDoc?.whatsAppCampaign || {};
-  if (!campaignSettings.enabled) {
+  const bypassCampaignGuards = shouldBypassCampaignGuards(triggerType);
+  if (!campaignSettings.enabled && !bypassCampaignGuards) {
     return { ok: false, reason: "campaign_disabled" };
   }
 
@@ -161,10 +167,15 @@ async function triggerWhatsAppCampaignForRequirement(
     ? campaignSettings.categories.map(normalizeText).filter(Boolean)
     : [];
 
-  if (enabledCities.length && !enabledCities.includes(requirementCity)) {
+  if (
+    !bypassCampaignGuards &&
+    enabledCities.length &&
+    !enabledCities.includes(requirementCity)
+  ) {
     return { ok: false, reason: "city_not_enabled" };
   }
   if (
+    !bypassCampaignGuards &&
     enabledCategories.length &&
     !enabledCategories.includes(requirementCategory)
   ) {

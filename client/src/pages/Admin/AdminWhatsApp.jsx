@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import api from "../../utils/adminApi";
 import AdminNav from "../../components/AdminNav";
 
@@ -43,8 +43,21 @@ export default function AdminWhatsApp() {
     whatsapp: true,
     email: false
   });
+  const fileInputRef = useRef(null);
 
   const normalizeText = (value) => String(value || "").trim().toLowerCase();
+  const uniqueByNormalized = (values) => {
+    const seen = new Set();
+    const out = [];
+    for (const value of values) {
+      const label = String(value || "").trim();
+      const key = normalizeText(label);
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      out.push(label);
+    }
+    return out;
+  };
   const getPostStatusDisplay = (item) =>
     `${item?.product || "Requirement"} | ${item?.city || "-"} | ${item?.category || "-"}`;
   const firstNonEmpty = (values) => {
@@ -133,9 +146,8 @@ export default function AdminWhatsApp() {
     const fromOptions = Array.isArray(options.cities)
       ? options.cities.map((city) => String(city || "").trim()).filter(Boolean)
       : [];
-    return Array.from(
-      new Set([...fromContacts, ...fromRequirements, ...fromOptions])
-    ).sort((a, b) => a.localeCompare(b));
+    return uniqueByNormalized([...fromContacts, ...fromRequirements, ...fromOptions])
+      .sort((a, b) => a.localeCompare(b));
   }, [contacts, requirements, options.cities]);
 
   const availableManualCategories = useMemo(() => {
@@ -150,9 +162,8 @@ export default function AdminWhatsApp() {
     const fromOptions = Array.isArray(options.categories)
       ? options.categories.map((category) => String(category || "").trim()).filter(Boolean)
       : [];
-    return Array.from(
-      new Set([...fromContacts, ...fromRequirements, ...fromOptions])
-    ).sort((a, b) => a.localeCompare(b));
+    return uniqueByNormalized([...fromContacts, ...fromRequirements, ...fromOptions])
+      .sort((a, b) => a.localeCompare(b));
   }, [contacts, requirements, options.categories]);
 
   useEffect(() => {
@@ -274,6 +285,9 @@ export default function AdminWhatsApp() {
         `Upload complete. Parsed: ${stats.parsed || 0}, Inserted: ${stats.inserted || 0}, Updated: ${stats.updated || 0}, Failed: ${stats.failed || 0}`
       );
       setNotificationFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
       await loadData();
     } catch (err) {
       const serverData = err?.response?.data;
@@ -521,11 +535,15 @@ export default function AdminWhatsApp() {
               <div>
                 <label className="text-sm text-gray-600">Excel File</label>
                 <input
+                  ref={fileInputRef}
                   type="file"
                   accept=".xls,.xlsx"
                   onChange={handleNotificationFile}
                   className="mt-2 block w-full text-sm"
                 />
+                <p className="text-xs text-gray-600 mt-1">
+                  Selected file: {notificationFile?.name || "None"}
+                </p>
                 <p className="text-xs text-gray-500 mt-1">
                   Columns required in order: A Firm Name, B City, C Country ISD Code, D Mobile Number, E Categories (use ; between multiple categories), F Email.
                 </p>
