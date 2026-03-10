@@ -534,6 +534,7 @@ app.use("/api/push", require("./routes/push"));
 app.use("/api/reviews", require("./routes/reviews"));
 app.use("/api/reports", require("./routes/reports"));
 app.use("/api/meta", require("./routes/meta"));
+app.use("/api/whatsapp", require("./routes/whatsapp"));
 app.use("/api/admin-auth", require("./routes/adminAuth"));
 app.use("/api/admin", require("./routes/adminStats"));
 
