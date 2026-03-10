@@ -4,6 +4,7 @@ import api from "../../services/api";
 import { getSession } from "../../services/storage";
 
 const PENDING_OFFER_KEY = "pending_seller_offer_intent";
+const POST_LOGIN_REDIRECT_SOURCE_KEY = "post_login_redirect_source";
 const OBJECT_ID_REGEX = /^[a-f0-9]{24}$/i;
 function extractObjectId(value) {
   const raw = String(value || "").trim();
@@ -108,6 +109,7 @@ export default function SellerDeepLink() {
   const redirectToAuthOrRegister = (payload) => {
     savePendingOfferIntent(payload);
     localStorage.setItem("post_login_redirect", buildRedirectTarget());
+    localStorage.setItem(POST_LOGIN_REDIRECT_SOURCE_KEY, "deeplink");
     localStorage.setItem("login_intent_role", "seller");
 
     const session = getSession();

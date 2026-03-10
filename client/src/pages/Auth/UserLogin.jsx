@@ -9,6 +9,20 @@ export default function UserLogin({ role = "buyer" }) {
   const isSeller = role === "seller";
   const currentRole = isSeller ? "seller" : "buyer";
   const navigate = useNavigate();
+  const postLoginRedirect = String(
+    localStorage.getItem("post_login_redirect") || ""
+  ).trim();
+  const postLoginRedirectSource = String(
+    localStorage.getItem("post_login_redirect_source") || ""
+  )
+    .trim()
+    .toLowerCase();
+  const isDeepLinkRedirect =
+    postLoginRedirect.startsWith("/seller/deeplink/");
+  const useSellerPostLoginRedirect =
+    isSeller &&
+    Boolean(postLoginRedirect) &&
+    (postLoginRedirectSource === "deeplink" || isDeepLinkRedirect);
   const defaultTermsContent = [
     "By using hoko, you agree to these Terms & Conditions.",
     "hoko is a marketplace platform connecting buyers and sellers. You are responsible for all negotiations, pricing, delivery, and payments.",
@@ -50,7 +64,7 @@ export default function UserLogin({ role = "buyer" }) {
   ]);
 
   const redirect = isSeller
-    ? localStorage.getItem("post_login_redirect") || "/seller/dashboard"
+    ? (useSellerPostLoginRedirect ? postLoginRedirect : "/seller/dashboard")
     : (localStorage.getItem("login_intent_role") === "seller"
         ? "/seller/register"
         : "/buyer/dashboard");
@@ -251,6 +265,7 @@ export default function UserLogin({ role = "buyer" }) {
           localStorage.getItem("login_intent_role") === "seller";
         if (!(currentRole === "buyer" && sellerIntent)) {
           localStorage.removeItem("post_login_redirect");
+          localStorage.removeItem("post_login_redirect_source");
         }
         if (acceptedTerms) {
           localStorage.setItem(
@@ -331,6 +346,7 @@ export default function UserLogin({ role = "buyer" }) {
           localStorage.getItem("login_intent_role") === "seller";
         if (!(currentRole === "buyer" && sellerIntent)) {
           localStorage.removeItem("post_login_redirect");
+          localStorage.removeItem("post_login_redirect_source");
         }
         if (hasAcceptedTerms) {
           localStorage.setItem(

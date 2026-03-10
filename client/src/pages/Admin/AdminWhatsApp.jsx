@@ -98,19 +98,22 @@ export default function AdminWhatsApp() {
         const baseUrl = window.location.origin.replace(/\/+$/, "");
         const reqIdRaw = String(requirement._id || "").trim();
         const reqIdParam = encodeURIComponent(reqIdRaw);
-        const linkParams = new URLSearchParams();
-        linkParams.set("city", String(requirement.city || ""));
-        linkParams.set("postId", reqIdRaw);
-        linkParams.set("product", String(requirement.product || requirement.productName || ""));
-        linkParams.set("category", String(requirement.category || ""));
-        linkParams.set("qty", String(requirement.quantity || ""));
-        linkParams.set("unit", String(requirement.unit || requirement.type || ""));
-        linkParams.set("brand", String(requirement.makeBrand || requirement.brand || ""));
-        linkParams.set("model", String(requirement.typeModel || ""));
-        linkParams.set("details", String(requirement.details || requirement.description || ""));
-        linkParams.set("invite", String(requirement.offerInvitedFrom || ""));
+        const packed = encodeURIComponent(
+          JSON.stringify({
+            postId: reqIdRaw,
+            city: String(requirement.city || ""),
+            product: String(requirement.product || requirement.productName || ""),
+            category: String(requirement.category || ""),
+            qty: String(requirement.quantity || ""),
+            unit: String(requirement.unit || requirement.type || ""),
+            brand: String(requirement.makeBrand || requirement.brand || ""),
+            model: String(requirement.typeModel || ""),
+            details: String(requirement.details || requirement.description || ""),
+            invite: String(requirement.offerInvitedFrom || "")
+          })
+        );
         lines.push(
-          `Go to link to submit your offer: ${baseUrl}/seller/deeplink/${reqIdParam}?${linkParams.toString()}`
+          `Go to link to submit your offer: ${baseUrl}/seller/deeplink/${reqIdParam}?pd=${packed}`
         );
       }
       return lines.join("\n");

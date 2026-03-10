@@ -30,8 +30,20 @@ export default function SellerRegister() {
   });
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const postLoginRedirectRaw = String(
+    localStorage.getItem("post_login_redirect") || ""
+  ).trim();
+  const postLoginRedirectSource = String(
+    localStorage.getItem("post_login_redirect_source") || ""
+  )
+    .trim()
+    .toLowerCase();
+  const isDeepLinkRedirect = postLoginRedirectRaw.startsWith("/seller/deeplink/");
   const postLoginRedirect =
-    localStorage.getItem("post_login_redirect") || "/seller/dashboard";
+    postLoginRedirectRaw &&
+    (postLoginRedirectSource === "deeplink" || isDeepLinkRedirect)
+      ? postLoginRedirectRaw
+      : "/seller/dashboard";
 
   const [cities, setCities] = useState([
     "Mumbai",
@@ -131,6 +143,8 @@ export default function SellerRegister() {
         });
         alert("Seller registered successfully!");
         localStorage.removeItem("login_intent_role");
+        localStorage.removeItem("post_login_redirect");
+        localStorage.removeItem("post_login_redirect_source");
         navigate(postLoginRedirect);
       })
       .catch((err) => {

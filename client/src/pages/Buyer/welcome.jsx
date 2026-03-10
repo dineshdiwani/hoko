@@ -282,6 +282,8 @@ export default function BuyerWelcome() {
               onClick={async () => {
                 if (!isLoggedIn) {
                   localStorage.setItem("login_intent_role", "seller");
+                  localStorage.removeItem("post_login_redirect");
+                  localStorage.removeItem("post_login_redirect_source");
                   navigate("/seller/login");
                   return;
                 }
