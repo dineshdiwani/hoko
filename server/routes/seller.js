@@ -10,12 +10,14 @@ const User = require("../models/User");
 const Notification = require("../models/Notification");
 const ChatMessage = require("../models/ChatMessage");
 const PlatformSettings = require("../models/PlatformSettings");
+const PendingOfferDraft = require("../models/PendingOfferDraft");
 const auth = require("../middleware/auth");
 const sellerOnly = require("../middleware/sellerOnly");
 const sendPush = require("../utils/sendPush");
 const { sendAdminEventEmail, sendEmailToRecipient } = require("../utils/sendEmail");
 const { getModerationRules, checkTextForFlags } = require("../utils/moderation");
 const { normalizeRequirementAttachmentsForResponse } = require("../utils/attachments");
+const { normalizeE164 } = require("../utils/sendWhatsApp");
 
 const offerUploadDir = path.join(__dirname, "../uploads/offers");
 if (!fs.existsSync(offerUploadDir)) {
@@ -464,6 +466,22 @@ router.post("/offer", auth, sellerOnly, async (req, res) => {
 
       await requirement.save();
 
+      const sellerMobileE164 = normalizeE164(req.user?.mobile);
+      if (sellerMobileE164) {
+        await PendingOfferDraft.updateMany(
+          {
+            mobileE164: sellerMobileE164,
+            requirementId: requirement._id,
+            status: "pending"
+          },
+          {
+            $set: {
+              status: "submitted"
+            }
+          }
+        );
+      }
+
       const io = req.app.get("io");
       if (shouldNotifyBuyerEvent(buyer, "newOffer")) {
         const notif = await Notification.create({
@@ -546,6 +564,39 @@ router.post("/offer", auth, sellerOnly, async (req, res) => {
     console.error(err);
     res.status(500).json({ message: "Failed to submit offer" });
   }
+});
+
+/**
+ * Get pending WhatsApp-derived offer draft for the logged-in seller and requirement
+ */
+router.get("/offer-draft/:requirementId", auth, sellerOnly, async (req, res) => {
+  const requirementId = String(req.params.requirementId || "").trim();
+  const sellerMobileE164 = normalizeE164(req.user?.mobile);
+  if (!requirementId || !sellerMobileE164) {
+    return res.json({ draft: null });
+  }
+
+  const draft = await PendingOfferDraft.findOne({
+    mobileE164: sellerMobileE164,
+    requirementId,
+    status: "pending"
+  })
+    .sort({ updatedAt: -1 })
+    .lean();
+
+  if (!draft) {
+    return res.json({ draft: null });
+  }
+
+  return res.json({
+    draft: {
+      id: String(draft._id || ""),
+      price: draft.price,
+      deliveryDays: draft.deliveryDays,
+      note: String(draft.note || draft.rawMessage || "").trim(),
+      updatedAt: draft.updatedAt || null
+    }
+  });
 });
 
 /**

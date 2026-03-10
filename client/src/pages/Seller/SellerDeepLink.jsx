@@ -33,6 +33,8 @@ export default function SellerDeepLink() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [preview, setPreview] = useState(null);
+  const [draftLoaded, setDraftLoaded] = useState(false);
+  const [draftHint, setDraftHint] = useState("");
   const [form, setForm] = useState({
     price: "",
     message: "",
@@ -225,6 +227,53 @@ export default function SellerDeepLink() {
     submitOffer(pending.offerPayload, { isAuto: true });
   }, [loading, requirementIdValue]);
 
+  useEffect(() => {
+    if (loading || !requirementIdValue || draftLoaded) return;
+    const pending = readPendingOfferIntent();
+    if (pending && String(pending.requirementId) === String(requirementIdValue)) {
+      setDraftLoaded(true);
+      return;
+    }
+
+    const session = getSession();
+    const isSeller = session?.role === "seller" || Boolean(session?.roles?.seller);
+    if (!session?.token || !isSeller) return;
+
+    let cancelled = false;
+
+    async function loadServerDraft() {
+      try {
+        const res = await api.get(`/seller/offer-draft/${encodeURIComponent(requirementIdValue)}`);
+        const draft = res?.data?.draft || null;
+        if (cancelled) return;
+        if (!draft) {
+          setDraftLoaded(true);
+          return;
+        }
+        setForm((prev) => ({
+          price: prev.price || (draft.price ? String(draft.price) : ""),
+          message: prev.message || String(draft.note || ""),
+          deliveryTime:
+            prev.deliveryTime ||
+            (draft.deliveryDays ? `${draft.deliveryDays} days` : ""),
+          paymentTerms: prev.paymentTerms || ""
+        }));
+        setDraftHint("Pre-filled from your WhatsApp reply. Review and submit your offer.");
+        setDraftLoaded(true);
+      } catch {
+        if (!cancelled) {
+          setDraftLoaded(true);
+        }
+      }
+    }
+
+    loadServerDraft();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [loading, requirementIdValue, draftLoaded]);
+
   const handleSubmit = () => {
     const payload = {
       price: String(form.price || "").trim(),
@@ -268,6 +317,11 @@ export default function SellerDeepLink() {
           <p className="ui-body text-[var(--ui-muted)]">Loading requirement...</p>
         ) : (
           <div className="dashboard-panel p-4 space-y-3">
+            {draftHint ? (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+                {draftHint}
+              </div>
+            ) : null}
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
               <p className="ui-label text-[var(--ui-muted)] mb-1">Post Details</p>
               <p className="ui-body">
