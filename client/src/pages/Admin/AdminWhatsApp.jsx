@@ -106,21 +106,7 @@ export default function AdminWhatsApp() {
       const baseUrl = window.location.origin.replace(/\/+$/, "");
       const reqIdRaw = String(requirement._id || "").trim();
       const reqIdParam = encodeURIComponent(reqIdRaw);
-      const packed = encodeURIComponent(
-        JSON.stringify({
-          postId: reqIdRaw,
-          city: String(requirement.city || ""),
-          product: String(requirement.product || requirement.productName || ""),
-          category: String(requirement.category || ""),
-          qty: String(requirement.quantity || ""),
-          unit: String(requirement.unit || requirement.type || ""),
-          brand: String(requirement.makeBrand || requirement.brand || ""),
-          model: String(requirement.typeModel || ""),
-          details: String(requirement.details || requirement.description || ""),
-          invite: String(requirement.offerInvitedFrom || "")
-        })
-      );
-      const deepLink = `${baseUrl}/seller/deeplink/${reqIdParam}?pd=${packed}`;
+      const deepLink = `${baseUrl}/seller/deeplink/${reqIdParam}`;
       return [
         `*Buyer requirements from ${city} are now live on Hoko*`,
         "",

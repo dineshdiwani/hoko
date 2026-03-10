@@ -74,20 +74,7 @@ function formatMessage({ requirement, deepLink }) {
 function buildSellerDeepLink(appBase, requirement) {
   const requirementIdRaw = String(requirement?._id || "").trim();
   const requirementId = encodeURIComponent(requirementIdRaw);
-  const payload = {
-    postId: requirementIdRaw,
-    city: String(requirement?.city || ""),
-    product: firstNonEmpty([requirement?.product, requirement?.productName]),
-    category: String(requirement?.category || ""),
-    qty: String(requirement?.quantity || ""),
-    unit: firstNonEmpty([requirement?.unit, requirement?.type]),
-    brand: firstNonEmpty([requirement?.makeBrand, requirement?.brand]),
-    model: firstNonEmpty([requirement?.typeModel]),
-    details: String(requirement?.details || requirement?.description || ""),
-    invite: String(requirement?.offerInvitedFrom || "")
-  };
-  const packed = encodeURIComponent(JSON.stringify(payload));
-  return `${appBase}/seller/deeplink/${requirementId}?pd=${packed}`;
+  return `${appBase}/seller/deeplink/${requirementId}`;
 }
 
 function normalizeChannels(input) {
