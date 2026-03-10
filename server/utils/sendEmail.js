@@ -1,5 +1,9 @@
 const nodemailer = require("nodemailer");
 
+function isValidEmail(value) {
+  return /\S+@\S+\.\S+/.test(String(value || "").trim());
+}
+
 function getTransport() {
   const host = process.env.SMTP_HOST;
   const port = Number(process.env.SMTP_PORT || 587);
@@ -18,14 +22,42 @@ function getTransport() {
   });
 }
 
+function resolveSender() {
+  const smtpUser = String(process.env.SMTP_USER || "").trim();
+  const smtpFrom = String(process.env.SMTP_FROM || "").trim();
+  const smtpReplyTo = String(process.env.SMTP_REPLY_TO || "").trim();
+  const appName = String(process.env.APP_NAME || "Hoko").trim() || "Hoko";
+  const authAddress = isValidEmail(smtpUser) ? smtpUser : "";
+  const requestedFrom = isValidEmail(smtpFrom) ? smtpFrom : "";
+  const requestedReplyTo = isValidEmail(smtpReplyTo) ? smtpReplyTo : "";
+
+  // Keep the visible From header configurable, but use the authenticated
+  // mailbox as the SMTP envelope sender for better deliverability.
+  const visibleFromEmail = requestedFrom || authAddress || "no-reply@hoko.app";
+  const envelopeFrom = authAddress || visibleFromEmail || "no-reply@hoko.app";
+  const from = `${appName} <${visibleFromEmail}>`;
+  const replyTo =
+    requestedReplyTo ||
+    (requestedFrom &&
+    authAddress &&
+    requestedFrom.toLowerCase() !== authAddress.toLowerCase()
+      ? requestedFrom
+      : undefined);
+
+  return {
+    from,
+    envelopeFrom,
+    replyTo
+  };
+}
+
 async function sendOtpEmail({ email, otp, subject }) {
   const transport = getTransport();
   if (!transport) {
     throw new Error("SMTP not configured");
   }
 
-  const from =
-    process.env.SMTP_FROM || "no-reply@hoko.app";
+  const sender = resolveSender();
   const safeOtp = String(otp || "").trim();
   const brand = process.env.APP_NAME || "Hoko";
   const html = `
@@ -40,26 +72,42 @@ async function sendOtpEmail({ email, otp, subject }) {
       </p>
     </div>
   `;
-  await transport.sendMail({
-    from,
+  const info = await transport.sendMail({
+    from: sender.from,
     to: email,
+    envelope: {
+      from: sender.envelopeFrom,
+      to: email
+    },
+    ...(sender.replyTo ? { replyTo: sender.replyTo } : {}),
     subject: subject || "Your Hoko OTP",
     text: `Your OTP is ${otp}. It is valid for a short time.`,
     html
   });
+  return {
+    ok: Array.isArray(info?.accepted) ? info.accepted.length > 0 : true,
+    accepted: info?.accepted || [],
+    rejected: info?.rejected || [],
+    response: info?.response || ""
+  };
 }
 
 async function sendEmailToRecipient({ to, subject, text, html }) {
   const transport = getTransport();
   const target = String(to || "").trim();
-  if (!transport || !target || !/\S+@\S+\.\S+/.test(target)) {
+  if (!transport || !target || !isValidEmail(target)) {
     return { ok: false, skipped: true, reason: "email_not_configured_or_invalid" };
   }
 
-  const from = process.env.SMTP_FROM || "no-reply@hoko.app";
-  await transport.sendMail({
-    from,
+  const sender = resolveSender();
+  const info = await transport.sendMail({
+    from: sender.from,
     to: target,
+    envelope: {
+      from: sender.envelopeFrom,
+      to: target
+    },
+    ...(sender.replyTo ? { replyTo: sender.replyTo } : {}),
     subject: String(subject || "Hoko notification").slice(0, 180),
     text: String(text || "").trim() || "Hoko event notification",
     html:
@@ -68,7 +116,12 @@ async function sendEmailToRecipient({ to, subject, text, html }) {
         text || ""
       )}</div>`
   });
-  return { ok: true };
+  return {
+    ok: Array.isArray(info?.accepted) ? info.accepted.length > 0 : true,
+    accepted: info?.accepted || [],
+    rejected: info?.rejected || [],
+    response: info?.response || ""
+  };
 }
 
 function getAdminNotificationEmail() {
