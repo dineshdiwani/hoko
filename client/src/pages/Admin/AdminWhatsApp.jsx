@@ -444,14 +444,28 @@ export default function AdminWhatsApp() {
     const selectedCategoryKey = normalizeText(manualCategory);
     const getContactCategories = (contact) =>
       Array.isArray(contact?.categoriesNormalized) && contact.categoriesNormalized.length
-        ? contact.categoriesNormalized.map((item) => normalizeText(item))
-        : (Array.isArray(contact?.categories) ? contact.categories.map((item) => normalizeText(item)) : []);
+        ? contact.categoriesNormalized
+            .flatMap((item) => String(item || "").split(/[;,|/]+/))
+            .map((item) => normalizeText(item))
+            .filter(Boolean)
+        : (Array.isArray(contact?.categories)
+            ? contact.categories
+                .flatMap((item) => String(item || "").split(/[;,|/]+/))
+                .map((item) => normalizeText(item))
+                .filter(Boolean)
+            : []);
     const cityFilteredContacts = contacts.filter((contact) =>
       manualUseAllCities ? true : selectedCityKeys.includes(normalizeText(contact.city))
     );
-    const categoryFilteredContacts = cityFilteredContacts.filter((contact) =>
-      getContactCategories(contact).includes(selectedCategoryKey)
-    );
+    const categoryFilteredContacts = cityFilteredContacts.filter((contact) => {
+      const categories = getContactCategories(contact);
+      return categories.some(
+        (category) =>
+          category === selectedCategoryKey ||
+          category.includes(selectedCategoryKey) ||
+          selectedCategoryKey.includes(category)
+      );
+    });
 
     const queue = categoryFilteredContacts
       .filter((contact) => contact.active !== false)
