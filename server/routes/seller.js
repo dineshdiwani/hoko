@@ -676,49 +676,51 @@ router.get("/dashboard", auth, sellerOnly, async (req, res) => {
   );
   const requestedCity = String(req.query?.city || "").trim();
   const requestedCityNormalized = normalizeText(requestedCity);
+  const requestedCategory = String(req.query?.category || "").trim();
+  const requestedCategoryNormalized = normalizeText(requestedCategory);
   const isAllCities =
     hasCityParam &&
     (!requestedCityNormalized || requestedCityNormalized === "all");
-  const targetCity = requestedCity;
-  const visibilityMode =
-    String(req.query?.visibility || "").trim().toLowerCase() === "anywhere"
-      ? "anywhere"
-      : "mycity";
+  const isAllCategories =
+    !requestedCategoryNormalized || requestedCategoryNormalized === "all";
 
   const requirementQuery = {
     "moderation.removed": { $ne: true }
   };
 
-  if (!isAllCities && targetCity) {
+  if (!isAllCities && requestedCity) {
     // Keep the DB query selective, but still normalize in-memory for safety.
     requirementQuery.city = new RegExp(
-      `^\\s*${escapeRegex(targetCity)}\\s*$`,
+      `^\\s*${escapeRegex(requestedCity)}\\s*$`,
       "i"
     );
   }
 
-  const sellerCityNormalized = normalizeText(req.user?.city);
+  if (!isAllCategories) {
+    requirementQuery.category = new RegExp(
+      `^\\s*${escapeRegex(requestedCategory)}\\s*$`,
+      "i"
+    );
+  }
 
   const requirementsRaw = await Requirement.find(requirementQuery).sort({
     createdAt: -1
   });
-  const cityMatchedRequirements =
-    !isAllCities && requestedCityNormalized
-      ? requirementsRaw.filter(
-          (requirement) =>
-            cityMatches(requirement?.city, requestedCity)
-        )
-      : requirementsRaw;
-
-  // Show only requirements that this seller can actually respond to:
-  // - "anywhere": always allowed
-  // - "city": only when requirement city equals seller city
-  const requirements = cityMatchedRequirements.filter((requirement) => {
-    const inviteMode = normalizeOfferInvitedFrom(requirement.offerInvitedFrom);
-    if (inviteMode === "anywhere") return true;
-    if (visibilityMode === "anywhere") return true;
-    if (!sellerCityNormalized) return false;
-    return cityMatches(requirement?.city, req.user?.city);
+  const requirements = requirementsRaw.filter((requirement) => {
+    if (
+      !isAllCities &&
+      requestedCityNormalized &&
+      !cityMatches(requirement?.city, requestedCity)
+    ) {
+      return false;
+    }
+    if (
+      !isAllCategories &&
+      normalizeText(requirement?.category) !== requestedCategoryNormalized
+    ) {
+      return false;
+    }
+    return true;
   });
 
   const requirementIds = requirements.map((r) => r._id);

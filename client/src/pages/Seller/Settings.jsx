@@ -72,6 +72,13 @@ export default function SellerSettings() {
     }
     return "";
   };
+  const formatCategoryLabel = (value) =>
+    String(value || "")
+      .trim()
+      .split(/[\s_-]+/)
+      .filter(Boolean)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(" ");
 
   useEffect(() => {
     if (!session?.token) {
@@ -173,10 +180,14 @@ export default function SellerSettings() {
   const rawCategoryOptions = categories.length
     ? categories
     : ["Electronics", "Grocery", "Services", "Construction"];
-  const categoryOptions = rawCategoryOptions
+  const categoryOptions = [...rawCategoryOptions, ...(profile.categories || [])]
     .map((option) => {
-      const label = getCategoryLabel(option);
-      return { label, value: normalizeCategory(label) };
+      const rawLabel = getCategoryLabel(option);
+      const normalizedValue = normalizeCategory(rawLabel || option);
+      return {
+        label: rawLabel || formatCategoryLabel(normalizedValue),
+        value: normalizedValue
+      };
     })
     .filter((option) => option.value)
     .filter(
@@ -184,9 +195,12 @@ export default function SellerSettings() {
         arr.findIndex((item) => item.value === option.value) === index
     );
 
-  const selectedCategoryNames = categoryOptions.filter((cat) =>
-    profile.categories.includes(cat.value)
-  );
+  const selectedCategoryNames = (Array.isArray(profile.categories) ? profile.categories : [])
+    .map((value) => {
+      const existing = categoryOptions.find((cat) => cat.value === value);
+      return existing || { value, label: formatCategoryLabel(value) };
+    })
+    .filter((cat) => cat.value);
 
   const saveSettings = async () => {
     if (!/\S+@\S+\.\S+/.test(String(profile.email || ""))) {

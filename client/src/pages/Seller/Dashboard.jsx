@@ -41,7 +41,6 @@ export default function SellerDashboard() {
   const [cities, setCities] = useState([]);
   const [categories, setCategories] = useState([]);
   const [selectedCity, setSelectedCity] = useState("all");
-  const [visibilityMode, setVisibilityMode] = useState("mycity");
   const [activeSmartTab, setActiveSmartTab] = useState("all");
   const [chatOpen, setChatOpen] = useState(false);
   const [chatPeer, setChatPeer] = useState(null);
@@ -223,7 +222,7 @@ export default function SellerDashboard() {
         const res = await api.get("/seller/dashboard", {
           params: {
             city: selectedCity || "all",
-            visibility: visibilityMode
+            category: selectedCategory || "all"
           }
         });
         const liveRows = Array.isArray(res.data) ? res.data : [];
@@ -250,7 +249,7 @@ export default function SellerDashboard() {
     load();
   }, [
     selectedCity,
-    visibilityMode,
+    selectedCategory,
     cities,
     categories,
     sampleCityPostsEnabled,
@@ -687,16 +686,6 @@ export default function SellerDashboard() {
                   {cat.preferred ? `[Preferred] ${cat.label}` : cat.label}
                 </option>
               ))}
-            </select>
-            <select
-              value={visibilityMode}
-              onChange={(e) => setVisibilityMode(e.target.value)}
-              className="app-select ui-body w-full md:w-auto"
-              aria-label="Filter by invitation visibility"
-              title="Filter by invitation visibility"
-            >
-              <option value="mycity">My city only</option>
-              <option value="anywhere">Show anywhere</option>
             </select>
 
             </div>
