@@ -15,23 +15,60 @@ function firstNonEmpty(values) {
   return "";
 }
 
+function toSentence(value, fallback = "") {
+  const text = String(value || "").trim();
+  if (!text) return fallback;
+  return text.replace(/\s+/g, " ");
+}
+
+function buildRequirementHighlights(requirement) {
+  const product = firstNonEmpty([requirement.product, requirement.productName, "Buyer requirement"]);
+  const quantity = firstNonEmpty([requirement.quantity]);
+  const unit = firstNonEmpty([requirement.unit, requirement.type]);
+  const category = firstNonEmpty([requirement.category]);
+  const makeBrand = firstNonEmpty([requirement.makeBrand, requirement.brand]);
+  const typeModel = firstNonEmpty([requirement.typeModel]);
+  const details = firstNonEmpty([requirement.details, requirement.description]);
+
+  const lineOneParts = [product];
+  if (quantity) {
+    lineOneParts.push(`${quantity}${unit ? ` ${unit}` : ""}`.trim());
+  }
+
+  const lineTwoParts = [];
+  if (category) lineTwoParts.push(`Category: ${category}`);
+  if (makeBrand) lineTwoParts.push(`Brand: ${makeBrand}`);
+  if (typeModel) lineTwoParts.push(`Model: ${typeModel}`);
+
+  const highlights = [
+    toSentence(lineOneParts.join(" - "), product),
+    toSentence(lineTwoParts.join(" | "), category ? `Category: ${category}` : "New buyer requirement"),
+    toSentence(details, `City: ${firstNonEmpty([requirement.city, "your city"])}`)
+  ];
+
+  while (highlights.length < 3) {
+    highlights.push("New buyer requirement");
+  }
+
+  return highlights.slice(0, 3);
+}
+
 function formatMessage({ requirement, deepLink }) {
-  const product = firstNonEmpty([requirement.product, requirement.productName]) || "Requirement";
-  const makeBrand = firstNonEmpty([requirement.makeBrand, requirement.brand]) || "-";
-  const typeModel = firstNonEmpty([requirement.typeModel, requirement.type]) || "-";
-  const quantity = firstNonEmpty([requirement.quantity]) || "-";
-  const unit = firstNonEmpty([requirement.unit]) || "-";
-  const city = firstNonEmpty([requirement.city]) || "-";
-  const details = firstNonEmpty([requirement.details]) || "-";
+  const city = firstNonEmpty([requirement.city]) || "your city";
+  const [requirementOne, requirementTwo, requirementThree] =
+    buildRequirementHighlights(requirement);
 
   return [
-    `Post: *${product}*`,
-    `Make/Brand: ${makeBrand}`,
-    `Type Model: ${typeModel}`,
-    `Quantity: ${quantity} ${unit}`.trim(),
-    `City: ${city}`,
-    `Details: ${details}`,
-    `Go to link to submit your offer: ${deepLink}`
+    `*Buyer requirements from ${city} are now live on Hoko*`,
+    "",
+    `• ${requirementOne}`,
+    `• ${requirementTwo}`,
+    `• ${requirementThree}`,
+    "",
+    `If you sell in *${city}*, you can review these requirements and respond directly on the platform.`,
+    "",
+    "*Access here:*",
+    deepLink
   ].join("\n");
 }
 function buildSellerDeepLink(appBase, requirement) {

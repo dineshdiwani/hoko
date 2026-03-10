@@ -36,15 +36,6 @@ export default function AdminWhatsApp() {
   const [manualSelectedCities, setManualSelectedCities] = useState([]);
   const [manualUseAllCities, setManualUseAllCities] = useState(true);
   const [manualCityMenuOpen, setManualCityMenuOpen] = useState(false);
-  const [manualTemplateFields, setManualTemplateFields] = useState({
-    product: true,
-    makeBrand: true,
-    typeModel: true,
-    quantity: true,
-    city: true,
-    details: true,
-    link: true
-  });
   const [manualQueue, setManualQueue] = useState([]);
   const [manualMessagePreview, setManualMessagePreview] = useState("");
   const [resendingPost, setResendingPost] = useState(false);
@@ -56,6 +47,42 @@ export default function AdminWhatsApp() {
   const normalizeText = (value) => String(value || "").trim().toLowerCase();
   const getPostStatusDisplay = (item) =>
     `${item?.product || "Requirement"} | ${item?.city || "-"} | ${item?.category || "-"}`;
+  const firstNonEmpty = (values) => {
+    for (const value of values) {
+      if (String(value || "").trim()) return String(value).trim();
+    }
+    return "";
+  };
+  const toSentence = (value, fallback = "") => {
+    const text = String(value || "").trim();
+    if (!text) return fallback;
+    return text.replace(/\s+/g, " ");
+  };
+  const buildRequirementHighlights = (requirement) => {
+    const product = firstNonEmpty([requirement.product, requirement.productName, "Buyer requirement"]);
+    const quantity = firstNonEmpty([requirement.quantity]);
+    const unit = firstNonEmpty([requirement.unit, requirement.type]);
+    const category = firstNonEmpty([requirement.category]);
+    const makeBrand = firstNonEmpty([requirement.makeBrand, requirement.brand]);
+    const typeModel = firstNonEmpty([requirement.typeModel]);
+    const details = firstNonEmpty([requirement.details, requirement.description]);
+
+    const lineOneParts = [product];
+    if (quantity) {
+      lineOneParts.push(`${quantity}${unit ? ` ${unit}` : ""}`.trim());
+    }
+
+    const lineTwoParts = [];
+    if (category) lineTwoParts.push(`Category: ${category}`);
+    if (makeBrand) lineTwoParts.push(`Brand: ${makeBrand}`);
+    if (typeModel) lineTwoParts.push(`Model: ${typeModel}`);
+
+    return [
+      toSentence(lineOneParts.join(" - "), product),
+      toSentence(lineTwoParts.join(" | "), category ? `Category: ${category}` : "New buyer requirement"),
+      toSentence(details, `City: ${firstNonEmpty([requirement.city, "your city"])}`)
+    ];
+  };
 
   const formatDateTime = (value) => {
     if (!value) return "N/A";
@@ -73,52 +100,41 @@ export default function AdminWhatsApp() {
   const buildManualMessage = useCallback(
     (requirement) => {
       if (!requirement?._id) return "";
-      const lines = [];
-      if (manualTemplateFields.product) {
-        lines.push(`Post: *${requirement.product || requirement.productName || "-"}*`);
-      }
-      if (manualTemplateFields.makeBrand) {
-        lines.push(`Make/Brand: ${requirement.makeBrand || requirement.brand || "-"}`);
-      }
-      if (manualTemplateFields.typeModel) {
-        lines.push(`Type Model: ${requirement.typeModel || requirement.type || "-"}`);
-      }
-      if (manualTemplateFields.quantity) {
-        const quantity = requirement.quantity || "-";
-        const unit = requirement.unit || "-";
-        lines.push(`Quantity: ${quantity} ${unit}`.trim());
-      }
-      if (manualTemplateFields.city) {
-        lines.push(`City: ${requirement.city || "-"}`);
-      }
-      if (manualTemplateFields.details) {
-        lines.push(`Details: ${requirement.details || "-"}`);
-      }
-      if (manualTemplateFields.link) {
-        const baseUrl = window.location.origin.replace(/\/+$/, "");
-        const reqIdRaw = String(requirement._id || "").trim();
-        const reqIdParam = encodeURIComponent(reqIdRaw);
-        const packed = encodeURIComponent(
-          JSON.stringify({
-            postId: reqIdRaw,
-            city: String(requirement.city || ""),
-            product: String(requirement.product || requirement.productName || ""),
-            category: String(requirement.category || ""),
-            qty: String(requirement.quantity || ""),
-            unit: String(requirement.unit || requirement.type || ""),
-            brand: String(requirement.makeBrand || requirement.brand || ""),
-            model: String(requirement.typeModel || ""),
-            details: String(requirement.details || requirement.description || ""),
-            invite: String(requirement.offerInvitedFrom || "")
-          })
-        );
-        lines.push(
-          `Go to link to submit your offer: ${baseUrl}/seller/deeplink/${reqIdParam}?pd=${packed}`
-        );
-      }
-      return lines.join("\n");
+      const city = firstNonEmpty([requirement.city]) || "your city";
+      const [requirementOne, requirementTwo, requirementThree] =
+        buildRequirementHighlights(requirement);
+      const baseUrl = window.location.origin.replace(/\/+$/, "");
+      const reqIdRaw = String(requirement._id || "").trim();
+      const reqIdParam = encodeURIComponent(reqIdRaw);
+      const packed = encodeURIComponent(
+        JSON.stringify({
+          postId: reqIdRaw,
+          city: String(requirement.city || ""),
+          product: String(requirement.product || requirement.productName || ""),
+          category: String(requirement.category || ""),
+          qty: String(requirement.quantity || ""),
+          unit: String(requirement.unit || requirement.type || ""),
+          brand: String(requirement.makeBrand || requirement.brand || ""),
+          model: String(requirement.typeModel || ""),
+          details: String(requirement.details || requirement.description || ""),
+          invite: String(requirement.offerInvitedFrom || "")
+        })
+      );
+      const deepLink = `${baseUrl}/seller/deeplink/${reqIdParam}?pd=${packed}`;
+      return [
+        `*Buyer requirements from ${city} are now live on Hoko*`,
+        "",
+        `• ${requirementOne}`,
+        `• ${requirementTwo}`,
+        `• ${requirementThree}`,
+        "",
+        `If you sell in *${city}*, you can review these requirements and respond directly on the platform.`,
+        "",
+        "*Access here:*",
+        deepLink
+      ].join("\n");
     },
-    [manualTemplateFields]
+    []
   );
 
   const availableManualCities = useMemo(() => {
@@ -389,13 +405,6 @@ export default function AdminWhatsApp() {
     } catch (err) {
       alert(err?.response?.data?.message || "Failed to run test send");
     }
-  };
-
-  const toggleManualTemplateField = (field) => {
-    setManualTemplateFields((prev) => ({
-      ...prev,
-      [field]: !prev[field]
-    }));
   };
 
   const toggleManualCity = (city) => {
@@ -709,22 +718,6 @@ export default function AdminWhatsApp() {
                     )}
                   </div>
                 )}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                  {[
-                    ["product", "Post"],
-                    ["makeBrand", "Make/Brand"],
-                    ["typeModel", "Type Model"],
-                    ["quantity", "Quantity"],
-                    ["city", "City"],
-                    ["details", "Details"],
-                    ["link", "Seller Dashboard Link"]
-                  ].map(([field, label]) => (
-                    <label key={field} className="flex items-center gap-2 text-xs text-gray-700 border rounded-lg px-3 py-2">
-                      <input type="checkbox" checked={Boolean(manualTemplateFields[field])} onChange={() => toggleManualTemplateField(field)} />
-                      {label}
-                    </label>
-                  ))}
-                </div>
                 <div className="rounded-lg border p-3">
                   <p className="text-xs font-semibold text-gray-700 mb-2">Trigger Channels</p>
                   <p className="text-xs text-gray-500 mb-2">
