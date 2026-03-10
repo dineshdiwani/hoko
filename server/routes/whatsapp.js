@@ -2,11 +2,89 @@ const express = require("express");
 const router = express.Router();
 
 const PendingOfferDraft = require("../models/PendingOfferDraft");
+const Requirement = require("../models/Requirement");
 const WhatsAppLead = require("../models/WhatsAppLead");
+const { sendWhatsAppMessage } = require("../utils/sendWhatsApp");
 const { classifyInboundText, extractInboundEvents } = require("../services/whatsAppInbound");
 
 router.use(express.json({ limit: "1mb" }));
 router.use(express.urlencoded({ extended: false }));
+
+function firstNonEmpty(values) {
+  for (const value of values) {
+    if (String(value || "").trim()) return String(value).trim();
+  }
+  return "";
+}
+
+function buildSellerDeepLink(requirementId) {
+  const appBase =
+    String(process.env.APP_PUBLIC_URL || process.env.CLIENT_URL || "https://hokoapp.in")
+      .split(",")[0]
+      .trim()
+      .replace(/\/+$/, "") || "https://hokoapp.in";
+  return `${appBase}/seller/deeplink/${encodeURIComponent(String(requirementId || "").trim())}`;
+}
+
+function buildRequirementLabel(requirement) {
+  const product = firstNonEmpty([requirement?.product, requirement?.productName, "this requirement"]);
+  const city = firstNonEmpty([requirement?.city]);
+  const category = firstNonEmpty([requirement?.category]);
+  const parts = [product];
+  if (city) parts.push(city);
+  if (category) parts.push(category);
+  return parts.join(" | ");
+}
+
+function buildReplyMessage(intentKind, requirement, deepLink) {
+  const label = buildRequirementLabel(requirement);
+
+  if (intentKind === "link") {
+    return [
+      `Here is your secure Hoko link for ${label}:`,
+      deepLink,
+      "",
+      "Submit your offer there to make it valid."
+    ].join("\n");
+  }
+
+  if (intentKind === "help") {
+    return [
+      `For ${label}, offers are accepted only through the secure Hoko form.`,
+      `Open this link to continue: ${deepLink}`,
+      "",
+      "Reply LINK to get the link again.",
+      "Reply REGISTER if you need guided onboarding."
+    ].join("\n");
+  }
+
+  if (intentKind === "register") {
+    return [
+      "Guided onboarding is available.",
+      "Reply in this format:",
+      "REGISTER | Firm Name | Manager Name | Category | City | Email",
+      "",
+      `You can also continue directly here: ${deepLink}`
+    ].join("\n");
+  }
+
+  if (intentKind === "offer_intent") {
+    return [
+      "Got your interest.",
+      "To make this offer valid, submit it through the secure Hoko form:",
+      deepLink,
+      "",
+      "Reply REGISTER if you need guided onboarding."
+    ].join("\n");
+  }
+
+  return [
+    `Thanks for your reply about ${label}.`,
+    `Continue here: ${deepLink}`,
+    "",
+    "Reply HELP for options."
+  ].join("\n");
+}
 
 router.get("/webhook", (req, res) => {
   const mode = String(req.query["hub.mode"] || "").trim();
@@ -48,6 +126,14 @@ router.post("/webhook", async (req, res) => {
       }
     );
 
+    let requirement = null;
+    const requirementId = lead?.requirementId || null;
+    if (requirementId) {
+      requirement = await Requirement.findById(requirementId)
+        .select("_id city category product productName moderation.removed")
+        .lean();
+    }
+
     if (intent.kind === "offer_intent") {
       await PendingOfferDraft.findOneAndUpdate(
         {
@@ -75,6 +161,19 @@ router.post("/webhook", async (req, res) => {
           setDefaultsOnInsert: true
         }
       );
+    }
+
+    if (
+      requirement?._id &&
+      requirement?.moderation?.removed !== true &&
+      ["link", "help", "register", "offer_intent"].includes(intent.kind)
+    ) {
+      const deepLink = buildSellerDeepLink(requirement._id);
+      const replyBody = buildReplyMessage(intent.kind, requirement, deepLink);
+      await sendWhatsAppMessage({
+        to: event.mobileE164,
+        body: replyBody
+      });
     }
   }
 
