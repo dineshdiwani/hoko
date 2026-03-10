@@ -286,7 +286,10 @@ export default function BuyerDashboard() {
         setTabCounts({
           posts: filteredPosts.length,
           city: cityCount,
-          offers: filteredPosts.filter((_, index) => offersByPost[index] > 0).length
+          offers: offersByPost.reduce(
+            (sum, count) => sum + Number(count || 0),
+            0
+          )
         });
       } catch {
         if (!cancelled) {
