@@ -165,6 +165,18 @@ export default function BuyerDashboard() {
     );
   }, []);
 
+  const triggerRefresh = useCallback(() => {
+    setRefreshToken((prev) => prev + 1);
+  }, []);
+
+  const handleTabClick = useCallback(
+    (nextTab) => {
+      setActiveTab(nextTab);
+      triggerRefresh();
+    },
+    [triggerRefresh]
+  );
+
   // Keep selected filters/tabs on browser refresh.
   useEffect(() => {
     try {
@@ -190,7 +202,6 @@ export default function BuyerDashboard() {
   }, [sessionVersion, session?.token, session?.city]);
 
   useEffect(() => {
-    const triggerRefresh = () => setRefreshToken((prev) => prev + 1);
     const onVisible = () => {
       if (document.visibilityState === "visible") {
         triggerRefresh();
@@ -212,7 +223,116 @@ export default function BuyerDashboard() {
       window.removeEventListener("focus", onFocus);
       window.removeEventListener("pageshow", onPageShow);
     };
-  }, []);
+  }, [triggerRefresh]);
+
+  useEffect(() => {
+    if (!session?._id || !session?.token) {
+      setTabCounts({ posts: 0, city: 0, offers: 0 });
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadTabCounts() {
+      try {
+        const postsRes = await api.get(`/buyer/my-posts/${session._id}`);
+        if (cancelled) return;
+
+        const posts = Array.isArray(postsRes.data) ? postsRes.data : [];
+        const normalizedCity = String(city || "").trim().toLowerCase();
+        const normalizedCategory = String(selectedCategory || "all")
+          .trim()
+          .toLowerCase();
+        const matchesFilters = (item) => {
+          const cityMatch =
+            !normalizedCity ||
+            normalizedCity === "all" ||
+            String(item?.city || "")
+              .trim()
+              .toLowerCase() === normalizedCity;
+          const categoryMatch =
+            !normalizedCategory ||
+            normalizedCategory === "all" ||
+            String(item?.category || "")
+              .trim()
+              .toLowerCase() === normalizedCategory;
+          return cityMatch && categoryMatch;
+        };
+
+        const filteredPosts = posts.filter(matchesFilters);
+        const offersByPost = await Promise.all(
+          filteredPosts.map(async (post) => {
+            const postId = post?._id || post?.id;
+            if (!postId) return 0;
+            try {
+              const offersRes = await api.get(`/dashboard/offers/${postId}`);
+              return Array.isArray(offersRes.data) ? offersRes.data.length : 0;
+            } catch {
+              return 0;
+            }
+          })
+        );
+        if (cancelled) return;
+
+        const cityShouldUseSample =
+          sampleCityPostsEnabled &&
+          String(import.meta.env.VITE_ENABLE_SAMPLE_CITY_POSTS ?? "true").toLowerCase() !==
+            "false" &&
+          posts.length === 0;
+
+        let cityCount = 0;
+        if (!cityShouldUseSample && city) {
+          try {
+            const targetCities =
+              String(city).trim().toLowerCase() === "all"
+                ? cities.filter(Boolean)
+                : [city];
+            const cityResults = await Promise.all(
+              targetCities.map((cityName) =>
+                api
+                  .get(`/dashboard/city/${encodeURIComponent(cityName)}`)
+                  .then((res) => (Array.isArray(res.data) ? res.data : []))
+                  .catch(() => [])
+              )
+            );
+            if (!cancelled) {
+              cityCount = cityResults
+                .flat()
+                .filter(matchesFilters).length;
+            }
+          } catch {
+            cityCount = 0;
+          }
+        }
+
+        if (cancelled) return;
+
+        setTabCounts({
+          posts: filteredPosts.length,
+          city: cityCount,
+          offers: filteredPosts.filter((_, index) => offersByPost[index] > 0).length
+        });
+      } catch {
+        if (!cancelled) {
+          setTabCounts((prev) => ({ ...prev, posts: 0, offers: 0 }));
+        }
+      }
+    }
+
+    loadTabCounts();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    city,
+    cities,
+    refreshToken,
+    sampleCityPostsEnabled,
+    selectedCategory,
+    session?._id,
+    session?.token
+  ]);
 
   useEffect(() => {
     fetchOptions()
@@ -371,21 +491,21 @@ export default function BuyerDashboard() {
         {/* TABS */}
         <div className="dashboard-shell dashboard-tabs dashboard-tabs-center border-t md:pl-20">
           <button
-            onClick={() => setActiveTab("posts")}
+            onClick={() => handleTabClick("posts")}
             className={`ui-tab ui-tab-center ${activeTab === "posts" ? "ui-tab-active" : ""}`}
           >
             My Posts ({tabCounts.posts})
           </button>
 
           <button
-            onClick={() => setActiveTab("city")}
+            onClick={() => handleTabClick("city")}
             className={`ui-tab ui-tab-center ${activeTab === "city" ? "ui-tab-active" : ""}`}
           >
             City Dashboard ({tabCounts.city})
           </button>
 
           <button
-            onClick={() => setActiveTab("offers")}
+            onClick={() => handleTabClick("offers")}
             className={`ui-tab ui-tab-center ${activeTab === "offers" ? "ui-tab-active" : ""}`}
           >
             Received Offers ({tabCounts.offers})
