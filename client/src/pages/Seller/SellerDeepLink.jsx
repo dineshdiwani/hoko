@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import api from "../../services/api";
-import { getSession } from "../../services/storage";
+import { getSession, setSession } from "../../services/storage";
 
 const PENDING_OFFER_KEY = "pending_seller_offer_intent";
 const POST_LOGIN_REDIRECT_SOURCE_KEY = "post_login_redirect_source";
@@ -129,9 +129,43 @@ export default function SellerDeepLink() {
     navigate("/seller/login", { replace: true });
   };
 
+  const ensureSellerSession = async () => {
+    const session = getSession();
+    if (!session?.token) {
+      return { ok: false, reason: "login" };
+    }
+    if (!session?.roles?.seller) {
+      return { ok: false, reason: "register" };
+    }
+    if (session.role === "seller") {
+      return { ok: true, session };
+    }
+
+    const res = await api.post("/auth/switch-role", { role: "seller" });
+    const nextUser = res?.data?.user || {};
+    const nextSession = {
+      _id: nextUser._id,
+      role: nextUser.role || "seller",
+      roles: nextUser.roles || session.roles,
+      email: nextUser.email || session.email,
+      city: nextUser.city || session.city,
+      name: session.name || "Seller",
+      picture: session.picture,
+      preferredCurrency: nextUser.preferredCurrency || session.preferredCurrency || "INR",
+      token: res?.data?.token || session.token
+    };
+    setSession(nextSession);
+    return { ok: true, session: nextSession };
+  };
+
   const submitOffer = async (payload, { isAuto = false } = {}) => {
     setSubmitting(true);
     try {
+      const sellerSession = await ensureSellerSession();
+      if (!sellerSession.ok) {
+        redirectToAuthOrRegister(payload);
+        return;
+      }
       await api.post("/seller/offer", {
         requirementId: requirementIdValue,
         price: Number(payload.price),
@@ -220,8 +254,8 @@ export default function SellerDeepLink() {
     });
 
     const session = getSession();
-    const isSeller = session?.role === "seller" || Boolean(session?.roles?.seller);
-    if (!session?.token || !isSeller) return;
+    const canBecomeSeller = Boolean(session?.token && session?.roles?.seller);
+    if (!canBecomeSeller) return;
 
     autoSubmitTriedRef.current = true;
     submitOffer(pending.offerPayload, { isAuto: true });
@@ -236,8 +270,8 @@ export default function SellerDeepLink() {
     }
 
     const session = getSession();
-    const isSeller = session?.role === "seller" || Boolean(session?.roles?.seller);
-    if (!session?.token || !isSeller) return;
+    const canBecomeSeller = Boolean(session?.token && session?.roles?.seller);
+    if (!canBecomeSeller) return;
 
     let cancelled = false;
 
@@ -275,6 +309,7 @@ export default function SellerDeepLink() {
   }, [loading, requirementIdValue, draftLoaded]);
 
   const handleSubmit = () => {
+    if (submitting) return;
     const payload = {
       price: String(form.price || "").trim(),
       message: String(form.message || "").trim(),
@@ -288,9 +323,9 @@ export default function SellerDeepLink() {
     }
 
     const session = getSession();
-    const isSeller = session?.role === "seller" || Boolean(session?.roles?.seller);
+    const canBecomeSeller = Boolean(session?.token && session?.roles?.seller);
 
-    if (!session?.token || !isSeller) {
+    if (!session?.token || !canBecomeSeller) {
       redirectToAuthOrRegister(payload);
       return;
     }

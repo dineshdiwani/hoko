@@ -66,7 +66,7 @@ export default function UserLogin({ role = "buyer" }) {
   const redirect = isSeller
     ? (useSellerPostLoginRedirect ? postLoginRedirect : "/seller/dashboard")
     : (localStorage.getItem("login_intent_role") === "seller"
-        ? "/seller/register"
+        ? (postLoginRedirect || "/seller/register")
         : "/buyer/dashboard");
   const cityRef = useRef(city);
   const acceptedTermsRef = useRef(acceptedTerms);
@@ -249,6 +249,9 @@ export default function UserLogin({ role = "buyer" }) {
       .then(async (res) => {
         const user = res.data.user || {};
         const profile = isSeller ? await applySellerProfile(city) : null;
+        const sellerIntent =
+          localStorage.getItem("login_intent_role") === "seller";
+        const sellerCapable = Boolean(user?.roles?.seller);
 
         setSession({
           _id: user._id,
@@ -261,8 +264,6 @@ export default function UserLogin({ role = "buyer" }) {
           token: res.data.token
         });
 
-        const sellerIntent =
-          localStorage.getItem("login_intent_role") === "seller";
         if (!(currentRole === "buyer" && sellerIntent)) {
           localStorage.removeItem("post_login_redirect");
           localStorage.removeItem("post_login_redirect_source");
@@ -278,6 +279,10 @@ export default function UserLogin({ role = "buyer" }) {
           localStorage.removeItem("login_intent_role");
         }
         setBuyerDashboardDefaultTab(user.city || city);
+        if (currentRole === "buyer" && sellerIntent && !sellerCapable) {
+          navigate("/seller/register", { replace: true });
+          return;
+        }
         navigate(redirect, { replace: true });
       })
       .catch((err) => {
@@ -329,6 +334,9 @@ export default function UserLogin({ role = "buyer" }) {
         const profile = isSeller
           ? await applySellerProfile(selectedCity)
           : null;
+        const sellerIntent =
+          localStorage.getItem("login_intent_role") === "seller";
+        const sellerCapable = Boolean(user?.roles?.seller);
 
         setSession({
           _id: user._id,
@@ -342,8 +350,6 @@ export default function UserLogin({ role = "buyer" }) {
           token: res.data.token
         });
 
-        const sellerIntent =
-          localStorage.getItem("login_intent_role") === "seller";
         if (!(currentRole === "buyer" && sellerIntent)) {
           localStorage.removeItem("post_login_redirect");
           localStorage.removeItem("post_login_redirect_source");
@@ -359,6 +365,10 @@ export default function UserLogin({ role = "buyer" }) {
           localStorage.removeItem("login_intent_role");
         }
         setBuyerDashboardDefaultTab(user.city || selectedCity);
+        if (currentRole === "buyer" && sellerIntent && !sellerCapable) {
+          navigate("/seller/register", { replace: true });
+          return;
+        }
         navigate(redirect, { replace: true });
       })
       .catch((err) => {
