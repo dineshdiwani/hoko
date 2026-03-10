@@ -26,15 +26,18 @@ function resolveSender() {
   const smtpUser = String(process.env.SMTP_USER || "").trim();
   const smtpFrom = String(process.env.SMTP_FROM || "").trim();
   const smtpReplyTo = String(process.env.SMTP_REPLY_TO || "").trim();
+  const smtpEnvelopeFrom = String(process.env.SMTP_ENVELOPE_FROM || "").trim();
   const appName = String(process.env.APP_NAME || "Hoko").trim() || "Hoko";
   const authAddress = isValidEmail(smtpUser) ? smtpUser : "";
   const requestedFrom = isValidEmail(smtpFrom) ? smtpFrom : "";
   const requestedReplyTo = isValidEmail(smtpReplyTo) ? smtpReplyTo : "";
+  const requestedEnvelopeFrom = isValidEmail(smtpEnvelopeFrom)
+    ? smtpEnvelopeFrom
+    : "";
 
-  // Keep the visible From header configurable, but use the authenticated
-  // mailbox as the SMTP envelope sender for better deliverability.
   const visibleFromEmail = requestedFrom || authAddress || "no-reply@hoko.app";
-  const envelopeFrom = authAddress || visibleFromEmail || "no-reply@hoko.app";
+  const envelopeFrom =
+    requestedEnvelopeFrom || visibleFromEmail || authAddress || "no-reply@hoko.app";
   const from = `${appName} <${visibleFromEmail}>`;
   const replyTo =
     requestedReplyTo ||
