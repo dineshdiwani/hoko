@@ -442,17 +442,18 @@ export default function AdminWhatsApp() {
       ? []
       : manualSelectedCities.map((city) => normalizeText(city)).filter(Boolean);
     const selectedCategoryKey = normalizeText(manualCategory);
+    const getContactCategories = (contact) =>
+      Array.isArray(contact?.categoriesNormalized) && contact.categoriesNormalized.length
+        ? contact.categoriesNormalized.map((item) => normalizeText(item))
+        : (Array.isArray(contact?.categories) ? contact.categories.map((item) => normalizeText(item)) : []);
+    const cityFilteredContacts = contacts.filter((contact) =>
+      manualUseAllCities ? true : selectedCityKeys.includes(normalizeText(contact.city))
+    );
+    const categoryFilteredContacts = cityFilteredContacts.filter((contact) =>
+      getContactCategories(contact).includes(selectedCategoryKey)
+    );
 
-    const queue = contacts
-      .filter((contact) =>
-        manualUseAllCities ? true : selectedCityKeys.includes(normalizeText(contact.city))
-      )
-      .filter((contact) => {
-        const contactCategories = Array.isArray(contact?.categoriesNormalized) && contact.categoriesNormalized.length
-          ? contact.categoriesNormalized.map((item) => normalizeText(item))
-          : (Array.isArray(contact?.categories) ? contact.categories.map((item) => normalizeText(item)) : []);
-        return contactCategories.includes(selectedCategoryKey);
-      })
+    const queue = categoryFilteredContacts
       .filter((contact) => contact.active !== false)
       .filter((contact) => contact.optInStatus === "opted_in")
       .filter((contact) => !contact.unsubscribedAt)
@@ -473,7 +474,9 @@ export default function AdminWhatsApp() {
     setManualMessagePreview(message);
     setManualQueue(queue);
     if (!queue.length) {
-      alert("No eligible contacts found for selected category/cities");
+      alert(
+        `No eligible contacts found. City matches: ${cityFilteredContacts.length}, Category matches: ${categoryFilteredContacts.length}. Check selected city/category and opt-in/DND status.`
+      );
       return;
     }
     alert(`Manual queue created with ${queue.length} pending contacts`);
@@ -636,18 +639,10 @@ export default function AdminWhatsApp() {
                     const req = requirements.find((item) => String(item._id) === String(nextRequirementId));
                     if (req) {
                       const reqCategory = String(req.category || "").trim();
-                      const reqCity = String(req.city || "").trim();
                       const matchingCategory = availableManualCategories.find(
                         (item) => normalizeText(item) === normalizeText(reqCategory)
                       );
-                      const matchingCity = availableManualCities.find(
-                        (city) => normalizeText(city) === normalizeText(reqCity)
-                      );
                       setManualCategory(matchingCategory || reqCategory);
-                      if (reqCity) {
-                        setManualUseAllCities(false);
-                        setManualSelectedCities([matchingCity || reqCity]);
-                      }
                       setManualCityMenuOpen(false);
                       setManualMessagePreview(buildManualMessage(req));
                     }
