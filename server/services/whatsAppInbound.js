@@ -90,6 +90,38 @@ function classifyInboundText(text) {
   };
 }
 
+function parseRegisterPayload(text) {
+  const raw = String(text || "").trim();
+  if (!/^register\b/i.test(raw)) {
+    return null;
+  }
+
+  const parts = raw
+    .split("|")
+    .map((part) => String(part || "").trim())
+    .filter(Boolean);
+
+  if (parts.length < 6) {
+    return {
+      isStructured: false,
+      firmName: "",
+      managerName: "",
+      category: "",
+      city: "",
+      email: ""
+    };
+  }
+
+  return {
+    isStructured: true,
+    firmName: parts[1] || "",
+    managerName: parts[2] || "",
+    category: parts[3] || "",
+    city: parts[4] || "",
+    email: parts[5] || ""
+  };
+}
+
 function extractMetaEvents(body) {
   const entries = Array.isArray(body?.entry) ? body.entry : [];
   return entries.flatMap((entry) =>
@@ -133,5 +165,6 @@ function extractInboundEvents(body) {
 
 module.exports = {
   classifyInboundText,
-  extractInboundEvents
+  extractInboundEvents,
+  parseRegisterPayload
 };

@@ -5,7 +5,11 @@ const PendingOfferDraft = require("../models/PendingOfferDraft");
 const Requirement = require("../models/Requirement");
 const WhatsAppLead = require("../models/WhatsAppLead");
 const { sendWhatsAppMessage } = require("../utils/sendWhatsApp");
-const { classifyInboundText, extractInboundEvents } = require("../services/whatsAppInbound");
+const {
+  classifyInboundText,
+  extractInboundEvents,
+  parseRegisterPayload
+} = require("../services/whatsAppInbound");
 
 router.use(express.json({ limit: "1mb" }));
 router.use(express.urlencoded({ extended: false }));
@@ -86,6 +90,25 @@ function buildReplyMessage(intentKind, requirement, deepLink) {
   ].join("\n");
 }
 
+function buildRegisterConfirmationMessage(requirement, deepLink, profile) {
+  const label = buildRequirementLabel(requirement);
+  const profileParts = [
+    profile?.firmName ? `Firm: ${profile.firmName}` : "",
+    profile?.managerName ? `Manager: ${profile.managerName}` : "",
+    profile?.category ? `Category: ${profile.category}` : "",
+    profile?.city ? `City: ${profile.city}` : "",
+    profile?.email ? `Email: ${profile.email}` : ""
+  ].filter(Boolean);
+
+  return [
+    "Registration details received.",
+    profileParts.join(" | "),
+    "",
+    `Continue for ${label}:`,
+    deepLink
+  ].filter(Boolean).join("\n");
+}
+
 router.get("/webhook", (req, res) => {
   const mode = String(req.query["hub.mode"] || "").trim();
   const token = String(req.query["hub.verify_token"] || "").trim();
@@ -106,6 +129,9 @@ router.post("/webhook", async (req, res) => {
 
   for (const event of events) {
     const intent = classifyInboundText(event.text);
+    const registerPayload = intent.kind === "register"
+      ? parseRegisterPayload(event.text)
+      : null;
 
     const lead = await WhatsAppLead.findOneAndUpdate(
       { mobileE164: event.mobileE164 },
@@ -116,7 +142,19 @@ router.post("/webhook", async (req, res) => {
           lastInboundText: event.text,
           lastInboundAt: new Date(),
           lastProviderMessageId: event.providerMessageId,
-          lastIntent: intent
+          lastIntent: intent,
+          ...(registerPayload?.isStructured
+            ? {
+                profile: {
+                  firmName: registerPayload.firmName,
+                  managerName: registerPayload.managerName,
+                  category: registerPayload.category,
+                  city: registerPayload.city,
+                  email: registerPayload.email
+                },
+                onboardingStatus: "profile_captured"
+              }
+            : {})
         }
       },
       {
@@ -169,7 +207,10 @@ router.post("/webhook", async (req, res) => {
       ["link", "help", "register", "offer_intent"].includes(intent.kind)
     ) {
       const deepLink = buildSellerDeepLink(requirement._id);
-      const replyBody = buildReplyMessage(intent.kind, requirement, deepLink);
+      const replyBody =
+        intent.kind === "register" && registerPayload?.isStructured
+          ? buildRegisterConfirmationMessage(requirement, deepLink, registerPayload)
+          : buildReplyMessage(intent.kind, requirement, deepLink);
       await sendWhatsAppMessage({
         to: event.mobileE164,
         body: replyBody
