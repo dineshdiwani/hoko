@@ -141,30 +141,6 @@ export default function BuyerDashboard() {
     setChatOpen(true);
   }
 
-  const updatePostsCount = useCallback((nextCount) => {
-    setTabCounts((prev) =>
-      prev.posts === Number(nextCount || 0)
-        ? prev
-        : { ...prev, posts: Number(nextCount || 0) }
-    );
-  }, []);
-
-  const updateCityCount = useCallback((nextCount) => {
-    setTabCounts((prev) =>
-      prev.city === Number(nextCount || 0)
-        ? prev
-        : { ...prev, city: Number(nextCount || 0) }
-    );
-  }, []);
-
-  const updateOffersCount = useCallback((nextCount) => {
-    setTabCounts((prev) =>
-      prev.offers === Number(nextCount || 0)
-        ? prev
-        : { ...prev, offers: Number(nextCount || 0) }
-    );
-  }, []);
-
   const triggerRefresh = useCallback(() => {
     setRefreshToken((prev) => prev + 1);
   }, []);
@@ -525,7 +501,6 @@ export default function BuyerDashboard() {
             refreshToken={refreshToken}
             onCityChange={setCity}
             onCategoryChange={setSelectedCategory}
-            onVisibleCountChange={updatePostsCount}
           />
         )}
         {activeTab === "city" && (
@@ -540,7 +515,6 @@ export default function BuyerDashboard() {
             useSamplePosts={useSampleCityPosts}
             samplePostsEnabled={sampleCityPostsEnabled}
             refreshToken={refreshToken}
-            onVisibleCountChange={updateCityCount}
           />
         )}
         {activeTab === "offers" && (
@@ -552,7 +526,6 @@ export default function BuyerDashboard() {
             refreshToken={refreshToken}
             onCityChange={setCity}
             onCategoryChange={setSelectedCategory}
-            onVisibleCountChange={updateOffersCount}
           />
         )}
         </div>
