@@ -547,6 +547,9 @@ export default function AdminWhatsApp() {
                 <p className="text-xs text-gray-600 mt-1">
                   Selected file: {notificationFile?.name || "None"}
                 </p>
+                <p className="text-xs text-gray-600 mt-1">
+                  Last uploaded file: {whatsAppSummary?.uploadFile?.originalName || "None"}
+                </p>
                 <p className="text-xs text-gray-500 mt-1">
                   Columns required in order: A Firm Name, B City, C Country ISD Code, D Mobile Number, E Categories (use ; between multiple categories), F Email.
                 </p>
