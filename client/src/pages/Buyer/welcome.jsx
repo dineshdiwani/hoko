@@ -81,7 +81,7 @@ export default function BuyerWelcome() {
     }
 
     if (currentSession.role === "buyer" || currentSession.roles?.buyer) {
-      navigate("/buyer/dashboard");
+      navigate("/buyer/requirement/new");
       return;
     }
 
@@ -98,7 +98,7 @@ export default function BuyerWelcome() {
           preferredCurrency: res.data.user.preferredCurrency,
           token: res.data.token
         });
-        navigate("/buyer/dashboard");
+        navigate("/buyer/requirement/new");
       })
       .catch(() => {
         navigate("/buyer/login");
