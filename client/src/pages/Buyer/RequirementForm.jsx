@@ -145,19 +145,6 @@ export default function RequirementForm() {
         }
         if (Array.isArray(data.categories) && data.categories.length) {
           setCategories(data.categories);
-          const desiredCategory = String(defaults.category || "").trim();
-          if (desiredCategory) {
-            setForm((prev) => {
-              if (prev.category) return prev;
-              const matchedCategory = data.categories.find(
-                (categoryName) =>
-                  String(categoryName).toLowerCase() ===
-                  desiredCategory.toLowerCase()
-              );
-              if (!matchedCategory) return prev;
-              return { ...prev, category: matchedCategory };
-            });
-          }
         }
         if (Array.isArray(data.units) && data.units.length) {
           setUnits(data.units);
@@ -221,11 +208,6 @@ export default function RequirementForm() {
       setForm((prev) => ({
         ...prev,
         city: prev.city || lastPrefs.city || buyerPrefs.defaultCity || "",
-        category:
-          prev.category ||
-          lastPrefs.category ||
-          buyerPrefs.defaultCategory ||
-          "",
         unit: prev.unit || lastPrefs.unit || buyerPrefs.defaultUnit || ""
       }));
     } catch {}
