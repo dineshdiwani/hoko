@@ -132,7 +132,7 @@ function getAdminNotificationEmail() {
     process.env.ADMIN_NOTIFICATION_EMAIL ||
     process.env.ADMIN_ALERT_EMAIL ||
     process.env.ADMIN_EMAIL ||
-    "";
+    "admin@hokoapp.in";
   const email = String(raw || "").trim();
   if (!email || !/\S+@\S+\.\S+/.test(email)) return "";
   return email;

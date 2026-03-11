@@ -3,7 +3,7 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const router = express.Router();
 const { setOtp, verifyOtp } = require("../utils/otpStore");
-const { sendOtpEmail } = require("../utils/sendEmail");
+const { sendAdminEventEmail, sendOtpEmail } = require("../utils/sendEmail");
 const {
   otpSendLimiter,
   otpVerifyLimiter
@@ -51,6 +51,26 @@ function ensureRoles(user) {
   };
 }
 
+function queueAdminNewUserEmail({ user, loginMethod, requestedRole }) {
+  const userId = String(user?._id || "").trim();
+  if (!userId) return;
+
+  setImmediate(() => {
+    const subject = `New user joined Hoko: ${user.email || userId}`;
+    const text = [
+      "A new user joined the Hoko app.",
+      `User ID: ${userId}`,
+      `Email: ${user?.email || "-"}`,
+      `City: ${user?.city || "-"}`,
+      `Requested role: ${requestedRole || "-"}`,
+      `Login method: ${loginMethod || "-"}`,
+      `Created at: ${new Date().toISOString()}`
+    ].join("\n");
+
+    sendAdminEventEmail({ subject, text }).catch(() => {});
+  });
+}
+
 /* -------- LOGIN (SEND OTP) -------- */
 router.post("/login", otpSendLimiter, async (req, res) => {
   const { email, role, city } = req.body || {};
@@ -79,6 +99,11 @@ router.post("/login", otpSendLimiter, async (req, res) => {
         seller: normalizedRole === "seller",
         admin: false
       }
+    });
+    queueAdminNewUserEmail({
+      user,
+      loginMethod: "otp",
+      requestedRole: normalizedRole
     });
   } else {
     ensureRoles(user);
@@ -271,6 +296,11 @@ router.post("/google", async (req, res) => {
           name,
           picture
         }
+      });
+      queueAdminNewUserEmail({
+        user,
+        loginMethod: "google",
+        requestedRole: normalizedRole
       });
     } else {
       ensureRoles(user);

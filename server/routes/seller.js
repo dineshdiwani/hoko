@@ -526,14 +526,17 @@ router.post("/offer", auth, sellerOnly, async (req, res) => {
           if (!emailSettings.enabled) return;
 
           const requirementName = requirement.product || requirement.productName || "Requirement";
-          const subject = `New offer on ${requirementName}`;
+          const subject = `New offer submitted on ${requirementName}`;
           const lines = [
             "A new offer was submitted.",
             `Requirement: ${requirementName}`,
             `Requirement ID: ${requirement._id}`,
             `Buyer ID: ${requirement.buyerId}`,
             `Seller ID: ${req.user?._id || "-"}`,
+            `Seller email: ${req.user?.email || "-"}`,
             `Price: Rs ${price}`,
+            `Delivery time: ${String(deliveryTime || "").trim() || "-"}`,
+            `Payment terms: ${String(paymentTerms || "").trim() || "-"}`,
             `City: ${requirement.city || "-"}`,
             `Category: ${requirement.category || "-"}`
           ];
