@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { getSession, logout } from "../../services/auth";
-import { setSession } from "../../services/storage";
+import { setSession, updateSession } from "../../services/storage";
 import MyPosts from "./MyPosts";
 import OffersReceived from "./OffersReceived";
 import CityDashboard from "../CityDashboard";
@@ -338,6 +338,47 @@ export default function BuyerDashboard() {
       })
       .catch(() => {});
   }, [session?.city, refreshToken]);
+
+  useEffect(() => {
+    if (!session?.token) return;
+
+    let cancelled = false;
+
+    api
+      .get("/buyer/profile")
+      .then((res) => {
+        if (cancelled) return;
+        const latestCity = String(res?.data?.city || "").trim();
+        const latestCurrency = String(res?.data?.preferredCurrency || "").trim();
+
+        if (latestCity) {
+          setCity((prev) => {
+            const currentCity = String(prev || "").trim();
+            const sessionCity = String(session?.city || "").trim();
+            if (!currentCity || currentCity === sessionCity) {
+              return latestCity;
+            }
+            return currentCity;
+          });
+        }
+
+        if (
+          (latestCity && latestCity !== String(session?.city || "").trim()) ||
+          (latestCurrency &&
+            latestCurrency !== String(session?.preferredCurrency || "").trim())
+        ) {
+          updateSession({
+            ...(latestCity ? { city: latestCity } : {}),
+            ...(latestCurrency ? { preferredCurrency: latestCurrency } : {})
+          });
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.token, session?.city, session?.preferredCurrency]);
 
   useEffect(() => {
     const sampleFlagEnabled =
