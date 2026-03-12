@@ -49,7 +49,8 @@ export default function UserLogin({ role = "buyer" }) {
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [city, setCity] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [showLegalModal, setShowLegalModal] = useState(false);
   const [legalModalType, setLegalModalType] = useState("terms");
@@ -148,7 +149,7 @@ export default function UserLogin({ role = "buyer" }) {
       return;
     }
 
-    setLoading(true);
+    setOtpLoading(true);
     api
       .post("/auth/login", {
         email,
@@ -178,7 +179,7 @@ export default function UserLogin({ role = "buyer" }) {
         }
         alert(message);
       })
-      .finally(() => setLoading(false));
+      .finally(() => setOtpLoading(false));
   }
 
   async function applySellerProfile(cityValue) {
@@ -239,7 +240,7 @@ export default function UserLogin({ role = "buyer" }) {
       return;
     }
 
-    setLoading(true);
+    setOtpLoading(true);
     api
       .post("/auth/verify-otp", {
         email,
@@ -301,7 +302,7 @@ export default function UserLogin({ role = "buyer" }) {
         }
         alert(message);
       })
-      .finally(() => setLoading(false));
+      .finally(() => setOtpLoading(false));
   }
 
   function handleGoogleLogin(credential) {
@@ -326,7 +327,7 @@ export default function UserLogin({ role = "buyer" }) {
       return;
     }
 
-    setLoading(true);
+    setGoogleLoading(true);
     api
       .post("/auth/google", {
         credential,
@@ -397,7 +398,7 @@ export default function UserLogin({ role = "buyer" }) {
         }
         alert(message);
       })
-      .finally(() => setLoading(false));
+      .finally(() => setGoogleLoading(false));
   }
 
   return (
@@ -488,6 +489,7 @@ export default function UserLogin({ role = "buyer" }) {
                   </button>
                 ) : (
                   <GoogleLoginButton
+                    disabled={googleLoading}
                     onSuccess={(credential) => {
                       handleGoogleLogin(credential);
                     }}
@@ -522,10 +524,10 @@ export default function UserLogin({ role = "buyer" }) {
 
                 <button
                   onClick={sendLoginOtp}
-                  disabled={loading}
+                  disabled={otpLoading || googleLoading}
                   className="w-full py-3 rounded-xl btn-brand font-semibold"
                 >
-                  {loading ? "Sending OTP..." : "Send OTP"}
+                  {otpLoading ? "Sending OTP..." : "Send OTP"}
                 </button>
 
                 <div className="mt-3 flex items-start gap-2 text-sm text-gray-600">
@@ -584,10 +586,10 @@ export default function UserLogin({ role = "buyer" }) {
 
                 <button
                   onClick={verifyOtp}
-                  disabled={loading}
+                  disabled={otpLoading}
                   className="w-full py-3 rounded-xl btn-brand font-semibold"
                 >
-                  {loading ? "Verifying..." : "Verify & Continue"}
+                  {otpLoading ? "Verifying..." : "Verify & Continue"}
                 </button>
 
                 <button
