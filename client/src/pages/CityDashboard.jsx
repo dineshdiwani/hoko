@@ -61,6 +61,12 @@ export default function CityDashboard({
       ? window.location.origin
       : "http://localhost:5173";
 
+  function buildShareUrl(req) {
+    const reqId = String(req?._id || req?.id || "").trim();
+    if (!reqId) return appBaseUrl;
+    return `${appBaseUrl}/seller/deeplink/${encodeURIComponent(reqId)}`;
+  }
+
   function buildSampleRows(targetCity) {
     const selected = String(targetCity || "").trim().toLowerCase();
     if (!selected) return [];
@@ -75,56 +81,43 @@ export default function CityDashboard({
   }
 
   function getShareText(req) {
-    const reqId = String(req?._id || req?.id || "").trim();
-    const packed = encodeURIComponent(
-      JSON.stringify({
-        postId: reqId,
-        city: String(req?.city || city || ""),
-        product: String(req?.product || req?.productName || ""),
-        category: String(req?.category || ""),
-        qty: String(req?.quantity || ""),
-        unit: String(req?.type || req?.unit || ""),
-        brand: String(req?.makeBrand || req?.brand || ""),
-        model: String(req?.typeModel || ""),
-        details: String(req?.details || req?.description || ""),
-        invite: String(req?.offerInvitedFrom || "")
-      })
-    );
-    const deepLink = `${appBaseUrl}/seller/deeplink/${encodeURIComponent(
-      reqId
-    )}?pd=${packed}`;
-    const product = req.product || req.productName || "Requirement";
-    const quantity = req.quantity ? `${req.quantity} ${req.unit || ""}` : "";
+    const deepLink = buildShareUrl(req);
+    const product = String(req?.product || req?.productName || "Requirement").trim();
+    const quantityValue = String(req?.quantity || "").trim();
+    const quantityUnit = String(req?.type || req?.unit || "").trim();
+    const quantity = [quantityValue, quantityUnit].filter(Boolean).join(" ");
     const cityText = req.city || city || "";
-    const category = req.category || "";
-    const parts = [
-      `${product}${quantity ? ` (${quantity})` : ""}`,
-      category ? `Category: ${category}` : "",
-      cityText ? `City: ${cityText}` : ""
-    ].filter(Boolean);
-    return `${parts.join(" | ")}\nSubmit offer on hoko: ${deepLink}`;
+    const categoryText = String(req?.category || "").trim();
+    const brandText = String(req?.makeBrand || req?.brand || "").trim();
+    const modelText = String(req?.typeModel || "").trim();
+    const detailsText = String(req?.details || req?.description || "").trim();
+    const inviteSource =
+      String(req?.offerInvitedFrom || "").trim().toLowerCase() === "anywhere"
+        ? "Anywhere"
+        : cityText
+        ? `Buyer city (${cityText})`
+        : "Buyer city";
+
+    return [
+      "*Requirement on Hoko*",
+      `Product: ${product}`,
+      quantity ? `Quantity: ${quantity}` : "",
+      categoryText ? `Category: ${categoryText}` : "",
+      cityText ? `City: ${cityText}` : "",
+      brandText ? `Brand: ${brandText}` : "",
+      modelText ? `Model: ${modelText}` : "",
+      `Offers invited from: ${inviteSource}`,
+      detailsText ? `Details: ${detailsText}` : "",
+      "",
+      `Submit your offer: ${deepLink}`
+    ]
+      .filter(Boolean)
+      .join("\n");
   }
 
   function getShareLinks(req) {
     const shareText = getShareText(req);
-    const reqId = String(req?._id || req?.id || "").trim();
-    const packed = encodeURIComponent(
-      JSON.stringify({
-        postId: reqId,
-        city: String(req?.city || city || ""),
-        product: String(req?.product || req?.productName || ""),
-        category: String(req?.category || ""),
-        qty: String(req?.quantity || ""),
-        unit: String(req?.type || req?.unit || ""),
-        brand: String(req?.makeBrand || req?.brand || ""),
-        model: String(req?.typeModel || ""),
-        details: String(req?.details || req?.description || ""),
-        invite: String(req?.offerInvitedFrom || "")
-      })
-    );
-    const shareUrl = `${appBaseUrl}/seller/deeplink/${encodeURIComponent(
-      reqId
-    )}?pd=${packed}`;
+    const shareUrl = buildShareUrl(req);
     const encodedText = encodeURIComponent(shareText);
     const encodedUrl = encodeURIComponent(shareUrl);
     return {
