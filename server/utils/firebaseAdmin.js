@@ -44,6 +44,7 @@ function readServiceAccountFromDisk() {
   const candidates = [
     explicitPath,
     path.join(process.cwd(), "server", "firebase-service-account.json"),
+    path.join(process.cwd(), "server", "firebase-service-account..json"),
     path.join(process.cwd(), "firebase-service-account.json")
   ].filter(Boolean);
 
