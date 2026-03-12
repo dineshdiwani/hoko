@@ -120,7 +120,12 @@ export async function getResolvedPushPermissionState() {
 export function ensurePushSubscription() {
   if (inFlight) return inFlight;
   inFlight = ensurePushSubscriptionInternal(false)
-    .then((result) => result)
+    .then(async (result) => {
+      if (isNativeAppRuntime() && isNativePushEnabled()) {
+        return ensureNativePushRegistration(false);
+      }
+      return result;
+    })
     .catch(() => false)
     .finally(() => {
       inFlight = null;
