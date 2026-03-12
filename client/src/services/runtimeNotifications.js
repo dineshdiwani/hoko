@@ -2,10 +2,29 @@ import { LocalNotifications } from "@capacitor/local-notifications";
 import { isNativeAppRuntime } from "../utils/runtime";
 
 let nativePermissionRequested = false;
+let nativeChannelReady = false;
+
+async function ensureNativeChannel() {
+  if (!isNativeAppRuntime() || nativeChannelReady) return;
+  try {
+    await LocalNotifications.createChannel({
+      id: "hoko-general",
+      name: "HOKO Notifications",
+      description: "Offers, chat, and requirement updates",
+      importance: 5,
+      visibility: 1,
+      sound: undefined
+    });
+    nativeChannelReady = true;
+  } catch {
+    nativeChannelReady = true;
+  }
+}
 
 async function ensureNativePermission() {
   if (!isNativeAppRuntime()) return false;
   try {
+    await ensureNativeChannel();
     const current = await LocalNotifications.checkPermissions();
     if (current.display === "granted") return true;
     if (nativePermissionRequested) return false;
@@ -53,6 +72,7 @@ export async function showRuntimeNotification({
           id: Math.floor(Date.now() % 2147483000),
           title: String(title),
           body: String(body),
+          channelId: "hoko-general",
           extra: data,
           schedule: { at: new Date(Date.now() + 250) }
         }

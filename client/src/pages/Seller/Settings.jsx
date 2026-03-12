@@ -559,7 +559,7 @@ export default function SellerSettings() {
             </div>
             <div className="mt-3 flex items-center gap-3">
               <span className="text-xs text-gray-600">
-                Browser permission: {pushPermission}
+                Notification permission: {pushPermission}
               </span>
               {pushPermission !== "granted" && (
                 <button
@@ -567,7 +567,7 @@ export default function SellerSettings() {
                   onClick={() => enableBrowserPush().catch(() => {})}
                   className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-300 bg-white"
                 >
-                  Enable Browser Push
+                  Enable Notifications
                 </button>
               )}
             </div>
