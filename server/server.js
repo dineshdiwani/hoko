@@ -77,7 +77,11 @@ const allowedOrigins = Array.from(
 
 function isAllowedOrigin(origin) {
   if (!origin) return true;
+  if (origin === "null") return true;
   if (allowedOrigins.includes(origin)) return true;
+  if (/^https?:\/\/localhost(?::\d+)?$/i.test(origin)) return true;
+  if (/^capacitor:\/\/localhost$/i.test(origin)) return true;
+  if (/^ionic:\/\/localhost$/i.test(origin)) return true;
   return /^https:\/\/(www\.)?hokoapp\.in$/i.test(origin);
 }
 
@@ -86,6 +90,7 @@ const corsOptions = {
     if (isAllowedOrigin(origin)) {
       return callback(null, true);
     }
+    console.warn("[cors_blocked_origin]", { origin: String(origin || "") });
     return callback(new Error("CORS origin not allowed"));
   },
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
