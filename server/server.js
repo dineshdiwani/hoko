@@ -36,6 +36,14 @@ const localDevOrigins = [
   "http://localhost:4173",
   "http://127.0.0.1:4173"
 ];
+const nativeAppOrigins = [
+  "capacitor://localhost",
+  "ionic://localhost",
+  "http://localhost",
+  "https://localhost",
+  "http://127.0.0.1",
+  "https://127.0.0.1"
+];
 const productionDefaultOrigins = [
   "https://hokoapp.in",
   "https://www.hokoapp.in"
@@ -52,12 +60,14 @@ const allowedOrigins = Array.from(
   new Set(
     isProduction
       ? [
+          ...nativeAppOrigins,
           ...productionDefaultOrigins,
           ...configuredClientOrigins,
           ...configuredCorsOrigins
         ]
       : [
           ...localDevOrigins,
+          ...nativeAppOrigins,
           ...productionDefaultOrigins,
           ...configuredClientOrigins,
           ...configuredCorsOrigins
