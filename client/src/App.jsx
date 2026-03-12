@@ -39,7 +39,6 @@ import { ensurePushSubscription } from "./services/pushNotifications";
 import socket, { connectSocket } from "./services/socket";
 import { showRuntimeNotification } from "./services/runtimeNotifications";
 import { getSettings } from "./services/storage";
-import { ensureNativePushRegistration } from "./services/nativePush";
 
 function RouteLoader() {
   return <div className="min-h-[35vh] w-full" aria-hidden="true" />;
@@ -96,7 +95,6 @@ function AppShell() {
 
   useEffect(() => {
     ensurePushSubscription().catch(() => {});
-    ensureNativePushRegistration(false).catch(() => {});
   }, [location.pathname]);
 
   useEffect(() => {

@@ -11,6 +11,7 @@ const Offer = require("../models/Offer");
 const ChatMessage = require("../models/ChatMessage");
 const Report = require("../models/Report");
 const PushSubscription = require("../models/PushSubscription");
+const NativePushToken = require("../models/NativePushToken");
 const PlatformSettings = require("../models/PlatformSettings");
 const WhatsAppContact = require("../models/WhatsAppContact");
 const WhatsAppCampaignRun = require("../models/WhatsAppCampaignRun");
@@ -40,6 +41,7 @@ const {
   DEFAULT_TERMS_CONTENT,
   DEFAULT_PRIVACY_POLICY_CONTENT
 } = require("../config/platformDefaults");
+const { isFirebaseMessagingConfigured } = require("../utils/firebaseAdmin");
 const router = require("express").Router();
 const jwt = require("jsonwebtoken");
 const Admin = require("../models/Admin");
@@ -517,8 +519,9 @@ router.get("/users", adminAuth, requireAdminPermission("users.read"), async (req
 });
 
 router.get("/push/subscriptions/summary", adminAuth, requireAdminPermission("users.read"), async (req, res) => {
-  const [subs, users] = await Promise.all([
+  const [subs, nativeTokens, users] = await Promise.all([
     PushSubscription.find().select("userId subscription createdAt updatedAt").lean(),
+    NativePushToken.find().select("userId token updatedAt").lean(),
     User.find().select("_id roles").lean()
   ]);
 
@@ -534,7 +537,11 @@ router.get("/push/subscriptions/summary", adminAuth, requireAdminPermission("use
   let invalidRecords = 0;
   let orphanedUsers = 0;
   let staleOver30d = 0;
+  let nativeInvalidRecords = 0;
+  let nativeOrphanedUsers = 0;
+  let nativeStaleOver30d = 0;
   const staleCutoffMs = Date.now() - 30 * 24 * 60 * 60 * 1000;
+  const nativeUniqueUsers = new Set();
 
   for (const row of subs) {
     const userId = String(row?.userId || "").trim();
@@ -567,17 +574,43 @@ router.get("/push/subscriptions/summary", adminAuth, requireAdminPermission("use
     else roleCounts.unknown += 1;
   }
 
+  for (const row of nativeTokens) {
+    const userId = String(row?.userId || "").trim();
+    const token = String(row?.token || "").trim();
+    const updatedAtMs = row?.updatedAt ? new Date(row.updatedAt).getTime() : 0;
+
+    if (!userId || !token) {
+      nativeInvalidRecords += 1;
+    }
+    if (updatedAtMs && updatedAtMs < staleCutoffMs) {
+      nativeStaleOver30d += 1;
+    }
+
+    if (!userId) continue;
+    nativeUniqueUsers.add(userId);
+    const user = userById.get(userId);
+    if (!user) {
+      nativeOrphanedUsers += 1;
+    }
+  }
+
   res.json({
     vapidConfigured: Boolean(
       String(process.env.VAPID_PUBLIC_KEY || "").trim() &&
       String(process.env.VAPID_PRIVATE_KEY || "").trim()
     ),
+    firebaseConfigured: isFirebaseMessagingConfigured(),
     totals: {
       subscriptions: subs.length,
       uniqueUsers: uniqueUsers.size,
       invalidRecords,
       orphanedUsers,
-      staleOver30d
+      staleOver30d,
+      nativeTokens: nativeTokens.length,
+      nativeUsers: nativeUniqueUsers.size,
+      nativeInvalidRecords,
+      nativeOrphanedUsers,
+      nativeStaleOver30d
     },
     byRole: roleCounts
   });

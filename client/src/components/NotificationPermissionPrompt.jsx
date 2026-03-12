@@ -3,6 +3,7 @@ import { confirmDialog, showAlert } from "../utils/dialogs";
 import {
   buildNotificationHelpText,
   getPushPermissionState,
+  getResolvedPushPermissionState,
   requestPushPermissionAndSubscribe
 } from "../services/pushNotifications";
 import { getSession } from "../services/storage";
@@ -13,7 +14,12 @@ export default function NotificationPermissionPrompt() {
   const session = getSession();
 
   useEffect(() => {
-    const update = () => setState(getPushPermissionState());
+    const update = () => {
+      getResolvedPushPermissionState().then(setState).catch(() => {
+        setState(getPushPermissionState());
+      });
+    };
+    update();
     document.addEventListener("visibilitychange", update);
     window.addEventListener("focus", update);
     return () => {
@@ -24,7 +30,10 @@ export default function NotificationPermissionPrompt() {
 
   const isLoggedIn = Boolean(session?.token);
   const isAdminRoute = typeof window !== "undefined" && window.location.pathname.startsWith("/admin");
-  const shouldRender = isLoggedIn && !isAdminRoute && (state === "default" || state === "denied");
+  const shouldRender =
+    isLoggedIn &&
+    !isAdminRoute &&
+    (state === "default" || state === "denied" || state === "prompt");
 
   const helpText = useMemo(() => buildNotificationHelpText(), []);
 
@@ -42,7 +51,7 @@ export default function NotificationPermissionPrompt() {
     setBusy(true);
     try {
       const ok = await requestPushPermissionAndSubscribe();
-      const next = getPushPermissionState();
+      const next = await getResolvedPushPermissionState();
       setState(next);
       if (ok || next === "granted") {
         showAlert("Notifications enabled successfully.");
@@ -71,8 +80,8 @@ export default function NotificationPermissionPrompt() {
       </p>
       <p className="mt-1 text-xs text-amber-800">
         {state === "default"
-          ? "Tap Enable and allow the browser prompt."
-          : "Tap How to Enable to open steps for your browser."}
+          ? "Tap Enable and allow the notification permission prompt."
+          : "Tap How to Enable to open notification permission steps."}
       </p>
       <div className="mt-3 flex gap-2">
         {state === "default" ? (

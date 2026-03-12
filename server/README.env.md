@@ -28,3 +28,15 @@ Web push requires these variables in the server env:
 - `VAPID_PUBLIC_KEY`
 - `VAPID_PRIVATE_KEY`
 - `VAPID_SUBJECT` (example: `mailto:support@hokoapp.in`)
+
+Android native push requires Firebase Admin credentials on the server. Use either:
+
+- `FIREBASE_PROJECT_ID`
+- `FIREBASE_CLIENT_EMAIL`
+- `FIREBASE_PRIVATE_KEY`
+
+Or:
+
+- `FIREBASE_SERVICE_ACCOUNT_PATH`
+
+The default file lookup path is `server/firebase-service-account.json`.
