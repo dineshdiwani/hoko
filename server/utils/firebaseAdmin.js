@@ -43,6 +43,8 @@ function readServiceAccountFromDisk() {
   const explicitPath = String(process.env.FIREBASE_SERVICE_ACCOUNT_PATH || "").trim();
   const candidates = [
     explicitPath,
+    path.join(__dirname, "..", "firebase-service-account.json"),
+    path.join(__dirname, "..", "firebase-service-account..json"),
     path.join(process.cwd(), "server", "firebase-service-account.json"),
     path.join(process.cwd(), "server", "firebase-service-account..json"),
     path.join(process.cwd(), "firebase-service-account.json")
