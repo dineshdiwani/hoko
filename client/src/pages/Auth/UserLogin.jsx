@@ -4,6 +4,8 @@ import { getSession, setSession } from "../../services/storage";
 import { fetchOptions } from "../../services/options";
 import api from "../../services/api";
 import GoogleLoginButton from "../../components/GoogleLoginButton";
+import { isNativeAppRuntime } from "../../utils/runtime";
+import { ensureNativePushRegistration, isNativePushEnabled } from "../../services/nativePush";
 
 export default function UserLogin({ role = "buyer" }) {
   const isSeller = role === "seller";
@@ -283,6 +285,9 @@ export default function UserLogin({ role = "buyer" }) {
           navigate("/seller/register", { replace: true });
           return;
         }
+        if (isNativeAppRuntime() && isNativePushEnabled()) {
+          await ensureNativePushRegistration(true).catch(() => false);
+        }
         navigate(redirect, { replace: true });
       })
       .catch((err) => {
@@ -368,6 +373,9 @@ export default function UserLogin({ role = "buyer" }) {
         if (currentRole === "buyer" && sellerIntent && !sellerCapable) {
           navigate("/seller/register", { replace: true });
           return;
+        }
+        if (isNativeAppRuntime() && isNativePushEnabled()) {
+          await ensureNativePushRegistration(true).catch(() => false);
         }
         navigate(redirect, { replace: true });
       })

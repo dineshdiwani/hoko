@@ -5,6 +5,15 @@ import { isNativeAppRuntime } from "../utils/runtime";
 let listenersBound = false;
 let registrationInFlight = null;
 let lastRegisteredToken = "";
+let listenerBindingPromise = null;
+let pendingRegistrationResolve = null;
+
+function resolvePendingRegistration(success) {
+  if (typeof pendingRegistrationResolve === "function") {
+    pendingRegistrationResolve(Boolean(success));
+    pendingRegistrationResolve = null;
+  }
+}
 
 export function isNativePushEnabled() {
   const raw = String(import.meta.env.VITE_ENABLE_NATIVE_PUSH || "").trim().toLowerCase();
@@ -19,6 +28,18 @@ async function getPushNotificationsPlugin() {
     return module?.PushNotifications || null;
   } catch {
     return null;
+  }
+}
+
+export async function getNativePushPermissionState() {
+  if (!isNativeAppRuntime() || !isNativePushEnabled()) return "unsupported";
+  const PushNotifications = await getPushNotificationsPlugin();
+  if (!PushNotifications) return "unsupported";
+  try {
+    const current = await PushNotifications.checkPermissions();
+    return String(current?.receive || "prompt");
+  } catch {
+    return "unsupported";
   }
 }
 
@@ -39,30 +60,48 @@ function openNotificationUrl(notification) {
 
 async function registerNativeToken(token) {
   const trimmed = String(token || "").trim();
-  if (!trimmed || trimmed === lastRegisteredToken) return true;
+  if (!trimmed) {
+    resolvePendingRegistration(false);
+    return false;
+  }
+  if (trimmed === lastRegisteredToken) {
+    resolvePendingRegistration(true);
+    return true;
+  }
   await api.post("/push/native-token", {
     token: trimmed,
     platform: "android"
   });
   lastRegisteredToken = trimmed;
+  resolvePendingRegistration(true);
   return true;
 }
 
 async function bindListeners() {
   if (listenersBound || !isNativeAppRuntime()) return;
+  if (listenerBindingPromise) return listenerBindingPromise;
   const PushNotifications = await getPushNotificationsPlugin();
   if (!PushNotifications) return;
-  listenersBound = true;
-
-  PushNotifications.addListener("registration", (token) => {
-    registerNativeToken(token?.value || "").catch(() => {});
-  });
-
-  PushNotifications.addListener("registrationError", () => {});
-
-  PushNotifications.addListener("pushNotificationActionPerformed", (notification) => {
-    openNotificationUrl(notification);
-  });
+  listenerBindingPromise = Promise.all([
+    PushNotifications.addListener("registration", (token) => {
+      registerNativeToken(token?.value || "").catch(() => {
+        resolvePendingRegistration(false);
+      });
+    }),
+    PushNotifications.addListener("registrationError", () => {
+      resolvePendingRegistration(false);
+    }),
+    PushNotifications.addListener("pushNotificationActionPerformed", (notification) => {
+      openNotificationUrl(notification);
+    })
+  ])
+    .then(() => {
+      listenersBound = true;
+    })
+    .finally(() => {
+      listenerBindingPromise = null;
+    });
+  return listenerBindingPromise;
 }
 
 export async function ensureNativePushRegistration(allowPermissionPrompt = false) {
@@ -77,16 +116,27 @@ export async function ensureNativePushRegistration(allowPermissionPrompt = false
     if (!PushNotifications) return false;
     await bindListeners();
 
-    const current = await PushNotifications.checkPermissions();
-    let receive = current?.receive || "prompt";
+    let receive = "prompt";
+    try {
+      const current = await PushNotifications.checkPermissions();
+      receive = current?.receive || "prompt";
+    } catch {}
+
     if (receive !== "granted" && allowPermissionPrompt) {
       const requested = await PushNotifications.requestPermissions();
       receive = requested?.receive || receive;
     }
     if (receive !== "granted") return false;
 
+    const registrationResult = new Promise((resolve) => {
+      pendingRegistrationResolve = resolve;
+      window.setTimeout(() => {
+        resolvePendingRegistration(false);
+      }, 8000);
+    });
+
     await PushNotifications.register();
-    return true;
+    return registrationResult;
   })()
     .catch(() => false)
     .finally(() => {
