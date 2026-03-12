@@ -7,6 +7,7 @@ import {
   getAttachmentDisplayName,
   getAttachmentTypeMeta
 } from "../utils/attachments";
+import { getPublicAppUrl } from "../utils/runtime";
 
 export default function CityDashboard({
   city,
@@ -57,9 +58,7 @@ export default function CityDashboard({
   }
 
   const appBaseUrl =
-    typeof window !== "undefined"
-      ? window.location.origin
-      : "http://localhost:5173";
+    getPublicAppUrl();
 
   function buildShareUrl(req) {
     const reqId = String(req?._id || req?.id || "").trim();

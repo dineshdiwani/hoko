@@ -1,5 +1,9 @@
 import axios from "axios";
 import { getSession } from "./storage";
+import {
+  getDefaultApiBaseUrl,
+  getDefaultAssetBaseUrl
+} from "../utils/runtime";
 
 function isAbsoluteHttpUrl(value) {
   return /^https?:\/\//i.test(String(value || ""));
@@ -15,12 +19,7 @@ function normalizeApiBaseUrl(value) {
   return `${withoutTrailingSlash}/api`;
 }
 
-const fallbackApiUrl = "/api";
-
-const rawBaseUrl =
-  import.meta.env.VITE_API_URL ||
-  import.meta.env.VITE_API_BASE_URL ||
-  fallbackApiUrl;
+const rawBaseUrl = getDefaultApiBaseUrl();
 
 const normalizedBaseUrl = normalizeApiBaseUrl(rawBaseUrl);
 
@@ -28,10 +27,7 @@ export function getAssetBaseUrl() {
   if (isAbsoluteHttpUrl(normalizedBaseUrl)) {
     return normalizedBaseUrl.replace(/\/api\/?$/, "");
   }
-  if (typeof window !== "undefined") {
-    return window.location.origin;
-  }
-  return "";
+  return getDefaultAssetBaseUrl();
 }
 
 const api = axios.create({

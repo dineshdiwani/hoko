@@ -1,10 +1,9 @@
 import axios from "axios";
+import { getDefaultApiBaseUrl } from "./runtime";
 
-const fallbackApiUrl = import.meta.env.DEV
-  ? "http://localhost:5000/api"
-  : "/api";
-
-const rawApiUrl = import.meta.env.VITE_API_URL || fallbackApiUrl;
+const rawApiUrl = import.meta.env.DEV
+  ? import.meta.env.VITE_API_URL || "http://localhost:5000/api"
+  : getDefaultApiBaseUrl();
 const normalizedApiUrl = String(rawApiUrl).endsWith("/api")
   ? String(rawApiUrl)
   : `${String(rawApiUrl).replace(/\/+$/, "")}/api`;

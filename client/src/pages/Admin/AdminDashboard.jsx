@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../../utils/adminApi";
 import { confirmDialog } from "../../utils/dialogs";
 import AdminNav from "../../components/AdminNav";
+import { getPublicAppUrl } from "../../utils/runtime";
 
 export default function AdminDashboard() {
   const defaultTermsContent = [
@@ -165,26 +166,10 @@ export default function AdminDashboard() {
         lines.push(`Details: ${requirement.details || "-"}`);
       }
       if (manualTemplateFields.link) {
-        const baseUrl = window.location.origin.replace(/\/+$/, "");
+        const baseUrl = getPublicAppUrl();
         const reqIdRaw = String(requirement._id || "").trim();
         const reqIdParam = encodeURIComponent(reqIdRaw);
-        const packed = encodeURIComponent(
-          JSON.stringify({
-            postId: reqIdRaw,
-            city: String(requirement.city || ""),
-            product: String(requirement.product || requirement.productName || ""),
-            category: String(requirement.category || ""),
-            qty: String(requirement.quantity || ""),
-            unit: String(requirement.unit || requirement.type || ""),
-            brand: String(requirement.makeBrand || requirement.brand || ""),
-            model: String(requirement.typeModel || ""),
-            details: String(requirement.details || requirement.description || ""),
-            invite: String(requirement.offerInvitedFrom || "")
-          })
-        );
-        lines.push(
-          `Open: ${baseUrl}/seller/deeplink/${reqIdParam}?pd=${packed}`
-        );
+        lines.push(`Open: ${baseUrl}/seller/deeplink/${reqIdParam}`);
       }
       return lines.join("\n");
     },

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import api from "../../utils/adminApi";
 import AdminNav from "../../components/AdminNav";
+import { getPublicAppUrl } from "../../utils/runtime";
 
 export default function AdminWhatsApp() {
   const [options, setOptions] = useState({
@@ -116,7 +117,7 @@ export default function AdminWhatsApp() {
       const city = firstNonEmpty([requirement.city]) || "your city";
       const [requirementOne, requirementTwo, requirementThree] =
         buildRequirementHighlights(requirement);
-      const baseUrl = window.location.origin.replace(/\/+$/, "");
+      const baseUrl = getPublicAppUrl();
       const reqIdRaw = String(requirement._id || "").trim();
       const reqIdParam = encodeURIComponent(reqIdRaw);
       const deepLink = `${baseUrl}/seller/deeplink/${reqIdParam}`;

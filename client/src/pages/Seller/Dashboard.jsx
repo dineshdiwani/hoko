@@ -18,6 +18,7 @@ import {
   getAttachmentDisplayName,
   getAttachmentTypeMeta
 } from "../../utils/attachments";
+import { getPublicAppUrl } from "../../utils/runtime";
 
 export default function SellerDashboard() {
   const navigate = useNavigate();
@@ -69,9 +70,7 @@ export default function SellerDashboard() {
     return a.includes(b) || b.includes(a);
   };
   const appBaseUrl =
-    typeof window !== "undefined"
-      ? window.location.origin
-      : "http://localhost:5173";
+    getPublicAppUrl();
   const resolveCityValue = (value, cityList, fallback = "") => {
     const raw = String(value || "").trim();
     if (!raw) {
