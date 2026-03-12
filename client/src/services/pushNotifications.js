@@ -5,7 +5,7 @@ import {
   getNativeNotificationPermissionState,
   requestNativeNotificationPermission
 } from "./runtimeNotifications";
-import { ensureNativePushRegistration } from "./nativePush";
+import { ensureNativePushRegistration, isNativePushEnabled } from "./nativePush";
 
 let inFlight = null;
 
@@ -87,7 +87,9 @@ async function ensurePushSubscriptionInternal(allowPermissionPrompt = false) {
 
 export function getPushPermissionState() {
   if (typeof window === "undefined") return "unsupported";
-  if (isNativeAppRuntime()) return "native_app";
+  if (isNativeAppRuntime()) {
+    return isNativePushEnabled() ? "native_app" : "local_only";
+  }
   if (!("Notification" in window)) return "unsupported";
   if (!window.isSecureContext && !isLocalhost(window.location.hostname)) return "blocked_context";
   return String(Notification.permission || "default");
@@ -97,6 +99,7 @@ export async function requestPushPermissionAndSubscribe() {
   if (isNativeAppRuntime()) {
     const granted = await requestNativeNotificationPermission();
     if (!granted) return false;
+    if (!isNativePushEnabled()) return true;
     return ensureNativePushRegistration(true);
   }
   const ok = await ensurePushSubscriptionInternal(true);
@@ -105,7 +108,11 @@ export async function requestPushPermissionAndSubscribe() {
 
 export async function getResolvedPushPermissionState() {
   if (isNativeAppRuntime()) {
-    return getNativeNotificationPermissionState();
+    const nativeState = await getNativeNotificationPermissionState();
+    if (!isNativePushEnabled()) {
+      return nativeState === "granted" ? "local_only" : nativeState;
+    }
+    return nativeState;
   }
   return getPushPermissionState();
 }
@@ -113,12 +120,7 @@ export async function getResolvedPushPermissionState() {
 export function ensurePushSubscription() {
   if (inFlight) return inFlight;
   inFlight = ensurePushSubscriptionInternal(false)
-    .then(async (result) => {
-      if (isNativeAppRuntime()) {
-        return ensureNativePushRegistration(false);
-      }
-      return result;
-    })
+    .then((result) => result)
     .catch(() => false)
     .finally(() => {
       inFlight = null;
@@ -129,6 +131,9 @@ export function ensurePushSubscription() {
 export function buildNotificationHelpText() {
   const origin = typeof window !== "undefined" ? window.location.origin : "this site";
   const ua = typeof navigator !== "undefined" ? String(navigator.userAgent || "") : "";
+  if (isNativeAppRuntime() && !isNativePushEnabled()) {
+    return "Android app notifications are currently foreground/local only in this build.";
+  }
   const isAndroid = /android/i.test(ua);
   const isChrome = /chrome/i.test(ua) && !/edg|opr|opera/i.test(ua);
   const lines = [];
