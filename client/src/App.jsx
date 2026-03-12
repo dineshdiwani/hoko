@@ -38,7 +38,13 @@ import { getSession } from "./services/auth";
 import { ensurePushSubscription } from "./services/pushNotifications";
 import socket, { connectSocket } from "./services/socket";
 import { showRuntimeNotification } from "./services/runtimeNotifications";
-import { getSettings } from "./services/storage";
+import {
+  getSettings,
+  getSeenNotificationIds,
+  rememberSeenNotificationIds
+} from "./services/storage";
+import { fetchNotifications } from "./services/notifications";
+import { isNativeAppRuntime } from "./utils/runtime";
 
 function RouteLoader() {
   return <div className="min-h-[35vh] w-full" aria-hidden="true" />;
@@ -93,6 +99,69 @@ function AppShell() {
   const location = useLocation();
   const hideGlobalLogo = location.pathname === "/";
 
+  async function syncNativeUnreadNotifications(session) {
+    if (!isNativeAppRuntime()) return;
+    if (!session?.token) return;
+
+    try {
+      const currentSettings = getSettings();
+      const role = session?.role || (session?.roles?.seller ? "seller" : "buyer");
+      const buyerNotifSettings = currentSettings?.buyer?.notificationToggles || {};
+      const sellerNotifSettings = currentSettings?.seller || {};
+      const seen = new Set(getSeenNotificationIds());
+      const notifications = await fetchNotifications();
+      const unread = (Array.isArray(notifications) ? notifications : [])
+        .filter((item) => item && item.read !== true)
+        .slice(0, 10);
+
+      const justShownIds = [];
+      for (const notif of unread.reverse()) {
+        const notifId = String(notif?._id || notif?.id || "").trim();
+        if (!notifId || seen.has(notifId)) continue;
+
+        const type = String(notif?.type || "").trim();
+        let allowed = true;
+        if (role === "buyer") {
+          if (buyerNotifSettings.pushEnabled === false) {
+            allowed = false;
+          } else if (type === "new_offer") {
+            allowed = buyerNotifSettings.newOffer !== false;
+          } else if (type === "new_message") {
+            allowed = buyerNotifSettings.chat !== false;
+          } else {
+            allowed = buyerNotifSettings.statusUpdate !== false;
+          }
+        } else {
+          if (type === "reverse_auction_invoked") {
+            allowed = sellerNotifSettings.notificationsAuction !== false;
+          } else if (type === "new_message") {
+            allowed = sellerNotifSettings.notificationsLeads !== false;
+          } else {
+            allowed = sellerNotifSettings.notificationsOffers !== false;
+          }
+        }
+
+        if (!allowed) {
+          justShownIds.push(notifId);
+          continue;
+        }
+
+        const fallbackUrl = role === "seller" ? "/seller/dashboard" : "/buyer/dashboard";
+        await showRuntimeNotification({
+          title: String(notif?.title || "HOKO"),
+          body: String(notif?.message || notif?.body || "You have a new notification"),
+          tag: notifId,
+          data: { url: String(notif?.data?.url || fallbackUrl) }
+        });
+        justShownIds.push(notifId);
+      }
+
+      if (justShownIds.length) {
+        rememberSeenNotificationIds(justShownIds);
+      }
+    } catch {}
+  }
+
   useEffect(() => {
     ensurePushSubscription().catch(() => {});
   }, [location.pathname]);
@@ -104,13 +173,17 @@ function AppShell() {
     const onVisible = () => {
       if (document.visibilityState === "visible") {
         ensurePushSubscription().catch(() => {});
+        syncNativeUnreadNotifications(session).catch(() => {});
       }
     };
     document.addEventListener("visibilitychange", onVisible);
 
     const timer = window.setInterval(() => {
       ensurePushSubscription().catch(() => {});
+      syncNativeUnreadNotifications(session).catch(() => {});
     }, 60000);
+
+    syncNativeUnreadNotifications(session).catch(() => {});
 
     return () => {
       document.removeEventListener("visibilitychange", onVisible);
@@ -167,6 +240,7 @@ function AppShell() {
           tag,
           data: { url }
         });
+        rememberSeenNotificationIds([tag]);
       } catch {}
     };
 

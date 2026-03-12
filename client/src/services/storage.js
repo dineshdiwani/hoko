@@ -3,6 +3,7 @@ const SESSION_KEY = "hoko_session";
 const SELLER_DASHBOARD_CATEGORIES_KEY =
   "seller_dashboard_categories";
 const SETTINGS_KEY = "hoko_settings";
+const SEEN_NOTIFICATION_IDS_KEY = "hoko_seen_notification_ids";
 
 export function setSession(session) {
   localStorage.setItem(SESSION_KEY, JSON.stringify(session));
@@ -63,4 +64,23 @@ export function updateSettings(partial) {
     SETTINGS_KEY,
     JSON.stringify({ ...current, ...partial })
   );
+}
+
+export function getSeenNotificationIds() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(SEEN_NOTIFICATION_IDS_KEY));
+    return Array.isArray(parsed) ? parsed.map((item) => String(item || "")).filter(Boolean) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function rememberSeenNotificationIds(ids) {
+  const next = Array.from(
+    new Set([
+      ...getSeenNotificationIds(),
+      ...(Array.isArray(ids) ? ids : []).map((item) => String(item || "")).filter(Boolean)
+    ])
+  ).slice(-200);
+  localStorage.setItem(SEEN_NOTIFICATION_IDS_KEY, JSON.stringify(next));
 }
