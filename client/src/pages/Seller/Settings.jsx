@@ -11,6 +11,7 @@ import {
 import {
   buildNotificationHelpText,
   getPushPermissionState,
+  getResolvedPushPermissionState,
   requestPushPermissionAndSubscribe
 } from "../../services/pushNotifications";
 
@@ -132,6 +133,10 @@ export default function SellerSettings() {
           otp: true,
           google: Boolean(res.data?.loginMethods?.google)
         });
+        setPrefs((prev) => ({
+          ...prev,
+          ...(res.data?.sellerSettings || {})
+        }));
       })
       .catch(() => {});
 
@@ -143,7 +148,12 @@ export default function SellerSettings() {
   }, [navigate, session?.token]);
 
   useEffect(() => {
-    const update = () => setPushPermission(getPushPermissionState());
+    const update = () => {
+      getResolvedPushPermissionState().then(setPushPermission).catch(() => {
+        setPushPermission(getPushPermissionState());
+      });
+    };
+    update();
     document.addEventListener("visibilitychange", update);
     window.addEventListener("focus", update);
     return () => {
@@ -225,7 +235,12 @@ export default function SellerSettings() {
         city: profile.city,
         categories: uniqueCategories,
         website: profile.website,
-        taxId: profile.taxId
+        taxId: profile.taxId,
+        sellerSettings: {
+          notificationsLeads: prefs.notificationsLeads !== false,
+          notificationsAuction: prefs.notificationsAuction !== false,
+          notificationsOffers: prefs.notificationsOffers !== false
+        }
       });
       setProfile((prev) => ({ ...prev, categories: uniqueCategories }));
       setSellerDashboardCategories(uniqueCategories);
@@ -253,10 +268,10 @@ export default function SellerSettings() {
 
   async function enableBrowserPush() {
     const ok = await requestPushPermissionAndSubscribe();
-    const current = getPushPermissionState();
+    const current = await getResolvedPushPermissionState();
     setPushPermission(current);
     if (ok || current === "granted") {
-      alert("Browser notifications enabled.");
+      alert("Notifications enabled.");
       return;
     }
     if (current === "denied") {

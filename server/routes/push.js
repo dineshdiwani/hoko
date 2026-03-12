@@ -2,6 +2,7 @@ const express = require("express");
 
 const auth = require("../middleware/auth");
 const PushSubscription = require("../models/PushSubscription");
+const NativePushToken = require("../models/NativePushToken");
 const { subscribeToPush } = require("../utils/push");
 
 const router = express.Router();
@@ -30,6 +31,32 @@ router.post("/unsubscribe", auth, async (req, res) => {
   } else {
     await PushSubscription.deleteMany({ userId });
   }
+  return res.json({ success: true });
+});
+
+router.post("/native-token", auth, async (req, res) => {
+  const token = String(req.body?.token || "").trim();
+  const platform = String(req.body?.platform || "android").trim().toLowerCase();
+  if (!token) {
+    return res.status(400).json({ message: "token required" });
+  }
+
+  await NativePushToken.findOneAndUpdate(
+    { userId: String(req.user._id), token },
+    { userId: String(req.user._id), token, platform },
+    { upsert: true }
+  );
+
+  return res.json({ success: true });
+});
+
+router.post("/native-token/unsubscribe", auth, async (req, res) => {
+  const token = String(req.body?.token || "").trim();
+  const query = { userId: String(req.user._id) };
+  if (token) {
+    query.token = token;
+  }
+  await NativePushToken.deleteMany(query);
   return res.json({ success: true });
 });
 

@@ -37,6 +37,9 @@ import NotificationPermissionPrompt from "./components/NotificationPermissionPro
 import { getSession } from "./services/auth";
 import { ensurePushSubscription } from "./services/pushNotifications";
 import socket, { connectSocket } from "./services/socket";
+import { showRuntimeNotification } from "./services/runtimeNotifications";
+import { getSettings } from "./services/storage";
+import { ensureNativePushRegistration } from "./services/nativePush";
 
 function RouteLoader() {
   return <div className="min-h-[35vh] w-full" aria-hidden="true" />;
@@ -93,6 +96,7 @@ function AppShell() {
 
   useEffect(() => {
     ensurePushSubscription().catch(() => {});
+    ensureNativePushRegistration(false).catch(() => {});
   }, [location.pathname]);
 
   useEffect(() => {
@@ -123,38 +127,48 @@ function AppShell() {
 
     const onNotification = async (notif) => {
       try {
-        if (typeof document !== "undefined" && document.visibilityState === "visible") {
-          return;
+        const currentSettings = getSettings();
+        const role = session?.role || (session?.roles?.seller ? "seller" : "buyer");
+        const buyerNotifSettings = currentSettings?.buyer?.notificationToggles || {};
+        const sellerNotifSettings = currentSettings?.seller || {};
+        const type = String(notif?.type || "").trim();
+
+        let allowed = true;
+        if (role === "buyer") {
+          if (buyerNotifSettings.pushEnabled === false) {
+            allowed = false;
+          } else if (type === "new_offer") {
+            allowed = buyerNotifSettings.newOffer !== false;
+          } else if (type === "new_message") {
+            allowed = buyerNotifSettings.chat !== false;
+          } else {
+            allowed = buyerNotifSettings.statusUpdate !== false;
+          }
+        } else {
+          if (type === "reverse_auction_invoked") {
+            allowed = sellerNotifSettings.notificationsAuction !== false;
+          } else if (type === "new_message") {
+            allowed = sellerNotifSettings.notificationsLeads !== false;
+          } else {
+            allowed = sellerNotifSettings.notificationsOffers !== false;
+          }
         }
-        if (!("Notification" in window) || Notification.permission !== "granted") {
+
+        if (!allowed) {
           return;
         }
 
-        const role = session?.role || (session?.roles?.seller ? "seller" : "buyer");
         const fallbackUrl = role === "seller" ? "/seller/dashboard" : "/buyer/dashboard";
         const title = String(notif?.title || "HOKO");
         const body = String(notif?.message || notif?.body || "You have a new notification");
         const url = String(notif?.data?.url || fallbackUrl);
         const tag = String(notif?._id || notif?.id || `live-${Date.now()}`);
-        const options = {
+        await showRuntimeNotification({
+          title,
           body,
-          icon: "/app-icon-192.png",
-          badge: "/app-icon-192.png",
           tag,
-          data: {
-            url
-          }
-        };
-
-        if ("serviceWorker" in navigator) {
-          const registration = await navigator.serviceWorker.getRegistration();
-          if (registration) {
-            await registration.showNotification(title, options);
-            return;
-          }
-        }
-
-        new Notification(title, options);
+          data: { url }
+        });
       } catch {}
     };
 

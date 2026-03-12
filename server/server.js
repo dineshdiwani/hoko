@@ -182,6 +182,18 @@ function extractSocketToken(socket) {
   return "";
 }
 
+function shouldNotifySellerEvent(userRoles, userDoc, eventKey) {
+  if (!userRoles?.seller) return true;
+  const settings = userDoc?.sellerSettings || {};
+  if (eventKey === "auction") {
+    return settings.notificationsAuction !== false;
+  }
+  if (eventKey === "lead") {
+    return settings.notificationsLeads !== false;
+  }
+  return settings.notificationsOffers !== false;
+}
+
 io.use(async (socket, next) => {
   try {
     const token = extractSocketToken(socket);
@@ -257,11 +269,20 @@ io.on("connection", (socket) => {
         type: "offer_viewed"
       }).then((notif) => {
         io.to(String(sellerId)).emit("notification", notif);
-        sendPush(String(sellerId), {
-          title: "Offer Viewed",
-          body: message,
-          data: { url: "/seller/dashboard" }
-        }).catch(() => {});
+        User.findById(sellerId)
+          .select("roles sellerSettings")
+          .lean()
+          .then((sellerDoc) => {
+            if (!shouldNotifySellerEvent(sellerDoc?.roles, sellerDoc, "offer")) {
+              return;
+            }
+            return sendPush(String(sellerId), {
+              title: "Offer Viewed",
+              body: message,
+              data: { url: "/seller/dashboard" }
+            });
+          })
+          .catch(() => {});
       });
     }
   });
@@ -277,11 +298,20 @@ io.on("connection", (socket) => {
         type: "reverse_auction"
       }).then((notif) => {
         io.to(String(sellerId)).emit("notification", notif);
-        sendPush(String(sellerId), {
-          title: `Reverse Auction: ${product}`,
-          body: message,
-          data: { url: "/seller/dashboard" }
-        }).catch(() => {});
+        User.findById(sellerId)
+          .select("roles sellerSettings")
+          .lean()
+          .then((sellerDoc) => {
+            if (!shouldNotifySellerEvent(sellerDoc?.roles, sellerDoc, "auction")) {
+              return;
+            }
+            return sendPush(String(sellerId), {
+              title: `Reverse Auction: ${product}`,
+              body: message,
+              data: { url: "/seller/dashboard" }
+            });
+          })
+          .catch(() => {});
       });
     }
   });
@@ -399,14 +429,22 @@ io.on("connection", (socket) => {
             ? `${messagePreview.slice(0, 117)}...`
             : messagePreview;
         const chatNotificationsEnabled =
-          !toUserDoc?.roles?.buyer ||
-          toUserDoc?.buyerSettings?.notificationToggles?.chat !== false;
+          toUserDoc?.roles?.seller
+            ? shouldNotifySellerEvent(toUserDoc?.roles, toUserDoc, "lead")
+            : (
+                !toUserDoc?.roles?.buyer ||
+                toUserDoc?.buyerSettings?.notificationToggles?.chat !== false
+              );
         const chatPushEnabled =
-          !toUserDoc?.roles?.buyer ||
-          (
-            toUserDoc?.buyerSettings?.notificationToggles?.chat !== false &&
-            toUserDoc?.buyerSettings?.notificationToggles?.pushEnabled !== false
-          );
+          toUserDoc?.roles?.seller
+            ? shouldNotifySellerEvent(toUserDoc?.roles, toUserDoc, "lead")
+            : (
+                !toUserDoc?.roles?.buyer ||
+                (
+                  toUserDoc?.buyerSettings?.notificationToggles?.chat !== false &&
+                  toUserDoc?.buyerSettings?.notificationToggles?.pushEnabled !== false
+                )
+              );
 
         if (chatNotificationsEnabled) {
           const notif = await Notification.create({

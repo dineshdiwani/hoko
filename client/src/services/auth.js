@@ -1,6 +1,7 @@
 // auth.js
 import { getSession, clearSession } from "./storage";
 import { disconnectSocket } from "./socket";
+import { unregisterNativePushToken } from "./nativePush";
 
 export { getSession };
 
@@ -30,6 +31,7 @@ export function requireAuth(role) {
 
 export function logout(navigate) {
   disconnectSocket();
+  unregisterNativePushToken().catch(() => {});
   clearSession();
   navigate("/");
 }

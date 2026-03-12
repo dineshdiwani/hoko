@@ -75,6 +75,17 @@ function clamp(value, min, max, fallback) {
 function normalizeText(value) {
   return String(value || "").trim().toLowerCase();
 }
+
+function shouldNotifySellerEvent(userDoc, eventKey) {
+  const settings = userDoc?.sellerSettings || {};
+  if (eventKey === "auction") {
+    return settings.notificationsAuction !== false;
+  }
+  if (eventKey === "lead") {
+    return settings.notificationsLeads !== false;
+  }
+  return settings.notificationsOffers !== false;
+}
 function normalizeOfferInvitedFrom(value) {
   return normalizeText(value) === "anywhere" ? "anywhere" : "city";
 }
@@ -359,9 +370,20 @@ router.post("/requirement", auth, buyerOnly, async (req, res) => {
         });
       }
 
+      const sellers = await User.find({ _id: { $in: sellerIds } })
+        .select("_id sellerSettings")
+        .lean();
+      const sellerSettingsById = new Map(
+        sellers.map((seller) => [String(seller._id), seller])
+      );
+
       await Promise.all(
         sellerIds.map(async (sellerId) => {
           try {
+            const sellerDoc = sellerSettingsById.get(String(sellerId));
+            if (!shouldNotifySellerEvent(sellerDoc, "lead")) {
+              return;
+            }
             await sendPush(String(sellerId), {
               title: "New Buyer Post",
               body: `New post in ${requirement.category || "your"} category: ${requirementName}`,
@@ -582,6 +604,33 @@ router.put("/requirement/:id", auth, buyerOnly, async (req, res) => {
         io.to(String(sellerId)).emit("notification", notification);
       });
     }
+
+    const sellers = await User.find({ _id: { $in: sellerIds } })
+      .select("_id sellerSettings")
+      .lean();
+    const sellerSettingsById = new Map(
+      sellers.map((seller) => [String(seller._id), seller])
+    );
+
+    await Promise.all(
+      sellerIds.map(async (sellerId) => {
+        try {
+          const sellerDoc = sellerSettingsById.get(String(sellerId));
+          if (!shouldNotifySellerEvent(sellerDoc, "offer")) {
+            return;
+          }
+          await sendPush(String(sellerId), {
+            title: "Requirement Updated",
+            body: message,
+            data: {
+              url: "/seller/dashboard"
+            }
+          });
+        } catch {
+          // Non-blocking push failures.
+        }
+      })
+    );
 
     // Non-blocking email notifications as per admin-configured controls.
     setImmediate(() => {
@@ -1315,12 +1364,24 @@ router.post("/requirement/:id/reverse-auction/start", auth, buyerOnly, async (re
     });
   }
 
+  const sellers = await User.find({ _id: { $in: sellerIds } })
+    .select("_id sellerSettings")
+    .lean();
+  const sellerSettingsById = new Map(
+    sellers.map((seller) => [String(seller._id), seller])
+  );
+
   await Promise.all(
     sellerIds.map(async (sellerId) => {
       try {
+        const sellerDoc = sellerSettingsById.get(String(sellerId));
+        if (!shouldNotifySellerEvent(sellerDoc, "auction")) {
+          return;
+        }
         await sendPush(String(sellerId), {
           title: `Reverse Auction: ${requirementName}`,
-          body: message
+          body: message,
+          data: { url: "/seller/dashboard" }
         });
       } catch {
         // Ignore push delivery failures per seller and continue.

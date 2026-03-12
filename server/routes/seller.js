@@ -122,6 +122,17 @@ function shouldSendBuyerPush(userDoc) {
   return toggles.pushEnabled !== false;
 }
 
+function shouldNotifySellerEvent(userDoc, eventKey) {
+  const settings = userDoc?.sellerSettings || {};
+  if (eventKey === "auction") {
+    return settings.notificationsAuction !== false;
+  }
+  if (eventKey === "lead") {
+    return settings.notificationsLeads !== false;
+  }
+  return settings.notificationsOffers !== false;
+}
+
 function mapRequirementForSeller(requirementDoc, offerMap, sellerCityRaw = "") {
   if (!requirementDoc) return null;
   const data = normalizeRequirementAttachmentsForResponse(requirementDoc);
@@ -254,7 +265,8 @@ router.post("/profile", auth, sellerOnly, async (req, res) => {
     website,
     taxId,
     city,
-    preferredCurrency
+    preferredCurrency,
+    sellerSettings
   } = req.body || {};
 
   const normalizedCategories = normalizeAndDedupeCategories(categories);
@@ -286,6 +298,13 @@ router.post("/profile", auth, sellerOnly, async (req, res) => {
   if (preferredCurrency) {
     update.preferredCurrency = preferredCurrency;
   }
+  if (sellerSettings && typeof sellerSettings === "object") {
+    update.sellerSettings = {
+      notificationsLeads: sellerSettings.notificationsLeads !== false,
+      notificationsAuction: sellerSettings.notificationsAuction !== false,
+      notificationsOffers: sellerSettings.notificationsOffers !== false
+    };
+  }
 
   const user = await User.findByIdAndUpdate(
     req.user._id,
@@ -296,7 +315,8 @@ router.post("/profile", auth, sellerOnly, async (req, res) => {
   res.json({
     sellerProfile: user?.sellerProfile || {},
     city: user?.city,
-    preferredCurrency: user?.preferredCurrency || "INR"
+    preferredCurrency: user?.preferredCurrency || "INR",
+    sellerSettings: user?.sellerSettings || {}
   });
 });
 
@@ -321,7 +341,8 @@ router.get("/profile", auth, sellerOnly, async (req, res) => {
     loginMethods: {
       otp: true,
       google: Boolean(user?.googleProfile?.sub)
-    }
+    },
+    sellerSettings: user?.sellerSettings || {}
   });
 });
 
@@ -511,7 +532,8 @@ router.post("/offer", auth, sellerOnly, async (req, res) => {
       if (shouldSendBuyerPush(buyer)) {
         await sendPush(requirement.buyerId.toString(), {
           title: "New Offer Received",
-          body: `A seller submitted an offer of Rs ${price}`
+          body: `A seller submitted an offer of Rs ${price}`,
+          data: { url: "/buyer/dashboard" }
         });
       }
 

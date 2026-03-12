@@ -118,6 +118,12 @@ const userSchema = new mongoose.Schema(
           createdAt: { type: Date, default: Date.now }
         }
       ]
+    },
+
+    sellerSettings: {
+      notificationsLeads: { type: Boolean, default: true },
+      notificationsAuction: { type: Boolean, default: true },
+      notificationsOffers: { type: Boolean, default: true }
     }
   },
   { timestamps: true }
