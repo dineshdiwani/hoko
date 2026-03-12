@@ -45,6 +45,7 @@ import {
 } from "./services/storage";
 import { fetchNotifications } from "./services/notifications";
 import { isNativeAppRuntime } from "./utils/runtime";
+import { ensureNativePushRegistration, isNativePushEnabled } from "./services/nativePush";
 
 function RouteLoader() {
   return <div className="min-h-[35vh] w-full" aria-hidden="true" />;
@@ -164,6 +165,9 @@ function AppShell() {
 
   useEffect(() => {
     ensurePushSubscription().catch(() => {});
+    if (isNativeAppRuntime() && isNativePushEnabled()) {
+      ensureNativePushRegistration(false).catch(() => {});
+    }
   }, [location.pathname]);
 
   useEffect(() => {
@@ -173,6 +177,9 @@ function AppShell() {
     const onVisible = () => {
       if (document.visibilityState === "visible") {
         ensurePushSubscription().catch(() => {});
+        if (isNativeAppRuntime() && isNativePushEnabled()) {
+          ensureNativePushRegistration(false).catch(() => {});
+        }
         syncNativeUnreadNotifications(session).catch(() => {});
       }
     };
@@ -180,9 +187,15 @@ function AppShell() {
 
     const timer = window.setInterval(() => {
       ensurePushSubscription().catch(() => {});
+      if (isNativeAppRuntime() && isNativePushEnabled()) {
+        ensureNativePushRegistration(false).catch(() => {});
+      }
       syncNativeUnreadNotifications(session).catch(() => {});
     }, 60000);
 
+    if (isNativeAppRuntime() && isNativePushEnabled()) {
+      ensureNativePushRegistration(false).catch(() => {});
+    }
     syncNativeUnreadNotifications(session).catch(() => {});
 
     return () => {

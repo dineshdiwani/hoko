@@ -5,7 +5,11 @@ import {
   getNativeNotificationPermissionState,
   requestNativeNotificationPermission
 } from "./runtimeNotifications";
-import { ensureNativePushRegistration, isNativePushEnabled } from "./nativePush";
+import {
+  ensureNativePushRegistration,
+  getNativePushPermissionState,
+  isNativePushEnabled
+} from "./nativePush";
 
 let inFlight = null;
 
@@ -108,7 +112,9 @@ export async function requestPushPermissionAndSubscribe() {
 
 export async function getResolvedPushPermissionState() {
   if (isNativeAppRuntime()) {
-    const nativeState = await getNativeNotificationPermissionState();
+    const nativeState = isNativePushEnabled()
+      ? await getNativePushPermissionState()
+      : await getNativeNotificationPermissionState();
     if (!isNativePushEnabled()) {
       return nativeState === "granted" ? "local_only" : nativeState;
     }

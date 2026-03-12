@@ -1,12 +1,15 @@
 import api from "./api";
 import { getNativePushToken, getSession, setNativePushToken } from "./storage";
 import { isNativeAppRuntime } from "../utils/runtime";
+import { registerPlugin } from "@capacitor/core";
+import { PushNotifications } from "@capacitor/push-notifications";
 
 let listenersBound = false;
 let registrationInFlight = null;
 let lastRegisteredToken = "";
 let listenerBindingPromise = null;
 let pendingRegistrationResolve = null;
+const FcmBridge = registerPlugin("FcmBridge");
 
 function resolvePendingRegistration(success) {
   if (typeof pendingRegistrationResolve === "function") {
@@ -21,20 +24,18 @@ export function isNativePushEnabled() {
   return raw === "true" || raw === "1" || raw === "yes";
 }
 
-async function getPushNotificationsPlugin() {
-  if (!isNativeAppRuntime()) return null;
+async function getDirectNativeFcmToken() {
+  if (!isNativeAppRuntime()) return "";
   try {
-    const module = await import("@capacitor/push-notifications");
-    return module?.PushNotifications || null;
+    const result = await FcmBridge.getToken();
+    return String(result?.token || "").trim();
   } catch {
-    return null;
+    return "";
   }
 }
 
 export async function getNativePushPermissionState() {
   if (!isNativeAppRuntime() || !isNativePushEnabled()) return "unsupported";
-  const PushNotifications = await getPushNotificationsPlugin();
-  if (!PushNotifications) return "unsupported";
   try {
     const current = await PushNotifications.checkPermissions();
     return String(current?.receive || "prompt");
@@ -81,8 +82,6 @@ async function registerNativeToken(token) {
 async function bindListeners() {
   if (listenersBound || !isNativeAppRuntime()) return;
   if (listenerBindingPromise) return listenerBindingPromise;
-  const PushNotifications = await getPushNotificationsPlugin();
-  if (!PushNotifications) return;
   listenerBindingPromise = Promise.all([
     PushNotifications.addListener("registration", (token) => {
       registerNativeToken(token?.value || "").catch(() => {
@@ -113,8 +112,6 @@ export async function ensureNativePushRegistration(allowPermissionPrompt = false
   if (registrationInFlight) return registrationInFlight;
 
   registrationInFlight = (async () => {
-    const PushNotifications = await getPushNotificationsPlugin();
-    if (!PushNotifications) return false;
     await bindListeners();
 
     const cachedToken = getNativePushToken();
@@ -136,6 +133,12 @@ export async function ensureNativePushRegistration(allowPermissionPrompt = false
       receive = requested?.receive || receive;
     }
     if (receive !== "granted") return false;
+
+    const directToken = await getDirectNativeFcmToken();
+    if (directToken) {
+      await registerNativeToken(directToken);
+      return true;
+    }
 
     const registrationResult = new Promise((resolve) => {
       pendingRegistrationResolve = resolve;
@@ -167,10 +170,7 @@ export async function unregisterNativePushToken() {
   } catch {}
 
   try {
-    const PushNotifications = await getPushNotificationsPlugin();
-    if (PushNotifications) {
-      await PushNotifications.unregister();
-    }
+    await PushNotifications.unregister();
   } catch {}
   lastRegisteredToken = "";
   setNativePushToken("");
