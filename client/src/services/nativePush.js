@@ -1,5 +1,5 @@
 import api from "./api";
-import { getSession } from "./storage";
+import { getNativePushToken, getSession, setNativePushToken } from "./storage";
 import { isNativeAppRuntime } from "../utils/runtime";
 
 let listenersBound = false;
@@ -64,6 +64,7 @@ async function registerNativeToken(token) {
     resolvePendingRegistration(false);
     return false;
   }
+  setNativePushToken(trimmed);
   if (trimmed === lastRegisteredToken) {
     resolvePendingRegistration(true);
     return true;
@@ -116,6 +117,14 @@ export async function ensureNativePushRegistration(allowPermissionPrompt = false
     if (!PushNotifications) return false;
     await bindListeners();
 
+    const cachedToken = getNativePushToken();
+    if (cachedToken) {
+      try {
+        await registerNativeToken(cachedToken);
+        return true;
+      } catch {}
+    }
+
     let receive = "prompt";
     try {
       const current = await PushNotifications.checkPermissions();
@@ -164,4 +173,5 @@ export async function unregisterNativePushToken() {
     }
   } catch {}
   lastRegisteredToken = "";
+  setNativePushToken("");
 }

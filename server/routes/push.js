@@ -38,6 +38,10 @@ router.post("/native-token", auth, async (req, res) => {
   const token = String(req.body?.token || "").trim();
   const platform = String(req.body?.platform || "android").trim().toLowerCase();
   if (!token) {
+    console.warn("[native_push_token] missing token", {
+      userId: String(req.user?._id || ""),
+      platform
+    });
     return res.status(400).json({ message: "token required" });
   }
 
@@ -46,6 +50,11 @@ router.post("/native-token", auth, async (req, res) => {
     { userId: String(req.user._id), token, platform },
     { upsert: true }
   );
+
+  console.info("[native_push_token] registered", {
+    userId: String(req.user?._id || ""),
+    platform
+  });
 
   return res.json({ success: true });
 });
@@ -57,6 +66,10 @@ router.post("/native-token/unsubscribe", auth, async (req, res) => {
     query.token = token;
   }
   await NativePushToken.deleteMany(query);
+  console.info("[native_push_token] unsubscribed", {
+    userId: String(req.user?._id || ""),
+    tokenProvided: Boolean(token)
+  });
   return res.json({ success: true });
 });
 

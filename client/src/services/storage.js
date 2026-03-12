@@ -4,6 +4,7 @@ const SELLER_DASHBOARD_CATEGORIES_KEY =
   "seller_dashboard_categories";
 const SETTINGS_KEY = "hoko_settings";
 const SEEN_NOTIFICATION_IDS_KEY = "hoko_seen_notification_ids";
+const NATIVE_PUSH_TOKEN_KEY = "hoko_native_push_token";
 
 export function setSession(session) {
   localStorage.setItem(SESSION_KEY, JSON.stringify(session));
@@ -83,4 +84,17 @@ export function rememberSeenNotificationIds(ids) {
     ])
   ).slice(-200);
   localStorage.setItem(SEEN_NOTIFICATION_IDS_KEY, JSON.stringify(next));
+}
+
+export function getNativePushToken() {
+  return String(localStorage.getItem(NATIVE_PUSH_TOKEN_KEY) || "").trim();
+}
+
+export function setNativePushToken(token) {
+  const value = String(token || "").trim();
+  if (!value) {
+    localStorage.removeItem(NATIVE_PUSH_TOKEN_KEY);
+    return;
+  }
+  localStorage.setItem(NATIVE_PUSH_TOKEN_KEY, value);
 }
