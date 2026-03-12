@@ -11,6 +11,7 @@ import {
 import {
   buildNotificationHelpText,
   getPushPermissionState,
+  getResolvedPushPermissionState,
   requestPushPermissionAndSubscribe
 } from "../../services/pushNotifications";
 
@@ -111,7 +112,12 @@ export default function BuyerSettings() {
   }, [navigate, session?.token, session?._id]);
 
   useEffect(() => {
-    const update = () => setPushPermission(getPushPermissionState());
+    const update = () => {
+      getResolvedPushPermissionState().then(setPushPermission).catch(() => {
+        setPushPermission(getPushPermissionState());
+      });
+    };
+    update();
     document.addEventListener("visibilitychange", update);
     window.addEventListener("focus", update);
     return () => {
@@ -243,10 +249,10 @@ export default function BuyerSettings() {
 
   async function enableBrowserPush() {
     const ok = await requestPushPermissionAndSubscribe();
-    const current = getPushPermissionState();
+    const current = await getResolvedPushPermissionState();
     setPushPermission(current);
     if (ok || current === "granted") {
-      alert("Browser notifications enabled.");
+      alert("Notifications enabled.");
       return;
     }
     if (current === "denied") {

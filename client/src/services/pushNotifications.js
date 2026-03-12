@@ -1,5 +1,10 @@
 import api from "./api";
 import { getSession } from "./storage";
+import { isNativeAppRuntime } from "../utils/runtime";
+import {
+  getNativeNotificationPermissionState,
+  requestNativeNotificationPermission
+} from "./runtimeNotifications";
 
 let inFlight = null;
 
@@ -35,6 +40,7 @@ async function ensurePushSubscriptionInternal(allowPermissionPrompt = false) {
   const session = getSession();
   if (!session?.token) return false;
   if (typeof window === "undefined") return false;
+  if (isNativeAppRuntime()) return false;
   if (!("serviceWorker" in navigator)) return false;
   if (!("PushManager" in window)) return false;
   if (!("Notification" in window)) return false;
@@ -80,14 +86,25 @@ async function ensurePushSubscriptionInternal(allowPermissionPrompt = false) {
 
 export function getPushPermissionState() {
   if (typeof window === "undefined") return "unsupported";
+  if (isNativeAppRuntime()) return "native_app";
   if (!("Notification" in window)) return "unsupported";
   if (!window.isSecureContext && !isLocalhost(window.location.hostname)) return "blocked_context";
   return String(Notification.permission || "default");
 }
 
 export async function requestPushPermissionAndSubscribe() {
+  if (isNativeAppRuntime()) {
+    return requestNativeNotificationPermission();
+  }
   const ok = await ensurePushSubscriptionInternal(true);
   return Boolean(ok);
+}
+
+export async function getResolvedPushPermissionState() {
+  if (isNativeAppRuntime()) {
+    return getNativeNotificationPermissionState();
+  }
+  return getPushPermissionState();
 }
 
 export function ensurePushSubscription() {
