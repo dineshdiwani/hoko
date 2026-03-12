@@ -163,15 +163,33 @@ export default function AdminOperations() {
                     </p>
                   </div>
                   <div className="rounded-lg border p-2">
-                    <p className="text-xs text-gray-500">Subscriptions / Users</p>
+                    <p className="text-xs text-gray-500">Firebase Native Status</p>
+                    <p className={`font-semibold ${pushSummary.firebaseConfigured ? "text-green-700" : "text-red-700"}`}>
+                      {pushSummary.firebaseConfigured ? "Configured" : "Missing Credentials"}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border p-2">
+                    <p className="text-xs text-gray-500">Web Subs / Users</p>
                     <p className="font-semibold">
                       {pushSummary?.totals?.subscriptions || 0} / {pushSummary?.totals?.uniqueUsers || 0}
                     </p>
                   </div>
                   <div className="rounded-lg border p-2">
-                    <p className="text-xs text-gray-500">Invalid / Stale / Orphaned</p>
+                    <p className="text-xs text-gray-500">Web Invalid / Stale / Orphaned</p>
                     <p className="font-semibold">
                       {pushSummary?.totals?.invalidRecords || 0} / {pushSummary?.totals?.staleOver30d || 0} / {pushSummary?.totals?.orphanedUsers || 0}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border p-2">
+                    <p className="text-xs text-gray-500">Native Tokens / Users</p>
+                    <p className="font-semibold">
+                      {pushSummary?.totals?.nativeTokens || 0} / {pushSummary?.totals?.nativeUsers || 0}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border p-2">
+                    <p className="text-xs text-gray-500">Native Invalid / Stale / Orphaned</p>
+                    <p className="font-semibold">
+                      {pushSummary?.totals?.nativeInvalidRecords || 0} / {pushSummary?.totals?.nativeStaleOver30d || 0} / {pushSummary?.totals?.nativeOrphanedUsers || 0}
                     </p>
                   </div>
                   <div className="rounded-lg border p-2 md:col-span-3">

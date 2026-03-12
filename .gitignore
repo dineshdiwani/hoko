@@ -34,6 +34,9 @@ client/*.log
 # secrets and local data
 client_secret*.json
 server/client_secret*.json
+server/firebase-service-account.json
+firebase-service-account.json
+client/android/app/google-services.json
 server/uploads/
 .ssh/
 deploy_key

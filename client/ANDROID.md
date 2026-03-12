@@ -22,6 +22,7 @@ Create `client/.env.production` or copy from `.env.android.example` with:
 VITE_API_URL=https://hokoapp.in
 VITE_SOCKET_URL=https://hokoapp.in
 VITE_PUBLIC_APP_URL=https://hokoapp.in
+VITE_ENABLE_NATIVE_PUSH=true
 VITE_GOOGLE_CLIENT_ID=your-google-client-id
 ```
 
@@ -96,6 +97,63 @@ Increase `HOKO_VERSION_CODE` for every Play Store upload.
 
 ## Known gaps before production mobile release
 
-- Web Push notifications in the current app do not become native Android push automatically. For Play Store quality, add Firebase/Capacitor push notifications.
 - Google login inside a WebView can require a native or browser-based mobile auth flow. Test it on-device before publishing.
 - Social previews still depend on the public hosted website URL, which is correct for shared links from the app.
+
+## Firebase Push Setup
+
+Android background/system notifications require Firebase. The repo is wired for it, but you must provide the credentials.
+
+### Android app file
+
+Put your Firebase Android config here:
+
+```text
+client/android/app/google-services.json
+```
+
+The package name inside Firebase must match:
+
+```text
+com.hoko.app
+```
+
+### Client env
+
+Set this in `client/.env.production` for Android builds:
+
+```bash
+VITE_ENABLE_NATIVE_PUSH=true
+```
+
+### Server env
+
+Add one of these to the server:
+
+Option 1:
+
+```bash
+FIREBASE_PROJECT_ID=...
+FIREBASE_CLIENT_EMAIL=...
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+```
+
+Option 2:
+
+```bash
+FIREBASE_SERVICE_ACCOUNT_PATH=server/firebase-service-account.json
+```
+
+### Build and deploy order
+
+1. Place `google-services.json`
+2. Configure server Firebase env or `firebase-service-account.json`
+3. Deploy server
+4. Rebuild Android APK/AAB
+5. Log in on the device once so the app can register its native token
+
+### Verification
+
+- Admin Operations -> Push Health should show Firebase as configured
+- Native token counts should be greater than zero after device login
+- Browser VAPID status and Android Firebase status are separate
