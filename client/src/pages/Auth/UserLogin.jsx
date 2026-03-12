@@ -229,6 +229,13 @@ export default function UserLogin({ role = "buyer" }) {
     } catch {}
   }
 
+  function startNativePushRegistration() {
+    if (!isNativeAppRuntime() || !isNativePushEnabled()) return;
+    window.setTimeout(() => {
+      ensureNativePushRegistration(true).catch(() => false);
+    }, 0);
+  }
+
   function verifyOtp() {
     setSubmitted(true);
     if (!acceptedTerms) {
@@ -286,9 +293,7 @@ export default function UserLogin({ role = "buyer" }) {
           navigate("/seller/register", { replace: true });
           return;
         }
-        if (isNativeAppRuntime() && isNativePushEnabled()) {
-          await ensureNativePushRegistration(true).catch(() => false);
-        }
+        startNativePushRegistration();
         navigate(redirect, { replace: true });
       })
       .catch((err) => {
@@ -375,9 +380,7 @@ export default function UserLogin({ role = "buyer" }) {
           navigate("/seller/register", { replace: true });
           return;
         }
-        if (isNativeAppRuntime() && isNativePushEnabled()) {
-          await ensureNativePushRegistration(true).catch(() => false);
-        }
+        startNativePushRegistration();
         navigate(redirect, { replace: true });
       })
       .catch((err) => {
@@ -524,7 +527,7 @@ export default function UserLogin({ role = "buyer" }) {
 
                 <button
                   onClick={sendLoginOtp}
-                  disabled={otpLoading || googleLoading}
+                  disabled={otpLoading}
                   className="w-full py-3 rounded-xl btn-brand font-semibold"
                 >
                   {otpLoading ? "Sending OTP..." : "Send OTP"}
