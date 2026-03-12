@@ -102,6 +102,7 @@ function AppShell() {
 
   async function syncNativeUnreadNotifications(session) {
     if (!isNativeAppRuntime()) return;
+    if (isNativePushEnabled()) return;
     if (!session?.token) return;
 
     try {
@@ -211,6 +212,9 @@ function AppShell() {
 
     const onNotification = async (notif) => {
       try {
+        if (isNativeAppRuntime() && isNativePushEnabled()) {
+          return;
+        }
         const currentSettings = getSettings();
         const role = session?.role || (session?.roles?.seller ? "seller" : "buyer");
         const buyerNotifSettings = currentSettings?.buyer?.notificationToggles || {};
