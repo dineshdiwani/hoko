@@ -15,6 +15,8 @@ export default function GoogleLoginButton({
   const isNativeRuntime = isNativeAppRuntime();
   const [scriptLoaded, setScriptLoaded] = useState(false);
   const [googleReady, setGoogleReady] = useState(false);
+  const [initializing, setInitializing] = useState(false);
+  const [initError, setInitError] = useState("");
 
   useEffect(() => {
     onSuccessRef.current = onSuccess;
@@ -24,7 +26,9 @@ export default function GoogleLoginButton({
   const initializeGoogle = useCallback(() => {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
     if (!clientId) {
-      onErrorRef.current?.(new Error("Missing VITE_GOOGLE_CLIENT_ID"));
+      const error = new Error("Missing VITE_GOOGLE_CLIENT_ID");
+      setInitError(error.message);
+      onErrorRef.current?.(error);
       return false;
     }
     if (!window.google?.accounts?.id) return false;
@@ -51,24 +55,35 @@ export default function GoogleLoginButton({
   const initializeNativeGoogle = useCallback(async () => {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
     if (!clientId) {
-      onErrorRef.current?.(new Error("Missing VITE_GOOGLE_CLIENT_ID"));
+      const error = new Error("Missing VITE_GOOGLE_CLIENT_ID");
+      setInitError(error.message);
+      onErrorRef.current?.(error);
       return false;
     }
     try {
+      setInitializing(true);
+      setInitError("");
       await SocialLogin.initialize({
         google: {
           webClientId: clientId,
           mode: "online"
         }
       });
+      setGoogleReady(true);
       return true;
     } catch (error) {
-      onErrorRef.current?.(
+      const nextError =
         error instanceof Error
           ? error
-          : new Error("Failed to initialize Google login")
+          : new Error("Google login is unavailable on this device");
+      setGoogleReady(false);
+      setInitError(nextError.message);
+      onErrorRef.current?.(
+        nextError
       );
       return false;
+    } finally {
+      setInitializing(false);
     }
   }, []);
 
@@ -92,7 +107,6 @@ export default function GoogleLoginButton({
   useEffect(() => {
     if (isNativeRuntime) {
       initializeNativeGoogle().then((ready) => {
-        setGoogleReady(Boolean(ready));
         setScriptLoaded(Boolean(ready));
       });
       return;
@@ -145,16 +159,17 @@ export default function GoogleLoginButton({
 
   const signInWithNativeGoogle = useCallback(async () => {
     if (!googleReady) {
-      onErrorRef.current?.(
-        new Error("Google login is still loading. Please wait a moment and try again.")
-      );
-      return;
+      const initialized = await initializeNativeGoogle();
+      if (!initialized) {
+        return;
+      }
     }
     try {
+      setInitError("");
+      setInitializing(true);
       const response = await SocialLogin.login({
         provider: "google",
         options: {
-          scopes: ["email", "profile"],
           filterByAuthorizedAccounts: false,
           autoSelectEnabled: false
         }
@@ -166,11 +181,16 @@ export default function GoogleLoginButton({
       }
       onSuccessRef.current?.(credential);
     } catch (error) {
+      const nextError =
+        error instanceof Error ? error : new Error("Google login failed");
+      setInitError(nextError.message);
       onErrorRef.current?.(
-        error instanceof Error ? error : new Error("Google login failed")
+        nextError
       );
+    } finally {
+      setInitializing(false);
     }
-  }, [googleReady]);
+  }, [googleReady, initializeNativeGoogle]);
 
   return (
     <div className={`w-full mt-3 relative ${disabled ? "opacity-70" : ""}`}>
@@ -180,7 +200,7 @@ export default function GoogleLoginButton({
             type="button"
             onClick={disabled ? () => onDisabledClick?.() : signInWithNativeGoogle}
             className="w-full h-[44px] rounded-xl border border-slate-300 bg-white text-sm font-semibold text-slate-600 inline-flex items-center justify-center gap-2"
-            disabled={!googleReady}
+            disabled={initializing}
           >
             <span className="inline-flex h-5 w-5 items-center justify-center">
               <svg viewBox="0 0 48 48" className="h-4 w-4" aria-hidden="true">
@@ -202,7 +222,11 @@ export default function GoogleLoginButton({
                 />
               </svg>
             </span>
-            <span>{googleReady ? "Continue with Google" : "Loading Google login..."}</span>
+            <span>
+              {initializing
+                ? "Loading Google login..."
+                : "Continue with Google"}
+            </span>
           </button>
         ) : (
         <div
@@ -253,9 +277,14 @@ export default function GoogleLoginButton({
           />
         )}
       </div>
-      {!googleReady && (
+      {!googleReady && !initError && (
         <div className="text-xs text-gray-500 text-center mt-2">
           Loading Google login...
+        </div>
+      )}
+      {Boolean(initError) && (
+        <div className="text-xs text-amber-700 text-center mt-2">
+          Google login unavailable right now. Use email OTP or tap again after setup.
         </div>
       )}
     </div>
