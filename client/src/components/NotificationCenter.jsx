@@ -13,6 +13,18 @@ export default function NotificationCenter({ onNotificationClick }) {
   const [notifications, setNotifications] = useState([]);
   const menuRef = useRef(null);
 
+  function mergeNotifications(nextItems) {
+    const items = Array.isArray(nextItems) ? nextItems : [];
+    const seen = new Set();
+    return items.filter((item) => {
+      const id = String(item?._id || item?.id || "").trim();
+      if (!id) return true;
+      if (seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
+  }
+
   useEffect(() => {
     const session = getSession();
     if (session?.token) {
@@ -21,15 +33,32 @@ export default function NotificationCenter({ onNotificationClick }) {
     load();
 
     const onNotification = (notif) => {
-      setNotifications((prev) => [
-        notif,
-        ...prev,
-      ]);
+      setNotifications((prev) =>
+        mergeNotifications([notif, ...prev])
+      );
+      load();
     };
     socket.on("notification", onNotification);
 
     return () =>
       socket.off("notification", onNotification);
+  }, []);
+
+  useEffect(() => {
+    const reload = () => {
+      load();
+    };
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        load();
+      }
+    };
+    window.addEventListener("focus", reload);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.removeEventListener("focus", reload);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, []);
 
   useEffect(() => {
@@ -52,7 +81,7 @@ export default function NotificationCenter({ onNotificationClick }) {
   async function load() {
     try {
       const data = await fetchNotifications();
-      setNotifications(data);
+      setNotifications(mergeNotifications(data));
     } catch {
       setNotifications([]);
     }

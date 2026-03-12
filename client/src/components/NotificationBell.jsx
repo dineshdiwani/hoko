@@ -4,15 +4,30 @@ import {
   fetchNotifications,
   markAsRead,
 } from "../services/notifications";
+import socket, { connectSocket } from "../services/socket";
+import { getSession } from "../services/storage";
 
 export default function NotificationBell() {
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
 
   useEffect(() => {
+    const session = getSession();
+    if (session?.token) {
+      connectSocket();
+    }
     fetchNotifications()
       .then((data) => setNotifications(data))
       .catch(() => setNotifications([]));
+
+    const onNotification = (notif) => {
+      setNotifications((prev) => [notif, ...prev]);
+    };
+    socket.on("notification", onNotification);
+
+    return () => {
+      socket.off("notification", onNotification);
+    };
   }, []);
 
   const unreadCount = notifications.filter(
