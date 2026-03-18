@@ -24,6 +24,11 @@ export default function BuyerWelcome() {
   const SpeechRecognition =
     typeof window !== "undefined" &&
     (window.SpeechRecognition || window.webkitSpeechRecognition);
+  function clearSellerLoginIntent() {
+    localStorage.removeItem("login_intent_role");
+    localStorage.removeItem("post_login_redirect");
+    localStorage.removeItem("post_login_redirect_source");
+  }
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -76,11 +81,13 @@ export default function BuyerWelcome() {
     localStorage.setItem("draft_requirement_text", text.trim());
     const currentSession = getSession();
     if (!currentSession?.token) {
+      clearSellerLoginIntent();
       navigate("/buyer/login");
       return;
     }
 
     if (currentSession.role === "buyer" || currentSession.roles?.buyer) {
+      clearSellerLoginIntent();
       navigate("/buyer/requirement/new");
       return;
     }
@@ -98,9 +105,11 @@ export default function BuyerWelcome() {
           preferredCurrency: res.data.user.preferredCurrency,
           token: res.data.token
         });
+        clearSellerLoginIntent();
         navigate("/buyer/requirement/new");
       })
       .catch(() => {
+        clearSellerLoginIntent();
         navigate("/buyer/login");
       });
   }
@@ -243,6 +252,7 @@ export default function BuyerWelcome() {
 
             <button
               onClick={async () => {
+                clearSellerLoginIntent();
                 localStorage.removeItem("draft_requirement_text");
                 if (isLoggedIn) {
                   if (session?.role === "buyer") {
