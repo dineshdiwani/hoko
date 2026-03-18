@@ -32,6 +32,38 @@ export default function OfferList() {
   const sellerModalRef = useRef(null);
   const getDialableMobile = (value) =>
     String(value || "").trim().replace(/[^\d+]/g, "");
+  const normalizeOutcomeStatus = (value) => {
+    const normalized = String(value || "").trim().toLowerCase();
+    if (["shortlisted", "rejected", "selected"].includes(normalized)) {
+      return normalized;
+    }
+    return "pending";
+  };
+  const getOutcomeMeta = (value) => {
+    const status = normalizeOutcomeStatus(value);
+    if (status === "selected") {
+      return {
+        label: "Selected",
+        className: "border border-green-200 bg-green-50 text-green-700"
+      };
+    }
+    if (status === "shortlisted") {
+      return {
+        label: "Shortlisted",
+        className: "border border-amber-200 bg-amber-50 text-amber-800"
+      };
+    }
+    if (status === "rejected") {
+      return {
+        label: "Rejected",
+        className: "border border-red-200 bg-red-50 text-red-700"
+      };
+    }
+    return {
+      label: "Pending",
+      className: "border border-slate-200 bg-slate-50 text-slate-700"
+    };
+  };
 
   /* ---------------- FETCH DATA ---------------- */
   useEffect(() => {
@@ -298,6 +330,43 @@ export default function OfferList() {
       alert("Unable to open attachment.");
     }
   }
+  async function updateOfferOutcome(offerId, status) {
+    try {
+      const res = await api.post(`/buyer/offers/${offerId}/outcome`, { status });
+      const nextStatus =
+        normalizeOutcomeStatus(res?.data?.offer?.outcomeStatus || status);
+      const nextUpdatedAt = res?.data?.offer?.outcomeUpdatedAt || new Date().toISOString();
+      const nextContactEnabled =
+        res?.data?.offer?.contactEnabledByBuyer === true;
+      setOffers((prev) =>
+        prev.map((offer) => {
+          const currentId = String(offer._id || offer.id || "");
+          if (currentId === String(offerId)) {
+            return {
+              ...offer,
+              outcomeStatus: nextStatus,
+              outcomeUpdatedAt: nextUpdatedAt,
+              contactEnabledByBuyer:
+                nextStatus === "selected"
+                  ? true
+                  : nextContactEnabled || offer.contactEnabledByBuyer
+            };
+          }
+          if (nextStatus === "selected" && normalizeOutcomeStatus(offer.outcomeStatus) === "selected") {
+            return {
+              ...offer,
+              outcomeStatus: "shortlisted",
+              outcomeUpdatedAt: nextUpdatedAt
+            };
+          }
+          return offer;
+        })
+      );
+    } catch (err) {
+      const message = err?.response?.data?.message;
+      alert(message || "Unable to update offer outcome right now.");
+    }
+  }
 
   return (
     <div className="page">
@@ -416,6 +485,8 @@ export default function OfferList() {
         <div className="space-y-4">
         {offers.map((offer, index) => {
           const isBest = index === 0;
+          const outcomeMeta = getOutcomeMeta(offer.outcomeStatus);
+          const offerOutcome = normalizeOutcomeStatus(offer.outcomeStatus);
           const offerDetails = String(
             offer.message || offer.note || offer.details || offer.description || ""
           ).trim();
@@ -472,6 +543,18 @@ export default function OfferList() {
                     ? "Viewed"
                     : "New"}
                 </span>
+              </div>
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                <span
+                  className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${outcomeMeta.className}`}
+                >
+                  Outcome: {outcomeMeta.label}
+                </span>
+                {offer.outcomeUpdatedAt && (
+                  <span className="text-xs text-gray-500">
+                    Updated {new Date(offer.outcomeUpdatedAt).toLocaleString()}
+                  </span>
+                )}
               </div>
 
               {offerDetails && (
@@ -530,6 +613,49 @@ export default function OfferList() {
 
               {/* CTA icons */}
               <div className="flex flex-wrap items-center justify-start gap-2 mt-4">
+                {offer.sellerId && (
+                  <>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        updateOfferOutcome(String(offer._id || offer.id || ""), "shortlisted");
+                      }}
+                      className={`inline-flex w-fit items-center justify-center px-3 py-2 rounded-xl text-sm font-semibold ${
+                        offerOutcome === "shortlisted"
+                          ? "bg-amber-600 text-white"
+                          : "border border-amber-300 text-amber-700"
+                      }`}
+                    >
+                      Shortlist
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        updateOfferOutcome(String(offer._id || offer.id || ""), "rejected");
+                      }}
+                      className={`inline-flex w-fit items-center justify-center px-3 py-2 rounded-xl text-sm font-semibold ${
+                        offerOutcome === "rejected"
+                          ? "bg-red-600 text-white"
+                          : "border border-red-300 text-red-600"
+                      }`}
+                    >
+                      Reject
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        updateOfferOutcome(String(offer._id || offer.id || ""), "selected");
+                      }}
+                      className={`inline-flex w-fit items-center justify-center px-3 py-2 rounded-xl text-sm font-semibold ${
+                        offerOutcome === "selected"
+                          ? "bg-green-700 text-white"
+                          : "bg-green-600 text-white"
+                      }`}
+                    >
+                      Select
+                    </button>
+                  </>
+                )}
                 {offer.sellerId &&
                   offer.contactEnabledByBuyer && (
                   <button

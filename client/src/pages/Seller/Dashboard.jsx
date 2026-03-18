@@ -78,6 +78,26 @@ export default function SellerDashboard() {
       ? "anywhere"
       : "city";
   };
+  const getOutcomeLabel = (value) => {
+    const normalized = String(value || "").trim().toLowerCase();
+    if (normalized === "selected") return "Selected";
+    if (normalized === "shortlisted") return "Shortlisted";
+    if (normalized === "rejected") return "Rejected";
+    return "Pending";
+  };
+  const getOutcomeClassName = (value) => {
+    const normalized = String(value || "").trim().toLowerCase();
+    if (normalized === "selected") {
+      return "border border-green-200 bg-green-50 text-green-700";
+    }
+    if (normalized === "shortlisted") {
+      return "border border-amber-200 bg-amber-50 text-amber-800";
+    }
+    if (normalized === "rejected") {
+      return "border border-red-200 bg-red-50 text-red-700";
+    }
+    return "border border-slate-200 bg-slate-50 text-slate-700";
+  };
   const appBaseUrl =
     getPublicAppUrl();
   const resolveCityValue = (value, cityList, fallback = "") => {
@@ -874,6 +894,8 @@ export default function SellerDashboard() {
               const isSample = Boolean(req.isSample);
               const isCityLocked = req.offerBlockedByCity === true;
               const effectiveInviteMode = getEffectiveInviteMode(req);
+              const myOfferOutcomeLabel = getOutcomeLabel(req.myOfferOutcomeStatus);
+              const myOfferOutcomeClassName = getOutcomeClassName(req.myOfferOutcomeStatus);
               const isAuction = req.reverseAuction?.active === true;
               const showAuctionForSeller = req.myOffer && isAuction;
               const lowestPrice = req.reverseAuction?.lowestPrice ?? req.currentLowestPrice ?? "-";
@@ -918,6 +940,20 @@ export default function SellerDashboard() {
                             ? "Offer locked: buyer already selected chat with a same-city seller."
                             : "Offer locked: buyer invited offers only from their city."}
                         </p>
+                      )}
+                      {req.myOffer && (
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                          <span
+                            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${myOfferOutcomeClassName}`}
+                          >
+                            Your offer: {myOfferOutcomeLabel}
+                          </span>
+                          {req.myOfferOutcomeUpdatedAt && (
+                            <span className="ui-label text-[var(--ui-muted)]">
+                              Updated {new Date(req.myOfferOutcomeUpdatedAt).toLocaleString()}
+                            </span>
+                          )}
+                        </div>
                       )}
                       {requirementDetails && (
                         <p className="ui-body text-[var(--ui-text)] mt-1 whitespace-pre-line">

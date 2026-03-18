@@ -44,6 +44,20 @@ const offerSchema = new mongoose.Schema(
       type: Boolean,
       default: false
     },
+    outcomeStatus: {
+      type: String,
+      enum: ["pending", "shortlisted", "rejected", "selected"],
+      default: "pending"
+    },
+    outcomeUpdatedAt: {
+      type: Date,
+      default: null
+    },
+    outcomeUpdatedByBuyerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null
+    },
 
     declinedAuction: {
       type: Boolean,

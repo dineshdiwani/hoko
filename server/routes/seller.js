@@ -229,6 +229,9 @@ function mapRequirementForSeller(
       : data.reverseAuction?.lowestPrice ?? null;
   data.myOffer = Boolean(sellerOffer);
   data.contactEnabledByBuyer = sellerOffer?.contactEnabledByBuyer === true;
+  data.myOfferOutcomeStatus =
+    normalizeText(sellerOffer?.outcomeStatus) || "pending";
+  data.myOfferOutcomeUpdatedAt = sellerOffer?.outcomeUpdatedAt || null;
   data.offerInvitedFrom = inviteMode;
   data.offerInvitedFromEffective = effectiveInviteMode;
   data.offerLockedAfterCitySelection =
@@ -826,7 +829,7 @@ router.get("/requirement/:requirementId", auth, sellerOnly, async (req, res) => 
   const sellerOffer = await Offer.findOne({
     requirementId: requirement._id,
     sellerId: req.user._id
-  }).select("requirementId contactEnabledByBuyer");
+  }).select("requirementId contactEnabledByBuyer outcomeStatus outcomeUpdatedAt");
   const offerMap = new Map(
     sellerOffer
       ? [[String(sellerOffer.requirementId), sellerOffer]]
@@ -903,7 +906,7 @@ router.get("/dashboard", auth, sellerOnly, async (req, res) => {
   const offers = await Offer.find({
     sellerId: req.user._id,
     requirementId: { $in: requirementIds }
-  }).select("requirementId contactEnabledByBuyer");
+  }).select("requirementId contactEnabledByBuyer outcomeStatus outcomeUpdatedAt");
   const offerMap = new Map(
     offers.map((offer) => [String(offer.requirementId), offer])
   );

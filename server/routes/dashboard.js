@@ -69,6 +69,8 @@ router.get("/offers/:requirementId", auth, async (req, res) => {
     paymentTerms: offer.paymentTerms || "",
     viewedByBuyer: offer.viewedByBuyer || false,
     contactEnabledByBuyer: offer.contactEnabledByBuyer === true,
+    outcomeStatus: String(offer.outcomeStatus || "pending").trim() || "pending",
+    outcomeUpdatedAt: offer.outcomeUpdatedAt || null,
     createdAt: offer.createdAt,
     updatedAt: offer.updatedAt
   }));

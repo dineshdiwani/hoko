@@ -89,6 +89,13 @@ function shouldNotifySellerEvent(userDoc, eventKey) {
 function normalizeOfferInvitedFrom(value) {
   return normalizeText(value) === "anywhere" ? "anywhere" : "city";
 }
+function normalizeOfferOutcomeStatus(value) {
+  const normalized = normalizeText(value);
+  if (["shortlisted", "rejected", "selected"].includes(normalized)) {
+    return normalized;
+  }
+  return "pending";
+}
 function getFreshBuyerSettings(user) {
   const base = user?.buyerSettings || {};
   return {
@@ -1521,6 +1528,8 @@ router.get("/requirements/:id/offers", auth, buyerOnly, async (req, res) => {
       attachments: Array.isArray(offer.attachments) ? offer.attachments : [],
       viewedByBuyer: offer.viewedByBuyer || false,
       contactEnabledByBuyer: offer.contactEnabledByBuyer === true,
+      outcomeStatus: normalizeOfferOutcomeStatus(offer.outcomeStatus),
+      outcomeUpdatedAt: offer.outcomeUpdatedAt || null,
       sellerId: offer.sellerId?._id,
       sellerFirm,
       sellerCity: sellerDetails.city,
@@ -1529,6 +1538,63 @@ router.get("/requirements/:id/offers", auth, buyerOnly, async (req, res) => {
   });
 
   res.json({ requirement: requirementData, offers: offersData });
+});
+
+/**
+ * Update buyer offer outcome state
+ */
+router.post("/offers/:offerId/outcome", auth, buyerOnly, async (req, res) => {
+  const offerId = String(req.params.offerId || "").trim();
+  const outcomeStatus = normalizeOfferOutcomeStatus(req.body?.status);
+  const offer = await Offer.findById(offerId);
+  if (!offer || offer.moderation?.removed === true) {
+    return res.status(404).json({ message: "Offer not found" });
+  }
+
+  const requirement = await Requirement.findById(offer.requirementId);
+  if (!requirement) {
+    return res.status(404).json({ message: "Requirement not found" });
+  }
+  if (String(requirement.buyerId) !== String(req.user._id)) {
+    return res.status(403).json({ message: "Not allowed" });
+  }
+
+  const now = new Date();
+  if (outcomeStatus === "selected") {
+    await Offer.updateMany(
+      {
+        requirementId: offer.requirementId,
+        _id: { $ne: offer._id },
+        outcomeStatus: "selected",
+        "moderation.removed": { $ne: true }
+      },
+      {
+        $set: {
+          outcomeStatus: "shortlisted",
+          outcomeUpdatedAt: now,
+          outcomeUpdatedByBuyerId: req.user._id
+        }
+      }
+    );
+  }
+
+  offer.outcomeStatus = outcomeStatus;
+  offer.outcomeUpdatedAt = now;
+  offer.outcomeUpdatedByBuyerId = req.user._id;
+  if (outcomeStatus === "selected") {
+    offer.contactEnabledByBuyer = true;
+  }
+  await offer.save();
+
+  return res.json({
+    success: true,
+    offer: {
+      _id: offer._id,
+      outcomeStatus: normalizeOfferOutcomeStatus(offer.outcomeStatus),
+      outcomeUpdatedAt: offer.outcomeUpdatedAt || null,
+      contactEnabledByBuyer: offer.contactEnabledByBuyer === true
+    }
+  });
 });
 
 /**
