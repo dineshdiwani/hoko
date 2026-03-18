@@ -2,7 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import api from "../../services/api";
 import socket, { connectSocket } from "../../services/socket";
-import { fetchNotifications } from "../../services/notifications";
+import {
+  fetchNotifications,
+  markNotificationsReadByContext
+} from "../../services/notifications";
 import { fetchOptions } from "../../services/options";
 import { getSession, logout } from "../../services/auth";
 import { getSellerDashboardCategories, setSession } from "../../services/storage";
@@ -19,6 +22,12 @@ import {
   getAttachmentTypeMeta
 } from "../../utils/attachments";
 import { getPublicAppUrl } from "../../utils/runtime";
+import {
+  getNotificationCategory,
+  getNotificationEvent,
+  getNotificationRequirementId,
+  getNotificationState
+} from "../../utils/notifications";
 
 export default function SellerDashboard() {
   const navigate = useNavigate();
@@ -349,8 +358,13 @@ export default function SellerDashboard() {
         if (!mounted) return;
         const unreadIds = new Set(
           (allNotifications || [])
-            .filter((n) => n?.type === "new_message" && !n?.read && n?.requirementId)
-            .map((n) => String(n.requirementId))
+            .filter(
+              (n) =>
+                getNotificationCategory(n) === "chat" &&
+                !n?.read &&
+                getNotificationRequirementId(n)
+            )
+            .map((n) => String(getNotificationRequirementId(n)))
         );
         setUnreadChatRequirementIds(unreadIds);
       } catch {
@@ -366,10 +380,11 @@ export default function SellerDashboard() {
     loadChatNotifications();
 
     const onIncomingNotification = (notif) => {
-      if (notif?.type !== "new_message" || !notif?.requirementId) return;
+      const requirementId = getNotificationRequirementId(notif);
+      if (getNotificationCategory(notif) !== "chat" || !requirementId) return;
       setUnreadChatRequirementIds((prev) => {
         const next = new Set(prev);
-        next.add(String(notif.requirementId));
+        next.add(String(requirementId));
         return next;
       });
     };
@@ -475,6 +490,11 @@ export default function SellerDashboard() {
   function openSellerChat({ buyerId, buyerName, requirementId }) {
     if (!buyerId || !requirementId) return;
     const reqId = String(requirementId);
+    markNotificationsReadByContext({
+      category: "chat",
+      requirementId: reqId,
+      fromUserId: String(buyerId)
+    }).catch(() => {});
     setChatPeer({
       id: String(buyerId),
       name: buyerName || "Buyer"
@@ -603,9 +623,12 @@ export default function SellerDashboard() {
 
   function handleNotificationClick(notification) {
     if (!notification) return;
+    const category = getNotificationCategory(notification);
+    const event = getNotificationEvent(notification);
+    const state = getNotificationState(notification);
+    const requirementId = getNotificationRequirementId(notification);
 
-    if (notification.type === "new_message") {
-      const requirementId = notification.requirementId;
+    if (category === "chat") {
       const buyerId = notification.fromUserId?._id || notification.fromUserId;
       if (!requirementId || !buyerId) return;
 
@@ -617,10 +640,12 @@ export default function SellerDashboard() {
       return;
     }
 
-    if (notification.type === "reverse_auction_invoked") {
-      const notificationReqId =
-        notification?.data?.requirementId || notification.requirementId;
-      if (!notificationReqId) return;
+    if (category === "reverse_auction") {
+      if (!requirementId) return;
+      markNotificationsReadByContext({
+        category: "reverse_auction",
+        requirementId: String(requirementId)
+      }).catch(() => {});
       const lowestPrice = notification?.data?.lowestPrice;
       const productName = notification?.data?.productName || "Product";
       setReverseAuctionNotice(
@@ -629,7 +654,7 @@ export default function SellerDashboard() {
           : `Reverse Auction enabled by buyer for ${productName}.`
       );
       const existingRequirement = requirements.find(
-        (req) => String(req._id) === String(notificationReqId)
+        (req) => String(req._id) === String(requirementId)
       );
       if (existingRequirement) {
         setActiveRequirement({
@@ -655,7 +680,7 @@ export default function SellerDashboard() {
         return;
       }
       setActiveRequirement({
-        _id: notificationReqId,
+        _id: requirementId,
         product:
           notification?.data?.productName || "Product",
         productName:
@@ -670,14 +695,29 @@ export default function SellerDashboard() {
       return;
     }
 
-    if (notification.type === "requirement_updated") {
-      const notificationReqId =
-        notification?.data?.requirementId || notification.requirementId;
-      if (!notificationReqId) return;
+    if (category === "offer_outcome") {
+      if (!requirementId) return;
+      markNotificationsReadByContext({
+        category: "offer_outcome",
+        requirementId: String(requirementId),
+        state: state || undefined
+      }).catch(() => {});
+      openRequirementWithHighlights(requirementId, state ? ["offerOutcome", state] : ["offerOutcome"]);
+      return;
+    }
+
+    if (category === "requirement" || category === "lead" || event === "new_offer") {
+      if (!requirementId) return;
+      if (category === "requirement") {
+        markNotificationsReadByContext({
+          category: "requirement",
+          requirementId: String(requirementId)
+        }).catch(() => {});
+      }
       const changedFields = Array.isArray(notification?.data?.changedFields)
         ? notification.data.changedFields
         : [];
-      openRequirementWithHighlights(notificationReqId, changedFields);
+      openRequirementWithHighlights(requirementId, changedFields);
     }
   }
 

@@ -10,6 +10,7 @@ import {
   getAttachmentDisplayName,
   getAttachmentTypeMeta
 } from "../../utils/attachments";
+import { markNotificationsReadByContext } from "../../services/notifications";
 
 export default function OfferList() {
   const { id } = useParams();
@@ -661,6 +662,11 @@ export default function OfferList() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
+                      markNotificationsReadByContext({
+                        category: "chat",
+                        requirementId: String(id),
+                        fromUserId: String(offer.sellerId)
+                      }).catch(() => {});
                       setChatSeller({
                         id: offer.sellerId,
                         name: offer.sellerFirm || "Seller"

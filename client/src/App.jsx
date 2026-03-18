@@ -46,6 +46,7 @@ import {
 import { fetchNotifications } from "./services/notifications";
 import { isNativeAppRuntime } from "./utils/runtime";
 import { ensureNativePushRegistration, isNativePushEnabled } from "./services/nativePush";
+import { getNotificationCategory } from "./utils/notifications";
 
 function RouteLoader() {
   return <div className="min-h-[35vh] w-full" aria-hidden="true" />;
@@ -100,6 +101,33 @@ function AppShell() {
   const location = useLocation();
   const hideGlobalLogo = location.pathname === "/";
 
+  function isNotificationAllowedForRole(role, notification, currentSettings) {
+    const category = getNotificationCategory(notification);
+    const buyerNotifSettings = currentSettings?.buyer?.notificationToggles || {};
+    const sellerNotifSettings = currentSettings?.seller || {};
+
+    if (role === "buyer") {
+      if (buyerNotifSettings.pushEnabled === false) {
+        return false;
+      }
+      if (category === "offer") {
+        return buyerNotifSettings.newOffer !== false;
+      }
+      if (category === "chat") {
+        return buyerNotifSettings.chat !== false;
+      }
+      return buyerNotifSettings.statusUpdate !== false;
+    }
+
+    if (category === "reverse_auction") {
+      return sellerNotifSettings.notificationsAuction !== false;
+    }
+    if (category === "chat" || category === "lead") {
+      return sellerNotifSettings.notificationsLeads !== false;
+    }
+    return sellerNotifSettings.notificationsOffers !== false;
+  }
+
   async function syncNativeUnreadNotifications(session) {
     if (!isNativeAppRuntime()) return;
     if (isNativePushEnabled()) return;
@@ -108,8 +136,6 @@ function AppShell() {
     try {
       const currentSettings = getSettings();
       const role = session?.role || (session?.roles?.seller ? "seller" : "buyer");
-      const buyerNotifSettings = currentSettings?.buyer?.notificationToggles || {};
-      const sellerNotifSettings = currentSettings?.seller || {};
       const seen = new Set(getSeenNotificationIds());
       const notifications = await fetchNotifications();
       const unread = (Array.isArray(notifications) ? notifications : [])
@@ -121,27 +147,7 @@ function AppShell() {
         const notifId = String(notif?._id || notif?.id || "").trim();
         if (!notifId || seen.has(notifId)) continue;
 
-        const type = String(notif?.type || "").trim();
-        let allowed = true;
-        if (role === "buyer") {
-          if (buyerNotifSettings.pushEnabled === false) {
-            allowed = false;
-          } else if (type === "new_offer") {
-            allowed = buyerNotifSettings.newOffer !== false;
-          } else if (type === "new_message") {
-            allowed = buyerNotifSettings.chat !== false;
-          } else {
-            allowed = buyerNotifSettings.statusUpdate !== false;
-          }
-        } else {
-          if (type === "reverse_auction_invoked") {
-            allowed = sellerNotifSettings.notificationsAuction !== false;
-          } else if (type === "new_message") {
-            allowed = sellerNotifSettings.notificationsLeads !== false;
-          } else {
-            allowed = sellerNotifSettings.notificationsOffers !== false;
-          }
-        }
+        const allowed = isNotificationAllowedForRole(role, notif, currentSettings);
 
         if (!allowed) {
           justShownIds.push(notifId);
@@ -217,30 +223,7 @@ function AppShell() {
         }
         const currentSettings = getSettings();
         const role = session?.role || (session?.roles?.seller ? "seller" : "buyer");
-        const buyerNotifSettings = currentSettings?.buyer?.notificationToggles || {};
-        const sellerNotifSettings = currentSettings?.seller || {};
-        const type = String(notif?.type || "").trim();
-
-        let allowed = true;
-        if (role === "buyer") {
-          if (buyerNotifSettings.pushEnabled === false) {
-            allowed = false;
-          } else if (type === "new_offer") {
-            allowed = buyerNotifSettings.newOffer !== false;
-          } else if (type === "new_message") {
-            allowed = buyerNotifSettings.chat !== false;
-          } else {
-            allowed = buyerNotifSettings.statusUpdate !== false;
-          }
-        } else {
-          if (type === "reverse_auction_invoked") {
-            allowed = sellerNotifSettings.notificationsAuction !== false;
-          } else if (type === "new_message") {
-            allowed = sellerNotifSettings.notificationsLeads !== false;
-          } else {
-            allowed = sellerNotifSettings.notificationsOffers !== false;
-          }
-        }
+        const allowed = isNotificationAllowedForRole(role, notif, currentSettings);
 
         if (!allowed) {
           return;

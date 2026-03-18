@@ -7,6 +7,7 @@ import {
   clearNotifications
 } from "../services/notifications";
 import { getSession } from "../services/storage";
+import { getNotificationBadgeMeta } from "../utils/notifications";
 
 export default function NotificationCenter({ onNotificationClick }) {
   const [open, setOpen] = useState(false);
@@ -53,9 +54,11 @@ export default function NotificationCenter({ onNotificationClick }) {
         load();
       }
     };
+    window.addEventListener("notifications:changed", reload);
     window.addEventListener("focus", reload);
     document.addEventListener("visibilitychange", onVisible);
     return () => {
+      window.removeEventListener("notifications:changed", reload);
       window.removeEventListener("focus", reload);
       document.removeEventListener("visibilitychange", onVisible);
     };
@@ -129,6 +132,48 @@ export default function NotificationCenter({ onNotificationClick }) {
     (n) => !n.read
   ).length;
 
+  function renderNotificationItem(notification, index) {
+    const badgeMeta = getNotificationBadgeMeta(notification);
+    return (
+      <div
+        key={notification._id || notification.id || index}
+        onClick={() => handleRead(notification._id || notification.id, notification)}
+        className={`px-4 py-3 border-b cursor-pointer ${
+          notification.read
+            ? "bg-white"
+            : "ui-surface-info"
+        }`}
+      >
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <div className="mb-1 flex flex-wrap items-center gap-2">
+              <span
+                className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${badgeMeta.className}`}
+              >
+                {badgeMeta.label}
+              </span>
+            </div>
+            <p className="text-sm break-words">{notification.message}</p>
+            <p className="text-xs text-gray-400">
+              {new Date(
+                notification.createdAt || notification.timestamp || Date.now()
+              ).toLocaleString()}
+            </p>
+          </div>
+          <button
+            type="button"
+            aria-label="Delete notification"
+            title="Delete notification"
+            onClick={(event) => handleDelete(event, notification._id || notification.id)}
+            className="shrink-0 text-gray-500 hover:text-red-700 text-sm leading-none px-1"
+          >
+            x
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative shrink-0" ref={menuRef}>
       <button
@@ -171,37 +216,7 @@ export default function NotificationCenter({ onNotificationClick }) {
             </p>
           )}
 
-          {notifications.map((n, i) => (
-            <div
-              key={n._id || n.id || i}
-              onClick={() => handleRead(n._id || n.id, n)}
-              className={`px-4 py-3 border-b cursor-pointer ${
-                n.read
-                  ? "bg-white"
-                  : "ui-surface-info"
-              }`}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="text-sm break-words">{n.message}</p>
-                  <p className="text-xs text-gray-400">
-                    {new Date(
-                      n.createdAt || n.timestamp || Date.now()
-                    ).toLocaleString()}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  aria-label="Delete notification"
-                  title="Delete notification"
-                  onClick={(event) => handleDelete(event, n._id || n.id)}
-                  className="shrink-0 text-gray-500 hover:text-red-700 text-sm leading-none px-1"
-                >
-                  x
-                </button>
-              </div>
-            </div>
-          ))}
+          {notifications.map(renderNotificationItem)}
         </div>
       )}
     </div>

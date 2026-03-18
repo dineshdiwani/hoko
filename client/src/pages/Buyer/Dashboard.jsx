@@ -9,6 +9,11 @@ import NotificationCenter from "../../components/NotificationCenter";
 import ChatModal from "../../components/ChatModal";
 import { fetchOptions } from "../../services/options";
 import api from "../../services/api";
+import { markNotificationsReadByContext } from "../../services/notifications";
+import {
+  getNotificationCategory,
+  getNotificationRequirementId
+} from "../../utils/notifications";
 
 const BUYER_DASHBOARD_STATE_KEY = "buyer_dashboard_state";
 
@@ -126,18 +131,35 @@ export default function BuyerDashboard() {
   }, []);
 
   function handleNotificationClick(notification) {
-    if (!notification || notification.type !== "new_message") return;
+    if (!notification) return;
+    const category = getNotificationCategory(notification);
+    const requirementId = getNotificationRequirementId(notification);
 
-    const requirementId = notification.requirementId;
-    const sellerId = notification.fromUserId?._id || notification.fromUserId;
-    if (!requirementId || !sellerId) return;
+    if (category === "chat") {
+      const sellerId = notification.fromUserId?._id || notification.fromUserId;
+      if (!requirementId || !sellerId) return;
 
-    setChatSeller({
-      id: String(sellerId),
-      name: "Seller"
-    });
-    setChatRequirementId(String(requirementId));
-    setChatOpen(true);
+      markNotificationsReadByContext({
+        category: "chat",
+        requirementId: String(requirementId),
+        fromUserId: String(sellerId)
+      }).catch(() => {});
+      setChatSeller({
+        id: String(sellerId),
+        name: "Seller"
+      });
+      setChatRequirementId(String(requirementId));
+      setChatOpen(true);
+      return;
+    }
+
+    if (category === "offer" && requirementId) {
+      markNotificationsReadByContext({
+        category: "offer",
+        requirementId: String(requirementId)
+      }).catch(() => {});
+      navigate(`/buyer/requirement/${encodeURIComponent(String(requirementId))}/offers`);
+    }
   }
 
   const triggerRefresh = useCallback(() => {
