@@ -31,6 +31,29 @@ export default function MyPosts({
   const modalRef = useRef(null);
   const getDialableMobile = (value) =>
     String(value || "").trim().replace(/[^\d+]/g, "");
+  const normalizeRequirementStatus = (value) => {
+    const normalized = String(value || "").trim().toLowerCase();
+    if (["closed", "fulfilled", "cancelled", "expired"].includes(normalized)) {
+      return normalized;
+    }
+    return "open";
+  };
+  const getRequirementStatusMeta = (value) => {
+    const status = normalizeRequirementStatus(value);
+    if (status === "fulfilled") {
+      return { label: "FULFILLED", className: "app-badge app-badge-danger" };
+    }
+    if (status === "cancelled") {
+      return { label: "CANCELLED", className: "app-badge app-badge-muted" };
+    }
+    if (status === "expired") {
+      return { label: "EXPIRED", className: "app-badge app-badge-muted" };
+    }
+    if (status === "closed") {
+      return { label: "CLOSED", className: "app-badge app-badge-muted" };
+    }
+    return { label: "OPEN", className: "app-badge app-badge-new" };
+  };
 
   async function openAttachment(attachment) {
     const newTab = window.open("", "_blank", "noopener,noreferrer");
@@ -185,6 +208,30 @@ export default function MyPosts({
       setAuctionLoadingById((prev) => ({ ...prev, [reqId]: false }));
     }
   }
+  async function updateRequirementStatus(reqId, status) {
+    try {
+      const res = await api.post(`/buyer/requirement/${reqId}/status`, {
+        status
+      });
+      const updatedRequirement = res?.data?.requirement || {};
+      setRequirements((prev) =>
+        prev.map((item) =>
+          String(item._id || item.id) === String(reqId)
+            ? {
+                ...item,
+                ...updatedRequirement,
+                offerCount: item.offerCount,
+                sellerFirms: item.sellerFirms
+              }
+            : item
+        )
+      );
+    } catch (err) {
+      alert(
+        err?.response?.data?.message || "Failed to update requirement status"
+      );
+    }
+  }
 
   /* ---------------- LOADING STATE ---------------- */
   if (loading) {
@@ -264,25 +311,24 @@ export default function MyPosts({
         const requirementDetails = String(
           req.details || req.description || ""
         ).trim();
-        const normalizedStatus = req.status?.toUpperCase() || "OPEN";
+        const normalizedStatus = normalizeRequirementStatus(req.status);
         const auctionLive = offerCount >= 3;
         const auctionActive = req.reverseAuction?.active === true;
         const reqId = String(req._id || req.id || "");
         const isAuctionBusy = Boolean(auctionLoadingById[reqId]);
         const showDisabledInvokeHint =
           !auctionActive && offerCount < 3;
-        const statusText = auctionLive
+        const statusMeta = getRequirementStatusMeta(normalizedStatus);
+        const statusText = normalizedStatus === "open" && auctionLive
           ? auctionActive
             ? "AUCTION LIVE"
             : "AUCTION READY"
-          : normalizedStatus;
-        const statusClass = auctionLive
+          : statusMeta.label;
+        const statusClass = normalizedStatus === "open" && auctionLive
           ? auctionActive
             ? "app-badge app-badge-danger"
             : "app-badge app-badge-warning"
-          : normalizedStatus === "CLOSED"
-          ? "app-badge app-badge-muted"
-          : "app-badge app-badge-new";
+          : statusMeta.className;
 
         return (
           <div
@@ -440,6 +486,7 @@ export default function MyPosts({
                 onClick={() =>
                   navigate(`/buyer/requirement/${reqId}/edit`)
                 }
+                disabled={normalizedStatus !== "open"}
                 className="inline-flex h-10 min-w-[120px] items-center justify-center px-4 rounded-lg text-xs font-semibold border border-[var(--ui-border)] text-[var(--ui-text)]"
               >
                 Edit Post
@@ -531,7 +578,10 @@ export default function MyPosts({
               >
                 <button
                   onClick={(e) => {
-                    e.stopPropagation();
+                  e.stopPropagation();
+                    if (normalizedStatus !== "open") {
+                      return;
+                    }
                     if (showDisabledInvokeHint) {
                       setAuctionHintReqId(reqId);
                       return;
@@ -541,7 +591,9 @@ export default function MyPosts({
                   aria-disabled={showDisabledInvokeHint || isAuctionBusy}
                   disabled={isAuctionBusy}
                   className={`inline-flex h-10 min-w-[160px] items-center justify-center px-4 rounded-lg text-xs font-semibold transition ${
-                    auctionActive
+                    normalizedStatus !== "open"
+                      ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                      : auctionActive
                       ? "bg-red-600 text-white"
                       : offerCount >= 3
                       ? "btn-primary text-white"
@@ -567,6 +619,49 @@ export default function MyPosts({
                   <div className="absolute left-1/2 top-full z-20 mt-2 w-[min(90vw,22rem)] -translate-x-1/2 rounded-lg bg-black px-3 py-2 text-center text-xs text-white shadow-lg whitespace-normal break-words">
                     You must receive 3 or more offers before you invoke reverse auction.
                   </div>
+                )}
+              </div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {normalizedStatus !== "open" ? (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      updateRequirementStatus(reqId, "open");
+                    }}
+                    className="inline-flex h-9 items-center justify-center px-3 rounded-lg text-xs font-semibold border border-emerald-300 text-emerald-700"
+                  >
+                    Reopen
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        updateRequirementStatus(reqId, "closed");
+                      }}
+                      className="inline-flex h-9 items-center justify-center px-3 rounded-lg text-xs font-semibold border border-slate-300 text-slate-700"
+                    >
+                      Close
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        updateRequirementStatus(reqId, "fulfilled");
+                      }}
+                      className="inline-flex h-9 items-center justify-center px-3 rounded-lg text-xs font-semibold border border-green-300 text-green-700"
+                    >
+                      Fulfilled
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        updateRequirementStatus(reqId, "cancelled");
+                      }}
+                      className="inline-flex h-9 items-center justify-center px-3 rounded-lg text-xs font-semibold border border-red-300 text-red-600"
+                    >
+                      Cancel
+                    </button>
+                  </>
                 )}
               </div>
             </div>

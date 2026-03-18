@@ -7,6 +7,22 @@ const router = express.Router();
 function escapeRegex(value) {
   return String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
+function normalizeRequirementStatus(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (["closed", "fulfilled", "cancelled", "expired"].includes(normalized)) {
+    return normalized;
+  }
+  return "open";
+}
+function getEffectiveRequirementStatus(requirement) {
+  const explicitStatus = normalizeRequirementStatus(requirement?.status);
+  if (explicitStatus !== "open") return explicitStatus;
+  const expiresAt = requirement?.expiresAt ? new Date(requirement.expiresAt) : null;
+  if (expiresAt && !Number.isNaN(expiresAt.getTime()) && expiresAt.getTime() <= Date.now()) {
+    return "expired";
+  }
+  return "open";
+}
 
 router.get("/city/:city", auth, async (req, res) => {
   const requestedCity = String(req.params.city || "").trim();
@@ -22,9 +38,9 @@ router.get("/city/:city", auth, async (req, res) => {
     requirementQuery.city = cityRegex;
   }
 
-  const requirements = await Requirement.find(requirementQuery).sort({
+  const requirements = (await Requirement.find(requirementQuery).sort({
     createdAt: -1
-  });
+  })).filter((requirement) => getEffectiveRequirementStatus(requirement) === "open");
 
   const requirementIds = requirements.map((r) => r._id);
   const offerCounts = await Offer.aggregate([
@@ -42,6 +58,7 @@ router.get("/city/:city", auth, async (req, res) => {
 
   const data = requirements.map((req) => {
     const item = normalizeRequirementAttachmentsForResponse(req);
+    item.status = getEffectiveRequirementStatus(req);
     item.offerCount = countMap.get(String(req._id)) || 0;
     return item;
   });

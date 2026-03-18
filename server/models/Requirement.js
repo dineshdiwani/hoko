@@ -49,6 +49,19 @@ const requirementSchema = new mongoose.Schema(
     details: {
       type: String
     },
+    status: {
+      type: String,
+      enum: ["open", "closed", "fulfilled", "cancelled", "expired"],
+      default: "open"
+    },
+    statusUpdatedAt: {
+      type: Date,
+      default: null
+    },
+    expiresAt: {
+      type: Date,
+      default: null
+    },
 
     offerInvitedFrom: {
       type: String,
@@ -138,6 +151,16 @@ requirementSchema.pre("validate", function (next) {
   }
   if (!this.product && this.productName) {
     this.product = this.productName;
+  }
+  if (this.status) {
+    const normalizedStatus = String(this.status).toLowerCase().trim();
+    this.status = ["closed", "fulfilled", "cancelled", "expired"].includes(
+      normalizedStatus
+    )
+      ? normalizedStatus
+      : "open";
+  } else {
+    this.status = "open";
   }
   next();
 });

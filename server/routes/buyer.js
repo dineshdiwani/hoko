@@ -89,6 +89,29 @@ function shouldNotifySellerEvent(userDoc, eventKey) {
 function normalizeOfferInvitedFrom(value) {
   return normalizeText(value) === "anywhere" ? "anywhere" : "city";
 }
+function normalizeRequirementStatus(value) {
+  const normalized = normalizeText(value);
+  if (["closed", "fulfilled", "cancelled", "expired"].includes(normalized)) {
+    return normalized;
+  }
+  return "open";
+}
+function getEffectiveRequirementStatus(requirement) {
+  const explicitStatus = normalizeRequirementStatus(requirement?.status);
+  if (explicitStatus !== "open") return explicitStatus;
+  const expiresAt = requirement?.expiresAt ? new Date(requirement.expiresAt) : null;
+  if (expiresAt && !Number.isNaN(expiresAt.getTime()) && expiresAt.getTime() <= Date.now()) {
+    return "expired";
+  }
+  return "open";
+}
+function mapRequirementLifecycle(requirement) {
+  const data = normalizeRequirementAttachmentsForResponse(requirement);
+  data.status = getEffectiveRequirementStatus(requirement);
+  data.expiresAt = requirement?.expiresAt || null;
+  data.statusUpdatedAt = requirement?.statusUpdatedAt || null;
+  return data;
+}
 function normalizeOfferOutcomeStatus(value) {
   const normalized = normalizeText(value);
   if (["shortlisted", "rejected", "selected"].includes(normalized)) {
@@ -302,6 +325,20 @@ router.post("/requirement", auth, buyerOnly, async (req, res) => {
 
   const requirement = await Requirement.create({
     ...req.body,
+    status: "open",
+    statusUpdatedAt: new Date(),
+    expiresAt: (() => {
+      const buyerSettings = getFreshBuyerSettings(req.user);
+      const days = clamp(
+        buyerSettings.postAutoExpiryDays,
+        MIN_POST_AUTO_EXPIRY_DAYS,
+        MAX_POST_AUTO_EXPIRY_DAYS,
+        30
+      );
+      const next = new Date();
+      next.setDate(next.getDate() + days);
+      return next;
+    })(),
     offerInvitedFrom: normalizeOfferInvitedFrom(req.body?.offerInvitedFrom),
     attachments: normalizeRequirementAttachmentValues(req.body?.attachments),
     buyerId: req.user._id,
@@ -313,7 +350,7 @@ router.post("/requirement", auth, buyerOnly, async (req, res) => {
         }
       : undefined
   });
-  res.json(normalizeRequirementAttachmentsForResponse(requirement));
+  res.json(mapRequirementLifecycle(requirement));
 
   const io = req.app.get("io");
   const requirementName =
@@ -480,7 +517,7 @@ router.get("/my-posts/:buyerId", auth, buyerOnly, async (req, res) => {
   });
 
   const withCounts = posts.map((post) => {
-    const data = normalizeRequirementAttachmentsForResponse(post);
+    const data = mapRequirementLifecycle(post);
     data.offerCount = countMap.get(String(post._id)) || 0;
     const sellersMap = sellersByRequirement.get(String(post._id));
     data.sellerFirms = sellersMap
@@ -503,7 +540,7 @@ router.get("/requirement/:id", auth, buyerOnly, async (req, res) => {
   if (String(requirement.buyerId) !== String(req.user._id)) {
     return res.status(403).json({ message: "Not allowed" });
   }
-  res.json(normalizeRequirementAttachmentsForResponse(requirement));
+  res.json(mapRequirementLifecycle(requirement));
 });
 
 /**
@@ -543,6 +580,8 @@ router.put("/requirement/:id", auth, buyerOnly, async (req, res) => {
   };
 
   Object.assign(requirement, nextPayload);
+  requirement.status = "open";
+  requirement.statusUpdatedAt = new Date();
   await requirement.save();
 
   const afterUpdate = {
@@ -691,7 +730,36 @@ router.put("/requirement/:id", auth, buyerOnly, async (req, res) => {
     });
   }
 
-  res.json(normalizeRequirementAttachmentsForResponse(requirement));
+  res.json(mapRequirementLifecycle(requirement));
+});
+
+router.post("/requirement/:id/status", auth, buyerOnly, async (req, res) => {
+  const requirement = await Requirement.findById(req.params.id);
+  if (!requirement) {
+    return res.status(404).json({ message: "Requirement not found" });
+  }
+  if (String(requirement.buyerId) !== String(req.user._id)) {
+    return res.status(403).json({ message: "Not allowed" });
+  }
+
+  const nextStatus = normalizeRequirementStatus(req.body?.status);
+  requirement.status = nextStatus;
+  requirement.statusUpdatedAt = new Date();
+  if (nextStatus !== "open" && requirement.reverseAuction?.active === true) {
+    requirement.reverseAuction = {
+      ...(requirement.reverseAuction || {}),
+      active: false,
+      updatedAt: new Date(),
+      closedAt: requirement.reverseAuction?.closedAt || new Date()
+    };
+    requirement.reverseAuctionActive = false;
+  }
+  await requirement.save();
+
+  return res.json({
+    success: true,
+    requirement: mapRequirementLifecycle(requirement)
+  });
 });
 
 /**
@@ -1275,6 +1343,11 @@ router.post("/requirement/:id/reverse-auction/start", auth, buyerOnly, async (re
   if (String(requirement.buyerId) !== String(req.user._id)) {
     return res.status(403).json({ message: "Not allowed" });
   }
+  if (getEffectiveRequirementStatus(requirement) !== "open") {
+    return res.status(400).json({
+      message: "Reverse auction is available only for open requirements"
+    });
+  }
   const offers = await Offer.find({
     requirementId: requirement._id,
     "moderation.removed": { $ne: true }
@@ -1495,6 +1568,9 @@ router.get("/requirements/:id/offers", auth, buyerOnly, async (req, res) => {
   const requirementData = requirement.toObject();
   requirementData.product =
     requirementData.product || requirementData.productName;
+  requirementData.status = getEffectiveRequirementStatus(requirement);
+  requirementData.expiresAt = requirement.expiresAt || null;
+  requirementData.statusUpdatedAt = requirement.statusUpdatedAt || null;
   requirementData.reverseAuctionActive =
     requirementData.reverseAuctionActive ||
     requirementData.reverseAuction?.active ||

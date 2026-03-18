@@ -232,6 +232,9 @@ function mapRequirementForSeller(
   data.myOfferOutcomeStatus =
     normalizeText(sellerOffer?.outcomeStatus) || "pending";
   data.myOfferOutcomeUpdatedAt = sellerOffer?.outcomeUpdatedAt || null;
+  data.status = getEffectiveRequirementStatus(requirementDoc);
+  data.expiresAt = requirementDoc?.expiresAt || null;
+  data.statusUpdatedAt = requirementDoc?.statusUpdatedAt || null;
   data.offerInvitedFrom = inviteMode;
   data.offerInvitedFromEffective = effectiveInviteMode;
   data.offerLockedAfterCitySelection =
@@ -260,6 +263,22 @@ function cityMatches(left, right) {
 }
 function normalizeOfferInvitedFrom(value) {
   return normalizeText(value) === "anywhere" ? "anywhere" : "city";
+}
+function normalizeRequirementStatus(value) {
+  const normalized = normalizeText(value);
+  if (["closed", "fulfilled", "cancelled", "expired"].includes(normalized)) {
+    return normalized;
+  }
+  return "open";
+}
+function getEffectiveRequirementStatus(requirementDoc) {
+  const explicitStatus = normalizeRequirementStatus(requirementDoc?.status);
+  if (explicitStatus !== "open") return explicitStatus;
+  const expiresAt = requirementDoc?.expiresAt ? new Date(requirementDoc.expiresAt) : null;
+  if (expiresAt && !Number.isNaN(expiresAt.getTime()) && expiresAt.getTime() <= Date.now()) {
+    return "expired";
+  }
+  return "open";
 }
 function escapeRegex(value) {
   return String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -510,6 +529,11 @@ router.post("/offer", auth, sellerOnly, async (req, res) => {
     const requirement = await Requirement.findById(requirementId);
     if (!requirement) {
       return res.status(404).json({ message: "Requirement not found" });
+    }
+    if (getEffectiveRequirementStatus(requirement) !== "open") {
+      return res.status(400).json({
+        message: "This requirement is no longer open for offers"
+      });
     }
     const inviteMode = normalizeOfferInvitedFrom(requirement.offerInvitedFrom);
     const effectiveInviteMode =
@@ -811,6 +835,11 @@ router.get("/requirement/:requirementId", auth, sellerOnly, async (req, res) => 
   if (!requirement) {
     return res.status(404).json({ message: "Requirement not found" });
   }
+  if (getEffectiveRequirementStatus(requirement) !== "open") {
+    return res.status(403).json({
+      message: "This requirement is no longer open for sellers"
+    });
+  }
   const acceptedBuyerCityRequirementIds =
     await getAcceptedBuyerCityRequirementIds([requirement]);
   const inviteMode = getEffectiveOfferInviteMode(
@@ -882,6 +911,9 @@ router.get("/dashboard", auth, sellerOnly, async (req, res) => {
   const acceptedBuyerCityRequirementIds =
     await getAcceptedBuyerCityRequirementIds(requirementsRaw);
   const requirements = requirementsRaw.filter((requirement) => {
+    if (getEffectiveRequirementStatus(requirement) !== "open") {
+      return false;
+    }
     if (
       !isAllCities &&
       requestedCityNormalized &&
