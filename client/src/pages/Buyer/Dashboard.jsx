@@ -61,7 +61,6 @@ export default function BuyerDashboard() {
     "Pune"
   ]);
   const [categories, setCategories] = useState([]);
-  const [sampleCityPostsEnabled, setSampleCityPostsEnabled] = useState(true);
   const [useSampleCityPosts, setUseSampleCityPosts] = useState(false);
   const [tabCounts, setTabCounts] = useState({
     posts: 0,
@@ -250,11 +249,7 @@ export default function BuyerDashboard() {
         );
         if (cancelled) return;
 
-        const cityShouldUseSample =
-          sampleCityPostsEnabled &&
-          String(import.meta.env.VITE_ENABLE_SAMPLE_CITY_POSTS ?? "true").toLowerCase() !==
-            "false" &&
-          posts.length === 0;
+        const cityShouldUseSample = import.meta.env.DEV && posts.length === 0;
 
         let cityCount = 0;
         if (!cityShouldUseSample && city) {
@@ -307,7 +302,6 @@ export default function BuyerDashboard() {
     city,
     cities,
     refreshToken,
-    sampleCityPostsEnabled,
     selectedCategory,
     session?._id,
     session?.token
@@ -334,7 +328,6 @@ export default function BuyerDashboard() {
           ? data.categories
           : [];
         setCategories(nextCategories);
-        setSampleCityPostsEnabled(data?.sampleCityPostsEnabled !== false);
       })
       .catch(() => {});
   }, [session?.city, refreshToken]);
@@ -381,10 +374,7 @@ export default function BuyerDashboard() {
   }, [session?.token, session?.city, session?.preferredCurrency]);
 
   useEffect(() => {
-    const sampleFlagEnabled =
-      String(import.meta.env.VITE_ENABLE_SAMPLE_CITY_POSTS ?? "true").toLowerCase() !==
-      "false";
-    if (!sampleFlagEnabled || !session?._id || !session?.token) {
+    if (!import.meta.env.DEV || !session?._id || !session?.token) {
       setUseSampleCityPosts(false);
       return;
     }
@@ -557,7 +547,7 @@ export default function BuyerDashboard() {
             onCityChange={setCity}
             onCategoryChange={setSelectedCategory}
             useSamplePosts={useSampleCityPosts}
-            samplePostsEnabled={sampleCityPostsEnabled}
+            samplePostsEnabled={import.meta.env.DEV}
             refreshToken={refreshToken}
           />
         )}

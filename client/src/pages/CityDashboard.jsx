@@ -29,9 +29,7 @@ export default function CityDashboard({
   const session = getSession();
   const currentBuyerId = String(session?._id || session?.id || "");
   const sampleFlagEnabled =
-    samplePostsEnabled &&
-    String(import.meta.env.VITE_ENABLE_SAMPLE_CITY_POSTS ?? "true").toLowerCase() !==
-      "false";
+    import.meta.env.DEV && samplePostsEnabled;
   async function openAttachment(attachment) {
     const newTab = window.open("", "_blank", "noopener,noreferrer");
     try {

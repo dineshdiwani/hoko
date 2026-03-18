@@ -48,9 +48,10 @@ export default function SellerDashboard() {
   const [chatRequirementId, setChatRequirementId] = useState(null);
   const [unreadChatRequirementIds, setUnreadChatRequirementIds] = useState(new Set());
   const [reverseAuctionNotice, setReverseAuctionNotice] = useState("");
-  const [sampleCityPostsEnabled, setSampleCityPostsEnabled] = useState(true);
   const [showingSampleData, setShowingSampleData] = useState(false);
   const [refreshToken, setRefreshToken] = useState(0);
+  const allowSellerSamplePosts =
+    import.meta.env.DEV;
 
   const currentUserId = session?._id || session?.id || session?.userId || null;
 
@@ -213,7 +214,6 @@ export default function SellerDashboard() {
       .then((data) => {
         setCities(Array.isArray(data?.cities) ? data.cities : []);
         setCategories(Array.isArray(data?.categories) ? data.categories : []);
-        setSampleCityPostsEnabled(data?.sampleCityPostsEnabled !== false);
       })
       .catch(() => {});
   }, [refreshToken]);
@@ -254,7 +254,7 @@ export default function SellerDashboard() {
           }
         });
         const liveRows = Array.isArray(res.data) ? res.data : [];
-        if (sampleCityPostsEnabled && liveRows.length === 0) {
+        if (allowSellerSamplePosts && liveRows.length === 0) {
           setRequirements(buildSamplePosts());
           setShowingSampleData(true);
           return;
@@ -263,7 +263,7 @@ export default function SellerDashboard() {
         setShowingSampleData(false);
       } catch (err) {
         console.error(err);
-        if (sampleCityPostsEnabled) {
+        if (allowSellerSamplePosts) {
           setRequirements(buildSamplePosts());
           setShowingSampleData(true);
         } else {
@@ -280,7 +280,7 @@ export default function SellerDashboard() {
     selectedCategory,
     cities,
     categories,
-    sampleCityPostsEnabled,
+    allowSellerSamplePosts,
     session?.city,
     refreshToken
   ]);
@@ -841,7 +841,7 @@ export default function SellerDashboard() {
 
           {showingSampleData && (
             <div className="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-              Showing sample posts for preview. These are synthetic examples, not real buyer data.
+              Showing sample posts for local preview only. These are synthetic examples, not real buyer data.
             </div>
           )}
 
