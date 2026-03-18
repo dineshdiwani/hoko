@@ -12,7 +12,6 @@ export default function SellerRegister() {
   const navigate = useNavigate();
   const session = getSession();
   const sessionCity = String(session?.city || "").trim();
-  const hasSessionCity = Boolean(sessionCity);
 
   const [seller, setSeller] = useState({
     email: session?.email || "",
@@ -61,27 +60,39 @@ export default function SellerRegister() {
     "Construction",
     "Hardware"
   ]);
+  const resolveCityValue = (value, cityList, fallback = "") => {
+    const raw = String(value || fallback || "").trim();
+    if (!raw) return "";
+    const matched = (Array.isArray(cityList) ? cityList : []).find(
+      (cityName) => String(cityName || "").trim().toLowerCase() === raw.toLowerCase()
+    );
+    return matched || raw;
+  };
 
   useEffect(() => {
     fetchOptions()
       .then((data) => {
         if (Array.isArray(data.cities) && data.cities.length) {
           setCities(data.cities);
+          setSeller((prev) => {
+            if (prev.city) return prev;
+            const nextCity = resolveCityValue(sessionCity, data.cities);
+            return nextCity ? { ...prev, city: nextCity } : prev;
+          });
         }
         if (Array.isArray(data.categories) && data.categories.length) {
           setCategories(data.categories);
         }
       })
       .catch(() => {});
-  }, [hasSessionCity]);
+  }, [sessionCity]);
 
   useEffect(() => {
-    if (!hasSessionCity) return;
     setSeller((prev) => ({
       ...prev,
-      city: prev.city || sessionCity
+      city: prev.city || resolveCityValue(sessionCity, cities)
     }));
-  }, [hasSessionCity, sessionCity]);
+  }, [cities, sessionCity]);
 
   const toggleCategory = (value) => {
     setSeller((prev) => ({
@@ -101,7 +112,7 @@ export default function SellerRegister() {
       !seller.managerName ||
       !Array.isArray(seller.categories) ||
       seller.categories.length === 0 ||
-      !(seller.city || sessionCity)
+      !seller.city
     ) {
       alert("Please fill all required fields");
       return;
@@ -120,7 +131,7 @@ export default function SellerRegister() {
     api
       .post("/seller/onboard", {
         ...profile,
-        city: profile.city || sessionCity
+        city: profile.city
       })
       .then(async (res) => {
         setSellerDashboardCategories(profile.categories || []);
@@ -271,30 +282,21 @@ export default function SellerRegister() {
                 }
               />
 
-              {!hasSessionCity ? (
-                <select
-                  className="w-full border p-2 rounded"
-                  value={seller.city}
-                  onChange={(e) =>
-                    setSeller({ ...seller, city: e.target.value })
-                  }
-                  required
-                >
-                  <option value="">Select City *</option>
-                  {cities.map((city) => (
-                    <option key={city} value={city}>
-                      {city}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <input
-                  className="w-full border p-2 rounded bg-gray-50 text-gray-600"
-                  value={sessionCity}
-                  disabled
-                  readOnly
-                />
-              )}
+              <select
+                className="w-full border p-2 rounded"
+                value={seller.city}
+                onChange={(e) =>
+                  setSeller({ ...seller, city: e.target.value })
+                }
+                required
+              >
+                <option value="">Select City *</option>
+                {cities.map((city) => (
+                  <option key={city} value={city}>
+                    {city}
+                  </option>
+                ))}
+              </select>
 
               <input
                 className="w-full border p-2 rounded"

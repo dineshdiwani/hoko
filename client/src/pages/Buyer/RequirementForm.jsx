@@ -43,6 +43,7 @@ export default function RequirementForm() {
   const { id: requirementId } = useParams();
   const isEditMode = Boolean(requirementId);
   const session = getSession();
+  const sessionCity = String(session?.city || "").trim();
 
   const [form, setForm] = useState({
     city: "",
@@ -103,6 +104,14 @@ export default function RequirementForm() {
     }
     return [currentCategory, ...categories];
   }, [categories, form.category]);
+  const resolveCityValue = (value, cityList, fallback = "") => {
+    const raw = String(value || fallback || "").trim();
+    if (!raw) return "";
+    const matched = (Array.isArray(cityList) ? cityList : []).find(
+      (cityName) => String(cityName || "").trim().toLowerCase() === raw.toLowerCase()
+    );
+    return matched || raw;
+  };
 
   useEffect(() => {
     const currentCategory = String(form.category || "").trim();
@@ -129,19 +138,11 @@ export default function RequirementForm() {
         const defaults = data?.defaults || {};
         if (Array.isArray(data.cities) && data.cities.length) {
           setCities(data.cities);
-          const desiredCity = String(defaults.city || "").trim();
-          if (desiredCity) {
-            setForm((prev) => {
-              if (prev.city) return prev;
-              const matchedCity = data.cities.find(
-                (cityName) =>
-                  String(cityName).toLowerCase() ===
-                  desiredCity.toLowerCase()
-              );
-              if (!matchedCity) return prev;
-              return { ...prev, city: matchedCity };
-            });
-          }
+          setForm((prev) => {
+            if (prev.city) return prev;
+            const nextCity = resolveCityValue(sessionCity || defaults.city, data.cities);
+            return nextCity ? { ...prev, city: nextCity } : prev;
+          });
         }
         if (Array.isArray(data.categories) && data.categories.length) {
           setCategories(data.categories);
@@ -207,11 +208,17 @@ export default function RequirementForm() {
       const lastPrefs = readLastRequirementPrefs();
       setForm((prev) => ({
         ...prev,
-        city: prev.city || lastPrefs.city || buyerPrefs.defaultCity || "",
+        city:
+          prev.city ||
+          resolveCityValue(
+            sessionCity || lastPrefs.city || buyerPrefs.defaultCity,
+            cities
+          ) ||
+          "",
         unit: prev.unit || lastPrefs.unit || buyerPrefs.defaultUnit || ""
       }));
     } catch {}
-  }, []);
+  }, [cities, sessionCity]);
 
   useEffect(() => {
     async function startCamera() {

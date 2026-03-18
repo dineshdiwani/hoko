@@ -133,14 +133,93 @@ function shouldNotifySellerEvent(userDoc, eventKey) {
   return settings.notificationsOffers !== false;
 }
 
-function mapRequirementForSeller(requirementDoc, offerMap, sellerCityRaw = "") {
+function getEffectiveOfferInviteMode(
+  requirementDoc,
+  acceptedBuyerCityRequirementIds = new Set()
+) {
+  const inviteMode = normalizeOfferInvitedFrom(requirementDoc?.offerInvitedFrom);
+  if (inviteMode !== "anywhere") return "city";
+  const requirementId = String(requirementDoc?._id || "");
+  if (!requirementId) return inviteMode;
+  return acceptedBuyerCityRequirementIds.has(requirementId)
+    ? "city"
+    : "anywhere";
+}
+async function getAcceptedBuyerCityRequirementIds(requirements = []) {
+  const requirementList = Array.isArray(requirements) ? requirements : [];
+  const requirementIds = requirementList
+    .map((requirement) => requirement?._id)
+    .filter(Boolean);
+  if (!requirementIds.length) {
+    return new Set();
+  }
+
+  const requirementCityById = new Map(
+    requirementList.map((requirement) => [
+      String(requirement?._id || ""),
+      String(requirement?.city || "")
+    ])
+  );
+
+  const acceptedOffers = await Offer.find({
+    requirementId: { $in: requirementIds },
+    contactEnabledByBuyer: true,
+    "moderation.removed": { $ne: true }
+  })
+    .populate("sellerId", "city")
+    .select("requirementId sellerId");
+
+  const matchedRequirementIds = new Set();
+  acceptedOffers.forEach((offer) => {
+    const requirementId = String(offer?.requirementId || "");
+    const requirementCity = requirementCityById.get(requirementId) || "";
+    const sellerCity = String(offer?.sellerId?.city || "").trim();
+    if (requirementId && cityMatches(requirementCity, sellerCity)) {
+      matchedRequirementIds.add(requirementId);
+    }
+  });
+
+  return matchedRequirementIds;
+}
+function shouldRequirementMatchRequestedCity(
+  requirementDoc,
+  requestedCity,
+  acceptedBuyerCityRequirementIds = new Set()
+) {
+  const requestedCityValue = String(requestedCity || "").trim();
+  if (!requestedCityValue) return true;
+  const effectiveInviteMode = getEffectiveOfferInviteMode(
+    requirementDoc,
+    acceptedBuyerCityRequirementIds
+  );
+  if (effectiveInviteMode === "anywhere") {
+    return true;
+  }
+  return cityMatches(requirementDoc?.city, requestedCityValue);
+}
+async function isRequirementLockedToBuyerCity(requirementDoc) {
+  if (!requirementDoc?._id) return false;
+  const acceptedBuyerCityRequirementIds =
+    await getAcceptedBuyerCityRequirementIds([requirementDoc]);
+  return acceptedBuyerCityRequirementIds.has(String(requirementDoc._id));
+}
+function mapRequirementForSeller(
+  requirementDoc,
+  offerMap,
+  sellerCityRaw = "",
+  acceptedBuyerCityRequirementIds = new Set()
+) {
   if (!requirementDoc) return null;
   const data = normalizeRequirementAttachmentsForResponse(requirementDoc);
   const reqId = String(requirementDoc._id);
   const sellerOffer = offerMap.get(reqId) || null;
   const inviteMode = normalizeOfferInvitedFrom(requirementDoc.offerInvitedFrom);
+  const effectiveInviteMode = getEffectiveOfferInviteMode(
+    requirementDoc,
+    acceptedBuyerCityRequirementIds
+  );
   const blockedByCity =
-    inviteMode === "city" &&
+    effectiveInviteMode === "city" &&
     !cityMatches(requirementDoc.city, sellerCityRaw);
   data.product = data.product || data.productName;
   data.reverseAuctionActive = data.reverseAuction?.active === true;
@@ -150,6 +229,10 @@ function mapRequirementForSeller(requirementDoc, offerMap, sellerCityRaw = "") {
       : data.reverseAuction?.lowestPrice ?? null;
   data.myOffer = Boolean(sellerOffer);
   data.contactEnabledByBuyer = sellerOffer?.contactEnabledByBuyer === true;
+  data.offerInvitedFrom = inviteMode;
+  data.offerInvitedFromEffective = effectiveInviteMode;
+  data.offerLockedAfterCitySelection =
+    inviteMode === "anywhere" && effectiveInviteMode === "city";
   data.offerBlockedByCity = blockedByCity;
   data.offerAllowedForSeller = !blockedByCity;
   data.buyerId = data.buyerId;
@@ -426,12 +509,19 @@ router.post("/offer", auth, sellerOnly, async (req, res) => {
       return res.status(404).json({ message: "Requirement not found" });
     }
     const inviteMode = normalizeOfferInvitedFrom(requirement.offerInvitedFrom);
-    if (inviteMode === "city") {
+    const effectiveInviteMode =
+      inviteMode === "anywhere" && (await isRequirementLockedToBuyerCity(requirement))
+        ? "city"
+        : inviteMode;
+    if (effectiveInviteMode === "city") {
       const sellerCity = req.user?.city;
       const requirementCity = requirement?.city;
       if (!cityMatches(sellerCity, requirementCity)) {
         return res.status(403).json({
-          message: "Offers for this post are invited only from the buyer city"
+          message:
+            inviteMode === "anywhere"
+              ? "Buyer has already selected a same-city offer, so this post is now limited to the buyer city"
+              : "Offers for this post are invited only from the buyer city"
         });
       }
     }
@@ -718,7 +808,12 @@ router.get("/requirement/:requirementId", auth, sellerOnly, async (req, res) => 
   if (!requirement) {
     return res.status(404).json({ message: "Requirement not found" });
   }
-  const inviteMode = normalizeOfferInvitedFrom(requirement.offerInvitedFrom);
+  const acceptedBuyerCityRequirementIds =
+    await getAcceptedBuyerCityRequirementIds([requirement]);
+  const inviteMode = getEffectiveOfferInviteMode(
+    requirement,
+    acceptedBuyerCityRequirementIds
+  );
   if (inviteMode === "city") {
     const sellerCity = req.user?.city;
     const requirementCity = requirement?.city;
@@ -738,7 +833,14 @@ router.get("/requirement/:requirementId", auth, sellerOnly, async (req, res) => 
       : []
   );
 
-  return res.json(mapRequirementForSeller(requirement, offerMap, req.user?.city));
+  return res.json(
+    mapRequirementForSeller(
+      requirement,
+      offerMap,
+      req.user?.city,
+      acceptedBuyerCityRequirementIds
+    )
+  );
 });
 
 /**
@@ -764,14 +866,6 @@ router.get("/dashboard", auth, sellerOnly, async (req, res) => {
     "moderation.removed": { $ne: true }
   };
 
-  if (!isAllCities && requestedCity) {
-    // Keep the DB query selective, but still normalize in-memory for safety.
-    requirementQuery.city = new RegExp(
-      `^\\s*${escapeRegex(requestedCity)}\\s*$`,
-      "i"
-    );
-  }
-
   if (!isAllCategories) {
     requirementQuery.category = new RegExp(
       `^\\s*${escapeRegex(requestedCategory)}\\s*$`,
@@ -782,11 +876,17 @@ router.get("/dashboard", auth, sellerOnly, async (req, res) => {
   const requirementsRaw = await Requirement.find(requirementQuery).sort({
     createdAt: -1
   });
+  const acceptedBuyerCityRequirementIds =
+    await getAcceptedBuyerCityRequirementIds(requirementsRaw);
   const requirements = requirementsRaw.filter((requirement) => {
     if (
       !isAllCities &&
       requestedCityNormalized &&
-      !cityMatches(requirement?.city, requestedCity)
+      !shouldRequirementMatchRequestedCity(
+        requirement,
+        requestedCity,
+        acceptedBuyerCityRequirementIds
+      )
     ) {
       return false;
     }
@@ -809,7 +909,12 @@ router.get("/dashboard", auth, sellerOnly, async (req, res) => {
   );
 
   const mapped = requirements.map((requirementDoc) =>
-    mapRequirementForSeller(requirementDoc, offerMap, req.user?.city)
+    mapRequirementForSeller(
+      requirementDoc,
+      offerMap,
+      req.user?.city,
+      acceptedBuyerCityRequirementIds
+    )
   );
 
   res.json(mapped);

@@ -69,6 +69,15 @@ export default function SellerDashboard() {
     if (a === b) return true;
     return a.includes(b) || b.includes(a);
   };
+  const getEffectiveInviteMode = (req) => {
+    const explicitMode = String(req?.offerInvitedFromEffective || "").trim();
+    if (explicitMode === "anywhere" || explicitMode === "city") {
+      return explicitMode;
+    }
+    return String(req?.offerInvitedFrom || "").trim().toLowerCase() === "anywhere"
+      ? "anywhere"
+      : "city";
+  };
   const appBaseUrl =
     getPublicAppUrl();
   const resolveCityValue = (value, cityList, fallback = "") => {
@@ -367,7 +376,12 @@ export default function SellerDashboard() {
   const smartTabRequirements = visibleRequirements.filter(matchesSmartTab);
 
   const filteredRequirements = smartTabRequirements.filter((req) => {
-    if (selectedCity !== "all" && !cityMatches(req.city, selectedCity)) {
+    const effectiveInviteMode = getEffectiveInviteMode(req);
+    if (
+      selectedCity !== "all" &&
+      effectiveInviteMode !== "anywhere" &&
+      !cityMatches(req.city, selectedCity)
+    ) {
       return false;
     }
     const normalizedCategory = normalizeCategory(req.category);
@@ -859,6 +873,7 @@ export default function SellerDashboard() {
             {filteredRequirements.map((req) => {
               const isSample = Boolean(req.isSample);
               const isCityLocked = req.offerBlockedByCity === true;
+              const effectiveInviteMode = getEffectiveInviteMode(req);
               const isAuction = req.reverseAuction?.active === true;
               const showAuctionForSeller = req.myOffer && isAuction;
               const lowestPrice = req.reverseAuction?.lowestPrice ?? req.currentLowestPrice ?? "-";
@@ -895,11 +910,13 @@ export default function SellerDashboard() {
                         Quantity: {req.quantity || "-"} {req.type || req.unit || ""}
                       </p>
                       <p className="ui-body text-[var(--ui-muted)]">
-                        Offer invited from: {req.offerInvitedFrom === "anywhere" ? "Anywhere" : "City"}
+                        Offer invited from: {effectiveInviteMode === "anywhere" ? "Anywhere" : "City"}
                       </p>
                       {isCityLocked && (
                         <p className="ui-body text-red-600">
-                          Offer locked: buyer invited offers only from their city.
+                          {req.offerLockedAfterCitySelection
+                            ? "Offer locked: buyer already selected chat with a same-city seller."
+                            : "Offer locked: buyer invited offers only from their city."}
                         </p>
                       )}
                       {requirementDetails && (
