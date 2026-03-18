@@ -38,6 +38,17 @@ function getGoogleClientIds() {
     .filter(Boolean);
 }
 
+function decodeJwtPayload(token) {
+  try {
+    const parts = String(token || "").split(".");
+    if (parts.length < 2) return null;
+    const payload = Buffer.from(parts[1], "base64url").toString("utf8");
+    return JSON.parse(payload);
+  } catch {
+    return null;
+  }
+}
+
 function getGoogleClient() {
   if (googleClient) return googleClient;
   if (googleAuthInitError) return null;
@@ -259,7 +270,16 @@ router.post("/google", async (req, res) => {
       });
       payload = ticket.getPayload();
     } catch (err) {
-      console.error("Google token verify failed:", err?.message || err);
+      const decoded = decodeJwtPayload(credential);
+      const attemptedAudiences = googleClientIds.join(", ");
+      console.error(
+        "Google token verify failed:",
+        err?.message || err,
+        "| token aud:",
+        decoded?.aud || "unknown",
+        "| expected audience(s):",
+        attemptedAudiences
+      );
       return res.status(401).json({
         message: "Invalid Google token or client ID mismatch"
       });
