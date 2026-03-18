@@ -29,12 +29,22 @@ const DEFAULT_ROLES = {
 let googleClient = null;
 let googleAuthInitError = null;
 
+function getGoogleClientIds() {
+  const raw = String(process.env.GOOGLE_CLIENT_ID || "").trim();
+  if (!raw) return [];
+  return raw
+    .split(",")
+    .map((item) => String(item || "").trim())
+    .filter(Boolean);
+}
+
 function getGoogleClient() {
   if (googleClient) return googleClient;
   if (googleAuthInitError) return null;
   try {
     const { OAuth2Client } = require("google-auth-library");
-    googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+    const googleClientIds = getGoogleClientIds();
+    googleClient = new OAuth2Client(googleClientIds[0] || undefined);
     return googleClient;
   } catch (err) {
     googleAuthInitError = err;
@@ -227,7 +237,8 @@ router.post("/google", async (req, res) => {
       return res.status(400).json({ message: "Missing credential" });
     }
 
-    if (!process.env.GOOGLE_CLIENT_ID) {
+    const googleClientIds = getGoogleClientIds();
+    if (!googleClientIds.length) {
       return res
         .status(500)
         .json({ message: "Google login not configured" });
@@ -244,7 +255,7 @@ router.post("/google", async (req, res) => {
     try {
       const ticket = await client.verifyIdToken({
         idToken: credential,
-        audience: process.env.GOOGLE_CLIENT_ID
+        audience: googleClientIds.length === 1 ? googleClientIds[0] : googleClientIds
       });
       payload = ticket.getPayload();
     } catch (err) {
