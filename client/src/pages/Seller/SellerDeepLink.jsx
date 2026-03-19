@@ -6,6 +6,7 @@ import { getSession, setSession } from "../../services/storage";
 const PENDING_OFFER_KEY = "pending_seller_offer_intent";
 const POST_LOGIN_REDIRECT_SOURCE_KEY = "post_login_redirect_source";
 const OBJECT_ID_REGEX = /^[a-f0-9]{24}$/i;
+const MAX_IMAGE_BYTES = 100 * 1024;
 function extractObjectId(value) {
   const raw = String(value || "").trim();
   if (OBJECT_ID_REGEX.test(raw)) return raw;
@@ -35,7 +36,7 @@ export default function SellerDeepLink() {
   const [preview, setPreview] = useState(null);
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [draftHint, setDraftHint] = useState("");
-  const [file, setFile] = useState(null);
+  const [attachments, setAttachments] = useState([]);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [cameraError, setCameraError] = useState("");
   const [form, setForm] = useState({
@@ -172,14 +173,19 @@ export default function SellerDeepLink() {
         return;
       }
       let nextAttachments = [];
-      if (file) {
-        const formData = new FormData();
-        formData.append("file", file);
-        const uploadRes = await api.post("/seller/offer/attachments", formData, {
-          headers: { "Content-Type": "multipart/form-data" }
-        });
-        nextAttachments =
-          uploadRes?.data?.files?.map((item) => item.url).filter(Boolean) || [];
+      if (attachments.length) {
+        for (const item of attachments) {
+          const formData = new FormData();
+          formData.append("file", item);
+          const uploadRes = await api.post("/seller/offer/attachments", formData, {
+            headers: { "Content-Type": "multipart/form-data" }
+          });
+          const uploadedUrls =
+            uploadRes?.data?.files?.map((entry) => entry.url).filter(Boolean) || [];
+          if (uploadedUrls.length) {
+            nextAttachments.push(...uploadedUrls);
+          }
+        }
       }
       await api.post("/seller/offer", {
         requirementId: requirementIdValue,
@@ -190,7 +196,7 @@ export default function SellerDeepLink() {
         attachments: nextAttachments
       });
       clearPendingOfferIntent();
-      setFile(null);
+      setAttachments([]);
       alert(
         isAuto
           ? "Offer submitted now. Thank you."
@@ -350,19 +356,96 @@ export default function SellerDeepLink() {
     submitOffer(payload);
   };
 
-  function saveAttachmentFile(fileObj) {
-    if (!fileObj) return;
-    setFile(fileObj);
+  async function compressImageFile(file) {
+    try {
+      const objectUrl = URL.createObjectURL(file);
+      const image = await new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = objectUrl;
+      });
+      URL.revokeObjectURL(objectUrl);
+
+      let width = image.width;
+      let height = image.height;
+      const maxSide = 1280;
+      if (width > maxSide || height > maxSide) {
+        const scale = Math.min(maxSide / width, maxSide / height);
+        width = Math.max(320, Math.round(width * scale));
+        height = Math.max(320, Math.round(height * scale));
+      }
+
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return file;
+      canvas.width = width;
+      canvas.height = height;
+      ctx.drawImage(image, 0, 0, width, height);
+
+      let quality = 0.85;
+      let blob = await new Promise((resolve) =>
+        canvas.toBlob(resolve, "image/jpeg", quality)
+      );
+      if (!blob) return file;
+
+      while (blob.size > MAX_IMAGE_BYTES && quality > 0.25) {
+        quality -= 0.1;
+        blob = await new Promise((resolve) =>
+          canvas.toBlob(resolve, "image/jpeg", quality)
+        );
+        if (!blob) return file;
+      }
+
+      while (blob.size > MAX_IMAGE_BYTES && canvas.width > 320 && canvas.height > 320) {
+        const nextWidth = Math.max(320, Math.round(canvas.width * 0.85));
+        const nextHeight = Math.max(320, Math.round(canvas.height * 0.85));
+        canvas.width = nextWidth;
+        canvas.height = nextHeight;
+        ctx.drawImage(image, 0, 0, nextWidth, nextHeight);
+        blob = await new Promise((resolve) =>
+          canvas.toBlob(resolve, "image/jpeg", Math.max(0.45, quality))
+        );
+        if (!blob) return file;
+      }
+
+      const baseName = String(file.name || "attachment")
+        .replace(/\.[^/.]+$/, "")
+        .slice(0, 80);
+      const finalName = `${baseName}.jpg`;
+      return new File([blob], finalName, { type: "image/jpeg" });
+    } catch {
+      return file;
+    }
   }
 
-  function clearSelectedAttachment() {
-    setFile(null);
+  async function processAttachmentFile(file) {
+    if (!file) return null;
+    if (file.type && file.type.startsWith("image/")) {
+      return compressImageFile(file);
+    }
+    return file;
   }
 
-  function handleAttachmentPick(e) {
-    const fileObj = e.target.files?.[0];
-    saveAttachmentFile(fileObj);
+  async function addFiles(fileList) {
+    const incoming = Array.from(fileList || []);
+    if (!incoming.length) return;
+    const processed = [];
+    for (const inputFile of incoming) {
+      const nextFile = await processAttachmentFile(inputFile);
+      if (nextFile) processed.push(nextFile);
+    }
+    if (!processed.length) return;
+    setAttachments((prev) => [...prev, ...processed]);
+  }
+
+  async function handleAttachmentPick(e) {
+    await addFiles(e.target.files);
     e.target.value = "";
+  }
+
+  function removeAttachment(index) {
+    setAttachments((prev) => prev.filter((_, i) => i !== index));
   }
 
   useEffect(() => {
@@ -413,7 +496,10 @@ export default function SellerDeepLink() {
     const capturedFile = new File([blob], `offer-camera-${Date.now()}.jpg`, {
       type: "image/jpeg"
     });
-    saveAttachmentFile(capturedFile);
+    const processedCapturedFile = await processAttachmentFile(capturedFile);
+    if (processedCapturedFile) {
+      setAttachments((prev) => [...prev, processedCapturedFile]);
+    }
     setCameraOpen(false);
   }
 
@@ -493,6 +579,7 @@ export default function SellerDeepLink() {
             <input
               id={docInputId}
               type="file"
+              multiple
               accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/jpeg,image/png"
               onChange={handleAttachmentPick}
               className="sr-only"
@@ -522,12 +609,25 @@ export default function SellerDeepLink() {
                 </svg>
               </label>
             </div>
-            {file ? (
-              <div className="mb-2 flex items-center justify-between text-sm bg-gray-50 border rounded-lg px-3 py-2">
-                <span className="truncate">Selected attachment: {file.name}</span>
-                <button type="button" onClick={clearSelectedAttachment} className="text-red-600">
-                  Remove
-                </button>
+            {attachments.length > 0 ? (
+              <div className="mb-2 space-y-2">
+                {attachments.map((item, index) => (
+                  <div
+                    key={`${item.name}-${index}`}
+                    className="flex items-center justify-between text-sm bg-gray-50 border rounded-lg px-3 py-2"
+                  >
+                    <span className="truncate">
+                      {item.name} ({Math.max(1, Math.round(item.size / 1024))} KB)
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => removeAttachment(index)}
+                      className="text-red-600"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
               </div>
             ) : null}
             <button
