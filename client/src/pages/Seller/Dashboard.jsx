@@ -559,31 +559,46 @@ export default function SellerDashboard() {
     return `${parts.join(" | ")}\nSubmit offer on hoko: ${deepLink}`;
   }
 
+  function getSocialShareText(req) {
+    const reqId = String(req?._id || "").trim();
+    if (!reqId) return "";
+    const deepLink = `${appBaseUrl}/seller/deeplink/${encodeURIComponent(reqId)}`;
+    const product = String(req?.product || req?.productName || "PRODUCT / SERVICE").trim();
+    const quantityValue = String(req?.quantity || "").trim();
+    const quantityUnit = String(req?.type || req?.unit || "").trim();
+    const quantity = [quantityValue, quantityUnit].filter(Boolean).join(" ") || "NUMBER + UNIT";
+    const make = String(req?.makeBrand || req?.brand || "").trim();
+    const model = String(req?.typeModel || "").trim();
+    const makeModel = [make, model].filter(Boolean).join(" ") || "BRAND + MODEL";
+    const buyerCity = String(req?.city || "").trim() || "CITY";
+
+    return [
+      "URGENT BUYER REQUIREMENT",
+      "",
+      `Product: ${product}`,
+      `Quantity: ${quantity}`,
+      `Make/Model: ${makeModel}`,
+      `Buyer City: ${buyerCity}`,
+      "",
+      "Vendors/Dealers can DM with:",
+      "Price | Stock | Delivery Time",
+      "",
+      `Respond here: ${deepLink}`,
+      "",
+      "#BuyerRequirement #B2B #Suppliers #BusinessLead"
+    ].join("\n");
+  }
+
   function getShareLinks(req) {
     const reqId = String(req?._id || "").trim();
-    const packed = encodeURIComponent(
-      JSON.stringify({
-        postId: reqId,
-        city: String(req?.city || ""),
-        product: String(req?.product || req?.productName || ""),
-        category: String(req?.category || ""),
-        qty: String(req?.quantity || ""),
-        unit: String(req?.type || req?.unit || ""),
-        brand: String(req?.makeBrand || req?.brand || ""),
-        model: String(req?.typeModel || ""),
-        details: String(req?.details || req?.description || ""),
-        invite: String(req?.offerInvitedFrom || "")
-      })
-    );
-    const deepLink = `${appBaseUrl}/seller/deeplink/${encodeURIComponent(
-      reqId
-    )}?pd=${packed}`;
+    const deepLink = `${appBaseUrl}/seller/deeplink/${encodeURIComponent(reqId)}`;
     const text = encodeURIComponent(getShareText(req));
+    const socialText = encodeURIComponent(getSocialShareText(req));
     const url = encodeURIComponent(deepLink);
     return {
       whatsapp: `https://wa.me/?text=${text}`,
-      facebook: `https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${text}`,
-      mail: `mailto:?subject=${encodeURIComponent("Requirement on hoko")}&body=${text}`,
+      facebook: `https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${socialText}`,
+      mail: `mailto:?subject=${encodeURIComponent("URGENT BUYER REQUIREMENT")}&body=${socialText}`,
       linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${url}`
     };
   }

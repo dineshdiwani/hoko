@@ -112,15 +112,45 @@ export default function CityDashboard({
       .join("\n");
   }
 
+  function getSocialShareText(req) {
+    const deepLink = buildShareUrl(req);
+    const product = String(req?.product || req?.productName || "PRODUCT / SERVICE").trim();
+    const quantityValue = String(req?.quantity || "").trim();
+    const quantityUnit = String(req?.type || req?.unit || "").trim();
+    const quantity = [quantityValue, quantityUnit].filter(Boolean).join(" ") || "NUMBER + UNIT";
+    const make = String(req?.makeBrand || req?.brand || "").trim();
+    const model = String(req?.typeModel || "").trim();
+    const makeModel = [make, model].filter(Boolean).join(" ") || "BRAND + MODEL";
+    const buyerCity = String(req?.city || city || "").trim() || "CITY";
+
+    return [
+      "URGENT BUYER REQUIREMENT",
+      "",
+      `Product: ${product}`,
+      `Quantity: ${quantity}`,
+      `Make/Model: ${makeModel}`,
+      `Buyer City: ${buyerCity}`,
+      "",
+      "Vendors/Dealers can DM with:",
+      "Price | Stock | Delivery Time",
+      "",
+      `Respond here: ${deepLink}`,
+      "",
+      "#BuyerRequirement #B2B #Suppliers #BusinessLead"
+    ].join("\n");
+  }
+
   function getShareLinks(req) {
     const shareText = getShareText(req);
+    const socialShareText = getSocialShareText(req);
     const shareUrl = buildShareUrl(req);
     const encodedText = encodeURIComponent(shareText);
+    const encodedSocialText = encodeURIComponent(socialShareText);
     const encodedUrl = encodeURIComponent(shareUrl);
     return {
       whatsapp: `https://wa.me/?text=${encodedText}`,
-      facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedText}`,
-      mail: `mailto:?subject=${encodeURIComponent("Requirement on hoko")}&body=${encodedText}`,
+      facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedSocialText}`,
+      mail: `mailto:?subject=${encodeURIComponent("URGENT BUYER REQUIREMENT")}&body=${encodedSocialText}`,
       linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`
     };
   }
