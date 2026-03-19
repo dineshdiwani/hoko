@@ -27,14 +27,6 @@ function toSentence(value, fallback = "") {
   return text.replace(/\s+/g, " ");
 }
 
-function buildOnlineRequirementInfo(requirement) {
-  const inviteMode = normalizeText(requirement?.offerInvitedFrom);
-  if (inviteMode === "anywhere") {
-    return "Yes (Open to suppliers across cities)";
-  }
-  return "No (City-focused requirement)";
-}
-
 function buildMakeModel(requirement) {
   const make = firstNonEmpty([requirement?.makeBrand, requirement?.brand]);
   const model = firstNonEmpty([requirement?.typeModel, requirement?.type]);
@@ -52,7 +44,6 @@ function formatMessage({ requirement, deepLink }) {
   const quantityWithUnit = `${quantity}${unit ? ` ${unit}` : ""}`.trim();
   const makeModel = toSentence(buildMakeModel(requirement), "-");
   const city = toSentence(firstNonEmpty([requirement?.city, "your city"]), "your city");
-  const onlineRequirement = toSentence(buildOnlineRequirementInfo(requirement), "-");
 
   return [
     "*URGENT BUYER REQUIREMENT*",
@@ -74,7 +65,7 @@ function formatMessage({ requirement, deepLink }) {
 function buildSellerDeepLink(appBase, requirement) {
   const requirementIdRaw = String(requirement?._id || "").trim();
   const requirementId = encodeURIComponent(requirementIdRaw);
-  return `${appBase}/seller/deeplink/${requirementId}`;
+  return `${appBase}/api/meta/requirement-share/${requirementId}`;
 }
 
 function normalizeChannels(input) {
@@ -383,5 +374,7 @@ module.exports = {
   triggerWhatsAppCampaignForRequirement,
   sendTestWhatsAppCampaign
 };
+
+
 
 

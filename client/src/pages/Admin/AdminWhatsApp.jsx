@@ -71,16 +71,7 @@ export default function AdminWhatsApp() {
     const text = String(value || "").trim();
     if (!text) return fallback;
     return text.replace(/\s+/g, " ");
-  };
-  const buildOnlineRequirementInfo = (requirement) => {
-    const inviteMode = normalizeText(requirement?.offerInvitedFrom);
-    if (inviteMode === "anywhere") {
-      return "Yes (Open to suppliers across cities)";
-    }
-    return "No (City-focused requirement)";
-  };
-
-  const buildMakeModel = (requirement) => {
+  };  const buildMakeModel = (requirement) => {
     const make = firstNonEmpty([requirement?.makeBrand, requirement?.brand]);
     const model = firstNonEmpty([requirement?.typeModel, requirement?.type]);
     if (make && model) return `${make} ${model}`;
@@ -99,11 +90,10 @@ export default function AdminWhatsApp() {
       const quantityWithUnit = `${quantity}${unit ? ` ${unit}` : ""}`.trim();
       const makeModel = toSentence(buildMakeModel(requirement), "-");
       const city = toSentence(firstNonEmpty([requirement?.city, "your city"]), "your city");
-      const onlineRequirement = toSentence(buildOnlineRequirementInfo(requirement), "-");
       const baseUrl = getPublicAppUrl();
       const reqIdRaw = String(requirement._id || "").trim();
       const reqIdParam = encodeURIComponent(reqIdRaw);
-      const deepLink = `${baseUrl}/seller/deeplink/${reqIdParam}`;
+      const deepLink = `${baseUrl}/api/meta/requirement-share/${reqIdParam}`;
 
       return [
         "*URGENT BUYER REQUIREMENT*",
@@ -837,5 +827,7 @@ export default function AdminWhatsApp() {
     </div>
   );
 }
+
+
 
 

@@ -27,7 +27,7 @@ function buildSellerDeepLink(requirementId) {
       .split(",")[0]
       .trim()
       .replace(/\/+$/, "") || "https://hokoapp.in";
-  return `${appBase}/seller/deeplink/${encodeURIComponent(String(requirementId || "").trim())}`;
+  return `${appBase}/api/meta/requirement-share/${encodeURIComponent(String(requirementId || "").trim())}`;
 }
 
 function buildRequirementLabel(requirement) {
@@ -222,3 +222,4 @@ router.post("/webhook", async (req, res) => {
 });
 
 module.exports = router;
+
