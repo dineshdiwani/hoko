@@ -109,7 +109,6 @@ export default function AdminWhatsApp() {
         "*URGENT BUYER REQUIREMENT*",
         "",
         `Looking for: *${product}*`,
-        `Online Requirement: *${onlineRequirement}*`,
         `Quantity: *${quantityWithUnit}*`,
         `Make/Model: *${makeModel}*`,
         `Buyer City: *${city}*`,
@@ -120,7 +119,6 @@ export default function AdminWhatsApp() {
         "- Availability Status",
         "",
         `-> *Send your best offer now:* ${deepLink}`,
-        "(Directly opens this buyer requirement.)"
       ].join("\n");
     },
     []

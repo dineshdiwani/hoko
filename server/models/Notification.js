@@ -11,6 +11,10 @@ const notificationSchema = new mongoose.Schema(
       type: String,
       required: true
     },
+    readAt: {
+      type: Date,
+      default: null
+    },
     type: {
       type: String,
       default: "info"

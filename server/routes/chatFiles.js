@@ -9,6 +9,10 @@ const Requirement = require("../models/Requirement");
 const User = require("../models/User");
 const Notification = require("../models/Notification");
 const sendPush = require("../utils/sendPush");
+const {
+  buildNotificationData,
+  serializeNotification
+} = require("../utils/notifications");
 
 const router = express.Router();
 
@@ -175,10 +179,21 @@ router.post("/upload", auth, uploadSingleFile, async (req, res) => {
           fromUserId: from,
           requirementId: requirementId || null,
           type: "new_message",
-          message: "New file shared in chat"
+          message: "New file shared in chat",
+          data: buildNotificationData("new_message", {
+            requirementId: requirementId || null,
+            entityType: "requirement",
+            entityId: requirementId || null,
+            url: toUser?.roles?.seller ? "/seller/dashboard" : "/buyer/dashboard"
+          })
         });
         if (io) {
-          io.to(String(to)).emit("notification", notif);
+          io.to(String(to)).emit(
+            "notification",
+            serializeNotification(notif, {
+              fallbackUrl: toUser?.roles?.seller ? "/seller/dashboard" : "/buyer/dashboard"
+            })
+          );
         }
 
         if (chatPushEnabled) {

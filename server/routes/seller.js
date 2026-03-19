@@ -16,6 +16,10 @@ const sellerOnly = require("../middleware/sellerOnly");
 const sendPush = require("../utils/sendPush");
 const { sendAdminEventEmail, sendEmailToRecipient } = require("../utils/sendEmail");
 const { getModerationRules, checkTextForFlags } = require("../utils/moderation");
+const {
+  buildNotificationData,
+  serializeNotification
+} = require("../utils/notifications");
 const { normalizeRequirementAttachmentsForResponse } = require("../utils/attachments");
 const { normalizeE164 } = require("../utils/sendWhatsApp");
 
@@ -625,12 +629,24 @@ router.post("/offer", auth, sellerOnly, async (req, res) => {
         const notif = await Notification.create({
           userId: requirement.buyerId,
           message: `New offer received for ${requirement.product || requirement.productName}`,
-          type: "new_offer"
+          type: "new_offer",
+          requirementId: requirement._id,
+          fromUserId: req.user._id,
+          data: buildNotificationData("new_offer", {
+            requirementId: String(requirement._id),
+            entityType: "requirement",
+            entityId: String(requirement._id),
+            offerId: String(offer._id),
+            sellerId: String(req.user._id),
+            url: `/buyer/requirement/${encodeURIComponent(String(requirement._id))}/offers`
+          })
         });
         if (io) {
           io.to(String(requirement.buyerId)).emit(
             "notification",
-            notif
+            serializeNotification(notif, {
+              fallbackUrl: `/buyer/requirement/${encodeURIComponent(String(requirement._id))}/offers`
+            })
           );
         }
       }

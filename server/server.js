@@ -16,6 +16,10 @@ const sendPush = require("./utils/sendPush");
 const auth = require("./middleware/auth");
 const { getModerationRules, checkTextForFlags } = require("./utils/moderation");
 const {
+  buildNotificationData,
+  serializeNotification
+} = require("./utils/notifications");
+const {
   extractStoredRequirementFilename,
   extractAttachmentAliases,
   displayNameFromStoredFilename,
@@ -271,9 +275,14 @@ io.on("connection", (socket) => {
         userId: sellerId,
         fromUserId: currentUserId,
         message,
-        type: "offer_viewed"
+        type: "offer_viewed",
+        data: buildNotificationData("offer_viewed", {
+          url: "/seller/dashboard"
+        })
       }).then((notif) => {
-        io.to(String(sellerId)).emit("notification", notif);
+        io.to(
+          String(sellerId)
+        ).emit("notification", serializeNotification(notif, { fallbackUrl: "/seller/dashboard" }));
         User.findById(sellerId)
           .select("roles sellerSettings")
           .lean()
@@ -300,9 +309,14 @@ io.on("connection", (socket) => {
         userId: sellerId,
         fromUserId: currentUserId,
         message,
-        type: "reverse_auction"
+        type: "reverse_auction",
+        data: buildNotificationData("reverse_auction", {
+          url: "/seller/dashboard"
+        })
       }).then((notif) => {
-        io.to(String(sellerId)).emit("notification", notif);
+        io.to(
+          String(sellerId)
+        ).emit("notification", serializeNotification(notif, { fallbackUrl: "/seller/dashboard" }));
         User.findById(sellerId)
           .select("roles sellerSettings")
           .lean()
@@ -457,9 +471,20 @@ io.on("connection", (socket) => {
             fromUserId: effectiveFrom,
             requirementId: requirementId || null,
             type: "new_message",
-            message: `New message: ${shortened || "Open chat to view message"}`
+            message: `New message: ${shortened || "Open chat to view message"}`,
+            data: buildNotificationData("new_message", {
+              requirementId: requirementId || null,
+              entityType: "requirement",
+              entityId: requirementId || null,
+              url: toUserDoc?.roles?.seller ? "/seller/dashboard" : "/buyer/dashboard"
+            })
           });
-          io.to(String(effectiveTo)).emit("notification", notif);
+          io.to(String(effectiveTo)).emit(
+            "notification",
+            serializeNotification(notif, {
+              fallbackUrl: toUserDoc?.roles?.seller ? "/seller/dashboard" : "/buyer/dashboard"
+            })
+          );
 
           if (chatPushEnabled) {
             try {

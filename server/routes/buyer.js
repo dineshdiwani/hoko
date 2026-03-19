@@ -12,6 +12,10 @@ const ChatMessage = require("../models/ChatMessage");
 const PlatformSettings = require("../models/PlatformSettings");
 const { getModerationRules, checkTextForFlags } = require("../utils/moderation");
 const {
+  buildNotificationData,
+  serializeNotification
+} = require("../utils/notifications");
+const {
   normalizeRequirementAttachmentValues,
   normalizeRequirementAttachmentsForResponse,
   extractStoredRequirementFilename,
@@ -396,12 +400,15 @@ router.post("/requirement", auth, buyerOnly, async (req, res) => {
             requirementId: requirement._id,
             type: "new_post",
             message: `New post in ${requirement.category || "your"} category: ${requirementName}`,
-            data: {
+            data: buildNotificationData("new_post", {
               action: "open_requirement",
               requirementId: String(requirement._id),
+              entityType: "requirement",
+              entityId: String(requirement._id),
               category: normalizedCategory,
-              offerInvitedFrom
-            }
+              offerInvitedFrom,
+              url: "/seller/dashboard"
+            })
           })
         )
       );
@@ -410,7 +417,10 @@ router.post("/requirement", auth, buyerOnly, async (req, res) => {
         notifications.forEach((notification, idx) => {
           const sellerId = sellerIds[idx];
           if (!sellerId) return;
-          io.to(String(sellerId)).emit("notification", notification);
+          io.to(String(sellerId)).emit(
+            "notification",
+            serializeNotification(notification, { fallbackUrl: "/seller/dashboard" })
+          );
         });
       }
 
@@ -632,12 +642,15 @@ router.put("/requirement/:id", auth, buyerOnly, async (req, res) => {
           type: "requirement_updated",
           requirementId: requirement._id,
           fromUserId: req.user._id,
-          data: {
+          data: buildNotificationData("requirement_updated", {
             action: "open_offer_edit",
             requirementId: String(requirement._id),
+            entityType: "requirement",
+            entityId: String(requirement._id),
             productName: requirementName,
-            changedFields
-          }
+            changedFields,
+            url: "/seller/dashboard"
+          })
         })
       )
     );
@@ -647,7 +660,10 @@ router.put("/requirement/:id", auth, buyerOnly, async (req, res) => {
       notifications.forEach((notification, idx) => {
         const sellerId = sellerIds[idx];
         if (!sellerId) return;
-        io.to(String(sellerId)).emit("notification", notification);
+        io.to(String(sellerId)).emit(
+          "notification",
+          serializeNotification(notification, { fallbackUrl: "/seller/dashboard" })
+        );
       });
     }
 
@@ -1423,14 +1439,17 @@ router.post("/requirement/:id/reverse-auction/start", auth, buyerOnly, async (re
         type: "reverse_auction_invoked",
         requirementId: requirement._id,
         fromUserId: req.user._id,
-        data: {
+        data: buildNotificationData("reverse_auction_invoked", {
           action: "open_offer_edit",
           requirementId: String(requirement._id),
+          entityType: "requirement",
+          entityId: String(requirement._id),
           productName: requirementName,
           lowestPrice: displayLowest,
           currencyCode,
-          currencySymbol
-        }
+          currencySymbol,
+          url: "/seller/dashboard"
+        })
       })
     )
   );
@@ -1440,7 +1459,10 @@ router.post("/requirement/:id/reverse-auction/start", auth, buyerOnly, async (re
     notifications.forEach((notification, idx) => {
       const sellerId = sellerIds[idx];
       if (!sellerId) return;
-      io.to(String(sellerId)).emit("notification", notification);
+      io.to(String(sellerId)).emit(
+        "notification",
+        serializeNotification(notification, { fallbackUrl: "/seller/dashboard" })
+      );
     });
   }
 
@@ -1636,7 +1658,16 @@ router.post("/offers/:offerId/outcome", auth, buyerOnly, async (req, res) => {
   }
 
   const now = new Date();
+  const requirementName =
+    requirement.product || requirement.productName || "your requirement";
+  let previouslySelectedOffers = [];
   if (outcomeStatus === "selected") {
+    previouslySelectedOffers = await Offer.find({
+      requirementId: offer.requirementId,
+      _id: { $ne: offer._id },
+      outcomeStatus: "selected",
+      "moderation.removed": { $ne: true }
+    }).select("_id sellerId");
     await Offer.updateMany(
       {
         requirementId: offer.requirementId,
@@ -1661,6 +1692,68 @@ router.post("/offers/:offerId/outcome", auth, buyerOnly, async (req, res) => {
     offer.contactEnabledByBuyer = true;
   }
   await offer.save();
+
+  const notificationsToSend = [];
+  if (offer.sellerId) {
+    const messageByOutcome = {
+      shortlisted: `Buyer shortlisted your offer for ${requirementName}`,
+      rejected: `Buyer rejected your offer for ${requirementName}`,
+      selected: `Buyer selected your offer for ${requirementName}`
+    };
+    notificationsToSend.push({
+      userId: offer.sellerId,
+      message:
+        messageByOutcome[outcomeStatus] ||
+        `Buyer updated your offer outcome for ${requirementName}`,
+      state: outcomeStatus,
+      offerId: offer._id
+    });
+  }
+
+  previouslySelectedOffers.forEach((item) => {
+    if (!item?.sellerId) return;
+    notificationsToSend.push({
+      userId: item.sellerId,
+      message: `Buyer moved your offer back to shortlisted for ${requirementName}`,
+      state: "shortlisted",
+      offerId: item._id
+    });
+  });
+
+  if (notificationsToSend.length) {
+    const io = req.app.get("io");
+    const createdNotifications = await Promise.all(
+      notificationsToSend.map((item) =>
+        Notification.create({
+          userId: item.userId,
+          fromUserId: req.user._id,
+          requirementId: requirement._id,
+          type: "offer_outcome_updated",
+          message: item.message,
+          data: buildNotificationData("offer_outcome_updated", {
+            state: item.state,
+            requirementId: String(requirement._id),
+            entityType: "requirement",
+            entityId: String(requirement._id),
+            offerId: String(item.offerId || offer._id),
+            productName: requirementName,
+            url: "/seller/dashboard"
+          })
+        })
+      )
+    );
+
+    if (io) {
+      createdNotifications.forEach((notification, index) => {
+        const targetUserId = notificationsToSend[index]?.userId;
+        if (!targetUserId) return;
+        io.to(String(targetUserId)).emit(
+          "notification",
+          serializeNotification(notification, { fallbackUrl: "/seller/dashboard" })
+        );
+      });
+    }
+  }
 
   return res.json({
     success: true,

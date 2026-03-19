@@ -58,7 +58,6 @@ function formatMessage({ requirement, deepLink }) {
     "*URGENT BUYER REQUIREMENT*",
     "",
     `Looking for: *${product}*`,
-    `Online Requirement: *${onlineRequirement}*`,
     `Quantity: *${quantityWithUnit}*`,
     `Make/Model: *${makeModel}*`,
     `Buyer City: *${city}*`,
@@ -69,7 +68,6 @@ function formatMessage({ requirement, deepLink }) {
     "- Availability Status",
     "",
     `-> *Send your best offer now:* ${deepLink}`,
-    "(Directly opens this buyer requirement.)"
   ].join("\n");
 }
 function buildSellerDeepLink(appBase, requirement) {

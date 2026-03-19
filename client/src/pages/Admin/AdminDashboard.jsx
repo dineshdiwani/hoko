@@ -164,7 +164,6 @@ export default function AdminDashboard() {
         "*URGENT BUYER REQUIREMENT*",
         "",
         `Looking for: *${product || "Buyer requirement"}*`,
-        `Online Requirement: *${onlineRequirement}*`,
         `Quantity: *${quantityWithUnit}*`,
         `Make/Model: *${makeModel}*`,
         `Buyer City: *${city || "your city"}*`,
@@ -175,7 +174,6 @@ export default function AdminDashboard() {
         "- Availability Status",
         "",
         `-> *Send your best offer now:* ${deepLink}`,
-        "(Directly opens this buyer requirement.)"
       ].join("\n");
     },
     []
