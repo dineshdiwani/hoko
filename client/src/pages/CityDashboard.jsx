@@ -141,17 +141,15 @@ export default function CityDashboard({
   }
 
   function getShareLinks(req) {
-    const shareText = getShareText(req);
     const socialShareText = getSocialShareText(req);
     const shareUrl = buildShareUrl(req);
-    const encodedText = encodeURIComponent(shareText);
     const encodedSocialText = encodeURIComponent(socialShareText);
     const encodedUrl = encodeURIComponent(shareUrl);
     return {
-      whatsapp: `https://wa.me/?text=${encodedText}`,
+      whatsapp: `https://wa.me/?text=${encodedSocialText}`,
       facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedSocialText}`,
       mail: `mailto:?subject=${encodeURIComponent("URGENT BUYER REQUIREMENT")}&body=${encodedSocialText}`,
-      linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`
+      linkedin: `https://www.linkedin.com/feed/?shareActive=true&text=${encodedSocialText}`
     };
   }
 

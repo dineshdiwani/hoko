@@ -592,14 +592,13 @@ export default function SellerDashboard() {
   function getShareLinks(req) {
     const reqId = String(req?._id || "").trim();
     const deepLink = `${appBaseUrl}/seller/deeplink/${encodeURIComponent(reqId)}`;
-    const text = encodeURIComponent(getShareText(req));
     const socialText = encodeURIComponent(getSocialShareText(req));
     const url = encodeURIComponent(deepLink);
     return {
-      whatsapp: `https://wa.me/?text=${text}`,
+      whatsapp: `https://wa.me/?text=${socialText}`,
       facebook: `https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${socialText}`,
       mail: `mailto:?subject=${encodeURIComponent("URGENT BUYER REQUIREMENT")}&body=${socialText}`,
-      linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${url}`
+      linkedin: `https://www.linkedin.com/feed/?shareActive=true&text=${socialText}`
     };
   }
 
