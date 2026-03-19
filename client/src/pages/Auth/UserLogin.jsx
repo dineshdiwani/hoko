@@ -57,14 +57,7 @@ export default function UserLogin({ role = "buyer" }) {
   const [submitted, setSubmitted] = useState(false);
   const [termsContent, setTermsContent] = useState(defaultTermsContent);
   const [privacyPolicyContent, setPrivacyPolicyContent] = useState(defaultPrivacyPolicyContent);
-  const [cities, setCities] = useState([
-    "Mumbai",
-    "Delhi",
-    "Bangalore",
-    "Chennai",
-    "Hyderabad",
-    "Pune"
-  ]);
+  const [cities, setCities] = useState([]);
 
   const redirect = isSeller
     ? (useSellerPostLoginRedirect ? postLoginRedirect : "/seller/dashboard")
