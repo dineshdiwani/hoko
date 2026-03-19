@@ -613,8 +613,12 @@ export default function SellerDashboard() {
     const reqId = String(req?._id || "").trim();
     const deepLink = `${appBaseUrl}/seller/deeplink/${encodeURIComponent(reqId)}`;
     const socialText = encodeURIComponent(getSocialShareText(req));
+    const socialTextRaw = getSocialShareText(req);
     const facebookQuote = encodeURIComponent(getFacebookQuoteText(req).slice(0, 450));
     const url = encodeURIComponent(deepLink);
+    const linkedinAppLink = `linkedin://shareArticle?mini=true&url=${url}&title=${encodeURIComponent(
+      "URGENT BUYER REQUIREMENT"
+    )}&summary=${encodeURIComponent(socialTextRaw.slice(0, 256))}`;
     const facebookAppId = String(import.meta.env.VITE_FACEBOOK_APP_ID || "").trim();
     const facebookLink = facebookAppId
       ? `https://www.facebook.com/dialog/share?app_id=${encodeURIComponent(
@@ -625,15 +629,22 @@ export default function SellerDashboard() {
       whatsapp: `https://wa.me/?text=${socialText}`,
       facebook: facebookLink,
       mail: `mailto:?subject=${encodeURIComponent("URGENT BUYER REQUIREMENT")}&body=${socialText}`,
-      linkedin: `https://www.linkedin.com/feed/?shareActive=true&text=${socialText}`
+      linkedin: `https://www.linkedin.com/feed/?shareActive=true&text=${socialText}`,
+      linkedinApp: linkedinAppLink
     };
   }
 
-  function openShareLink(url) {
+  function openShareLink(url, fallbackUrl = "") {
     const target = String(url || "").trim();
+    const fallback = String(fallbackUrl || "").trim();
     if (!target) return;
     if (isNativeAppRuntime()) {
       window.location.href = target;
+      if (target.startsWith("linkedin://") && fallback) {
+        window.setTimeout(() => {
+          window.location.href = fallback;
+        }, 1200);
+      }
       return;
     }
     window.open(target, "_blank", "noopener,noreferrer");
@@ -1149,7 +1160,12 @@ export default function SellerDashboard() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => openShareLink(shareLinks.linkedin)}
+                      onClick={() =>
+                        openShareLink(
+                          shareLinks.linkedinApp || shareLinks.linkedin,
+                          shareLinks.linkedin
+                        )
+                      }
                       aria-label="Share on LinkedIn"
                       className="w-9 h-9 inline-flex items-center justify-center rounded-full border border-sky-200 text-sky-700 hover:bg-sky-50"
                     >
