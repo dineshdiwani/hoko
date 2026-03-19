@@ -28,14 +28,24 @@ const DEFAULT_ROLES = {
 
 let googleClient = null;
 let googleAuthInitError = null;
+const DEFAULT_GOOGLE_CLIENT_IDS = [
+  "482189438712-3si7monkd64341m7qh90hqevmdhh75iv.apps.googleusercontent.com",
+  "340021652429-qu9hohn3j0hu9uv437skbc3m53dl7b06.apps.googleusercontent.com"
+];
 
 function getGoogleClientIds() {
   const raw = String(process.env.GOOGLE_CLIENT_ID || "").trim();
-  if (!raw) return [];
-  return raw
+  const fromEnv = raw
     .split(",")
     .map((item) => String(item || "").trim())
     .filter(Boolean);
+  const unique = [];
+  for (const id of [...fromEnv, ...DEFAULT_GOOGLE_CLIENT_IDS]) {
+    if (id && !unique.includes(id)) {
+      unique.push(id);
+    }
+  }
+  return unique;
 }
 
 function decodeJwtPayload(token) {

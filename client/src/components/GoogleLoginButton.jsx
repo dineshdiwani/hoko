@@ -5,7 +5,9 @@ import { isNativeAppRuntime } from "../utils/runtime";
 function parseGoogleClientIds() {
   const raw = [
     import.meta.env.VITE_GOOGLE_CLIENT_ID,
-    import.meta.env.VITE_GOOGLE_CLIENT_ID_FALLBACK
+    import.meta.env.VITE_GOOGLE_CLIENT_ID_FALLBACK,
+    "482189438712-3si7monkd64341m7qh90hqevmdhh75iv.apps.googleusercontent.com",
+    "340021652429-qu9hohn3j0hu9uv437skbc3m53dl7b06.apps.googleusercontent.com"
   ]
     .map((item) => String(item || "").trim())
     .filter(Boolean)
@@ -28,6 +30,14 @@ function isCancellationLikeError(error) {
     message.includes("canceled") ||
     message.includes("activity is cancelled")
   );
+}
+
+async function tryNativeGoogleLogin(options) {
+  const response = await SocialLogin.login({
+    provider: "google",
+    options
+  });
+  return response?.provider === "google" ? response?.result?.idToken : null;
 }
 
 export default function GoogleLoginButton({
@@ -215,16 +225,17 @@ export default function GoogleLoginButton({
     try {
       setInitError("");
       setInitializing(true);
-      const response = await SocialLogin.login({
-        provider: "google",
-        options: {
+      let credential = await tryNativeGoogleLogin({
+        filterByAuthorizedAccounts: false,
+        autoSelectEnabled: false
+      });
+      if (!credential) {
+        credential = await tryNativeGoogleLogin({
           style: "bottom",
           filterByAuthorizedAccounts: false,
           autoSelectEnabled: false
-        }
-      });
-      const credential =
-        response?.provider === "google" ? response?.result?.idToken : null;
+        });
+      }
       if (!credential) {
         throw new Error("Google credential unavailable");
       }
@@ -245,24 +256,30 @@ export default function GoogleLoginButton({
         const reInitialized = await initializeNativeGoogle(nextIndex);
         if (reInitialized) {
           try {
-            const retryResponse = await SocialLogin.login({
-              provider: "google",
-              options: {
+            const retryCredential =
+              (await tryNativeGoogleLogin({
+                filterByAuthorizedAccounts: false,
+                autoSelectEnabled: false
+              })) ||
+              (await tryNativeGoogleLogin({
                 style: "bottom",
                 filterByAuthorizedAccounts: false,
                 autoSelectEnabled: false
-              }
-            });
-            const retryCredential =
-              retryResponse?.provider === "google"
-                ? retryResponse?.result?.idToken
-                : null;
+              }));
             if (retryCredential) {
               onSuccessRef.current?.(retryCredential);
               return;
             }
           } catch {}
         }
+      }
+      if (isCancellationLikeError(error)) {
+        const nextError = new Error(
+          "Google Sign-In was cancelled on device. Please select a Google account and try again."
+        );
+        setInitError(nextError.message);
+        onErrorRef.current?.(nextError);
+        return;
       }
       const nextError =
         error instanceof Error
