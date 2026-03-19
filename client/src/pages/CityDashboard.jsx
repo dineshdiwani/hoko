@@ -169,10 +169,6 @@ export default function CityDashboard({
     const linkedinAppLink = `linkedin://shareArticle?mini=true&url=${encodedUrl}&title=${encodeURIComponent(
       "URGENT BUYER REQUIREMENT"
     )}&summary=${encodeURIComponent(socialShareText.slice(0, 256))}`;
-    const linkedinIntentLink = `intent://shareArticle?mini=true&url=${encodedUrl}#Intent;package=com.linkedin.android;scheme=https;S.browser_fallback_url=${encodeURIComponent(
-      `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`
-    )};end`;
-    const linkedinWebLink = `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`;
     const facebookAppId = String(import.meta.env.VITE_FACEBOOK_APP_ID || "").trim();
     const facebookLink = facebookAppId
       ? `https://www.facebook.com/dialog/share?app_id=${encodeURIComponent(
@@ -184,9 +180,7 @@ export default function CityDashboard({
       facebook: facebookLink,
       mail: `mailto:?subject=${encodeURIComponent("URGENT BUYER REQUIREMENT")}&body=${encodedSocialText}`,
       linkedin: `https://www.linkedin.com/feed/?shareActive=true&text=${encodedSocialText}`,
-      linkedinApp: linkedinAppLink,
-      linkedinIntent: linkedinIntentLink,
-      linkedinWeb: linkedinWebLink
+      linkedinApp: linkedinAppLink
     };
   }
 
@@ -204,31 +198,6 @@ export default function CityDashboard({
       return;
     }
     window.open(target, "_blank", "noopener,noreferrer");
-  }
-
-  function openLinkedInShare(links) {
-    const linkedinApp = String(links?.linkedinApp || "").trim();
-    const linkedinIntent = String(links?.linkedinIntent || "").trim();
-    const linkedinWeb = String(links?.linkedinWeb || links?.linkedin || "").trim();
-
-    if (!isNativeAppRuntime()) {
-      openShareLink(linkedinWeb || links?.linkedin);
-      return;
-    }
-
-    if (linkedinApp) {
-      window.location.href = linkedinApp;
-    }
-    window.setTimeout(() => {
-      if (linkedinIntent) {
-        window.location.href = linkedinIntent;
-      }
-    }, 700);
-    window.setTimeout(() => {
-      if (linkedinWeb) {
-        window.location.href = linkedinWeb;
-      }
-    }, 1700);
   }
 
   useEffect(() => {
@@ -677,7 +646,12 @@ export default function CityDashboard({
                   </button>
                   <button
                     type="button"
-                    onClick={() => openLinkedInShare(shareLinks)}
+                    onClick={() =>
+                      openShareLink(
+                        shareLinks.linkedinApp || shareLinks.linkedin,
+                        shareLinks.linkedin
+                      )
+                    }
                     aria-label="Share on LinkedIn"
                     className="w-9 h-9 inline-flex items-center justify-center rounded-full border border-sky-200 text-sky-700 hover:bg-sky-50"
                   >

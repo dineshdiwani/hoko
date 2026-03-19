@@ -619,10 +619,6 @@ export default function SellerDashboard() {
     const linkedinAppLink = `linkedin://shareArticle?mini=true&url=${url}&title=${encodeURIComponent(
       "URGENT BUYER REQUIREMENT"
     )}&summary=${encodeURIComponent(socialTextRaw.slice(0, 256))}`;
-    const linkedinIntentLink = `intent://shareArticle?mini=true&url=${url}#Intent;package=com.linkedin.android;scheme=https;S.browser_fallback_url=${encodeURIComponent(
-      `https://www.linkedin.com/sharing/share-offsite/?url=${url}`
-    )};end`;
-    const linkedinWebLink = `https://www.linkedin.com/sharing/share-offsite/?url=${url}`;
     const facebookAppId = String(import.meta.env.VITE_FACEBOOK_APP_ID || "").trim();
     const facebookLink = facebookAppId
       ? `https://www.facebook.com/dialog/share?app_id=${encodeURIComponent(
@@ -634,9 +630,7 @@ export default function SellerDashboard() {
       facebook: facebookLink,
       mail: `mailto:?subject=${encodeURIComponent("URGENT BUYER REQUIREMENT")}&body=${socialText}`,
       linkedin: `https://www.linkedin.com/feed/?shareActive=true&text=${socialText}`,
-      linkedinApp: linkedinAppLink,
-      linkedinIntent: linkedinIntentLink,
-      linkedinWeb: linkedinWebLink
+      linkedinApp: linkedinAppLink
     };
   }
 
@@ -654,31 +648,6 @@ export default function SellerDashboard() {
       return;
     }
     window.open(target, "_blank", "noopener,noreferrer");
-  }
-
-  function openLinkedInShare(links) {
-    const linkedinApp = String(links?.linkedinApp || "").trim();
-    const linkedinIntent = String(links?.linkedinIntent || "").trim();
-    const linkedinWeb = String(links?.linkedinWeb || links?.linkedin || "").trim();
-
-    if (!isNativeAppRuntime()) {
-      openShareLink(linkedinWeb || links?.linkedin);
-      return;
-    }
-
-    if (linkedinApp) {
-      window.location.href = linkedinApp;
-    }
-    window.setTimeout(() => {
-      if (linkedinIntent) {
-        window.location.href = linkedinIntent;
-      }
-    }, 700);
-    window.setTimeout(() => {
-      if (linkedinWeb) {
-        window.location.href = linkedinWeb;
-      }
-    }, 1700);
   }
 
   async function openRequirementWithHighlights(requirementId, changedFields = []) {
@@ -1191,7 +1160,12 @@ export default function SellerDashboard() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => openLinkedInShare(shareLinks)}
+                      onClick={() =>
+                        openShareLink(
+                          shareLinks.linkedinApp || shareLinks.linkedin,
+                          shareLinks.linkedin
+                        )
+                      }
                       aria-label="Share on LinkedIn"
                       className="w-9 h-9 inline-flex items-center justify-center rounded-full border border-sky-200 text-sky-700 hover:bg-sky-50"
                     >
