@@ -573,19 +573,20 @@ export default function SellerDashboard() {
     const buyerCity = String(req?.city || "").trim() || "CITY";
 
     return [
-      "URGENT BUYER REQUIREMENT",
+      "*URGENT BUYER REQUIREMENT*",
       "",
-      `Product: ${product}`,
-      `Quantity: ${quantity}`,
-      `Make/Model: ${makeModel}`,
-      `Buyer City: ${buyerCity}`,
+      `Looking for: *${product}*`,
+      `Quantity: *${quantity}*`,
+      `Make/Model: *${makeModel}*`,
+      `Buyer City: *${buyerCity}*`,
       "",
-      "Vendors/Dealers can DM with:",
-      "Price | Stock | Delivery Time",
+      "Suppliers, please share:",
+      "- Best Price",
+      "- Delivery Timeline",
+      "- Availability Status",
       "",
-      `Respond here: ${deepLink}`,
-      "",
-      "#BuyerRequirement #B2B #Suppliers #BusinessLead"
+      "*Send your best offer now:*",
+      deepLink
     ].join("\n");
   }
 
@@ -599,13 +600,12 @@ export default function SellerDashboard() {
     const makeModel = [make, model].filter(Boolean).join(" ") || "BRAND + MODEL";
     const buyerCity = String(req?.city || "").trim() || "CITY";
     return [
-      "URGENT BUYER REQUIREMENT",
-      `Product: ${product}`,
-      `Quantity: ${quantity}`,
-      `Make/Model: ${makeModel}`,
-      `Buyer City: ${buyerCity}`,
-      "DM: Price | Stock | Delivery Time",
-      "#BuyerRequirement #B2B #Suppliers #BusinessLead"
+      "*URGENT BUYER REQUIREMENT*",
+      `Looking for: *${product}*`,
+      `Quantity: *${quantity}*`,
+      `Make/Model: *${makeModel}*`,
+      `Buyer City: *${buyerCity}*`,
+      "Suppliers: Best Price | Delivery Timeline | Availability"
     ].join(" | ");
   }
 
