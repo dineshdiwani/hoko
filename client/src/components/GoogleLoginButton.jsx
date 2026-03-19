@@ -225,17 +225,10 @@ export default function GoogleLoginButton({
     try {
       setInitError("");
       setInitializing(true);
-      let credential = await tryNativeGoogleLogin({
+      const credential = await tryNativeGoogleLogin({
         filterByAuthorizedAccounts: false,
         autoSelectEnabled: false
       });
-      if (!credential) {
-        credential = await tryNativeGoogleLogin({
-          style: "bottom",
-          filterByAuthorizedAccounts: false,
-          autoSelectEnabled: false
-        });
-      }
       if (!credential) {
         throw new Error("Google credential unavailable");
       }
@@ -248,34 +241,14 @@ export default function GoogleLoginButton({
         isCancellationLikeError(error) &&
         nextIndex < clientIds.length
       ) {
-        try {
-          await SocialLogin.logout({ provider: "google" });
-        } catch {}
+        try { await SocialLogin.logout({ provider: "google" }); } catch {}
         initializedRef.current = false;
         setGoogleReady(false);
-        const reInitialized = await initializeNativeGoogle(nextIndex);
-        if (reInitialized) {
-          try {
-            const retryCredential =
-              (await tryNativeGoogleLogin({
-                filterByAuthorizedAccounts: false,
-                autoSelectEnabled: false
-              })) ||
-              (await tryNativeGoogleLogin({
-                style: "bottom",
-                filterByAuthorizedAccounts: false,
-                autoSelectEnabled: false
-              }));
-            if (retryCredential) {
-              onSuccessRef.current?.(retryCredential);
-              return;
-            }
-          } catch {}
-        }
+        await initializeNativeGoogle(nextIndex);
       }
       if (isCancellationLikeError(error)) {
         const nextError = new Error(
-          "Google Sign-In was cancelled on device. Please select a Google account and try again."
+          "Google Sign-In was cancelled. Please select account once and tap Continue with Google again."
         );
         setInitError(nextError.message);
         onErrorRef.current?.(nextError);
