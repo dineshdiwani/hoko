@@ -118,7 +118,8 @@ export default function AdminWhatsApp() {
         "- Delivery Timeline",
         "- Availability Status",
         "",
-        `-> *Send your best offer now:* ${deepLink}`,
+        "*Send your best offer now:*",
+        deepLink,
       ].join("\n");
     },
     []
@@ -836,3 +837,5 @@ export default function AdminWhatsApp() {
     </div>
   );
 }
+
+

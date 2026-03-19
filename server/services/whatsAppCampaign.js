@@ -67,7 +67,8 @@ function formatMessage({ requirement, deepLink }) {
     "- Delivery Timeline",
     "- Availability Status",
     "",
-    `-> *Send your best offer now:* ${deepLink}`,
+    "*Send your best offer now:*",
+    deepLink,
   ].join("\n");
 }
 function buildSellerDeepLink(appBase, requirement) {
@@ -382,3 +383,5 @@ module.exports = {
   triggerWhatsAppCampaignForRequirement,
   sendTestWhatsAppCampaign
 };
+
+
