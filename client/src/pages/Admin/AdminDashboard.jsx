@@ -143,36 +143,42 @@ export default function AdminDashboard() {
   const buildManualMessage = useCallback(
     (requirement) => {
       if (!requirement?._id) return "";
-      const lines = ["New buyer requirement posted on Hoko."];
-      if (manualTemplateFields.product) {
-        lines.push(`Post: ${requirement.product || requirement.productName || "-"}`);
-      }
-      if (manualTemplateFields.makeBrand) {
-        lines.push(`Make/Brand: ${requirement.makeBrand || requirement.brand || "-"}`);
-      }
-      if (manualTemplateFields.typeModel) {
-        lines.push(`Type Model: ${requirement.typeModel || requirement.type || "-"}`);
-      }
-      if (manualTemplateFields.quantity) {
-        const quantity = requirement.quantity || "-";
-        const unit = requirement.unit || "-";
-        lines.push(`Quantity: ${quantity} ${unit}`.trim());
-      }
-      if (manualTemplateFields.city) {
-        lines.push(`City: ${requirement.city || "-"}`);
-      }
-      if (manualTemplateFields.details) {
-        lines.push(`Details: ${requirement.details || "-"}`);
-      }
-      if (manualTemplateFields.link) {
-        const baseUrl = getPublicAppUrl();
-        const reqIdRaw = String(requirement._id || "").trim();
-        const reqIdParam = encodeURIComponent(reqIdRaw);
-        lines.push(`Open: ${baseUrl}/seller/deeplink/${reqIdParam}`);
-      }
-      return lines.join("\n");
+      const product = String(requirement.product || requirement.productName || "Buyer requirement").trim();
+      const quantity = String(requirement.quantity || "-").trim();
+      const unit = String(requirement.unit || requirement.type || "").trim();
+      const quantityWithUnit = `${quantity}${unit ? ` ${unit}` : ""}`.trim();
+      const make = String(requirement.makeBrand || requirement.brand || "").trim();
+      const model = String(requirement.typeModel || requirement.type || "").trim();
+      const makeModel = make && model ? `${make} ${model}` : make || model || "-";
+      const city = String(requirement.city || "your city").trim();
+      const onlineRequirement =
+        String(requirement.offerInvitedFrom || "").trim().toLowerCase() === "anywhere"
+          ? "Yes (Open to suppliers across cities)"
+          : "No (City-focused requirement)";
+      const baseUrl = getPublicAppUrl();
+      const reqIdRaw = String(requirement._id || "").trim();
+      const reqIdParam = encodeURIComponent(reqIdRaw);
+      const deepLink = `${baseUrl}/seller/deeplink/${reqIdParam}`;
+
+      return [
+        "*URGENT BUYER REQUIREMENT*",
+        "",
+        `Looking for: *${product || "Buyer requirement"}*`,
+        `Online Requirement: *${onlineRequirement}*`,
+        `Quantity: *${quantityWithUnit}*`,
+        `Make/Model: *${makeModel}*`,
+        `Buyer City: *${city || "your city"}*`,
+        "",
+        "Suppliers, please share:",
+        "- Best Price",
+        "- Delivery Timeline",
+        "- Availability Status",
+        "",
+        `-> *Send your best offer now:* ${deepLink}`,
+        "(Directly opens this buyer requirement.)"
+      ].join("\n");
     },
-    [manualTemplateFields]
+    []
   );
 
   const loadDashboardData = useCallback(async () => {

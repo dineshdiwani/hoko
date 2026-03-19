@@ -72,31 +72,59 @@ export default function AdminWhatsApp() {
     if (!text) return fallback;
     return text.replace(/\s+/g, " ");
   };
-  const buildRequirementHighlights = (requirement) => {
-    const product = firstNonEmpty([requirement.product, requirement.productName, "Buyer requirement"]);
-    const quantity = firstNonEmpty([requirement.quantity]);
-    const unit = firstNonEmpty([requirement.unit, requirement.type]);
-    const category = firstNonEmpty([requirement.category]);
-    const makeBrand = firstNonEmpty([requirement.makeBrand, requirement.brand]);
-    const typeModel = firstNonEmpty([requirement.typeModel]);
-    const details = firstNonEmpty([requirement.details, requirement.description]);
-
-    const lineOneParts = [product];
-    if (quantity) {
-      lineOneParts.push(`${quantity}${unit ? ` ${unit}` : ""}`.trim());
+  const buildOnlineRequirementInfo = (requirement) => {
+    const inviteMode = normalizeText(requirement?.offerInvitedFrom);
+    if (inviteMode === "anywhere") {
+      return "Yes (Open to suppliers across cities)";
     }
-
-    const lineTwoParts = [];
-    if (category) lineTwoParts.push(`Category: ${category}`);
-    if (makeBrand) lineTwoParts.push(`Brand: ${makeBrand}`);
-    if (typeModel) lineTwoParts.push(`Model: ${typeModel}`);
-
-    return [
-      toSentence(lineOneParts.join(" - "), product),
-      toSentence(lineTwoParts.join(" | "), category ? `Category: ${category}` : "New buyer requirement"),
-      toSentence(details, `City: ${firstNonEmpty([requirement.city, "your city"])}`)
-    ];
+    return "No (City-focused requirement)";
   };
+
+  const buildMakeModel = (requirement) => {
+    const make = firstNonEmpty([requirement?.makeBrand, requirement?.brand]);
+    const model = firstNonEmpty([requirement?.typeModel, requirement?.type]);
+    if (make && model) return `${make} ${model}`;
+    return make || model || "-";
+  };
+
+  const buildManualMessage = useCallback(
+    (requirement) => {
+      if (!requirement?._id) return "";
+      const product = toSentence(
+        firstNonEmpty([requirement?.product, requirement?.productName, "Buyer requirement"]),
+        "Buyer requirement"
+      );
+      const quantity = toSentence(firstNonEmpty([requirement?.quantity]), "-");
+      const unit = toSentence(firstNonEmpty([requirement?.unit, requirement?.type]), "");
+      const quantityWithUnit = `${quantity}${unit ? ` ${unit}` : ""}`.trim();
+      const makeModel = toSentence(buildMakeModel(requirement), "-");
+      const city = toSentence(firstNonEmpty([requirement?.city, "your city"]), "your city");
+      const onlineRequirement = toSentence(buildOnlineRequirementInfo(requirement), "-");
+      const baseUrl = getPublicAppUrl();
+      const reqIdRaw = String(requirement._id || "").trim();
+      const reqIdParam = encodeURIComponent(reqIdRaw);
+      const deepLink = `${baseUrl}/seller/deeplink/${reqIdParam}`;
+
+      return [
+        "*URGENT BUYER REQUIREMENT*",
+        "",
+        `Looking for: *${product}*`,
+        `Online Requirement: *${onlineRequirement}*`,
+        `Quantity: *${quantityWithUnit}*`,
+        `Make/Model: *${makeModel}*`,
+        `Buyer City: *${city}*`,
+        "",
+        "Suppliers, please share:",
+        "- Best Price",
+        "- Delivery Timeline",
+        "- Availability Status",
+        "",
+        `-> *Send your best offer now:* ${deepLink}`,
+        "(Directly opens this buyer requirement.)"
+      ].join("\n");
+    },
+    []
+  );
 
   const formatDateTime = (value) => {
     if (!value) return "N/A";
@@ -110,33 +138,6 @@ export default function AdminWhatsApp() {
       minute: "2-digit"
     });
   };
-
-  const buildManualMessage = useCallback(
-    (requirement) => {
-      if (!requirement?._id) return "";
-      const city = firstNonEmpty([requirement.city]) || "your city";
-      const [requirementOne, requirementTwo, requirementThree] =
-        buildRequirementHighlights(requirement);
-      const baseUrl = getPublicAppUrl();
-      const reqIdRaw = String(requirement._id || "").trim();
-      const reqIdParam = encodeURIComponent(reqIdRaw);
-      const deepLink = `${baseUrl}/seller/deeplink/${reqIdParam}`;
-      return [
-        `*Buyer requirements from ${city} are now live on Hoko*`,
-        "",
-        `• ${requirementOne}`,
-        `• ${requirementTwo}`,
-        `• ${requirementThree}`,
-        "",
-        `If you sell in *${city}*, you can review these requirements and respond directly on the platform.`,
-        "",
-        "*Access here:*",
-        deepLink
-      ].join("\n");
-    },
-    []
-  );
-
   const availableManualCities = useMemo(() => {
     const fromContacts = contacts
       .map((contact) => String(contact?.city || "").trim())

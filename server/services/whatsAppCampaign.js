@@ -27,54 +27,49 @@ function toSentence(value, fallback = "") {
   return text.replace(/\s+/g, " ");
 }
 
-function buildRequirementHighlights(requirement) {
-  const product = firstNonEmpty([requirement.product, requirement.productName, "Buyer requirement"]);
-  const quantity = firstNonEmpty([requirement.quantity]);
-  const unit = firstNonEmpty([requirement.unit, requirement.type]);
-  const category = firstNonEmpty([requirement.category]);
-  const makeBrand = firstNonEmpty([requirement.makeBrand, requirement.brand]);
-  const typeModel = firstNonEmpty([requirement.typeModel]);
-  const details = firstNonEmpty([requirement.details, requirement.description]);
-
-  const lineOneParts = [product];
-  if (quantity) {
-    lineOneParts.push(`${quantity}${unit ? ` ${unit}` : ""}`.trim());
+function buildOnlineRequirementInfo(requirement) {
+  const inviteMode = normalizeText(requirement?.offerInvitedFrom);
+  if (inviteMode === "anywhere") {
+    return "Yes (Open to suppliers across cities)";
   }
+  return "No (City-focused requirement)";
+}
 
-  const lineTwoParts = [];
-  if (category) lineTwoParts.push(`Category: ${category}`);
-  if (makeBrand) lineTwoParts.push(`Brand: ${makeBrand}`);
-  if (typeModel) lineTwoParts.push(`Model: ${typeModel}`);
-
-  const highlights = [
-    toSentence(lineOneParts.join(" - "), product),
-    toSentence(lineTwoParts.join(" | "), category ? `Category: ${category}` : "New buyer requirement"),
-    toSentence(details, `City: ${firstNonEmpty([requirement.city, "your city"])}`)
-  ];
-
-  while (highlights.length < 3) {
-    highlights.push("New buyer requirement");
-  }
-
-  return highlights.slice(0, 3);
+function buildMakeModel(requirement) {
+  const make = firstNonEmpty([requirement?.makeBrand, requirement?.brand]);
+  const model = firstNonEmpty([requirement?.typeModel, requirement?.type]);
+  if (make && model) return `${make} ${model}`;
+  return make || model || "-";
 }
 
 function formatMessage({ requirement, deepLink }) {
-  const city = firstNonEmpty([requirement.city]) || "your city";
-  const [requirementOne, requirementTwo, requirementThree] =
-    buildRequirementHighlights(requirement);
+  const product = toSentence(
+    firstNonEmpty([requirement?.product, requirement?.productName, "Buyer requirement"]),
+    "Buyer requirement"
+  );
+  const quantity = toSentence(firstNonEmpty([requirement?.quantity]), "-");
+  const unit = toSentence(firstNonEmpty([requirement?.unit, requirement?.type]), "");
+  const quantityWithUnit = `${quantity}${unit ? ` ${unit}` : ""}`.trim();
+  const makeModel = toSentence(buildMakeModel(requirement), "-");
+  const city = toSentence(firstNonEmpty([requirement?.city, "your city"]), "your city");
+  const onlineRequirement = toSentence(buildOnlineRequirementInfo(requirement), "-");
 
   return [
-    `*Buyer requirements from ${city} are now live on Hoko*`,
+    "*URGENT BUYER REQUIREMENT*",
     "",
-    `• ${requirementOne}`,
-    `• ${requirementTwo}`,
-    `• ${requirementThree}`,
+    `Looking for: *${product}*`,
+    `Online Requirement: *${onlineRequirement}*`,
+    `Quantity: *${quantityWithUnit}*`,
+    `Make/Model: *${makeModel}*`,
+    `Buyer City: *${city}*`,
     "",
-    `If you sell in *${city}*, you can review these requirements and respond directly on the platform.`,
+    "Suppliers, please share:",
+    "- Best Price",
+    "- Delivery Timeline",
+    "- Availability Status",
     "",
-    "*Access here:*",
-    deepLink
+    `-> *Send your best offer now:* ${deepLink}`,
+    "(Directly opens this buyer requirement.)"
   ].join("\n");
 }
 function buildSellerDeepLink(appBase, requirement) {
