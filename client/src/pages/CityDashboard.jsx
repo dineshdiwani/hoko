@@ -166,9 +166,15 @@ export default function CityDashboard({
     const encodedSocialText = encodeURIComponent(socialShareText);
     const encodedFacebookQuote = encodeURIComponent(getFacebookQuoteText(req).slice(0, 450));
     const encodedUrl = encodeURIComponent(shareUrl);
+    const facebookAppId = String(import.meta.env.VITE_FACEBOOK_APP_ID || "").trim();
+    const facebookLink = facebookAppId
+      ? `https://www.facebook.com/dialog/share?app_id=${encodeURIComponent(
+          facebookAppId
+        )}&display=popup&href=${encodedUrl}&quote=${encodedFacebookQuote}`
+      : `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedFacebookQuote}`;
     return {
       whatsapp: `https://wa.me/?text=${encodedSocialText}`,
-      facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedFacebookQuote}`,
+      facebook: facebookLink,
       mail: `mailto:?subject=${encodeURIComponent("URGENT BUYER REQUIREMENT")}&body=${encodedSocialText}`,
       linkedin: `https://www.linkedin.com/feed/?shareActive=true&text=${encodedSocialText}`
     };

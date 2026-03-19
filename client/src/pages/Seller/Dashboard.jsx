@@ -615,9 +615,15 @@ export default function SellerDashboard() {
     const socialText = encodeURIComponent(getSocialShareText(req));
     const facebookQuote = encodeURIComponent(getFacebookQuoteText(req).slice(0, 450));
     const url = encodeURIComponent(deepLink);
+    const facebookAppId = String(import.meta.env.VITE_FACEBOOK_APP_ID || "").trim();
+    const facebookLink = facebookAppId
+      ? `https://www.facebook.com/dialog/share?app_id=${encodeURIComponent(
+          facebookAppId
+        )}&display=popup&href=${url}&quote=${facebookQuote}`
+      : `https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${facebookQuote}`;
     return {
       whatsapp: `https://wa.me/?text=${socialText}`,
-      facebook: `https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${facebookQuote}`,
+      facebook: facebookLink,
       mail: `mailto:?subject=${encodeURIComponent("URGENT BUYER REQUIREMENT")}&body=${socialText}`,
       linkedin: `https://www.linkedin.com/feed/?shareActive=true&text=${socialText}`
     };
