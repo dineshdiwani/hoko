@@ -2,12 +2,42 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { SocialLogin } from "@capgo/capacitor-social-login";
 import { isNativeAppRuntime } from "../utils/runtime";
 
+function parseGoogleClientIds() {
+  const raw = [
+    import.meta.env.VITE_GOOGLE_CLIENT_ID,
+    import.meta.env.VITE_GOOGLE_CLIENT_ID_FALLBACK
+  ]
+    .map((item) => String(item || "").trim())
+    .filter(Boolean)
+    .join(",");
+  const unique = [];
+  for (const id of raw.split(",").map((item) => item.trim()).filter(Boolean)) {
+    if (!unique.includes(id)) {
+      unique.push(id);
+    }
+  }
+  return unique;
+}
+
+function isCancellationLikeError(error) {
+  const message = String(error?.message || error || "").toLowerCase();
+  return (
+    message.includes("cancelled by user") ||
+    message.includes("canceled by user") ||
+    message.includes("cancelled") ||
+    message.includes("canceled") ||
+    message.includes("activity is cancelled")
+  );
+}
+
 export default function GoogleLoginButton({
   onSuccess,
   onError,
   disabled = false,
   onDisabledClick
 }) {
+  const googleClientIdsRef = useRef(parseGoogleClientIds());
+  const activeClientIndexRef = useRef(0);
   const initializedRef = useRef(false);
   const buttonHostRef = useRef(null);
   const onSuccessRef = useRef(onSuccess);
@@ -23,8 +53,14 @@ export default function GoogleLoginButton({
     onErrorRef.current = onError;
   }, [onSuccess, onError]);
 
-  const initializeGoogle = useCallback(() => {
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  const initializeGoogle = useCallback((forcedIndex = null) => {
+    const clientIds = googleClientIdsRef.current;
+    const clientId =
+      clientIds[
+        forcedIndex == null
+          ? activeClientIndexRef.current
+          : Math.max(0, Math.min(forcedIndex, clientIds.length - 1))
+      ];
     if (!clientId) {
       const error = new Error("Missing VITE_GOOGLE_CLIENT_ID");
       setInitError(error.message);
@@ -32,6 +68,12 @@ export default function GoogleLoginButton({
       return false;
     }
     if (!window.google?.accounts?.id) return false;
+    if (forcedIndex != null) {
+      activeClientIndexRef.current = Math.max(
+        0,
+        Math.min(forcedIndex, clientIds.length - 1)
+      );
+    }
 
     if (!initializedRef.current) {
       window.google.accounts.id.initialize({
@@ -52,8 +94,13 @@ export default function GoogleLoginButton({
     return true;
   }, []);
 
-  const initializeNativeGoogle = useCallback(async () => {
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  const initializeNativeGoogle = useCallback(async (forcedIndex = null) => {
+    const clientIds = googleClientIdsRef.current;
+    const safeIndex =
+      forcedIndex == null
+        ? activeClientIndexRef.current
+        : Math.max(0, Math.min(forcedIndex, clientIds.length - 1));
+    const clientId = clientIds[safeIndex];
     if (!clientId) {
       const error = new Error("Missing VITE_GOOGLE_CLIENT_ID");
       setInitError(error.message);
@@ -63,6 +110,7 @@ export default function GoogleLoginButton({
     try {
       setInitializing(true);
       setInitError("");
+      activeClientIndexRef.current = safeIndex;
       await SocialLogin.initialize({
         google: {
           webClientId: clientId,
@@ -170,6 +218,7 @@ export default function GoogleLoginButton({
       const response = await SocialLogin.login({
         provider: "google",
         options: {
+          style: "bottom",
           filterByAuthorizedAccounts: false,
           autoSelectEnabled: false
         }
@@ -181,8 +230,44 @@ export default function GoogleLoginButton({
       }
       onSuccessRef.current?.(credential);
     } catch (error) {
+      const clientIds = googleClientIdsRef.current;
+      const currentIndex = activeClientIndexRef.current;
+      const nextIndex = currentIndex + 1;
+      if (
+        isCancellationLikeError(error) &&
+        nextIndex < clientIds.length
+      ) {
+        try {
+          await SocialLogin.logout({ provider: "google" });
+        } catch {}
+        initializedRef.current = false;
+        setGoogleReady(false);
+        const reInitialized = await initializeNativeGoogle(nextIndex);
+        if (reInitialized) {
+          try {
+            const retryResponse = await SocialLogin.login({
+              provider: "google",
+              options: {
+                style: "bottom",
+                filterByAuthorizedAccounts: false,
+                autoSelectEnabled: false
+              }
+            });
+            const retryCredential =
+              retryResponse?.provider === "google"
+                ? retryResponse?.result?.idToken
+                : null;
+            if (retryCredential) {
+              onSuccessRef.current?.(retryCredential);
+              return;
+            }
+          } catch {}
+        }
+      }
       const nextError =
-        error instanceof Error ? error : new Error("Google login failed");
+        error instanceof Error
+          ? error
+          : new Error("Google login failed");
       setInitError(nextError.message);
       onErrorRef.current?.(
         nextError
