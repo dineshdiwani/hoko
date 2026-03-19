@@ -559,7 +559,7 @@ export default function SellerDashboard() {
     return `${parts.join(" | ")}\nSubmit offer on hoko: ${deepLink}`;
   }
 
-  function getSocialShareText(req) {
+  function getWhatsAppShareText(req) {
     const reqId = String(req?._id || "").trim();
     if (!reqId) return "";
     const deepLink = `${appBaseUrl}/seller/deeplink/${encodeURIComponent(reqId)}`;
@@ -590,6 +590,37 @@ export default function SellerDashboard() {
     ].join("\n");
   }
 
+  function getSocialShareText(req) {
+    const reqId = String(req?._id || "").trim();
+    if (!reqId) return "";
+    const deepLink = `${appBaseUrl}/seller/deeplink/${encodeURIComponent(reqId)}`;
+    const product = String(req?.product || req?.productName || "PRODUCT / SERVICE").trim();
+    const quantityValue = String(req?.quantity || "").trim();
+    const quantityUnit = String(req?.type || req?.unit || "").trim();
+    const quantity = [quantityValue, quantityUnit].filter(Boolean).join(" ") || "NUMBER + UNIT";
+    const make = String(req?.makeBrand || req?.brand || "").trim();
+    const model = String(req?.typeModel || "").trim();
+    const makeModel = [make, model].filter(Boolean).join(" ") || "BRAND + MODEL";
+    const buyerCity = String(req?.city || "").trim() || "CITY";
+
+    return [
+      "URGENT BUYER REQUIREMENT",
+      "",
+      `Looking for: ${product}`,
+      `Quantity: ${quantity}`,
+      `Make/Model: ${makeModel}`,
+      `Buyer City: ${buyerCity}`,
+      "",
+      "Suppliers, please share:",
+      "- Best Price",
+      "- Delivery Timeline",
+      "- Availability Status",
+      "",
+      "Send your best offer now:",
+      deepLink
+    ].join("\n");
+  }
+
   function getFacebookQuoteText(req) {
     const product = String(req?.product || req?.productName || "PRODUCT / SERVICE").trim();
     const quantityValue = String(req?.quantity || "").trim();
@@ -600,11 +631,11 @@ export default function SellerDashboard() {
     const makeModel = [make, model].filter(Boolean).join(" ") || "BRAND + MODEL";
     const buyerCity = String(req?.city || "").trim() || "CITY";
     return [
-      "*URGENT BUYER REQUIREMENT*",
-      `Looking for: *${product}*`,
-      `Quantity: *${quantity}*`,
-      `Make/Model: *${makeModel}*`,
-      `Buyer City: *${buyerCity}*`,
+      "URGENT BUYER REQUIREMENT",
+      `Looking for: ${product}`,
+      `Quantity: ${quantity}`,
+      `Make/Model: ${makeModel}`,
+      `Buyer City: ${buyerCity}`,
       "Suppliers: Best Price | Delivery Timeline | Availability"
     ].join(" | ");
   }
@@ -612,6 +643,7 @@ export default function SellerDashboard() {
   function getShareLinks(req) {
     const reqId = String(req?._id || "").trim();
     const deepLink = `${appBaseUrl}/seller/deeplink/${encodeURIComponent(reqId)}`;
+    const whatsappText = encodeURIComponent(getWhatsAppShareText(req));
     const socialText = encodeURIComponent(getSocialShareText(req));
     const socialTextRaw = getSocialShareText(req);
     const facebookQuote = encodeURIComponent(getFacebookQuoteText(req).slice(0, 450));
@@ -626,7 +658,7 @@ export default function SellerDashboard() {
         )}&display=popup&href=${url}&quote=${facebookQuote}`
       : `https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${facebookQuote}`;
     return {
-      whatsapp: `https://wa.me/?text=${socialText}`,
+      whatsapp: `https://wa.me/?text=${whatsappText}`,
       facebook: facebookLink,
       mail: `mailto:?subject=${encodeURIComponent("URGENT BUYER REQUIREMENT")}&body=${socialText}`,
       linkedin: `https://www.linkedin.com/feed/?shareActive=true&text=${socialText}`,

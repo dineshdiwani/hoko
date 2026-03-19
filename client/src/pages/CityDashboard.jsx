@@ -112,7 +112,7 @@ export default function CityDashboard({
       .join("\n");
   }
 
-  function getSocialShareText(req) {
+  function getWhatsAppShareText(req) {
     const deepLink = buildShareUrl(req);
     const product = String(req?.product || req?.productName || "PRODUCT / SERVICE").trim();
     const quantityValue = String(req?.quantity || "").trim();
@@ -141,6 +141,35 @@ export default function CityDashboard({
     ].join("\n");
   }
 
+  function getSocialShareText(req) {
+    const deepLink = buildShareUrl(req);
+    const product = String(req?.product || req?.productName || "PRODUCT / SERVICE").trim();
+    const quantityValue = String(req?.quantity || "").trim();
+    const quantityUnit = String(req?.type || req?.unit || "").trim();
+    const quantity = [quantityValue, quantityUnit].filter(Boolean).join(" ") || "NUMBER + UNIT";
+    const make = String(req?.makeBrand || req?.brand || "").trim();
+    const model = String(req?.typeModel || "").trim();
+    const makeModel = [make, model].filter(Boolean).join(" ") || "BRAND + MODEL";
+    const buyerCity = String(req?.city || city || "").trim() || "CITY";
+
+    return [
+      "URGENT BUYER REQUIREMENT",
+      "",
+      `Looking for: ${product}`,
+      `Quantity: ${quantity}`,
+      `Make/Model: ${makeModel}`,
+      `Buyer City: ${buyerCity}`,
+      "",
+      "Suppliers, please share:",
+      "- Best Price",
+      "- Delivery Timeline",
+      "- Availability Status",
+      "",
+      "Send your best offer now:",
+      deepLink
+    ].join("\n");
+  }
+
   function getFacebookQuoteText(req) {
     const product = String(req?.product || req?.productName || "PRODUCT / SERVICE").trim();
     const quantityValue = String(req?.quantity || "").trim();
@@ -151,11 +180,11 @@ export default function CityDashboard({
     const makeModel = [make, model].filter(Boolean).join(" ") || "BRAND + MODEL";
     const buyerCity = String(req?.city || city || "").trim() || "CITY";
     return [
-      "*URGENT BUYER REQUIREMENT*",
-      `Looking for: *${product}*`,
-      `Quantity: *${quantity}*`,
-      `Make/Model: *${makeModel}*`,
-      `Buyer City: *${buyerCity}*`,
+      "URGENT BUYER REQUIREMENT",
+      `Looking for: ${product}`,
+      `Quantity: ${quantity}`,
+      `Make/Model: ${makeModel}`,
+      `Buyer City: ${buyerCity}`,
       "Suppliers: Best Price | Delivery Timeline | Availability"
     ].join(" | ");
   }
@@ -164,6 +193,7 @@ export default function CityDashboard({
     const socialShareText = getSocialShareText(req);
     const shareUrl = buildShareUrl(req);
     const encodedSocialText = encodeURIComponent(socialShareText);
+    const encodedWhatsAppText = encodeURIComponent(getWhatsAppShareText(req));
     const encodedFacebookQuote = encodeURIComponent(getFacebookQuoteText(req).slice(0, 450));
     const encodedUrl = encodeURIComponent(shareUrl);
     const linkedinAppLink = `linkedin://shareArticle?mini=true&url=${encodedUrl}&title=${encodeURIComponent(
@@ -176,7 +206,7 @@ export default function CityDashboard({
         )}&display=popup&href=${encodedUrl}&quote=${encodedFacebookQuote}`
       : `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedFacebookQuote}`;
     return {
-      whatsapp: `https://wa.me/?text=${encodedSocialText}`,
+      whatsapp: `https://wa.me/?text=${encodedWhatsAppText}`,
       facebook: facebookLink,
       mail: `mailto:?subject=${encodeURIComponent("URGENT BUYER REQUIREMENT")}&body=${encodedSocialText}`,
       linkedin: `https://www.linkedin.com/feed/?shareActive=true&text=${encodedSocialText}`,
