@@ -589,14 +589,35 @@ export default function SellerDashboard() {
     ].join("\n");
   }
 
+  function getFacebookQuoteText(req) {
+    const product = String(req?.product || req?.productName || "PRODUCT / SERVICE").trim();
+    const quantityValue = String(req?.quantity || "").trim();
+    const quantityUnit = String(req?.type || req?.unit || "").trim();
+    const quantity = [quantityValue, quantityUnit].filter(Boolean).join(" ") || "NUMBER + UNIT";
+    const make = String(req?.makeBrand || req?.brand || "").trim();
+    const model = String(req?.typeModel || "").trim();
+    const makeModel = [make, model].filter(Boolean).join(" ") || "BRAND + MODEL";
+    const buyerCity = String(req?.city || "").trim() || "CITY";
+    return [
+      "URGENT BUYER REQUIREMENT",
+      `Product: ${product}`,
+      `Quantity: ${quantity}`,
+      `Make/Model: ${makeModel}`,
+      `Buyer City: ${buyerCity}`,
+      "DM: Price | Stock | Delivery Time",
+      "#BuyerRequirement #B2B #Suppliers #BusinessLead"
+    ].join(" | ");
+  }
+
   function getShareLinks(req) {
     const reqId = String(req?._id || "").trim();
     const deepLink = `${appBaseUrl}/seller/deeplink/${encodeURIComponent(reqId)}`;
     const socialText = encodeURIComponent(getSocialShareText(req));
+    const facebookQuote = encodeURIComponent(getFacebookQuoteText(req).slice(0, 450));
     const url = encodeURIComponent(deepLink);
     return {
       whatsapp: `https://wa.me/?text=${socialText}`,
-      facebook: `https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${socialText}`,
+      facebook: `https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${facebookQuote}`,
       mail: `mailto:?subject=${encodeURIComponent("URGENT BUYER REQUIREMENT")}&body=${socialText}`,
       linkedin: `https://www.linkedin.com/feed/?shareActive=true&text=${socialText}`
     };
