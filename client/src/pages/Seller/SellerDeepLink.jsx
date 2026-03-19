@@ -35,6 +35,9 @@ export default function SellerDeepLink() {
   const [preview, setPreview] = useState(null);
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [draftHint, setDraftHint] = useState("");
+  const [file, setFile] = useState(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [cameraError, setCameraError] = useState("");
   const [form, setForm] = useState({
     price: "",
     message: "",
@@ -42,6 +45,8 @@ export default function SellerDeepLink() {
     paymentTerms: ""
   });
   const autoSubmitTriedRef = useRef(false);
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
   const params = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const packedData = useMemo(() => {
     const raw = String(params.get("pd") || params.get("data") || "").trim();
@@ -166,14 +171,26 @@ export default function SellerDeepLink() {
         redirectToAuthOrRegister(payload);
         return;
       }
+      let nextAttachments = [];
+      if (file) {
+        const formData = new FormData();
+        formData.append("file", file);
+        const uploadRes = await api.post("/seller/offer/attachments", formData, {
+          headers: { "Content-Type": "multipart/form-data" }
+        });
+        nextAttachments =
+          uploadRes?.data?.files?.map((item) => item.url).filter(Boolean) || [];
+      }
       await api.post("/seller/offer", {
         requirementId: requirementIdValue,
         price: Number(payload.price),
         message: payload.message || "",
         deliveryTime: payload.deliveryTime || "",
-        paymentTerms: payload.paymentTerms || ""
+        paymentTerms: payload.paymentTerms || "",
+        attachments: nextAttachments
       });
       clearPendingOfferIntent();
+      setFile(null);
       alert(
         isAuto
           ? "Offer submitted now. Thank you."
@@ -332,6 +349,74 @@ export default function SellerDeepLink() {
 
     submitOffer(payload);
   };
+
+  function saveAttachmentFile(fileObj) {
+    if (!fileObj) return;
+    setFile(fileObj);
+  }
+
+  function clearSelectedAttachment() {
+    setFile(null);
+  }
+
+  function handleAttachmentPick(e) {
+    const fileObj = e.target.files?.[0];
+    saveAttachmentFile(fileObj);
+    e.target.value = "";
+  }
+
+  useEffect(() => {
+    async function startCamera() {
+      if (!cameraOpen) return;
+      setCameraError("");
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "environment" },
+          audio: false
+        });
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      } catch {
+        setCameraError("Unable to access camera.");
+      }
+    }
+
+    startCamera();
+
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
+      }
+    };
+  }, [cameraOpen]);
+
+  async function capturePhoto() {
+    if (!videoRef.current) return;
+    const video = videoRef.current;
+    const width = video.videoWidth || 1280;
+    const height = video.videoHeight || 720;
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(video, 0, 0, width, height);
+    const blob = await new Promise((resolve) =>
+      canvas.toBlob(resolve, "image/jpeg", 0.9)
+    );
+    if (!blob) {
+      alert("Failed to capture photo.");
+      return;
+    }
+    const capturedFile = new File([blob], `offer-camera-${Date.now()}.jpg`, {
+      type: "image/jpeg"
+    });
+    saveAttachmentFile(capturedFile);
+    setCameraOpen(false);
+  }
+
   const postPreview = preview || queryPreview;
   const postName = postPreview?.product || postPreview?.productName || "Requirement";
   const postQuantity = String(postPreview?.quantity || "").trim();
@@ -343,6 +428,7 @@ export default function SellerDeepLink() {
     String(postPreview?.offerInvitedFrom || "").toLowerCase() === "anywhere"
       ? "Anywhere"
       : "City";
+  const docInputId = `deep-offer-doc-${requirementIdValue || "unknown"}`;
 
   return (
     <div className="page">
@@ -404,6 +490,46 @@ export default function SellerDeepLink() {
               className="app-input min-h-28"
               placeholder="Offer notes"
             />
+            <input
+              id={docInputId}
+              type="file"
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/jpeg,image/png"
+              onChange={handleAttachmentPick}
+              className="sr-only"
+            />
+            <div className="mb-1 flex items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => setCameraOpen(true)}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-sky-200 bg-sky-50 text-sky-700 shadow-sm transition hover:bg-sky-100 hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 active:scale-95"
+                aria-label="Capture photo"
+                title="Capture photo"
+              >
+                <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor" aria-hidden="true">
+                  <path d="M9 4h6l1.2 2H20a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3.8L9 4Zm3 4.5A4.5 4.5 0 1 0 12 17a4.5 4.5 0 0 0 0-9Zm0 2A2.5 2.5 0 1 1 12 15a2.5 2.5 0 0 1 0-5Z" />
+                </svg>
+              </button>
+              <label
+                htmlFor={docInputId}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 shadow-sm transition hover:bg-emerald-100 hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 active:scale-95"
+                aria-label="Attach file"
+                title="Attach file"
+                role="button"
+                tabIndex={0}
+              >
+                <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor" aria-hidden="true">
+                  <path d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Zm8 1.5V8h4.5" />
+                </svg>
+              </label>
+            </div>
+            {file ? (
+              <div className="mb-2 flex items-center justify-between text-sm bg-gray-50 border rounded-lg px-3 py-2">
+                <span className="truncate">Selected attachment: {file.name}</span>
+                <button type="button" onClick={clearSelectedAttachment} className="text-red-600">
+                  Remove
+                </button>
+              </div>
+            ) : null}
             <button
               onClick={handleSubmit}
               disabled={submitting}
@@ -411,6 +537,32 @@ export default function SellerDeepLink() {
             >
               {submitting ? "Submitting..." : "Submit Offer"}
             </button>
+            {cameraOpen && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                <div className="bg-white w-full max-w-md rounded-2xl shadow-xl p-4">
+                  <div className="flex justify-between items-center mb-3">
+                    <h2 className="font-semibold">Capture Photo</h2>
+                    <button type="button" onClick={() => setCameraOpen(false)}>
+                      Close
+                    </button>
+                  </div>
+                  {cameraError ? (
+                    <div className="text-sm text-red-600">{cameraError}</div>
+                  ) : (
+                    <div className="space-y-3">
+                      <video ref={videoRef} autoPlay playsInline className="w-full rounded-xl bg-black" />
+                      <button
+                        type="button"
+                        onClick={capturePhoto}
+                        className="w-full py-2 btn-brand rounded-xl font-semibold"
+                      >
+                        Capture
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
