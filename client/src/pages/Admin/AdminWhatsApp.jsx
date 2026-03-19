@@ -71,7 +71,8 @@ export default function AdminWhatsApp() {
     const text = String(value || "").trim();
     if (!text) return fallback;
     return text.replace(/\s+/g, " ");
-  };  const buildMakeModel = (requirement) => {
+  };
+  const buildMakeModel = (requirement) => {
     const make = firstNonEmpty([requirement?.makeBrand, requirement?.brand]);
     const model = firstNonEmpty([requirement?.typeModel, requirement?.type]);
     if (make && model) return `${make} ${model}`;
@@ -93,7 +94,7 @@ export default function AdminWhatsApp() {
       const baseUrl = getPublicAppUrl();
       const reqIdRaw = String(requirement._id || "").trim();
       const reqIdParam = encodeURIComponent(reqIdRaw);
-      const deepLink = `${baseUrl}/api/meta/requirement-share/${reqIdParam}`;
+      const deepLink = `${baseUrl}/seller/deeplink/${reqIdParam}`;
 
       return [
         "*URGENT BUYER REQUIREMENT*",
@@ -827,6 +828,9 @@ export default function AdminWhatsApp() {
     </div>
   );
 }
+
+
+
 
 
 

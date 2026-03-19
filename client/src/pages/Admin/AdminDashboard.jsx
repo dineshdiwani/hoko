@@ -150,10 +150,11 @@ export default function AdminDashboard() {
       const make = String(requirement.makeBrand || requirement.brand || "").trim();
       const model = String(requirement.typeModel || requirement.type || "").trim();
       const makeModel = make && model ? `${make} ${model}` : make || model || "-";
-      const city = String(requirement.city || "your city").trim();      const baseUrl = getPublicAppUrl();
+      const city = String(requirement.city || "your city").trim();
+      const baseUrl = getPublicAppUrl();
       const reqIdRaw = String(requirement._id || "").trim();
       const reqIdParam = encodeURIComponent(reqIdRaw);
-      const deepLink = `${baseUrl}/api/meta/requirement-share/${reqIdParam}`;
+      const deepLink = `${baseUrl}/seller/deeplink/${reqIdParam}`;
 
       return [
         "*URGENT BUYER REQUIREMENT*",
@@ -1285,6 +1286,9 @@ export default function AdminDashboard() {
     </div>
   );
 }
+
+
+
 
 
 

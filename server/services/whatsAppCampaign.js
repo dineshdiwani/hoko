@@ -65,7 +65,7 @@ function formatMessage({ requirement, deepLink }) {
 function buildSellerDeepLink(appBase, requirement) {
   const requirementIdRaw = String(requirement?._id || "").trim();
   const requirementId = encodeURIComponent(requirementIdRaw);
-  return `${appBase}/api/meta/requirement-share/${requirementId}`;
+  return `${appBase}/seller/deeplink/${requirementId}`;
 }
 
 function normalizeChannels(input) {
@@ -374,6 +374,7 @@ module.exports = {
   triggerWhatsAppCampaignForRequirement,
   sendTestWhatsAppCampaign
 };
+
 
 
 
