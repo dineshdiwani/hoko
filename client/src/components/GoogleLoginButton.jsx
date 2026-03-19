@@ -224,7 +224,6 @@ export default function GoogleLoginButton({
       setInitError("");
       setInitializing(true);
       const credential = await tryNativeGoogleLogin({
-        style: "bottom",
         filterByAuthorizedAccounts: false,
         autoSelectEnabled: false
       });
