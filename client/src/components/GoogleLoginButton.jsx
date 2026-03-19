@@ -4,9 +4,9 @@ import { isNativeAppRuntime } from "../utils/runtime";
 
 function parseGoogleClientIds() {
   const raw = [
+    "482189438712-3si7monkd64341m7qh90hqevmdhh75iv.apps.googleusercontent.com",
     import.meta.env.VITE_GOOGLE_CLIENT_ID,
     import.meta.env.VITE_GOOGLE_CLIENT_ID_FALLBACK,
-    "482189438712-3si7monkd64341m7qh90hqevmdhh75iv.apps.googleusercontent.com",
     "340021652429-qu9hohn3j0hu9uv437skbc3m53dl7b06.apps.googleusercontent.com"
   ]
     .map((item) => String(item || "").trim())
@@ -226,6 +226,7 @@ export default function GoogleLoginButton({
       setInitError("");
       setInitializing(true);
       const credential = await tryNativeGoogleLogin({
+        style: "bottom",
         filterByAuthorizedAccounts: false,
         autoSelectEnabled: false
       });
@@ -234,21 +235,9 @@ export default function GoogleLoginButton({
       }
       onSuccessRef.current?.(credential);
     } catch (error) {
-      const clientIds = googleClientIdsRef.current;
-      const currentIndex = activeClientIndexRef.current;
-      const nextIndex = currentIndex + 1;
-      if (
-        isCancellationLikeError(error) &&
-        nextIndex < clientIds.length
-      ) {
-        try { await SocialLogin.logout({ provider: "google" }); } catch {}
-        initializedRef.current = false;
-        setGoogleReady(false);
-        await initializeNativeGoogle(nextIndex);
-      }
       if (isCancellationLikeError(error)) {
         const nextError = new Error(
-          "Google Sign-In was cancelled. Please select account once and tap Continue with Google again."
+          "Google Sign-In was cancelled. Please try again."
         );
         setInitError(nextError.message);
         onErrorRef.current?.(nextError);
