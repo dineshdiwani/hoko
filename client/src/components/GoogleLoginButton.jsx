@@ -4,10 +4,8 @@ import { isNativeAppRuntime } from "../utils/runtime";
 
 function parseGoogleClientIds() {
   const raw = [
-    "482189438712-3si7monkd64341m7qh90hqevmdhh75iv.apps.googleusercontent.com",
     import.meta.env.VITE_GOOGLE_CLIENT_ID,
     import.meta.env.VITE_GOOGLE_CLIENT_ID_FALLBACK,
-    "340021652429-qu9hohn3j0hu9uv437skbc3m53dl7b06.apps.googleusercontent.com"
   ]
     .map((item) => String(item || "").trim())
     .filter(Boolean)
