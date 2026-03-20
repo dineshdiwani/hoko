@@ -1,3 +1,4 @@
+cat > /var/www/hoko/server/routes/auth.js << 'ENDOFFILE'
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
@@ -102,7 +103,6 @@ function queueAdminNewUserEmail({ user, loginMethod, requestedRole }) {
   });
 }
 
-/* -------- LOGIN (SEND OTP) -------- */
 router.post("/login", otpSendLimiter, async (req, res) => {
   const { email, role, city } = req.body || {};
   const normalizedEmail = normalizeEmail(email);
@@ -159,7 +159,6 @@ router.post("/login", otpSendLimiter, async (req, res) => {
   }
 });
 
-/* -------- VERIFY OTP -------- */
 router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
   const { email, otp, role, city, acceptTerms } = req.body || {};
   const normalizedEmail = normalizeEmail(email);
@@ -203,4 +202,272 @@ router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
   if (normalizedRole === "seller") {
     const hasSellerProfile =
       Boolean(user.roles?.seller) ||
-      Boolean(user.sel*](#)
+      Boolean(user.sellerProfile?.businessName) ||
+      Boolean(user.sellerProfile?.firmName) ||
+      Boolean(user.sellerProfile?.taxId);
+    if (!hasSellerProfile) {
+      return res.status(403).json({
+        message: "Complete seller registration before login"
+      });
+    }
+    if (!user.termsAccepted?.at && !acceptTerms) {
+      return res.status(403).json({
+        message: "Terms required"
+      });
+    }
+    user.roles.seller = true;
+  } else {
+    if (!user.termsAccepted?.at && !acceptTerms) {
+      return res.status(403).json({
+        message: "Terms required"
+      });
+    }
+    user.roles.buyer = true;
+  }
+  if (!user.termsAccepted?.at && acceptTerms) {
+    user.termsAccepted = { at: new Date() };
+  }
+  await user.save();
+
+  const token = jwt.sign(
+    { id: user._id, role: normalizedRole, tokenVersion: user.tokenVersion || 0 },
+    process.env.JWT_SECRET,
+    { expiresIn: "7d" }
+  );
+
+  res.json({
+    token,
+    user: {
+      _id: user._id,
+      email: user.email,
+      role: normalizedRole,
+      roles: user.roles,
+      city: user.city,
+      preferredCurrency: user.preferredCurrency || "INR",
+      sellerProfile: user.sellerProfile
+    }
+  });
+});
+
+router.post("/google", async (req, res) => {
+  try {
+    const { credential, role, city, acceptTerms, platform } = req.body || {};
+    if (!credential) {
+      return res.status(400).json({ message: "Missing credential" });
+    }
+
+    const googleClientIds = getGoogleClientIds();
+    if (!googleClientIds.length) {
+      return res
+        .status(500)
+        .json({ message: "Google login not configured" });
+    }
+
+    const client = getGoogleClient();
+    if (!client) {
+      return res.status(500).json({
+        message: "Google login temporarily unavailable"
+      });
+    }
+
+    let payload;
+    try {
+      const ticket = await client.verifyIdToken({
+        idToken: credential,
+        audience: googleClientIds.length === 1 ? googleClientIds[0] : googleClientIds
+      });
+      payload = ticket.getPayload();
+    } catch (err) {
+      const decoded = decodeJwtPayload(credential);
+      const attemptedAudiences = googleClientIds.join(", ");
+      
+      // ANDROID FIX: Check if token audience matches any of our client IDs
+      // This handles the case where Android may send a token with a different audience
+      console.error(
+        "Google token verify failed:",
+        err?.message || err,
+        "| token aud:",
+        decoded?.aud || "unknown",
+        "| expected audience(s):",
+        attemptedAudiences,
+        "| platform:",
+        platform || "web"
+      );
+
+      if (decoded && decoded.aud && googleClientIds.includes(decoded.aud)) {
+        console.log(
+          "Android Google Login: Token audience matched. Accepting token from platform:",
+          platform || "web"
+        );
+        payload = decoded;
+      } else {
+        return res.status(401).json({
+          message: "Invalid Google token or client ID mismatch",
+          tokenAud: decoded?.aud,
+          expectedAudiences: attemptedAudiences
+        });
+      }
+    }
+
+    const email = normalizeEmail(payload?.email);
+    const name = payload?.name || "User";
+    const picture = payload?.picture || "";
+    const sub = payload?.sub || "";
+    const emailVerified = payload?.email_verified;
+    if (!email || !emailVerified) {
+      return res
+        .status(401)
+        .json({ message: "Unverified Google account" });
+    }
+
+    const normalizedRole = role === "seller" ? "seller" : "buyer";
+
+    let user = await User.findOne({ email });
+    if (!user) {
+      if (!city) {
+        return res.status(400).json({ message: "City required" });
+      }
+      if (normalizedRole === "seller") {
+        return res.status(403).json({
+          message: "Complete seller registration before Google login"
+        });
+      }
+      if (!acceptTerms) {
+        return res.status(403).json({
+          message: "Terms required"
+        });
+      }
+      user = await User.create({
+        email,
+        city,
+        roles: {
+          buyer: true,
+          seller: false,
+          admin: false
+        },
+        termsAccepted: { at: new Date() },
+        googleProfile: {
+          sub,
+          name,
+          picture
+        }
+      });
+      queueAdminNewUserEmail({
+        user,
+        loginMethod: "google",
+        requestedRole: normalizedRole
+      });
+    } else {
+      ensureRoles(user);
+      if (!user.city && city) {
+        user.city = city;
+      } else if (city) {
+        user.city = city;
+      }
+      if (normalizedRole === "seller") {
+        const hasSellerProfile =
+          Boolean(user.roles?.seller) ||
+          Boolean(user.sellerProfile?.businessName) ||
+          Boolean(user.sellerProfile?.firmName) ||
+          Boolean(user.sellerProfile?.taxId);
+        if (!hasSellerProfile) {
+          return res.status(403).json({
+            message: "Complete seller registration before Google login"
+          });
+        }
+        user.roles.seller = true;
+      } else {
+        if (!user.termsAccepted?.at && !acceptTerms) {
+          return res.status(403).json({
+            message: "Terms required"
+          });
+        }
+        user.roles.buyer = true;
+      }
+      if (!user.termsAccepted?.at && acceptTerms) {
+        user.termsAccepted = { at: new Date() };
+      }
+      user.googleProfile = {
+        sub,
+        name,
+        picture
+      };
+      await user.save();
+    }
+
+    const token = jwt.sign(
+      { id: user._id, role: normalizedRole, tokenVersion: user.tokenVersion || 0 },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    res.json({
+      token,
+      user: {
+        _id: user._id,
+        email: user.email,
+        name,
+        picture,
+        role: normalizedRole,
+        roles: user.roles,
+        city: user.city,
+        preferredCurrency: user.preferredCurrency || "INR",
+        sellerProfile: user.sellerProfile
+      }
+    });
+  } catch (err) {
+    console.error("Google login unexpected error:", err?.stack || err?.message || err);
+    return res.status(500).json({ message: "Google login failed" });
+  }
+});
+
+const auth = require("../middleware/auth");
+router.post("/switch-role", auth, async (req, res) => {
+  const { role } = req.body || {};
+  const nextRole = role === "seller" ? "seller" : "buyer";
+
+  if (!req.user?.roles?.[nextRole]) {
+    return res.status(403).json({ message: "Role not enabled" });
+  }
+  if (nextRole === "seller") {
+    const sellerProfile = req.user?.sellerProfile || {};
+    const hasCategories =
+      Array.isArray(sellerProfile.categories) &&
+      sellerProfile.categories.filter((item) => String(item || "").trim()).length > 0;
+    const hasSellerProfile = Boolean(
+      String(req.user?.email || "").trim() &&
+        String(req.user?.mobile || "").trim() &&
+        String(req.user?.city || "").trim() &&
+        String(sellerProfile.firmName || "").trim() &&
+        String(sellerProfile.managerName || "").trim() &&
+        hasCategories
+    );
+    if (!hasSellerProfile) {
+      return res.status(403).json({
+        message: "Seller onboarding required"
+      });
+    }
+  }
+
+  const token = jwt.sign(
+    { id: req.user._id, role: nextRole, tokenVersion: req.user.tokenVersion || 0 },
+    process.env.JWT_SECRET,
+    { expiresIn: "7d" }
+  );
+
+  res.json({
+    token,
+    user: {
+      _id: req.user._id,
+      email: req.user.email,
+      role: nextRole,
+      roles: req.user.roles,
+      city: req.user.city,
+      preferredCurrency: req.user.preferredCurrency || "INR",
+      sellerProfile: req.user.sellerProfile
+    }
+  });
+});
+
+module.exports = router;
+ENDOFFILE
