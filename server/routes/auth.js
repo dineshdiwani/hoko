@@ -1,4 +1,3 @@
-cat > /var/www/hoko/server/routes/auth.js << 'ENDOFFILE'
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
@@ -103,6 +102,7 @@ function queueAdminNewUserEmail({ user, loginMethod, requestedRole }) {
   });
 }
 
+/* -------- LOGIN (SEND OTP) -------- */
 router.post("/login", otpSendLimiter, async (req, res) => {
   const { email, role, city } = req.body || {};
   const normalizedEmail = normalizeEmail(email);
@@ -159,6 +159,7 @@ router.post("/login", otpSendLimiter, async (req, res) => {
   }
 });
 
+/* -------- VERIFY OTP -------- */
 router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
   const { email, otp, role, city, acceptTerms } = req.body || {};
   const normalizedEmail = normalizeEmail(email);
@@ -249,9 +250,10 @@ router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
   });
 });
 
+/* -------- GOOGLE LOGIN -------- */
 router.post("/google", async (req, res) => {
   try {
-    const { credential, role, city, acceptTerms, platform } = req.body || {};
+    const { credential, role, city, acceptTerms } = req.body || {};
     if (!credential) {
       return res.status(400).json({ message: "Missing credential" });
     }
@@ -280,33 +282,17 @@ router.post("/google", async (req, res) => {
     } catch (err) {
       const decoded = decodeJwtPayload(credential);
       const attemptedAudiences = googleClientIds.join(", ");
-      
-      // ANDROID FIX: Check if token audience matches any of our client IDs
-      // This handles the case where Android may send a token with a different audience
       console.error(
         "Google token verify failed:",
         err?.message || err,
         "| token aud:",
         decoded?.aud || "unknown",
         "| expected audience(s):",
-        attemptedAudiences,
-        "| platform:",
-        platform || "web"
+        attemptedAudiences
       );
-
-      if (decoded && decoded.aud && googleClientIds.includes(decoded.aud)) {
-        console.log(
-          "Android Google Login: Token audience matched. Accepting token from platform:",
-          platform || "web"
-        );
-        payload = decoded;
-      } else {
-        return res.status(401).json({
-          message: "Invalid Google token or client ID mismatch",
-          tokenAud: decoded?.aud,
-          expectedAudiences: attemptedAudiences
-        });
-      }
+      return res.status(401).json({
+        message: "Invalid Google token or client ID mismatch"
+      });
     }
 
     const email = normalizeEmail(payload?.email);
@@ -421,6 +407,7 @@ router.post("/google", async (req, res) => {
   }
 });
 
+/* -------- SWITCH ROLE -------- */
 const auth = require("../middleware/auth");
 router.post("/switch-role", auth, async (req, res) => {
   const { role } = req.body || {};
@@ -470,4 +457,3 @@ router.post("/switch-role", auth, async (req, res) => {
 });
 
 module.exports = router;
-ENDOFFILE
