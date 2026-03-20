@@ -307,6 +307,7 @@ export default function UserLogin({ role = "buyer" }) {
     const selectedCity = cityRef.current || city;
     const hasAcceptedTerms =
       acceptedTermsRef.current || acceptedTerms;
+    const isAndroid = isNativeAppRuntime();
 
     if (!selectedCity) {
       alert(
@@ -326,13 +327,20 @@ export default function UserLogin({ role = "buyer" }) {
     }
 
     setGoogleLoading(true);
+    
+    const payload = {
+      credential,
+      role: currentRole,
+      city: selectedCity,
+      acceptTerms: hasAcceptedTerms
+    };
+    
+    if (isAndroid) {
+      payload.platform = "android";
+    }
+
     api
-      .post("/auth/google", {
-        credential,
-        role: currentRole,
-        city: selectedCity,
-        acceptTerms: hasAcceptedTerms
-      })
+      .post("/auth/google", payload)
       .then(async (res) => {
         const user = res.data.user || {};
         const profile = isSeller
@@ -382,6 +390,16 @@ export default function UserLogin({ role = "buyer" }) {
           err?.response?.data?.error ||
           err?.message ||
           "Google login failed.";
+        
+        if (isAndroid) {
+          console.error("Android Google Login Error:", {
+            message,
+            status: err?.response?.status,
+            tokenAudience: err?.response?.data?.tokenAud,
+            expectedAudiences: err?.response?.data?.expectedAudiences
+          });
+        }
+
         if (
           isSeller &&
           (message ===

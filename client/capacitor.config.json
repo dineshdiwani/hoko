@@ -1,16 +1,18 @@
 {
   "appId": "com.hoko.app",
-  "appName": "HOKO",
+  "appName": "Hoko",
   "webDir": "dist",
-  "plugins": {
-    "SocialLogin": {
-      "providers": {
-        "google": true,
-        "facebook": false,
-        "apple": false,
-        "twitter": false
-      },
-      "logLevel": 1
-    }
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true,
+    "allowNavigation": [
+      "hokoapp.in",
+      "localhost",
+      "capacitor://localhost"
+    ]
+  },
+  "android": {
+    "allowMixedContent": true,
+    "webContentsDebuggingEnabled": true
   }
 }

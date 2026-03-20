@@ -144,3 +144,16 @@ self.addEventListener("notificationclick", (event) => {
     })
   );
 });
+
+// Skip capacitor and chrome-extension requests
+self.addEventListener('fetch', (event) => {
+  if (event.request.url.startsWith('capacitor://') || 
+      event.request.url.startsWith('chrome-extension://')) {
+    return;
+  }
+  
+  // Your existing service worker logic here
+  event.respondWith(
+    caches.match(event.request).then(response => response || fetch(event.request))
+  );
+});

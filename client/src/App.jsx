@@ -436,3 +436,14 @@ export default function App() {
     </BrowserRouter>
   );
 }
+// Add this function to handle mobile WebSocket
+function getWebSocketURL() {
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const host = window.location.hostname;
+  const port = window.location.port || (protocol === 'wss:' ? 443 : 80);
+  return `${protocol}//${host}:${port}`;
+}
+
+// Use this instead of hardcoded localhost:5173
+const socketUrl = getWebSocketURL();
+

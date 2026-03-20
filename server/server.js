@@ -61,6 +61,15 @@ const configuredCorsOrigins = String(process.env.CORS_ORIGIN || "")
   .split(",")
   .map((value) => value.trim())
   .filter(Boolean);
+const nativeAppOrigins = [
+  "capacitor://localhost",
+  "ionic://localhost", 
+  "http://localhost",
+  "https://localhost",
+  "http://127.0.0.1",
+  "https://127.0.0.1",
+  "https://hokoapp.in"  // Add your production domain
+];
 
 const allowedOrigins = Array.from(
   new Set(
