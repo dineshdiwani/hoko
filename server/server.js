@@ -105,7 +105,11 @@ const corsOptions = {
 /* -------------------- MIDDLEWARE (ORDER MATTERS) -------------------- */
 app.use(cors(corsOptions));
 app.use(express.json());
-app.use(helmet());
+app.use(
+  helmet({
+    crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" }
+  })
+);
 
 /* -------------------- SOCKET.IO -------------------- */
 const { Server } = require("socket.io");

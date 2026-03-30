@@ -1,4 +1,4 @@
-const CACHE_NAME = "hoko-pwa-v9";
+const CACHE_NAME = "hoko-pwa-v10";
 const APP_SHELL = [
   "/",
   "/index.html",
@@ -39,7 +39,17 @@ self.addEventListener("fetch", (event) => {
             }
             return response;
           })
-          .catch(() => cachedShell);
+          .catch(
+            () =>
+              cachedShell ||
+              new Response("Offline", {
+                status: 503,
+                statusText: "Service Unavailable",
+                headers: {
+                  "Content-Type": "text/plain; charset=utf-8"
+                }
+              })
+          );
 
         return cachedShell || networkRequest;
       })
@@ -81,7 +91,17 @@ self.addEventListener("fetch", (event) => {
             }
             return response;
           })
-          .catch(() => cached);
+          .catch(
+            () =>
+              cached ||
+              new Response("Offline", {
+                status: 503,
+                statusText: "Service Unavailable",
+                headers: {
+                  "Content-Type": "text/plain; charset=utf-8"
+                }
+              })
+          );
 
         return cached || networkRequest;
       })
