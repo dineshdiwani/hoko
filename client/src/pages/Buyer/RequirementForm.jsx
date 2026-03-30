@@ -66,14 +66,7 @@ export default function RequirementForm() {
   const [cameraError, setCameraError] = useState("");
   const videoRef = useRef(null);
   const streamRef = useRef(null);
-  const [cities, setCities] = useState([
-    "Mumbai",
-    "Delhi",
-    "Bangalore",
-    "Chennai",
-    "Hyderabad",
-    "Pune"
-  ]);
+  const [cities, setCities] = useState([]);
   const [categories, setCategories] = useState([
     "electronics",
     "grocery",

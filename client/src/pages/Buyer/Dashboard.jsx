@@ -57,14 +57,7 @@ export default function BuyerDashboard() {
   const [selectedCategory, setSelectedCategory] = useState(
     persistedState.selectedCategory || "all"
   );
-  const [cities, setCities] = useState([
-    "Mumbai",
-    "Delhi",
-    "Bangalore",
-    "Chennai",
-    "Hyderabad",
-    "Pune"
-  ]);
+  const [cities, setCities] = useState([]);
   const [categories, setCategories] = useState([]);
   const [useSampleCityPosts, setUseSampleCityPosts] = useState(false);
   const [tabCounts, setTabCounts] = useState({

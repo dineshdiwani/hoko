@@ -44,14 +44,7 @@ export default function SellerRegister() {
       ? postLoginRedirectRaw
       : "/seller/dashboard";
 
-  const [cities, setCities] = useState([
-    "Mumbai",
-    "Delhi",
-    "Bangalore",
-    "Chennai",
-    "Hyderabad",
-    "Pune"
-  ]);
+  const [cities, setCities] = useState([]);
 
   const [categories, setCategories] = useState([
     "Electronics",
