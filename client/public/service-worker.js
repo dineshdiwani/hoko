@@ -166,11 +166,24 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const destination = String(event.notification?.data?.url || "/");
+  const rawDestination = String(event.notification?.data?.url || "/");
+  let destination = "/";
+  try {
+    const parsed = new URL(rawDestination, self.location.origin);
+    if (parsed.origin === self.location.origin) {
+      destination = `${parsed.pathname}${parsed.search}${parsed.hash}` || "/";
+    }
+  } catch {
+    destination = "/";
+  }
 
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {
+        const clientUrl = String(client.url || "");
+        if (!clientUrl.startsWith(self.location.origin)) {
+          continue;
+        }
         if ("focus" in client) {
           client.focus();
           if ("navigate" in client) {
