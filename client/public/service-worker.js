@@ -1,4 +1,4 @@
-const CACHE_NAME = "hoko-pwa-v8";
+const CACHE_NAME = "hoko-pwa-v9";
 const APP_SHELL = [
   "/",
   "/index.html",
@@ -51,7 +51,21 @@ self.addEventListener("fetch", (event) => {
 
   // Always go to network for API calls to avoid stale admin/dashboard data.
   if (url.pathname.startsWith("/api/")) {
-    event.respondWith(fetch(request));
+    event.respondWith(
+      fetch(request).catch(() =>
+        new Response(
+          JSON.stringify({
+            message: "Network unavailable"
+          }),
+          {
+            status: 503,
+            headers: {
+              "Content-Type": "application/json"
+            }
+          }
+        )
+      )
+    );
     return;
   }
 
@@ -79,14 +93,22 @@ self.addEventListener("fetch", (event) => {
     caches.match(request).then(
       (cached) =>
         cached ||
-        fetch(request).then((response) => {
-          if (!response || response.status !== 200 || response.type !== "basic") {
+        fetch(request)
+          .then((response) => {
+            if (!response || response.status !== 200 || response.type !== "basic") {
+              return response;
+            }
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
             return response;
-          }
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
-          return response;
-        })
+          })
+          .catch(
+            () =>
+              new Response("Offline", {
+                status: 503,
+                statusText: "Service Unavailable"
+              })
+          )
     )
   );
 });

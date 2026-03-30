@@ -1,6 +1,7 @@
 import { Suspense, lazy, memo, useEffect } from "react";
 import {
   BrowserRouter,
+  HashRouter,
   Routes,
   Route,
   Navigate,
@@ -44,7 +45,7 @@ import {
   rememberSeenNotificationIds
 } from "./services/storage";
 import { fetchNotifications } from "./services/notifications";
-import { isNativeAppRuntime } from "./utils/runtime";
+import { isFileProtocolRuntime, isNativeAppRuntime } from "./utils/runtime";
 import { ensureNativePushRegistration, isNativePushEnabled } from "./services/nativePush";
 import { getNotificationCategory } from "./utils/notifications";
 
@@ -430,9 +431,10 @@ function AppShell() {
 }
 
 export default function App() {
+  const Router = isNativeAppRuntime() || isFileProtocolRuntime() ? HashRouter : BrowserRouter;
   return (
-    <BrowserRouter>
+    <Router>
       <AppShell />
-    </BrowserRouter>
+    </Router>
   );
 }

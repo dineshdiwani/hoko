@@ -19,6 +19,12 @@ export function isNativeAppRuntime() {
   return false;
 }
 
+export function isFileProtocolRuntime() {
+  if (typeof window === "undefined") return false;
+  const protocol = String(window.location?.protocol || "").toLowerCase();
+  return protocol === "file:";
+}
+
 export function getPublicAppUrl() {
   const configured = normalizeUrl(
     import.meta.env.VITE_PUBLIC_APP_URL ||
@@ -44,6 +50,9 @@ export function getDefaultApiBaseUrl() {
     return /\/api$/i.test(explicit) ? explicit : `${explicit}/api`;
   }
   if (isNativeAppRuntime()) {
+    return `${getPublicAppUrl()}/api`;
+  }
+  if (isFileProtocolRuntime()) {
     return `${getPublicAppUrl()}/api`;
   }
   return "/api";
