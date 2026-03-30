@@ -738,6 +738,20 @@ app.get("/uploads/buyer-documents/:filename", auth, async (req, res) => {
   return res.sendFile(filePath);
 });
 
+/* -------------------- CLIENT STATIC (SPA/PWA) -------------------- */
+const clientDistPath = path.resolve(__dirname, "..", "client", "dist");
+if (fs.existsSync(clientDistPath)) {
+  app.use(express.static(clientDistPath));
+
+  app.get("*", (req, res, next) => {
+    const requestPath = String(req.path || "");
+    if (requestPath.startsWith("/api/") || requestPath.startsWith("/uploads/")) {
+      return next();
+    }
+    return res.sendFile(path.join(clientDistPath, "index.html"));
+  });
+}
+
 /* -------------------- GLOBAL ERROR HANDLER -------------------- */
 app.use((err, req, res, next) => {
   console.error("Server error:", err.stack);
