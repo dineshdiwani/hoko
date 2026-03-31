@@ -15,6 +15,7 @@ const NativePushToken = require("../models/NativePushToken");
 const PlatformSettings = require("../models/PlatformSettings");
 const WhatsAppContact = require("../models/WhatsAppContact");
 const WhatsAppCampaignRun = require("../models/WhatsAppCampaignRun");
+const WhatsAppDeliveryLog = require("../models/WhatsAppDeliveryLog");
 const AdminAuditLog = require("../models/AdminAuditLog");
 const adminAuth = require("../middleware/adminAuth");
 const { requireAdminPermission } = require("../middleware/adminPermission");
@@ -1350,6 +1351,70 @@ router.get("/whatsapp/campaign-runs", adminAuth, requireAdminPermission("campaig
   res.json(runs);
 });
 
+router.get("/whatsapp/delivery-logs", adminAuth, requireAdminPermission("campaigns.read"), async (req, res) => {
+  const page = Math.max(Number(req.query?.page) || 1, 1);
+  const limit = Math.min(Math.max(Number(req.query?.limit) || 50, 1), 200);
+  const skip = (page - 1) * limit;
+
+  const query = {};
+  const requirementId = String(req.query?.requirementId || "").trim();
+  const triggerType = String(req.query?.triggerType || "").trim();
+  const status = String(req.query?.status || "").trim();
+  const mobile = normalizeE164(req.query?.mobileE164);
+  const channel = String(req.query?.channel || "").trim().toLowerCase();
+  const from = String(req.query?.from || "").trim();
+  const to = String(req.query?.to || "").trim();
+
+  if (requirementId) query.requirementId = requirementId;
+  if (triggerType) query.triggerType = triggerType;
+  if (status) query.status = status;
+  if (mobile) query.mobileE164 = mobile;
+  if (channel) query.channel = channel;
+  if (from || to) {
+    query.createdAt = {};
+    if (from) query.createdAt.$gte = new Date(from);
+    if (to) query.createdAt.$lte = new Date(to);
+  }
+
+  const [items, total, summaryRows] = await Promise.all([
+    WhatsAppDeliveryLog.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate("createdByAdminId", "email role")
+      .populate("requirementId", "product productName city category"),
+    WhatsAppDeliveryLog.countDocuments(query),
+    WhatsAppDeliveryLog.aggregate([
+      { $match: query },
+      { $group: { _id: "$status", count: { $sum: 1 } } }
+    ])
+  ]);
+
+  const summary = {
+    total,
+    sent: 0,
+    failed: 0,
+    skipped: 0,
+    opened_manual_link: 0,
+    dry_run: 0
+  };
+  for (const row of summaryRows) {
+    const key = String(row?._id || "");
+    if (Object.prototype.hasOwnProperty.call(summary, key)) {
+      summary[key] = Number(row?.count || 0);
+    }
+  }
+
+  return res.json({
+    items,
+    page,
+    limit,
+    total,
+    pages: Math.max(Math.ceil(total / limit), 1),
+    summary
+  });
+});
+
 router.get("/whatsapp/post-statuses", adminAuth, requireAdminPermission("campaigns.read"), async (req, res) => {
   const limit = Math.min(Number(req.query?.limit) || 300, 1000);
   const requirements = await Requirement.find({})
@@ -1425,6 +1490,51 @@ router.get("/whatsapp/post-statuses", adminAuth, requireAdminPermission("campaig
     pendingPosts,
     posts
   });
+});
+
+router.post("/whatsapp/manual-log", adminAuth, requireAdminPermission("campaigns.manage"), async (req, res) => {
+  const requirementId = String(req.body?.requirementId || "").trim();
+  const mobileE164 = normalizeE164(req.body?.mobileE164);
+  const requestedStatus = String(req.body?.status || "opened_manual_link").trim();
+  const channel = String(req.body?.channel || "whatsapp").trim().toLowerCase();
+  const reason = String(req.body?.reason || "").trim();
+  const allowedStatuses = new Set(["sent", "failed", "skipped", "opened_manual_link", "dry_run"]);
+  const status = allowedStatuses.has(requestedStatus) ? requestedStatus : "opened_manual_link";
+
+  if (!requirementId || !mobileE164) {
+    return res.status(400).json({ message: "requirementId and mobileE164 required" });
+  }
+
+  const requirement = await Requirement.findById(requirementId)
+    .select("_id product productName city category")
+    .lean();
+  if (!requirement) {
+    return res.status(404).json({ message: "Requirement not found" });
+  }
+
+  const log = await WhatsAppDeliveryLog.create({
+    requirementId: requirement._id,
+    campaignRunId: null,
+    triggerType: "manual_queue",
+    channel: channel === "email" ? "email" : "whatsapp",
+    mobileE164,
+    email: "",
+    status: status || "opened_manual_link",
+    reason: reason || "Manual send button clicked from admin queue",
+    provider: "manual",
+    city: String(requirement?.city || "").trim(),
+    category: String(requirement?.category || "").trim(),
+    product: String(requirement?.product || requirement?.productName || "Requirement").trim(),
+    createdByAdminId: req.admin?._id || null
+  });
+
+  await logAdminAction(req.admin, "whatsapp_manual_log", "requirement", requirementId, {
+    mobileE164,
+    status: log.status,
+    channel: log.channel
+  });
+
+  return res.json({ ok: true, id: log._id });
 });
 
 router.post("/whatsapp/resend", adminAuth, requireAdminPermission("campaigns.manage"), async (req, res) => {

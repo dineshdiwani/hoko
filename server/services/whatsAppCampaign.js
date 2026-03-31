@@ -2,6 +2,7 @@ const PlatformSettings = require("../models/PlatformSettings");
 const WhatsAppContact = require("../models/WhatsAppContact");
 const WhatsAppCampaignRun = require("../models/WhatsAppCampaignRun");
 const WhatsAppLead = require("../models/WhatsAppLead");
+const WhatsAppDeliveryLog = require("../models/WhatsAppDeliveryLog");
 const { sendWhatsAppMessage } = require("../utils/sendWhatsApp");
 const { sendEmailToRecipient } = require("../utils/sendEmail");
 
@@ -83,6 +84,28 @@ function createChannelStats() {
     whatsapp: { attempted: 0, sent: 0, failed: 0, skipped: 0 },
     email: { attempted: 0, sent: 0, failed: 0, skipped: 0 }
   };
+}
+
+function summarizeSendError(errorValue) {
+  if (!errorValue) return "";
+  if (typeof errorValue === "string") return errorValue;
+  try {
+    return JSON.stringify(errorValue).slice(0, 500);
+  } catch {
+    return "send_failed";
+  }
+}
+
+function resolveRequirementProduct(requirement) {
+  return firstNonEmpty([requirement?.product, requirement?.productName, "Requirement"]);
+}
+
+async function createDeliveryLog(logPayload) {
+  try {
+    await WhatsAppDeliveryLog.create(logPayload);
+  } catch (err) {
+    console.warn("Failed to create WhatsApp delivery log", err?.message || err);
+  }
 }
 
 async function upsertWhatsAppLeadContext({
@@ -202,6 +225,7 @@ async function triggerWhatsAppCampaignForRequirement(
     city_mismatch: 0,
     category_mismatch: 0
   };
+  const requirementProduct = resolveRequirementProduct(requirement);
 
   let attempted = 0;
   let sent = 0;
@@ -214,21 +238,89 @@ async function triggerWhatsAppCampaignForRequirement(
     if (contact.active === false) {
       skipped += 1;
       skippedReasons.inactive += 1;
+      if (selectedChannels.whatsapp) {
+        await createDeliveryLog({
+          requirementId: requirement._id,
+          campaignRunId: run._id,
+          triggerType: run.triggerType,
+          channel: "whatsapp",
+          mobileE164: String(contact?.mobileE164 || "").trim(),
+          email: String(contact?.email || "").trim(),
+          status: "skipped",
+          reason: "inactive",
+          provider: "twilio",
+          city: String(requirement?.city || "").trim(),
+          category: String(requirement?.category || "").trim(),
+          product: requirementProduct,
+          createdByAdminId: adminId || null
+        });
+      }
       continue;
     }
     if (contact.optInStatus !== "opted_in") {
       skipped += 1;
       skippedReasons.not_opted_in += 1;
+      if (selectedChannels.whatsapp) {
+        await createDeliveryLog({
+          requirementId: requirement._id,
+          campaignRunId: run._id,
+          triggerType: run.triggerType,
+          channel: "whatsapp",
+          mobileE164: String(contact?.mobileE164 || "").trim(),
+          email: String(contact?.email || "").trim(),
+          status: "skipped",
+          reason: "not_opted_in",
+          provider: "twilio",
+          city: String(requirement?.city || "").trim(),
+          category: String(requirement?.category || "").trim(),
+          product: requirementProduct,
+          createdByAdminId: adminId || null
+        });
+      }
       continue;
     }
     if (contact.unsubscribedAt) {
       skipped += 1;
       skippedReasons.unsubscribed += 1;
+      if (selectedChannels.whatsapp) {
+        await createDeliveryLog({
+          requirementId: requirement._id,
+          campaignRunId: run._id,
+          triggerType: run.triggerType,
+          channel: "whatsapp",
+          mobileE164: String(contact?.mobileE164 || "").trim(),
+          email: String(contact?.email || "").trim(),
+          status: "skipped",
+          reason: "unsubscribed",
+          provider: "twilio",
+          city: String(requirement?.city || "").trim(),
+          category: String(requirement?.category || "").trim(),
+          product: requirementProduct,
+          createdByAdminId: adminId || null
+        });
+      }
       continue;
     }
     if (contact.dndStatus === "dnd") {
       skipped += 1;
       skippedReasons.dnd += 1;
+      if (selectedChannels.whatsapp) {
+        await createDeliveryLog({
+          requirementId: requirement._id,
+          campaignRunId: run._id,
+          triggerType: run.triggerType,
+          channel: "whatsapp",
+          mobileE164: String(contact?.mobileE164 || "").trim(),
+          email: String(contact?.email || "").trim(),
+          status: "skipped",
+          reason: "dnd",
+          provider: "twilio",
+          city: String(requirement?.city || "").trim(),
+          category: String(requirement?.category || "").trim(),
+          product: requirementProduct,
+          createdByAdminId: adminId || null
+        });
+      }
       continue;
     }
 
@@ -248,9 +340,39 @@ async function triggerWhatsAppCampaignForRequirement(
       if (waResult?.ok) {
         sent += 1;
         channelStats.whatsapp.sent += 1;
+        await createDeliveryLog({
+          requirementId: requirement._id,
+          campaignRunId: run._id,
+          triggerType: run.triggerType,
+          channel: "whatsapp",
+          mobileE164: String(contact?.mobileE164 || "").trim(),
+          email: String(contact?.email || "").trim(),
+          status: "sent",
+          reason: "",
+          provider: String(process.env.WHATSAPP_PROVIDER || "mock").trim().toLowerCase(),
+          city: String(requirement?.city || "").trim(),
+          category: String(requirement?.category || "").trim(),
+          product: requirementProduct,
+          createdByAdminId: adminId || null
+        });
       } else {
         failed += 1;
         channelStats.whatsapp.failed += 1;
+        await createDeliveryLog({
+          requirementId: requirement._id,
+          campaignRunId: run._id,
+          triggerType: run.triggerType,
+          channel: "whatsapp",
+          mobileE164: String(contact?.mobileE164 || "").trim(),
+          email: String(contact?.email || "").trim(),
+          status: "failed",
+          reason: summarizeSendError(waResult?.error),
+          provider: String(process.env.WHATSAPP_PROVIDER || "mock").trim().toLowerCase(),
+          city: String(requirement?.city || "").trim(),
+          category: String(requirement?.category || "").trim(),
+          product: requirementProduct,
+          createdByAdminId: adminId || null
+        });
       }
     }
 
@@ -259,6 +381,21 @@ async function triggerWhatsAppCampaignForRequirement(
       if (!targetEmail) {
         skipped += 1;
         channelStats.email.skipped += 1;
+        await createDeliveryLog({
+          requirementId: requirement._id,
+          campaignRunId: run._id,
+          triggerType: run.triggerType,
+          channel: "email",
+          mobileE164: String(contact?.mobileE164 || "").trim(),
+          email: "",
+          status: "skipped",
+          reason: "missing_email",
+          provider: "email",
+          city: String(requirement?.city || "").trim(),
+          category: String(requirement?.category || "").trim(),
+          product: requirementProduct,
+          createdByAdminId: adminId || null
+        });
       } else {
         attempted += 1;
         channelStats.email.attempted += 1;
@@ -271,9 +408,39 @@ async function triggerWhatsAppCampaignForRequirement(
         if (emailResult?.ok) {
           sent += 1;
           channelStats.email.sent += 1;
+          await createDeliveryLog({
+            requirementId: requirement._id,
+            campaignRunId: run._id,
+            triggerType: run.triggerType,
+            channel: "email",
+            mobileE164: String(contact?.mobileE164 || "").trim(),
+            email: targetEmail,
+            status: "sent",
+            reason: "",
+            provider: "email",
+            city: String(requirement?.city || "").trim(),
+            category: String(requirement?.category || "").trim(),
+            product: requirementProduct,
+            createdByAdminId: adminId || null
+          });
         } else {
           failed += 1;
           channelStats.email.failed += 1;
+          await createDeliveryLog({
+            requirementId: requirement._id,
+            campaignRunId: run._id,
+            triggerType: run.triggerType,
+            channel: "email",
+            mobileE164: String(contact?.mobileE164 || "").trim(),
+            email: targetEmail,
+            status: "failed",
+            reason: summarizeSendError(emailResult?.error),
+            provider: "email",
+            city: String(requirement?.city || "").trim(),
+            category: String(requirement?.category || "").trim(),
+            product: requirementProduct,
+            createdByAdminId: adminId || null
+          });
         }
       }
     }
@@ -346,6 +513,21 @@ async function sendTestWhatsAppCampaign({
     run.skipped = 1;
     run.notes = `Dry run for ${mobileE164}`;
     await run.save();
+    await createDeliveryLog({
+      requirementId: requirement._id,
+      campaignRunId: run._id,
+      triggerType: run.triggerType,
+      channel: "whatsapp",
+      mobileE164: String(mobileE164 || "").trim(),
+      email: "",
+      status: "dry_run",
+      reason: "manual_test_dry_run",
+      provider: String(process.env.WHATSAPP_PROVIDER || "mock").trim().toLowerCase(),
+      city: String(requirement?.city || "").trim(),
+      category: String(requirement?.category || "").trim(),
+      product: resolveRequirementProduct(requirement),
+      createdByAdminId: adminId || null
+    });
     return { ok: true, dryRun: true, campaignRunId: run._id };
   }
 
@@ -366,6 +548,21 @@ async function sendTestWhatsAppCampaign({
   run.failed = result?.ok ? 0 : 1;
   run.notes = result?.ok ? "Test send successful" : "Test send failed";
   await run.save();
+  await createDeliveryLog({
+    requirementId: requirement._id,
+    campaignRunId: run._id,
+    triggerType: run.triggerType,
+    channel: "whatsapp",
+    mobileE164: String(mobileE164 || "").trim(),
+    email: "",
+    status: result?.ok ? "sent" : "failed",
+    reason: result?.ok ? "" : summarizeSendError(result?.error),
+    provider: String(process.env.WHATSAPP_PROVIDER || "mock").trim().toLowerCase(),
+    city: String(requirement?.city || "").trim(),
+    category: String(requirement?.category || "").trim(),
+    product: resolveRequirementProduct(requirement),
+    createdByAdminId: adminId || null
+  });
 
   return { ok: Boolean(result?.ok), campaignRunId: run._id, result };
 }

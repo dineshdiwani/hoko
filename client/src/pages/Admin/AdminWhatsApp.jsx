@@ -44,6 +44,25 @@ export default function AdminWhatsApp() {
     whatsapp: true,
     email: false
   });
+  const [deliveryLogs, setDeliveryLogs] = useState([]);
+  const [deliveryLogSummary, setDeliveryLogSummary] = useState({
+    total: 0,
+    sent: 0,
+    failed: 0,
+    skipped: 0,
+    opened_manual_link: 0,
+    dry_run: 0
+  });
+  const [deliveryLogPage, setDeliveryLogPage] = useState(1);
+  const [deliveryLogPages, setDeliveryLogPages] = useState(1);
+  const [deliveryLogFilters, setDeliveryLogFilters] = useState({
+    requirementId: "",
+    triggerType: "",
+    status: "",
+    mobileE164: "",
+    channel: ""
+  });
+  const [loadingDeliveryLogs, setLoadingDeliveryLogs] = useState(false);
   const fileInputRef = useRef(null);
 
   const normalizeText = (value) => String(value || "").trim().toLowerCase();
@@ -127,6 +146,13 @@ export default function AdminWhatsApp() {
       hour: "2-digit",
       minute: "2-digit"
     });
+  };
+  const maskMobile = (value) => {
+    const raw = String(value || "").trim();
+    if (!raw) return "-";
+    const digits = raw.replace(/\D/g, "");
+    if (digits.length < 6) return raw;
+    return `${raw.slice(0, 3)}******${raw.slice(-3)}`;
   };
   const availableManualCities = useMemo(() => {
     const fromContacts = contacts
@@ -243,6 +269,49 @@ export default function AdminWhatsApp() {
   useEffect(() => {
     loadData().catch(() => {});
   }, [loadData]);
+
+  const loadDeliveryLogs = useCallback(async () => {
+    try {
+      setLoadingDeliveryLogs(true);
+      const params = new URLSearchParams();
+      params.set("page", String(deliveryLogPage));
+      params.set("limit", "50");
+      if (deliveryLogFilters.requirementId) params.set("requirementId", deliveryLogFilters.requirementId);
+      if (deliveryLogFilters.triggerType) params.set("triggerType", deliveryLogFilters.triggerType);
+      if (deliveryLogFilters.status) params.set("status", deliveryLogFilters.status);
+      if (deliveryLogFilters.mobileE164) params.set("mobileE164", deliveryLogFilters.mobileE164);
+      if (deliveryLogFilters.channel) params.set("channel", deliveryLogFilters.channel);
+      const res = await api.get(`/admin/whatsapp/delivery-logs?${params.toString()}`);
+      const payload = res.data || {};
+      setDeliveryLogs(Array.isArray(payload.items) ? payload.items : []);
+      setDeliveryLogSummary(payload.summary || {
+        total: 0,
+        sent: 0,
+        failed: 0,
+        skipped: 0,
+        opened_manual_link: 0,
+        dry_run: 0
+      });
+      setDeliveryLogPages(Math.max(Number(payload.pages || 1), 1));
+    } catch {
+      setDeliveryLogs([]);
+      setDeliveryLogSummary({
+        total: 0,
+        sent: 0,
+        failed: 0,
+        skipped: 0,
+        opened_manual_link: 0,
+        dry_run: 0
+      });
+      setDeliveryLogPages(1);
+    } finally {
+      setLoadingDeliveryLogs(false);
+    }
+  }, [deliveryLogFilters, deliveryLogPage]);
+
+  useEffect(() => {
+    loadDeliveryLogs().catch(() => {});
+  }, [loadDeliveryLogs]);
 
   const handleNotificationFile = (event) => {
     const file = event.target.files?.[0] || null;
@@ -394,6 +463,7 @@ export default function AdminWhatsApp() {
       });
       alert(dryRun ? "Dry run created" : res.data?.ok ? "Test message sent" : "Test message failed");
       await loadData();
+      await loadDeliveryLogs();
     } catch (err) {
       alert(err?.response?.data?.message || "Failed to run test send");
     }
@@ -488,8 +558,22 @@ export default function AdminWhatsApp() {
     alert(`Manual queue created with ${queue.length} pending contacts`);
   };
 
-  const openManualWhatsApp = (entry) => {
+  const openManualWhatsApp = async (entry) => {
     if (!entry?.whatsappLink) return;
+    if (manualRequirementId && entry?.mobileE164) {
+      try {
+        await api.post("/admin/whatsapp/manual-log", {
+          requirementId: manualRequirementId,
+          mobileE164: entry.mobileE164,
+          channel: "whatsapp",
+          status: "opened_manual_link",
+          reason: "Manual WhatsApp send button clicked"
+        });
+        await loadDeliveryLogs();
+      } catch {
+        // Keep manual flow non-blocking even if log write fails.
+      }
+    }
     window.open(entry.whatsappLink, "_blank", "noopener,noreferrer");
   };
 
@@ -521,6 +605,7 @@ export default function AdminWhatsApp() {
         `Resend complete. Attempted: ${stats.attempted || 0}, Sent: ${stats.sent || 0}, Failed: ${stats.failed || 0}, Skipped: ${stats.skipped || 0}`
       );
       await loadData();
+      await loadDeliveryLogs();
       setManualQueue([]);
     } catch (err) {
       alert(err?.response?.data?.message || err?.response?.data?.reason || "Failed to resend post");
@@ -798,6 +883,152 @@ export default function AdminWhatsApp() {
                     </div>
                   ))}
                   {manualQueue.length === 0 && <p className="text-xs text-gray-500">No pending queue created yet.</p>}
+                </div>
+                <div className="border rounded-xl p-3 space-y-3">
+                  <p className="text-sm font-semibold">Delivery Logs (Manual + API)</p>
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
+                    <select
+                      className="w-full border rounded-lg px-3 py-2 text-sm"
+                      value={deliveryLogFilters.requirementId}
+                      onChange={(e) => {
+                        setDeliveryLogPage(1);
+                        setDeliveryLogFilters((prev) => ({ ...prev, requirementId: e.target.value }));
+                      }}
+                    >
+                      <option value="">All Requirements</option>
+                      {requirements.slice(0, 500).map((item) => (
+                        <option key={`delivery-requirement-${item._id}`} value={item._id}>
+                          {getPostStatusDisplay({ requirementId: item._id, product: item.product || item.productName, city: item.city, category: item.category })}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      className="w-full border rounded-lg px-3 py-2 text-sm"
+                      value={deliveryLogFilters.triggerType}
+                      onChange={(e) => {
+                        setDeliveryLogPage(1);
+                        setDeliveryLogFilters((prev) => ({ ...prev, triggerType: e.target.value }));
+                      }}
+                    >
+                      <option value="">All Triggers</option>
+                      <option value="manual_queue">manual_queue</option>
+                      <option value="manual_resend">manual_resend</option>
+                      <option value="buyer_post">buyer_post</option>
+                      <option value="manual_test">manual_test</option>
+                    </select>
+                    <select
+                      className="w-full border rounded-lg px-3 py-2 text-sm"
+                      value={deliveryLogFilters.status}
+                      onChange={(e) => {
+                        setDeliveryLogPage(1);
+                        setDeliveryLogFilters((prev) => ({ ...prev, status: e.target.value }));
+                      }}
+                    >
+                      <option value="">All Statuses</option>
+                      <option value="sent">sent</option>
+                      <option value="failed">failed</option>
+                      <option value="skipped">skipped</option>
+                      <option value="opened_manual_link">opened_manual_link</option>
+                      <option value="dry_run">dry_run</option>
+                    </select>
+                    <select
+                      className="w-full border rounded-lg px-3 py-2 text-sm"
+                      value={deliveryLogFilters.channel}
+                      onChange={(e) => {
+                        setDeliveryLogPage(1);
+                        setDeliveryLogFilters((prev) => ({ ...prev, channel: e.target.value }));
+                      }}
+                    >
+                      <option value="">All Channels</option>
+                      <option value="whatsapp">whatsapp</option>
+                      <option value="email">email</option>
+                    </select>
+                    <input
+                      className="w-full border rounded-lg px-3 py-2 text-sm"
+                      placeholder="Search mobile (+91...)"
+                      value={deliveryLogFilters.mobileE164}
+                      onChange={(e) => {
+                        setDeliveryLogPage(1);
+                        setDeliveryLogFilters((prev) => ({ ...prev, mobileE164: e.target.value }));
+                      }}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-6 gap-2 text-xs">
+                    <div className="rounded-lg border px-2 py-1 bg-gray-50">Total: <span className="font-semibold">{deliveryLogSummary.total || 0}</span></div>
+                    <div className="rounded-lg border px-2 py-1 bg-green-50 text-green-700">Sent: <span className="font-semibold">{deliveryLogSummary.sent || 0}</span></div>
+                    <div className="rounded-lg border px-2 py-1 bg-red-50 text-red-700">Failed: <span className="font-semibold">{deliveryLogSummary.failed || 0}</span></div>
+                    <div className="rounded-lg border px-2 py-1 bg-amber-50 text-amber-700">Skipped: <span className="font-semibold">{deliveryLogSummary.skipped || 0}</span></div>
+                    <div className="rounded-lg border px-2 py-1 bg-blue-50 text-blue-700">Manual Opened: <span className="font-semibold">{deliveryLogSummary.opened_manual_link || 0}</span></div>
+                    <div className="rounded-lg border px-2 py-1 bg-purple-50 text-purple-700">Dry Run: <span className="font-semibold">{deliveryLogSummary.dry_run || 0}</span></div>
+                  </div>
+                  <div className="overflow-auto border rounded-lg">
+                    <table className="min-w-full text-xs">
+                      <thead className="bg-gray-50 text-gray-700">
+                        <tr>
+                          <th className="text-left px-2 py-2">Time</th>
+                          <th className="text-left px-2 py-2">Requirement</th>
+                          <th className="text-left px-2 py-2">Trigger</th>
+                          <th className="text-left px-2 py-2">Channel</th>
+                          <th className="text-left px-2 py-2">Contact</th>
+                          <th className="text-left px-2 py-2">Result</th>
+                          <th className="text-left px-2 py-2">Reason</th>
+                          <th className="text-left px-2 py-2">Run</th>
+                          <th className="text-left px-2 py-2">By</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {deliveryLogs.map((row) => {
+                          const requirementLabel = [
+                            row?.product || row?.requirementId?.product || row?.requirementId?.productName || "Requirement",
+                            row?.city || row?.requirementId?.city || "-",
+                            row?.category || row?.requirementId?.category || "-"
+                          ].join(" | ");
+                          return (
+                            <tr key={row._id} className="border-t">
+                              <td className="px-2 py-2 whitespace-nowrap">{formatDateTime(row.createdAt)}</td>
+                              <td className="px-2 py-2">{requirementLabel}</td>
+                              <td className="px-2 py-2">{row.triggerType}</td>
+                              <td className="px-2 py-2">{row.channel}</td>
+                              <td className="px-2 py-2 whitespace-nowrap" title={row.mobileE164 || row.email || "-"}>
+                                {row.mobileE164 ? maskMobile(row.mobileE164) : row.email || "-"}
+                              </td>
+                              <td className="px-2 py-2">{row.status}</td>
+                              <td className="px-2 py-2 max-w-xs truncate" title={row.reason || ""}>{row.reason || "-"}</td>
+                              <td className="px-2 py-2">{row.campaignRunId || "-"}</td>
+                              <td className="px-2 py-2">{row?.createdByAdminId?.email || "system"}</td>
+                            </tr>
+                          );
+                        })}
+                        {!loadingDeliveryLogs && deliveryLogs.length === 0 && (
+                          <tr>
+                            <td className="px-2 py-3 text-gray-500" colSpan={9}>No delivery logs found.</td>
+                          </tr>
+                        )}
+                        {loadingDeliveryLogs && (
+                          <tr>
+                            <td className="px-2 py-3 text-gray-500" colSpan={9}>Loading delivery logs...</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <button
+                      className="px-3 py-1.5 rounded border border-gray-300 disabled:opacity-50"
+                      disabled={deliveryLogPage <= 1}
+                      onClick={() => setDeliveryLogPage((prev) => Math.max(prev - 1, 1))}
+                    >
+                      Previous
+                    </button>
+                    <span>Page {deliveryLogPage} / {deliveryLogPages}</span>
+                    <button
+                      className="px-3 py-1.5 rounded border border-gray-300 disabled:opacity-50"
+                      disabled={deliveryLogPage >= deliveryLogPages}
+                      onClick={() => setDeliveryLogPage((prev) => Math.min(prev + 1, deliveryLogPages))}
+                    >
+                      Next
+                    </button>
+                  </div>
                 </div>
               </div>
               <div className="border-t pt-4">
