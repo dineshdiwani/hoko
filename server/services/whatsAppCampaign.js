@@ -5,6 +5,7 @@ const WhatsAppLead = require("../models/WhatsAppLead");
 const WhatsAppDeliveryLog = require("../models/WhatsAppDeliveryLog");
 const { sendWhatsAppMessage } = require("../utils/sendWhatsApp");
 const { sendEmailToRecipient } = require("../utils/sendEmail");
+const { resolvePublicAppUrl } = require("../utils/publicAppUrl");
 
 function normalizeText(value) {
   return String(value || "").trim().toLowerCase();
@@ -197,11 +198,7 @@ async function triggerWhatsAppCampaignForRequirement(
     return { ok: false, reason: "no_contacts" };
   }
 
-  const appBase =
-    String(process.env.APP_PUBLIC_URL || process.env.CLIENT_URL || "https://hokoapp.in")
-      .split(",")[0]
-      .trim()
-      .replace(/\/+$/, "") || "https://hokoapp.in";
+  const appBase = resolvePublicAppUrl();
   const deepLink = buildSellerDeepLink(appBase, requirement);
   const body = formatMessage({ requirement, deepLink });
   const selectedChannels = normalizeChannels(channels);
@@ -475,11 +472,7 @@ async function sendTestWhatsAppCampaign({
   if (!requirement?._id) {
     return { ok: false, reason: "missing_requirement" };
   }
-  const appBase =
-    String(process.env.APP_PUBLIC_URL || process.env.CLIENT_URL || "https://hokoapp.in")
-      .split(",")[0]
-      .trim()
-      .replace(/\/+$/, "") || "https://hokoapp.in";
+  const appBase = resolvePublicAppUrl();
   const deepLink = buildSellerDeepLink(appBase, requirement);
   const body = formatMessage({ requirement, deepLink });
 

@@ -5,6 +5,7 @@ const PendingOfferDraft = require("../models/PendingOfferDraft");
 const Requirement = require("../models/Requirement");
 const WhatsAppLead = require("../models/WhatsAppLead");
 const { sendWhatsAppMessage } = require("../utils/sendWhatsApp");
+const { resolvePublicAppUrl } = require("../utils/publicAppUrl");
 const {
   classifyInboundText,
   extractInboundEvents,
@@ -22,11 +23,7 @@ function firstNonEmpty(values) {
 }
 
 function buildSellerDeepLink(requirementId) {
-  const appBase =
-    String(process.env.APP_PUBLIC_URL || process.env.CLIENT_URL || "https://hokoapp.in")
-      .split(",")[0]
-      .trim()
-      .replace(/\/+$/, "") || "https://hokoapp.in";
+  const appBase = resolvePublicAppUrl();
   return `${appBase}/seller/deeplink/${encodeURIComponent(String(requirementId || "").trim())}`;
 }
 
