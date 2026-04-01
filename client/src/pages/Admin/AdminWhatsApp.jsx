@@ -79,7 +79,9 @@ export default function AdminWhatsApp() {
     return out;
   };
   const getPostStatusDisplay = (item) =>
-    `${item?.product || "Requirement"} | ${item?.city || "-"} | ${item?.category || "-"}`;
+    `${item?.product || "Requirement"} | ${item?.city || "-"} | ${item?.category || "-"} | ID: ${String(
+      item?.requirementId || item?._id || "-"
+    )}`;
   const firstNonEmpty = (values) => {
     for (const value of values) {
       if (String(value || "").trim()) return String(value).trim();
