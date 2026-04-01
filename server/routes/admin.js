@@ -1453,10 +1453,20 @@ router.get("/whatsapp/post-statuses", adminAuth, requireAdminPermission("campaig
     const row = byRequirementId.get(String(requirement._id));
     const latestRun = row?.latestRun || null;
     let deliveryState = "pending";
-    if (latestRun && Number(latestRun.sent || 0) > 0) {
-      deliveryState = "sent";
-    } else if (latestRun && String(latestRun.status || "") === "failed") {
-      deliveryState = "failed";
+    if (latestRun) {
+      const latestSent = Number(latestRun.sent || 0);
+      const latestFailed = Number(latestRun.failed || 0);
+      const latestAttempted = Number(latestRun.attempted || 0);
+
+      if (latestSent > 0 && latestFailed > 0) {
+        deliveryState = "partial";
+      } else if (latestSent > 0 && latestFailed === 0) {
+        deliveryState = "sent";
+      } else if (latestAttempted > 0 && latestFailed > 0 && latestSent === 0) {
+        deliveryState = "failed";
+      } else if (String(latestRun.status || "") === "failed") {
+        deliveryState = "failed";
+      }
     }
 
     return {

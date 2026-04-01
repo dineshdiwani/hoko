@@ -585,12 +585,19 @@ export default function AdminWhatsApp() {
     [postStatuses, manualRequirementId]
   );
 
+  const hasManualRequirement = Boolean(String(manualRequirementId || "").trim());
+  const hasManualCategory = Boolean(String(manualCategory || "").trim());
+  const hasManualCitySelection = manualUseAllCities || manualSelectedCities.length > 0;
+  const hasManualChannelSelection = manualChannels.whatsapp || manualChannels.email;
+  const canCreateManualQueue = hasManualRequirement && hasManualCategory && hasManualCitySelection;
+  const canResendSelectedPost = canCreateManualQueue && hasManualChannelSelection && !resendingPost;
+
   const resendSelectedPost = async () => {
-    if (!manualRequirementId) {
-      alert("Select a pending post first");
+    if (!canCreateManualQueue) {
+      alert("Select pending post, category, and city filters first");
       return;
     }
-    if (!manualChannels.whatsapp && !manualChannels.email) {
+    if (!hasManualChannelSelection) {
       alert("Select at least one channel: WhatsApp and/or Email");
       return;
     }
@@ -739,6 +746,10 @@ export default function AdminWhatsApp() {
                       setManualCategory(matchingCategory || reqCategory);
                       setManualCityMenuOpen(false);
                       setManualMessagePreview(buildManualMessage(req));
+                    } else {
+                      setManualCategory("");
+                      setManualQueue([]);
+                      setManualMessagePreview("");
                     }
                   }}>
                     <option value="">Select Pending Post (Requirement)</option>
@@ -845,12 +856,16 @@ export default function AdminWhatsApp() {
                     </label>
                   </div>
                 </div>
-                <button onClick={createManualQueue} className="px-3 py-2 rounded-lg text-sm font-semibold btn-primary">
+                <button
+                  onClick={createManualQueue}
+                  disabled={!canCreateManualQueue}
+                  className="px-3 py-2 rounded-lg text-sm font-semibold btn-primary disabled:opacity-60"
+                >
                   Create Pending Queue
                 </button>
                 <button
                   onClick={resendSelectedPost}
-                  disabled={!manualRequirementId || resendingPost}
+                  disabled={!canResendSelectedPost}
                   className="px-3 py-2 rounded-lg text-sm font-semibold border border-amber-300 text-amber-700 disabled:opacity-60"
                 >
                   {resendingPost ? "Sending..." : "Send Selected Post via API"}
