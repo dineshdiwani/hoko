@@ -600,64 +600,25 @@ export default function AdminWhatsApp() {
     [postStatuses, manualRequirementId]
   );
 
-  const triggeredPostSummaries = useMemo(() => {
-    const byRequirement = new Map();
-
-    postStatuses.forEach((item) => {
-      const requirementId = String(item?.requirementId || "").trim();
-      if (!requirementId) return;
-      byRequirement.set(requirementId, {
-        requirementId,
-        product: item?.product || "Requirement",
-        city: item?.city || "",
-        category: item?.category || "",
-        deliveryState: item?.deliveryState || "pending",
-        totalRuns: Number(item?.totalRuns || 0),
-        totalSent: Number(item?.totalSent || 0),
-        totalFailed: Number(item?.totalFailed || 0),
-        totalAttempted: Number(item?.totalAttempted || 0),
-        latestRunAt: item?.latestRun?.createdAt || null
-      });
-    });
-
-    campaignRuns.forEach((run) => {
-      const requirementObj = run?.requirementId && typeof run.requirementId === "object"
-        ? run.requirementId
-        : null;
-      const requirementId = String(requirementObj?._id || run?.requirementId || "").trim();
-      if (!requirementId) return;
-
-      const existing = byRequirement.get(requirementId);
-      if (!existing) {
-        byRequirement.set(requirementId, {
-          requirementId,
-          product: String(requirementObj?.product || requirementObj?.productName || "Requirement"),
-          city: String(requirementObj?.city || run?.city || ""),
-          category: String(requirementObj?.category || run?.category || ""),
-          deliveryState: String(run?.status || "unknown"),
-          totalRuns: 1,
-          totalSent: Number(run?.sent || 0),
-          totalFailed: Number(run?.failed || 0),
-          totalAttempted: Number(run?.attempted || 0),
-          latestRunAt: run?.createdAt || null
-        });
-        return;
-      }
-
-      existing.totalRuns += 1;
-      existing.totalSent += Number(run?.sent || 0);
-      existing.totalFailed += Number(run?.failed || 0);
-      existing.totalAttempted += Number(run?.attempted || 0);
-      if (!existing.latestRunAt || new Date(run?.createdAt || 0) > new Date(existing.latestRunAt || 0)) {
-        existing.latestRunAt = run?.createdAt || existing.latestRunAt;
-      }
-      byRequirement.set(requirementId, existing);
-    });
-
-    return Array.from(byRequirement.values())
-      .filter((item) => item.totalRuns > 0)
-      .sort((a, b) => new Date(b.latestRunAt || 0) - new Date(a.latestRunAt || 0));
-  }, [campaignRuns, postStatuses]);
+  const triggeredPostSummaries = useMemo(
+    () =>
+      postStatuses
+        .map((item) => ({
+          requirementId: String(item?.requirementId || "").trim(),
+          product: item?.product || "Requirement",
+          city: item?.city || "",
+          category: item?.category || "",
+          deliveryState: item?.deliveryState || "pending",
+          totalRuns: Number(item?.totalRuns || 0),
+          totalSent: Number(item?.totalSent || 0),
+          totalFailed: Number(item?.totalFailed || 0),
+          totalAttempted: Number(item?.totalAttempted || 0),
+          latestRunAt: item?.latestRun?.createdAt || null
+        }))
+        .filter((item) => item.requirementId && item.totalRuns > 0)
+        .sort((a, b) => new Date(b.latestRunAt || 0) - new Date(a.latestRunAt || 0)),
+    [postStatuses]
+  );
 
   const selectTriggeredPostForRetrigger = (summary) => {
     const requirementId = String(summary?.requirementId || "").trim();
@@ -1096,8 +1057,17 @@ export default function AdminWhatsApp() {
                     <div className="rounded-lg border px-2 py-1 bg-blue-50 text-blue-700">Manual Opened: <span className="font-semibold">{deliveryLogSummary.opened_manual_link || 0}</span></div>
                     <div className="rounded-lg border px-2 py-1 bg-purple-50 text-purple-700">Dry Run: <span className="font-semibold">{deliveryLogSummary.dry_run || 0}</span></div>
                   </div>
-                  <div className="overflow-auto border rounded-lg">
-                    <table className="min-w-full text-xs">
+                  <div
+                    className="border rounded-lg p-2"
+                    style={{
+                      height: "160px",
+                      overflowX: "hidden",
+                      overflowY: "scroll",
+                      scrollbarGutter: "stable both-edges"
+                    }}
+                  >
+                    <div className="overflow-x-auto">
+                      <table className="text-xs whitespace-nowrap" style={{ minWidth: "1200px" }}>
                       <thead className="bg-gray-50 text-gray-700">
                         <tr>
                           <th className="text-left px-2 py-2">Time</th>
@@ -1145,7 +1115,8 @@ export default function AdminWhatsApp() {
                           </tr>
                         )}
                       </tbody>
-                    </table>
+                      </table>
+                    </div>
                   </div>
                   <div className="flex items-center justify-between text-xs">
                     <button
@@ -1176,7 +1147,15 @@ export default function AdminWhatsApp() {
                   <button onClick={() => sendCampaignTest(true)} className="px-3 py-2 rounded-lg text-sm font-semibold border border-gray-300">Dry Run</button>
                   <button onClick={() => sendCampaignTest(false)} className="px-3 py-2 rounded-lg text-sm font-semibold btn-primary">Test Send</button>
                 </div>
-                <div className="mt-3 space-y-2 max-h-80 overflow-auto">
+                <div
+                  className="mt-3 space-y-2 border rounded-lg p-2"
+                  style={{
+                    height: "160px",
+                    overflowX: "hidden",
+                    overflowY: "scroll",
+                    scrollbarGutter: "stable both-edges"
+                  }}
+                >
                   {campaignRuns.slice(0, 25).map((run) => (
                     <div key={run._id} className="border rounded-lg p-2 text-xs text-gray-700">
                       <div className="font-semibold">{run.triggerType} | {run.status}</div>
@@ -1192,8 +1171,17 @@ export default function AdminWhatsApp() {
                 <p className="text-xs text-gray-500 mb-2">
                   Done jobs history with run count, totals, and quick re-trigger action.
                 </p>
-                <div className="overflow-auto border rounded-lg">
-                  <table className="min-w-full text-xs">
+                <div
+                  className="border rounded-lg p-2"
+                  style={{
+                    height: "160px",
+                    overflowX: "hidden",
+                    overflowY: "scroll",
+                    scrollbarGutter: "stable both-edges"
+                  }}
+                >
+                  <div className="overflow-x-auto">
+                    <table className="text-xs whitespace-nowrap" style={{ minWidth: "1200px" }}>
                     <thead className="bg-gray-50 text-gray-700">
                       <tr>
                         <th className="text-left px-2 py-2">Post</th>
@@ -1237,7 +1225,8 @@ export default function AdminWhatsApp() {
                         </tr>
                       )}
                     </tbody>
-                  </table>
+                    </table>
+                  </div>
                 </div>
               </div>
             </div>
