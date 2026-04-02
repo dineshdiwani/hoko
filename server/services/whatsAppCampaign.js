@@ -26,6 +26,17 @@ function normalizeFilterList(values) {
   );
 }
 
+function normalizeIdList(values) {
+  if (!Array.isArray(values)) return [];
+  return Array.from(
+    new Set(
+      values
+        .map((value) => String(value || "").trim())
+        .filter(Boolean)
+    )
+  );
+}
+
 function extractContactCategoryKeys(contact) {
   if (Array.isArray(contact?.categoriesNormalized) && contact.categoriesNormalized.length) {
     return contact.categoriesNormalized
@@ -203,6 +214,7 @@ async function triggerWhatsAppCampaignForRequirement(
   const requirementCategory = normalizeText(requirement.category);
   const requestedCityKeys = normalizeFilterList(contactFilters?.cityKeys);
   const requestedCategoryKeys = normalizeFilterList(contactFilters?.categoryKeys);
+  const requestedContactIds = normalizeIdList(contactFilters?.contactIds);
   const enabledCities = Array.isArray(campaignSettings.cities)
     ? campaignSettings.cities.map(normalizeText).filter(Boolean)
     : [];
@@ -226,7 +238,9 @@ async function triggerWhatsAppCampaignForRequirement(
   }
 
   const contactQuery = {};
-  if (requestedCityKeys.length) {
+  if (requestedContactIds.length) {
+    contactQuery._id = { $in: requestedContactIds };
+  } else if (requestedCityKeys.length) {
     contactQuery.cityNormalized = { $in: requestedCityKeys };
   } else if (requirementCity) {
     contactQuery.cityNormalized = requirementCity;
@@ -270,8 +284,9 @@ async function triggerWhatsAppCampaignForRequirement(
   const emailSubject = `New requirement: ${firstNonEmpty([requirement.product, requirement.productName]) || "Requirement"}`;
 
   for (const contact of contacts) {
+    const useExplicitContactIds = requestedContactIds.length > 0;
     const contactCityKey = normalizeText(contact?.cityNormalized || contact?.city);
-    if (requestedCityKeys.length && !requestedCityKeys.includes(contactCityKey)) {
+    if (!useExplicitContactIds && requestedCityKeys.length && !requestedCityKeys.includes(contactCityKey)) {
       skipped += 1;
       skippedReasons.city_mismatch += 1;
       if (selectedChannels.whatsapp) {
@@ -296,6 +311,7 @@ async function triggerWhatsAppCampaignForRequirement(
 
     const contactCategories = extractContactCategoryKeys(contact);
     if (
+      !useExplicitContactIds &&
       requestedCategoryKeys.length &&
       !requestedCategoryKeys.some((key) => contactCategories.includes(key))
     ) {

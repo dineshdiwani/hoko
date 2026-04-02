@@ -1566,6 +1566,9 @@ router.post("/whatsapp/resend", adminAuth, requireAdminPermission("campaigns.man
       : [],
     categoryKeys: Array.isArray(requestedFilters?.categoryKeys)
       ? requestedFilters.categoryKeys
+      : [],
+    contactIds: Array.isArray(requestedFilters?.contactIds)
+      ? requestedFilters.contactIds
       : []
   };
   const channels = {

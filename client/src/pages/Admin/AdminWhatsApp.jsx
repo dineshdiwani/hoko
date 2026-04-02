@@ -592,7 +592,11 @@ export default function AdminWhatsApp() {
   const hasManualCitySelection = manualUseAllCities || manualSelectedCities.length > 0;
   const hasManualChannelSelection = manualChannels.whatsapp || manualChannels.email;
   const canCreateManualQueue = hasManualRequirement && hasManualCategory && hasManualCitySelection;
-  const canResendSelectedPost = canCreateManualQueue && hasManualChannelSelection && !resendingPost;
+  const canResendSelectedPost =
+    canCreateManualQueue &&
+    hasManualChannelSelection &&
+    manualQueue.length > 0 &&
+    !resendingPost;
 
   const resendSelectedPost = async () => {
     if (!canCreateManualQueue) {
@@ -601,6 +605,10 @@ export default function AdminWhatsApp() {
     }
     if (!hasManualChannelSelection) {
       alert("Select at least one channel: WhatsApp and/or Email");
+      return;
+    }
+    if (!manualQueue.length) {
+      alert("Create pending queue first so API send uses the same filtered contacts");
       return;
     }
     try {
@@ -614,7 +622,8 @@ export default function AdminWhatsApp() {
         channels: manualChannels,
         contactFilters: {
           cityKeys: selectedCityKeys,
-          categoryKeys: selectedCategoryKey ? [selectedCategoryKey] : []
+          categoryKeys: selectedCategoryKey ? [selectedCategoryKey] : [],
+          contactIds: manualQueue.map((entry) => String(entry?.id || "").trim()).filter(Boolean)
         }
       });
       const stats = res.data || {};
