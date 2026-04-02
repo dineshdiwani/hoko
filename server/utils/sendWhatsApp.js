@@ -73,10 +73,31 @@ async function sendViaWapi({ to, body }) {
     headers.apikey = token;
   }
 
-  await axios.post(url, payload, {
+  const response = await axios.post(url, payload, {
     timeout: 15000,
     headers
   });
+  const data = response?.data;
+  if (!data || typeof data !== "object") {
+    return;
+  }
+
+  const statusValue = typeof data.status === "string"
+    ? data.status.trim().toLowerCase()
+    : data.status;
+  const explicitFailure =
+    data.success === false ||
+    data.ok === false ||
+    statusValue === false ||
+    ["error", "failed", "fail", "rejected", "invalid", "false"].includes(statusValue);
+
+  if (explicitFailure) {
+    throw new Error(
+      typeof data.message === "string" && data.message.trim()
+        ? data.message.trim()
+        : JSON.stringify(data).slice(0, 600)
+    );
+  }
 }
 
 async function sendWhatsAppMessage({ to, body }) {
