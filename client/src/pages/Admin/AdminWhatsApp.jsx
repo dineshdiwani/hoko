@@ -574,22 +574,47 @@ export default function AdminWhatsApp() {
   };
 
   const openManualWhatsApp = async (entry) => {
-    if (!entry?.whatsappLink) return;
-    if (manualRequirementId && entry?.mobileE164) {
-      try {
-        await api.post("/admin/whatsapp/manual-log", {
-          requirementId: manualRequirementId,
-          mobileE164: entry.mobileE164,
-          channel: "whatsapp",
-          status: "opened_manual_link",
-          reason: "Manual WhatsApp send button clicked"
-        });
-        await loadDeliveryLogs();
-      } catch {
-        // Keep manual flow non-blocking even if log write fails.
-      }
+    if (!entry?.id || !manualRequirementId) {
+      alert("Select a requirement and create pending queue first");
+      return;
     }
-    window.open(entry.whatsappLink, "_blank", "noopener,noreferrer");
+
+    setManualQueue((prev) =>
+      prev.map((row) =>
+        row.id === entry.id ? { ...row, status: "sending" } : row
+      )
+    );
+
+    try {
+      const response = await api.post("/admin/whatsapp/resend", {
+        requirementId: manualRequirementId,
+        channels: { whatsapp: true, email: false },
+        contactFilters: {
+          contactIds: [String(entry.id)]
+        }
+      });
+      const sent = Number(response?.data?.sent || 0);
+      const failed = Number(response?.data?.failed || 0);
+      const nextStatus = sent > 0 && failed === 0 ? "sent" : "failed";
+
+      setManualQueue((prev) =>
+        prev.map((row) =>
+          row.id === entry.id ? { ...row, status: nextStatus } : row
+        )
+      );
+      await loadData();
+      await loadDeliveryLogs();
+      if (nextStatus === "failed") {
+        alert("API send failed for this contact. Check Delivery Logs reason.");
+      }
+    } catch (err) {
+      setManualQueue((prev) =>
+        prev.map((row) =>
+          row.id === entry.id ? { ...row, status: "failed" } : row
+        )
+      );
+      alert(err?.response?.data?.message || err?.response?.data?.reason || "Failed to send via WhatsApp API");
+    }
   };
 
   const selectedPostStatus = useMemo(
@@ -957,8 +982,12 @@ export default function AdminWhatsApp() {
                         <div className="text-gray-500">{entry.city} | {entry.email || "-"} | Status: {entry.status}</div>
                       </div>
                       <div className="flex gap-2">
-                        <button onClick={() => openManualWhatsApp(entry)} className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-green-300 text-green-700">
-                          Send via WhatsApp
+                        <button
+                          onClick={() => openManualWhatsApp(entry)}
+                          disabled={entry.status === "sending"}
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-green-300 text-green-700 disabled:opacity-50"
+                        >
+                          {entry.status === "sending" ? "Sending..." : "Send via WhatsApp API"}
                         </button>
                         <button
                           onClick={() => entry.emailLink && window.open(entry.emailLink, "_blank", "noopener,noreferrer")}
