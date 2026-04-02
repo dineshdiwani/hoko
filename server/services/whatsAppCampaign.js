@@ -11,6 +11,10 @@ function normalizeText(value) {
   return String(value || "").trim().toLowerCase();
 }
 
+function resolveWhatsAppProvider() {
+  return String(process.env.WHATSAPP_PROVIDER || "mock").trim().toLowerCase();
+}
+
 function shouldBypassCampaignGuards(triggerType) {
   const normalized = String(triggerType || "").trim().toLowerCase();
   return normalized === "manual_resend";
@@ -245,7 +249,7 @@ async function triggerWhatsAppCampaignForRequirement(
           email: String(contact?.email || "").trim(),
           status: "skipped",
           reason: "inactive",
-          provider: "twilio",
+          provider: resolveWhatsAppProvider(),
           city: String(requirement?.city || "").trim(),
           category: String(requirement?.category || "").trim(),
           product: requirementProduct,
@@ -267,7 +271,7 @@ async function triggerWhatsAppCampaignForRequirement(
           email: String(contact?.email || "").trim(),
           status: "skipped",
           reason: "not_opted_in",
-          provider: "twilio",
+          provider: resolveWhatsAppProvider(),
           city: String(requirement?.city || "").trim(),
           category: String(requirement?.category || "").trim(),
           product: requirementProduct,
@@ -289,7 +293,7 @@ async function triggerWhatsAppCampaignForRequirement(
           email: String(contact?.email || "").trim(),
           status: "skipped",
           reason: "unsubscribed",
-          provider: "twilio",
+          provider: resolveWhatsAppProvider(),
           city: String(requirement?.city || "").trim(),
           category: String(requirement?.category || "").trim(),
           product: requirementProduct,
@@ -311,7 +315,7 @@ async function triggerWhatsAppCampaignForRequirement(
           email: String(contact?.email || "").trim(),
           status: "skipped",
           reason: "dnd",
-          provider: "twilio",
+          provider: resolveWhatsAppProvider(),
           city: String(requirement?.city || "").trim(),
           category: String(requirement?.category || "").trim(),
           product: requirementProduct,
@@ -346,7 +350,7 @@ async function triggerWhatsAppCampaignForRequirement(
           email: String(contact?.email || "").trim(),
           status: "sent",
           reason: "",
-          provider: String(process.env.WHATSAPP_PROVIDER || "mock").trim().toLowerCase(),
+          provider: resolveWhatsAppProvider(),
           city: String(requirement?.city || "").trim(),
           category: String(requirement?.category || "").trim(),
           product: requirementProduct,
@@ -364,7 +368,7 @@ async function triggerWhatsAppCampaignForRequirement(
           email: String(contact?.email || "").trim(),
           status: "failed",
           reason: summarizeSendError(waResult?.error),
-          provider: String(process.env.WHATSAPP_PROVIDER || "mock").trim().toLowerCase(),
+          provider: resolveWhatsAppProvider(),
           city: String(requirement?.city || "").trim(),
           category: String(requirement?.category || "").trim(),
           product: requirementProduct,
@@ -515,7 +519,7 @@ async function sendTestWhatsAppCampaign({
       email: "",
       status: "dry_run",
       reason: "manual_test_dry_run",
-      provider: String(process.env.WHATSAPP_PROVIDER || "mock").trim().toLowerCase(),
+      provider: resolveWhatsAppProvider(),
       city: String(requirement?.city || "").trim(),
       category: String(requirement?.category || "").trim(),
       product: resolveRequirementProduct(requirement),
@@ -550,7 +554,7 @@ async function sendTestWhatsAppCampaign({
     email: "",
     status: result?.ok ? "sent" : "failed",
     reason: result?.ok ? "" : summarizeSendError(result?.error),
-    provider: String(process.env.WHATSAPP_PROVIDER || "mock").trim().toLowerCase(),
+    provider: resolveWhatsAppProvider(),
     city: String(requirement?.city || "").trim(),
     category: String(requirement?.category || "").trim(),
     product: resolveRequirementProduct(requirement),

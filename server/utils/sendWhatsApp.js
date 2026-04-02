@@ -36,28 +36,46 @@ async function sendViaMeta({ to, body }) {
   );
 }
 
-async function sendViaTwilio({ to, body }) {
-  const accountSid = process.env.TWILIO_ACCOUNT_SID;
-  const authToken = process.env.TWILIO_AUTH_TOKEN;
-  const from = process.env.TWILIO_WHATSAPP_FROM;
-  if (!accountSid || !authToken || !from) {
-    throw new Error("Missing Twilio WhatsApp configuration");
+function resolveWapiSendUrl() {
+  const explicit = String(process.env.WAPI_SEND_URL || "").trim();
+  if (explicit) return explicit;
+
+  const baseUrl = String(process.env.WAPI_BASE_URL || "").trim().replace(/\/+$/, "");
+  const instanceId = String(process.env.WAPI_INSTANCE_ID || "").trim();
+  if (!baseUrl) return "";
+  if (!instanceId) return `${baseUrl}/api/send-message`;
+  return `${baseUrl}/api/send-message/${encodeURIComponent(instanceId)}`;
+}
+
+async function sendViaWapi({ to, body }) {
+  const url = resolveWapiSendUrl();
+  const token = String(process.env.WAPI_ACCESS_TOKEN || "").trim();
+  const toKey = String(process.env.WAPI_PAYLOAD_TO_KEY || "to").trim();
+  const messageKey = String(process.env.WAPI_PAYLOAD_MESSAGE_KEY || "text").trim();
+
+  if (!url) {
+    throw new Error("Missing WAPI configuration: set WAPI_SEND_URL or WAPI_BASE_URL");
   }
 
-  const url = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
-  const data = new URLSearchParams();
-  data.set("From", from);
-  data.set("To", `whatsapp:${to}`);
-  data.set("Body", body);
-  await axios.post(url, data.toString(), {
+  const payload = {
+    [toKey]: to,
+    [messageKey]: body
+  };
+  if (messageKey !== "message") payload.message = body;
+  if (toKey !== "phone") payload.phone = to;
+
+  const headers = {
+    "Content-Type": "application/json"
+  };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+    headers["x-access-token"] = token;
+    headers.apikey = token;
+  }
+
+  await axios.post(url, payload, {
     timeout: 15000,
-    auth: {
-      username: accountSid,
-      password: authToken
-    },
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded"
-    }
+    headers
   });
 }
 
@@ -77,8 +95,8 @@ async function sendWhatsAppMessage({ to, body }) {
   try {
     if (provider === "meta") {
       await sendViaMeta({ to: recipient.replace(/^\+/, ""), body });
-    } else if (provider === "twilio") {
-      await sendViaTwilio({ to: recipient, body });
+    } else if (provider === "wapi") {
+      await sendViaWapi({ to: recipient, body });
     } else {
       console.log("[WhatsApp mock]", { to: recipient, body });
     }

@@ -123,6 +123,10 @@ function parseRegisterPayload(text) {
 }
 
 function extractMetaEvents(body) {
+  const configuredProvider = String(process.env.WHATSAPP_PROVIDER || "meta")
+    .trim()
+    .toLowerCase();
+  const provider = configuredProvider === "wapi" ? "wapi" : "meta";
   const entries = Array.isArray(body?.entry) ? body.entry : [];
   return entries.flatMap((entry) =>
     (Array.isArray(entry?.changes) ? entry.changes : []).flatMap((change) => {
@@ -132,7 +136,7 @@ function extractMetaEvents(body) {
       return messages
         .filter((message) => message?.type === "text" && message?.text?.body)
         .map((message) => ({
-          provider: "meta",
+          provider,
           mobileE164: normalizeE164(message.from),
           text: String(message.text.body || "").trim(),
           providerMessageId: String(message.id || "").trim(),
@@ -142,17 +146,21 @@ function extractMetaEvents(body) {
   );
 }
 
-function extractTwilioEvents(body) {
-  const mobileE164 = normalizeE164(body?.From || body?.WaId);
-  const text = String(body?.Body || "").trim();
+function extractFallbackFormEvents(body) {
+  const configuredProvider = String(process.env.WHATSAPP_PROVIDER || "wapi")
+    .trim()
+    .toLowerCase();
+  const provider = configuredProvider === "meta" ? "meta" : "wapi";
+  const mobileE164 = normalizeE164(body?.From || body?.WaId || body?.from || body?.mobile);
+  const text = String(body?.Body || body?.message || body?.text || "").trim();
   if (!mobileE164 || !text) return [];
   return [
     {
-      provider: "twilio",
+      provider,
       mobileE164,
       text,
-      providerMessageId: String(body?.MessageSid || "").trim(),
-      profileName: String(body?.ProfileName || "").trim()
+      providerMessageId: String(body?.MessageSid || body?.messageId || body?.id || "").trim(),
+      profileName: String(body?.ProfileName || body?.profileName || body?.name || "").trim()
     }
   ];
 }
@@ -160,7 +168,7 @@ function extractTwilioEvents(body) {
 function extractInboundEvents(body) {
   const metaEvents = extractMetaEvents(body);
   if (metaEvents.length) return metaEvents;
-  return extractTwilioEvents(body);
+  return extractFallbackFormEvents(body);
 }
 
 module.exports = {
