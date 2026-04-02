@@ -1559,6 +1559,15 @@ router.post("/whatsapp/resend", adminAuth, requireAdminPermission("campaigns.man
   }
 
   const requestedChannels = req.body?.channels || {};
+  const requestedFilters = req.body?.contactFilters || {};
+  const contactFilters = {
+    cityKeys: Array.isArray(requestedFilters?.cityKeys)
+      ? requestedFilters.cityKeys
+      : [],
+    categoryKeys: Array.isArray(requestedFilters?.categoryKeys)
+      ? requestedFilters.categoryKeys
+      : []
+  };
   const channels = {
     whatsapp: requestedChannels?.whatsapp !== false,
     email: requestedChannels?.email === true
@@ -1573,7 +1582,8 @@ router.post("/whatsapp/resend", adminAuth, requireAdminPermission("campaigns.man
       triggerType: "manual_resend",
       adminId: req.admin?._id || null,
       notes: "Manual resend from admin",
-      channels
+      channels,
+      contactFilters
     }
   );
 

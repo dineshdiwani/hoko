@@ -605,9 +605,17 @@ export default function AdminWhatsApp() {
     }
     try {
       setResendingPost(true);
+      const selectedCityKeys = manualUseAllCities
+        ? []
+        : manualSelectedCities.map((city) => normalizeText(city)).filter(Boolean);
+      const selectedCategoryKey = normalizeText(manualCategory);
       const res = await api.post("/admin/whatsapp/resend", {
         requirementId: manualRequirementId,
-        channels: manualChannels
+        channels: manualChannels,
+        contactFilters: {
+          cityKeys: selectedCityKeys,
+          categoryKeys: selectedCategoryKey ? [selectedCategoryKey] : []
+        }
       });
       const stats = res.data || {};
       alert(

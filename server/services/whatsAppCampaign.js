@@ -15,6 +15,33 @@ function resolveWhatsAppProvider() {
   return String(process.env.WHATSAPP_PROVIDER || "mock").trim().toLowerCase();
 }
 
+function normalizeFilterList(values) {
+  if (!Array.isArray(values)) return [];
+  return Array.from(
+    new Set(
+      values
+        .map((value) => normalizeText(value))
+        .filter(Boolean)
+    )
+  );
+}
+
+function extractContactCategoryKeys(contact) {
+  if (Array.isArray(contact?.categoriesNormalized) && contact.categoriesNormalized.length) {
+    return contact.categoriesNormalized
+      .flatMap((item) => String(item || "").split(/[;,|/]+/))
+      .map((item) => normalizeText(item))
+      .filter(Boolean);
+  }
+  if (Array.isArray(contact?.categories) && contact.categories.length) {
+    return contact.categories
+      .flatMap((item) => String(item || "").split(/[;,|/]+/))
+      .map((item) => normalizeText(item))
+      .filter(Boolean);
+  }
+  return [];
+}
+
 function shouldBypassCampaignGuards(triggerType) {
   const normalized = String(triggerType || "").trim().toLowerCase();
   return normalized === "manual_resend";
@@ -157,7 +184,8 @@ async function triggerWhatsAppCampaignForRequirement(
     triggerType = "buyer_post",
     adminId = null,
     notes = "",
-    channels = { whatsapp: true, email: false }
+    channels = { whatsapp: true, email: false },
+    contactFilters = {}
   } = {}
 ) {
   if (!requirement?._id) {
@@ -173,6 +201,8 @@ async function triggerWhatsAppCampaignForRequirement(
 
   const requirementCity = normalizeText(requirement.city);
   const requirementCategory = normalizeText(requirement.category);
+  const requestedCityKeys = normalizeFilterList(contactFilters?.cityKeys);
+  const requestedCategoryKeys = normalizeFilterList(contactFilters?.categoryKeys);
   const enabledCities = Array.isArray(campaignSettings.cities)
     ? campaignSettings.cities.map(normalizeText).filter(Boolean)
     : [];
@@ -195,9 +225,13 @@ async function triggerWhatsAppCampaignForRequirement(
     return { ok: false, reason: "category_not_enabled" };
   }
 
-  const contacts = await WhatsAppContact.find({
-    cityNormalized: requirementCity
-  }).lean();
+  const contactQuery = {};
+  if (requestedCityKeys.length) {
+    contactQuery.cityNormalized = { $in: requestedCityKeys };
+  } else if (requirementCity) {
+    contactQuery.cityNormalized = requirementCity;
+  }
+  const contacts = await WhatsAppContact.find(contactQuery).lean();
   if (!contacts.length) {
     return { ok: false, reason: "no_contacts" };
   }
@@ -236,6 +270,57 @@ async function triggerWhatsAppCampaignForRequirement(
   const emailSubject = `New requirement: ${firstNonEmpty([requirement.product, requirement.productName]) || "Requirement"}`;
 
   for (const contact of contacts) {
+    const contactCityKey = normalizeText(contact?.cityNormalized || contact?.city);
+    if (requestedCityKeys.length && !requestedCityKeys.includes(contactCityKey)) {
+      skipped += 1;
+      skippedReasons.city_mismatch += 1;
+      if (selectedChannels.whatsapp) {
+        await createDeliveryLog({
+          requirementId: requirement._id,
+          campaignRunId: run._id,
+          triggerType: run.triggerType,
+          channel: "whatsapp",
+          mobileE164: String(contact?.mobileE164 || "").trim(),
+          email: String(contact?.email || "").trim(),
+          status: "skipped",
+          reason: "city_mismatch",
+          provider: resolveWhatsAppProvider(),
+          city: String(requirement?.city || "").trim(),
+          category: String(requirement?.category || "").trim(),
+          product: requirementProduct,
+          createdByAdminId: adminId || null
+        });
+      }
+      continue;
+    }
+
+    const contactCategories = extractContactCategoryKeys(contact);
+    if (
+      requestedCategoryKeys.length &&
+      !requestedCategoryKeys.some((key) => contactCategories.includes(key))
+    ) {
+      skipped += 1;
+      skippedReasons.category_mismatch += 1;
+      if (selectedChannels.whatsapp) {
+        await createDeliveryLog({
+          requirementId: requirement._id,
+          campaignRunId: run._id,
+          triggerType: run.triggerType,
+          channel: "whatsapp",
+          mobileE164: String(contact?.mobileE164 || "").trim(),
+          email: String(contact?.email || "").trim(),
+          status: "skipped",
+          reason: "category_mismatch",
+          provider: resolveWhatsAppProvider(),
+          city: String(requirement?.city || "").trim(),
+          category: String(requirement?.category || "").trim(),
+          product: requirementProduct,
+          createdByAdminId: adminId || null
+        });
+      }
+      continue;
+    }
+
     if (contact.active === false) {
       skipped += 1;
       skippedReasons.inactive += 1;
