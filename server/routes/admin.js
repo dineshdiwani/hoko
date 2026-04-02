@@ -1392,7 +1392,11 @@ router.get("/whatsapp/delivery-logs", adminAuth, requireAdminPermission("campaig
 
   const summary = {
     total,
+    accepted: 0,
+    queued: 0,
     sent: 0,
+    delivered: 0,
+    read: 0,
     failed: 0,
     skipped: 0,
     opened_manual_link: 0,

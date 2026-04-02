@@ -32,8 +32,18 @@ const whatsAppDeliveryLogSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["sent", "failed", "skipped", "opened_manual_link", "dry_run"],
-      default: "sent"
+      enum: [
+        "accepted",
+        "queued",
+        "sent",
+        "delivered",
+        "read",
+        "failed",
+        "skipped",
+        "opened_manual_link",
+        "dry_run"
+      ],
+      default: "accepted"
     },
     reason: {
       type: String,

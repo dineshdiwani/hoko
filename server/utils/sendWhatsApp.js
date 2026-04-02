@@ -15,7 +15,7 @@ async function sendViaMeta({ to, body }) {
   }
 
   const url = `https://graph.facebook.com/${version}/${phoneNumberId}/messages`;
-  await axios.post(
+  const response = await axios.post(
     url,
     {
       messaging_product: "whatsapp",
@@ -34,6 +34,11 @@ async function sendViaMeta({ to, body }) {
       }
     }
   );
+  const data = response?.data || {};
+  return {
+    providerMessageId: String(data?.messages?.[0]?.id || data?.message_id || data?.id || "").trim(),
+    raw: data
+  };
 }
 
 function resolveWapiSendUrl() {
@@ -103,6 +108,17 @@ async function sendViaWapi({ to, body }) {
         : JSON.stringify(data).slice(0, 600)
     );
   }
+
+  return {
+    providerMessageId: String(
+      data?.whatsapp_message_id ||
+      data?.message_id ||
+      data?.id ||
+      data?.message?.id ||
+      ""
+    ).trim(),
+    raw: data
+  };
 }
 
 async function sendWhatsAppMessage({ to, body }) {
@@ -120,13 +136,15 @@ async function sendWhatsAppMessage({ to, body }) {
 
   try {
     if (provider === "meta") {
-      await sendViaMeta({ to: recipient.replace(/^\+/, ""), body });
+      const metaResult = await sendViaMeta({ to: recipient.replace(/^\+/, ""), body });
+      return { ok: true, providerMessageId: metaResult?.providerMessageId || "", meta: metaResult?.raw || null };
     } else if (provider === "wapi") {
-      await sendViaWapi({ to: recipient, body });
+      const wapiResult = await sendViaWapi({ to: recipient, body });
+      return { ok: true, providerMessageId: wapiResult?.providerMessageId || "", meta: wapiResult?.raw || null };
     } else {
       console.log("[WhatsApp mock]", { to: recipient, body });
+      return { ok: true, mock: true, providerMessageId: "", meta: null };
     }
-    return { ok: true };
   } catch (err) {
     return {
       ok: false,

@@ -171,8 +171,85 @@ function extractInboundEvents(body) {
   return extractFallbackFormEvents(body);
 }
 
+function normalizeDeliveryStatus(rawStatus) {
+  const status = String(rawStatus || "").trim().toLowerCase();
+  if (!status) return "";
+  if (["delivered", "delivery"].includes(status)) return "delivered";
+  if (["read", "seen"].includes(status)) return "read";
+  if (["sent", "submitted"].includes(status)) return "sent";
+  if (["queued", "pending", "accepted"].includes(status)) return "queued";
+  if (["failed", "error", "rejected", "undelivered"].includes(status)) return "failed";
+  return "";
+}
+
+function extractMetaDeliveryEvents(body) {
+  const configuredProvider = String(process.env.WHATSAPP_PROVIDER || "meta")
+    .trim()
+    .toLowerCase();
+  const provider = configuredProvider === "wapi" ? "wapi" : "meta";
+  const entries = Array.isArray(body?.entry) ? body.entry : [];
+  return entries.flatMap((entry) =>
+    (Array.isArray(entry?.changes) ? entry.changes : []).flatMap((change) => {
+      const value = change?.value || {};
+      const statuses = Array.isArray(value?.statuses) ? value.statuses : [];
+      return statuses
+        .map((item) => ({
+          provider,
+          mobileE164: normalizeE164(item?.recipient_id),
+          providerMessageId: String(item?.id || "").trim(),
+          status: normalizeDeliveryStatus(item?.status),
+          reason: String(
+            item?.errors?.[0]?.title ||
+            item?.errors?.[0]?.message ||
+            item?.status ||
+            ""
+          ).trim()
+        }))
+        .filter((event) => event.providerMessageId && event.status);
+    })
+  );
+}
+
+function extractWapiDeliveryEvents(body) {
+  const configuredProvider = String(process.env.WHATSAPP_PROVIDER || "wapi")
+    .trim()
+    .toLowerCase();
+  const provider = configuredProvider === "meta" ? "meta" : "wapi";
+  const message = body?.message || {};
+  const status = normalizeDeliveryStatus(
+    message?.status ||
+    body?.status ||
+    body?.message_status
+  );
+  const providerMessageId = String(
+    message?.whatsapp_message_id ||
+    message?.id ||
+    body?.whatsapp_message_id ||
+    body?.message_id ||
+    body?.id ||
+    ""
+  ).trim();
+  if (!status || !providerMessageId) return [];
+  return [
+    {
+      provider,
+      mobileE164: normalizeE164(body?.contact?.phone_number || body?.phone_number || body?.to),
+      providerMessageId,
+      status,
+      reason: String(body?.error || body?.message?.error || message?.status || "").trim()
+    }
+  ];
+}
+
+function extractDeliveryEvents(body) {
+  const metaEvents = extractMetaDeliveryEvents(body);
+  if (metaEvents.length) return metaEvents;
+  return extractWapiDeliveryEvents(body);
+}
+
 module.exports = {
   classifyInboundText,
+  extractDeliveryEvents,
   extractInboundEvents,
   parseRegisterPayload
 };

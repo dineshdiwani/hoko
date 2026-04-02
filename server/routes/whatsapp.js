@@ -3,11 +3,13 @@ const router = express.Router();
 
 const PendingOfferDraft = require("../models/PendingOfferDraft");
 const Requirement = require("../models/Requirement");
+const WhatsAppDeliveryLog = require("../models/WhatsAppDeliveryLog");
 const WhatsAppLead = require("../models/WhatsAppLead");
 const { sendWhatsAppMessage } = require("../utils/sendWhatsApp");
 const { resolvePublicAppUrl } = require("../utils/publicAppUrl");
 const {
   classifyInboundText,
+  extractDeliveryEvents,
   extractInboundEvents,
   parseRegisterPayload
 } = require("../services/whatsAppInbound");
@@ -119,9 +121,44 @@ router.get("/webhook", (req, res) => {
 });
 
 router.post("/webhook", async (req, res) => {
+  const deliveryEvents = extractDeliveryEvents(req.body);
+  if (deliveryEvents.length) {
+    for (const event of deliveryEvents) {
+      const updates = {
+        status: event.status,
+        provider: event.provider || "",
+        reason: event.status === "failed" ? String(event.reason || "provider_failed") : "",
+        ...(event.providerMessageId ? { providerMessageId: event.providerMessageId } : {})
+      };
+      if (event.mobileE164) {
+        updates.mobileE164 = event.mobileE164;
+      }
+      const updated = await WhatsAppDeliveryLog.findOneAndUpdate(
+        { providerMessageId: event.providerMessageId },
+        { $set: updates },
+        { sort: { createdAt: -1 } }
+      );
+      if (!updated && event.mobileE164) {
+        await WhatsAppDeliveryLog.findOneAndUpdate(
+          {
+            mobileE164: event.mobileE164,
+            channel: "whatsapp",
+            status: { $in: ["accepted", "queued", "sent"] }
+          },
+          { $set: updates },
+          { sort: { createdAt: -1 } }
+        );
+      }
+    }
+  }
+
   const events = extractInboundEvents(req.body);
   if (!events.length) {
-    return res.status(200).json({ ok: true, received: 0 });
+    return res.status(200).json({
+      ok: true,
+      received: 0,
+      deliveryUpdates: deliveryEvents.length
+    });
   }
 
   for (const event of events) {
@@ -215,7 +252,11 @@ router.post("/webhook", async (req, res) => {
     }
   }
 
-  return res.status(200).json({ ok: true, received: events.length });
+  return res.status(200).json({
+    ok: true,
+    received: events.length,
+    deliveryUpdates: deliveryEvents.length
+  });
 });
 
 module.exports = router;
