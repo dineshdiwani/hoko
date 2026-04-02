@@ -47,6 +47,13 @@ function resolveWapiSendUrl() {
   return `${baseUrl}/api/send-message/${encodeURIComponent(instanceId)}`;
 }
 
+function normalizeWapiRecipient(to) {
+  const raw = String(to || "").trim();
+  const stripPlus = String(process.env.WAPI_STRIP_PLUS || "").trim().toLowerCase() === "true";
+  if (!stripPlus) return raw;
+  return raw.replace(/^\+/, "");
+}
+
 async function sendViaWapi({ to, body }) {
   const url = resolveWapiSendUrl();
   const token = String(process.env.WAPI_ACCESS_TOKEN || "").trim();
@@ -58,11 +65,9 @@ async function sendViaWapi({ to, body }) {
   }
 
   const payload = {
-    [toKey]: to,
+    [toKey]: normalizeWapiRecipient(to),
     [messageKey]: body
   };
-  if (messageKey !== "message") payload.message = body;
-  if (toKey !== "phone") payload.phone = to;
 
   const headers = {
     "Content-Type": "application/json"
