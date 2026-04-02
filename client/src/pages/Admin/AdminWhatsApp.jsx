@@ -47,7 +47,11 @@ export default function AdminWhatsApp() {
   const [deliveryLogs, setDeliveryLogs] = useState([]);
   const [deliveryLogSummary, setDeliveryLogSummary] = useState({
     total: 0,
+    accepted: 0,
+    queued: 0,
     sent: 0,
+    delivered: 0,
+    read: 0,
     failed: 0,
     skipped: 0,
     opened_manual_link: 0,
@@ -288,7 +292,11 @@ export default function AdminWhatsApp() {
       setDeliveryLogs(Array.isArray(payload.items) ? payload.items : []);
       setDeliveryLogSummary(payload.summary || {
         total: 0,
+        accepted: 0,
+        queued: 0,
         sent: 0,
+        delivered: 0,
+        read: 0,
         failed: 0,
         skipped: 0,
         opened_manual_link: 0,
@@ -299,7 +307,11 @@ export default function AdminWhatsApp() {
       setDeliveryLogs([]);
       setDeliveryLogSummary({
         total: 0,
+        accepted: 0,
+        queued: 0,
         sent: 0,
+        delivered: 0,
+        read: 0,
         failed: 0,
         skipped: 0,
         opened_manual_link: 0,
@@ -588,6 +600,79 @@ export default function AdminWhatsApp() {
     [postStatuses, manualRequirementId]
   );
 
+  const triggeredPostSummaries = useMemo(() => {
+    const byRequirement = new Map();
+
+    postStatuses.forEach((item) => {
+      const requirementId = String(item?.requirementId || "").trim();
+      if (!requirementId) return;
+      byRequirement.set(requirementId, {
+        requirementId,
+        product: item?.product || "Requirement",
+        city: item?.city || "",
+        category: item?.category || "",
+        deliveryState: item?.deliveryState || "pending",
+        totalRuns: Number(item?.totalRuns || 0),
+        totalSent: Number(item?.totalSent || 0),
+        totalFailed: Number(item?.totalFailed || 0),
+        totalAttempted: Number(item?.totalAttempted || 0),
+        latestRunAt: item?.latestRun?.createdAt || null
+      });
+    });
+
+    campaignRuns.forEach((run) => {
+      const requirementObj = run?.requirementId && typeof run.requirementId === "object"
+        ? run.requirementId
+        : null;
+      const requirementId = String(requirementObj?._id || run?.requirementId || "").trim();
+      if (!requirementId) return;
+
+      const existing = byRequirement.get(requirementId);
+      if (!existing) {
+        byRequirement.set(requirementId, {
+          requirementId,
+          product: String(requirementObj?.product || requirementObj?.productName || "Requirement"),
+          city: String(requirementObj?.city || run?.city || ""),
+          category: String(requirementObj?.category || run?.category || ""),
+          deliveryState: String(run?.status || "unknown"),
+          totalRuns: 1,
+          totalSent: Number(run?.sent || 0),
+          totalFailed: Number(run?.failed || 0),
+          totalAttempted: Number(run?.attempted || 0),
+          latestRunAt: run?.createdAt || null
+        });
+        return;
+      }
+
+      existing.totalRuns += 1;
+      existing.totalSent += Number(run?.sent || 0);
+      existing.totalFailed += Number(run?.failed || 0);
+      existing.totalAttempted += Number(run?.attempted || 0);
+      if (!existing.latestRunAt || new Date(run?.createdAt || 0) > new Date(existing.latestRunAt || 0)) {
+        existing.latestRunAt = run?.createdAt || existing.latestRunAt;
+      }
+      byRequirement.set(requirementId, existing);
+    });
+
+    return Array.from(byRequirement.values())
+      .filter((item) => item.totalRuns > 0)
+      .sort((a, b) => new Date(b.latestRunAt || 0) - new Date(a.latestRunAt || 0));
+  }, [campaignRuns, postStatuses]);
+
+  const selectTriggeredPostForRetrigger = (summary) => {
+    const requirementId = String(summary?.requirementId || "").trim();
+    if (!requirementId) return;
+    setManualRequirementId(requirementId);
+    setManualCategory("");
+    setManualQueue([]);
+    setManualCityMenuOpen(false);
+    setDeliveryLogPage(1);
+    setDeliveryLogFilters((prev) => ({
+      ...prev,
+      requirementId
+    }));
+  };
+
   const hasManualRequirement = Boolean(String(manualRequirementId || "").trim());
   const hasManualCategory = Boolean(String(manualCategory || "").trim());
   const hasManualCitySelection = manualUseAllCities || manualSelectedCities.length > 0;
@@ -751,12 +836,17 @@ export default function AdminWhatsApp() {
               <div className="border rounded-xl p-3 space-y-3">
                 <p className="text-sm font-semibold">Manual WhatsApp Queue (Device App Send)</p>
                 <p className="text-xs text-gray-500">
-                  First dropdown shows only pending posts (not yet sent successfully to sellers).
+                  First dropdown shows all posts. You can re-trigger previously sent posts.
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <select className="w-full border rounded-lg px-3 py-2 text-sm" value={manualRequirementId} onChange={(e) => {
                     const nextRequirementId = e.target.value;
                     setManualRequirementId(nextRequirementId);
+                    setDeliveryLogPage(1);
+                    setDeliveryLogFilters((prev) => ({
+                      ...prev,
+                      requirementId: nextRequirementId
+                    }));
                     const req = requirements.find((item) => String(item._id) === String(nextRequirementId));
                     if (req) {
                       // Keep category explicit to avoid accidental broad sends.
@@ -770,10 +860,10 @@ export default function AdminWhatsApp() {
                       setManualMessagePreview("");
                     }
                   }}>
-                    <option value="">Select Pending Post (Requirement)</option>
-                    {pendingPosts.slice(0, 300).map((item) => (
+                    <option value="">Select Post (Requirement)</option>
+                    {postStatuses.slice(0, 500).map((item) => (
                       <option key={item.requirementId} value={item.requirementId}>
-                        {getPostStatusDisplay(item)}
+                        {`${getPostStatusDisplay(item)} | State: ${String(item?.deliveryState || "pending").toUpperCase()} | Runs: ${Number(item?.totalRuns || 0)}`}
                       </option>
                     ))}
                   </select>
@@ -962,7 +1052,11 @@ export default function AdminWhatsApp() {
                       }}
                     >
                       <option value="">All Statuses</option>
+                      <option value="accepted">accepted</option>
+                      <option value="queued">queued</option>
                       <option value="sent">sent</option>
+                      <option value="delivered">delivered</option>
+                      <option value="read">read</option>
                       <option value="failed">failed</option>
                       <option value="skipped">skipped</option>
                       <option value="opened_manual_link">opened_manual_link</option>
@@ -990,9 +1084,13 @@ export default function AdminWhatsApp() {
                       }}
                     />
                   </div>
-                  <div className="grid grid-cols-2 md:grid-cols-6 gap-2 text-xs">
+                  <div className="grid grid-cols-2 md:grid-cols-9 gap-2 text-xs">
                     <div className="rounded-lg border px-2 py-1 bg-gray-50">Total: <span className="font-semibold">{deliveryLogSummary.total || 0}</span></div>
+                    <div className="rounded-lg border px-2 py-1 bg-cyan-50 text-cyan-700">Accepted: <span className="font-semibold">{deliveryLogSummary.accepted || 0}</span></div>
+                    <div className="rounded-lg border px-2 py-1 bg-sky-50 text-sky-700">Queued: <span className="font-semibold">{deliveryLogSummary.queued || 0}</span></div>
                     <div className="rounded-lg border px-2 py-1 bg-green-50 text-green-700">Sent: <span className="font-semibold">{deliveryLogSummary.sent || 0}</span></div>
+                    <div className="rounded-lg border px-2 py-1 bg-emerald-50 text-emerald-700">Delivered: <span className="font-semibold">{deliveryLogSummary.delivered || 0}</span></div>
+                    <div className="rounded-lg border px-2 py-1 bg-teal-50 text-teal-700">Read: <span className="font-semibold">{deliveryLogSummary.read || 0}</span></div>
                     <div className="rounded-lg border px-2 py-1 bg-red-50 text-red-700">Failed: <span className="font-semibold">{deliveryLogSummary.failed || 0}</span></div>
                     <div className="rounded-lg border px-2 py-1 bg-amber-50 text-amber-700">Skipped: <span className="font-semibold">{deliveryLogSummary.skipped || 0}</span></div>
                     <div className="rounded-lg border px-2 py-1 bg-blue-50 text-blue-700">Manual Opened: <span className="font-semibold">{deliveryLogSummary.opened_manual_link || 0}</span></div>
@@ -1087,6 +1185,59 @@ export default function AdminWhatsApp() {
                     </div>
                   ))}
                   {campaignRuns.length === 0 && <p className="text-xs text-gray-500">No campaign runs yet.</p>}
+                </div>
+              </div>
+              <div className="border-t pt-4">
+                <p className="text-sm font-semibold mb-3">Triggered Posts Summary</p>
+                <p className="text-xs text-gray-500 mb-2">
+                  Done jobs history with run count, totals, and quick re-trigger action.
+                </p>
+                <div className="overflow-auto border rounded-lg">
+                  <table className="min-w-full text-xs">
+                    <thead className="bg-gray-50 text-gray-700">
+                      <tr>
+                        <th className="text-left px-2 py-2">Post</th>
+                        <th className="text-left px-2 py-2">State</th>
+                        <th className="text-left px-2 py-2">Runs</th>
+                        <th className="text-left px-2 py-2">Attempted</th>
+                        <th className="text-left px-2 py-2">Sent</th>
+                        <th className="text-left px-2 py-2">Failed</th>
+                        <th className="text-left px-2 py-2">Latest Trigger</th>
+                        <th className="text-left px-2 py-2">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {triggeredPostSummaries.map((row) => (
+                        <tr key={`triggered-${row.requirementId}`} className="border-t">
+                          <td className="px-2 py-2">
+                            {`${row.product || "Requirement"} | ${row.city || "-"} | ${row.category || "-"}`}
+                          </td>
+                          <td className="px-2 py-2 capitalize">{row.deliveryState || "-"}</td>
+                          <td className="px-2 py-2">{row.totalRuns}</td>
+                          <td className="px-2 py-2">{row.totalAttempted}</td>
+                          <td className="px-2 py-2">{row.totalSent}</td>
+                          <td className="px-2 py-2">{row.totalFailed}</td>
+                          <td className="px-2 py-2 whitespace-nowrap">{formatDateTime(row.latestRunAt)}</td>
+                          <td className="px-2 py-2">
+                            <button
+                              type="button"
+                              onClick={() => selectTriggeredPostForRetrigger(row)}
+                              className="px-2 py-1 rounded border border-amber-300 text-amber-700"
+                            >
+                              Re-trigger This Post
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                      {triggeredPostSummaries.length === 0 && (
+                        <tr>
+                          <td className="px-2 py-3 text-gray-500" colSpan={8}>
+                            No triggered posts yet.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>

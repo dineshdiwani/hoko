@@ -45,6 +45,7 @@ const {
 const { isFirebaseMessagingConfigured } = require("../utils/firebaseAdmin");
 const router = require("express").Router();
 const jwt = require("jsonwebtoken");
+const mongoose = require("mongoose");
 const Admin = require("../models/Admin");
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -58,6 +59,15 @@ const OTP_MAX_ATTEMPTS = Number(process.env.OTP_MAX_ATTEMPTS || 5);
 
 function normalizeText(value) {
   return String(value || "").trim().toLowerCase();
+}
+
+function normalizeRequirementId(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  if (mongoose.Types.ObjectId.isValid(raw)) return raw;
+  const parts = raw.split("/").filter(Boolean);
+  const maybeId = String(parts[parts.length - 1] || "").trim();
+  return mongoose.Types.ObjectId.isValid(maybeId) ? maybeId : "";
 }
 
 function normalizeContactEmail(value) {
@@ -1507,7 +1517,7 @@ router.get("/whatsapp/post-statuses", adminAuth, requireAdminPermission("campaig
 });
 
 router.post("/whatsapp/manual-log", adminAuth, requireAdminPermission("campaigns.manage"), async (req, res) => {
-  const requirementId = String(req.body?.requirementId || "").trim();
+  const requirementId = normalizeRequirementId(req.body?.requirementId);
   const mobileE164 = normalizeE164(req.body?.mobileE164);
   const requestedStatus = String(req.body?.status || "opened_manual_link").trim();
   const channel = String(req.body?.channel || "whatsapp").trim().toLowerCase();
@@ -1552,7 +1562,7 @@ router.post("/whatsapp/manual-log", adminAuth, requireAdminPermission("campaigns
 });
 
 router.post("/whatsapp/resend", adminAuth, requireAdminPermission("campaigns.manage"), async (req, res) => {
-  const requirementId = String(req.body?.requirementId || "").trim();
+  const requirementId = normalizeRequirementId(req.body?.requirementId);
   if (!requirementId) {
     return res.status(400).json({ message: "requirementId required" });
   }
@@ -1607,7 +1617,7 @@ router.post("/whatsapp/resend", adminAuth, requireAdminPermission("campaigns.man
 });
 
 router.post("/whatsapp/test-send", adminAuth, requireAdminPermission("campaigns.manage"), async (req, res) => {
-  const requirementId = String(req.body?.requirementId || "").trim();
+  const requirementId = normalizeRequirementId(req.body?.requirementId);
   const mobileE164 = normalizeE164(req.body?.mobileE164);
   const dryRun = Boolean(req.body?.dryRun);
   if (!requirementId || !mobileE164) {
