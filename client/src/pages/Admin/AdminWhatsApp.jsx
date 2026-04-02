@@ -480,6 +480,7 @@ export default function AdminWhatsApp() {
       return Array.from(new Set(next));
     });
     setManualUseAllCities(false);
+    setManualQueue([]);
   };
 
   const createManualQueue = () => {
@@ -758,13 +759,11 @@ export default function AdminWhatsApp() {
                     setManualRequirementId(nextRequirementId);
                     const req = requirements.find((item) => String(item._id) === String(nextRequirementId));
                     if (req) {
-                      const reqCategory = String(req.category || "").trim();
-                      const matchingCategory = availableManualCategories.find(
-                        (item) => normalizeText(item) === normalizeText(reqCategory)
-                      );
-                      setManualCategory(matchingCategory || reqCategory);
+                      // Keep category explicit to avoid accidental broad sends.
+                      setManualCategory("");
                       setManualCityMenuOpen(false);
                       setManualMessagePreview(buildManualMessage(req));
+                      setManualQueue([]);
                     } else {
                       setManualCategory("");
                       setManualQueue([]);
@@ -781,7 +780,10 @@ export default function AdminWhatsApp() {
                   <select
                     className="w-full border rounded-lg px-3 py-2 text-sm"
                     value={manualCategory}
-                    onChange={(e) => setManualCategory(e.target.value)}
+                    onChange={(e) => {
+                      setManualCategory(e.target.value);
+                      setManualQueue([]);
+                    }}
                   >
                     <option value="">Select Category</option>
                     {manualCategoryOptions.map((category) => (
@@ -808,6 +810,7 @@ export default function AdminWhatsApp() {
                               const checked = e.target.checked;
                               setManualUseAllCities(checked);
                               setManualSelectedCities(checked ? availableManualCities : []);
+                              setManualQueue([]);
                             }}
                           />
                           All cities (default)
