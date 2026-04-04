@@ -15,6 +15,8 @@ export default function AdminWhatsApp() {
   });
   const [requirements, setRequirements] = useState([]);
   const [contacts, setContacts] = useState([]);
+  const [approvedTemplates, setApprovedTemplates] = useState([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [campaignRuns, setCampaignRuns] = useState([]);
   const [postStatuses, setPostStatuses] = useState([]);
   const [pendingPosts, setPendingPosts] = useState([]);
@@ -67,6 +69,11 @@ export default function AdminWhatsApp() {
     channel: ""
   });
   const [loadingDeliveryLogs, setLoadingDeliveryLogs] = useState(false);
+  const [templateContactSearch, setTemplateContactSearch] = useState("");
+  const [selectedTemplateContactIds, setSelectedTemplateContactIds] = useState([]);
+  const [selectedTemplateKey, setSelectedTemplateKey] = useState("");
+  const [templateVariables, setTemplateVariables] = useState([]);
+  const [sendingTemplate, setSendingTemplate] = useState(false);
   const fileInputRef = useRef(null);
 
   const normalizeText = (value) => String(value || "").trim().toLowerCase();
@@ -195,6 +202,11 @@ export default function AdminWhatsApp() {
     setManualSelectedCities(availableManualCities);
   }, [availableManualCities, manualUseAllCities]);
 
+  useEffect(() => {
+    const validIds = new Set(eligibleTemplateContacts.map((contact) => String(contact._id)));
+    setSelectedTemplateContactIds((prev) => prev.filter((id) => validIds.has(String(id))));
+  }, [eligibleTemplateContacts]);
+
   const manualCitySelectionLabel = useMemo(() => {
     if (manualUseAllCities) return "All cities";
     if (!manualSelectedCities.length) return "Select cities";
@@ -213,6 +225,45 @@ export default function AdminWhatsApp() {
     return [selected, ...availableManualCategories];
   }, [availableManualCategories, manualCategory]);
 
+  const eligibleTemplateContacts = useMemo(
+    () =>
+      contacts.filter(
+        (contact) =>
+          contact.active !== false &&
+          contact.optInStatus === "opted_in" &&
+          !contact.unsubscribedAt &&
+          contact.dndStatus !== "dnd"
+      ),
+    [contacts]
+  );
+
+  const filteredTemplateContacts = useMemo(() => {
+    const query = normalizeText(templateContactSearch);
+    if (!query) return eligibleTemplateContacts.slice(0, 100);
+    return eligibleTemplateContacts
+      .filter((contact) =>
+        [
+          contact?.firmName,
+          contact?.mobileE164,
+          contact?.city,
+          Array.isArray(contact?.categories) ? contact.categories.join(" ") : ""
+        ]
+          .map((value) => normalizeText(value))
+          .some((value) => value.includes(query))
+      )
+      .slice(0, 100);
+  }, [eligibleTemplateContacts, templateContactSearch]);
+
+  const selectedTemplate = useMemo(
+    () => approvedTemplates.find((item) => String(item.id) === String(selectedTemplateKey)) || null,
+    [approvedTemplates, selectedTemplateKey]
+  );
+
+  useEffect(() => {
+    const variableCount = Number(selectedTemplate?.bodyVariableCount || 0);
+    setTemplateVariables((prev) => Array.from({ length: variableCount }, (_, index) => prev[index] || ""));
+  }, [selectedTemplate]);
+
   const loadData = useCallback(async () => {
     const settled = await Promise.allSettled([
       api.get("/admin/options"),
@@ -220,7 +271,8 @@ export default function AdminWhatsApp() {
       api.get("/admin/whatsapp/campaign-runs"),
       api.get("/admin/whatsapp/contacts"),
       api.get("/admin/requirements"),
-      api.get("/admin/whatsapp/post-statuses")
+      api.get("/admin/whatsapp/post-statuses"),
+      api.get("/admin/whatsapp/templates")
     ]);
 
     const [
@@ -229,7 +281,8 @@ export default function AdminWhatsApp() {
       runsResult,
       contactsResult,
       requirementsResult,
-      postStatusesResult
+      postStatusesResult,
+      templatesResult
     ] = settled;
 
     const optionsData =
@@ -270,11 +323,29 @@ export default function AdminWhatsApp() {
       postStatusesResult.status === "fulfilled" ? postStatusesResult.value?.data || {} : {};
     setPostStatuses(Array.isArray(statusPayload.posts) ? statusPayload.posts : []);
     setPendingPosts(Array.isArray(statusPayload.pendingPosts) ? statusPayload.pendingPosts : []);
+    setApprovedTemplates(
+      templatesResult.status === "fulfilled" && Array.isArray(templatesResult.value?.data?.items)
+        ? templatesResult.value.data.items
+        : []
+    );
   }, []);
 
   useEffect(() => {
     loadData().catch(() => {});
   }, [loadData]);
+
+  const loadTemplates = useCallback(async () => {
+    try {
+      setLoadingTemplates(true);
+      const res = await api.get("/admin/whatsapp/templates");
+      setApprovedTemplates(Array.isArray(res.data?.items) ? res.data.items : []);
+    } catch (err) {
+      setApprovedTemplates([]);
+      alert(err?.response?.data?.message || "Failed to load approved templates");
+    } finally {
+      setLoadingTemplates(false);
+    }
+  }, []);
 
   const loadDeliveryLogs = useCallback(async () => {
     try {
@@ -617,6 +688,51 @@ export default function AdminWhatsApp() {
     }
   };
 
+  const toggleTemplateContact = (contactId) => {
+    setSelectedTemplateContactIds((prev) =>
+      prev.includes(contactId) ? prev.filter((item) => item !== contactId) : [...prev, contactId]
+    );
+  };
+
+  const selectVisibleTemplateContacts = () => {
+    const visibleIds = filteredTemplateContacts.map((contact) => String(contact._id));
+    setSelectedTemplateContactIds((prev) => Array.from(new Set([...prev, ...visibleIds])));
+  };
+
+  const clearTemplateContactSelection = () => {
+    setSelectedTemplateContactIds([]);
+  };
+
+  const sendSelectedTemplate = async () => {
+    if (!selectedTemplate) {
+      alert("Select an approved template");
+      return;
+    }
+    if (!selectedTemplateContactIds.length) {
+      alert("Select at least one contact");
+      return;
+    }
+
+    try {
+      setSendingTemplate(true);
+      const res = await api.post("/admin/whatsapp/template-send", {
+        contactIds: selectedTemplateContactIds,
+        templateName: selectedTemplate.name,
+        languageCode: selectedTemplate.languageCode,
+        parameters: templateVariables.map((value) => String(value || "").trim())
+      });
+      const payload = res.data || {};
+      alert(
+        `Template send complete. Attempted: ${payload.attempted || 0}, Sent: ${payload.sent || 0}, Failed: ${payload.failed || 0}, Skipped: ${payload.skipped || 0}`
+      );
+      await loadDeliveryLogs();
+    } catch (err) {
+      alert(err?.response?.data?.message || "Failed to send template message");
+    } finally {
+      setSendingTemplate(false);
+    }
+  };
+
   const selectedPostStatus = useMemo(
     () =>
       postStatuses.find(
@@ -812,6 +928,123 @@ export default function AdminWhatsApp() {
                   ))}
                   {contacts.length === 0 && <p className="text-xs text-gray-500">No contacts uploaded yet.</p>}
                 </div>
+              </div>
+              <div className="border-t pt-4 space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold">Approved Template Send (WAPI BSP)</p>
+                    <p className="text-xs text-gray-500">
+                      Load approved templates from WAPI, select contacts here, and trigger the template directly.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={loadTemplates}
+                    disabled={loadingTemplates}
+                    className="px-3 py-2 rounded-lg text-sm font-semibold border border-gray-300 disabled:opacity-60"
+                  >
+                    {loadingTemplates ? "Refreshing..." : "Refresh Templates"}
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <select
+                    className="w-full border rounded-lg px-3 py-2 text-sm"
+                    value={selectedTemplateKey}
+                    onChange={(e) => setSelectedTemplateKey(e.target.value)}
+                  >
+                    <option value="">Select approved template</option>
+                    {approvedTemplates.map((template) => (
+                      <option key={template.id} value={template.id}>
+                        {`${template.name} | ${template.languageCode}${template.category ? ` | ${template.category}` : ""}`}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    className="w-full border rounded-lg px-3 py-2 text-sm"
+                    placeholder="Search contacts by firm, mobile, city, category"
+                    value={templateContactSearch}
+                    onChange={(e) => setTemplateContactSearch(e.target.value)}
+                  />
+                </div>
+                {selectedTemplate && (
+                  <div className="rounded-lg border bg-gray-50 p-3 text-xs text-gray-700">
+                    <div>
+                      Selected template: <span className="font-semibold">{selectedTemplate.name}</span> | Language: {selectedTemplate.languageCode} | Variables: {selectedTemplate.bodyVariableCount || 0}
+                    </div>
+                    {!!templateVariables.length && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+                        {templateVariables.map((value, index) => (
+                          <input
+                            key={`template-variable-${index + 1}`}
+                            className="w-full border rounded-lg px-3 py-2 text-sm bg-white"
+                            placeholder={`Variable ${index + 1}`}
+                            value={value}
+                            onChange={(e) =>
+                              setTemplateVariables((prev) =>
+                                prev.map((item, itemIndex) => (itemIndex === index ? e.target.value : item))
+                              )
+                            }
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+                <div className="flex flex-wrap gap-2 text-xs">
+                  <button
+                    type="button"
+                    onClick={selectVisibleTemplateContacts}
+                    className="px-3 py-1.5 rounded border border-gray-300"
+                  >
+                    Select Visible Contacts
+                  </button>
+                  <button
+                    type="button"
+                    onClick={clearTemplateContactSelection}
+                    className="px-3 py-1.5 rounded border border-gray-300"
+                  >
+                    Clear Selection
+                  </button>
+                  <div className="px-3 py-1.5 rounded border bg-gray-50">
+                    Selected: <span className="font-semibold">{selectedTemplateContactIds.length}</span>
+                  </div>
+                  <div className="px-3 py-1.5 rounded border bg-gray-50">
+                    Eligible contacts: <span className="font-semibold">{eligibleTemplateContacts.length}</span>
+                  </div>
+                </div>
+                <div className="space-y-2 max-h-72 overflow-auto border rounded-lg p-2">
+                  {filteredTemplateContacts.map((contact) => {
+                    const contactId = String(contact._id);
+                    const checked = selectedTemplateContactIds.includes(contactId);
+                    return (
+                      <label key={`template-contact-${contactId}`} className="flex items-start gap-2 border rounded-lg p-2 text-xs text-gray-700 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleTemplateContact(contactId)}
+                          className="mt-0.5"
+                        />
+                        <div>
+                          <div className="font-semibold">{contact.firmName || "-"} | {contact.mobileE164}</div>
+                          <div className="text-gray-500">
+                            {contact.city} | {contact.email || "-"} | Categories: {(contact.categories || []).join(", ") || "-"}
+                          </div>
+                        </div>
+                      </label>
+                    );
+                  })}
+                  {filteredTemplateContacts.length === 0 && (
+                    <p className="text-xs text-gray-500">No eligible contacts match the current search.</p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={sendSelectedTemplate}
+                  disabled={!selectedTemplate || !selectedTemplateContactIds.length || sendingTemplate}
+                  className="px-3 py-2 rounded-lg text-sm font-semibold btn-primary disabled:opacity-60"
+                >
+                  {sendingTemplate ? "Sending Template..." : "Send Template To Selected Contacts"}
+                </button>
               </div>
             </div>
           </div>
@@ -1032,6 +1265,7 @@ export default function AdminWhatsApp() {
                       <option value="manual_resend">manual_resend</option>
                       <option value="buyer_post">buyer_post</option>
                       <option value="manual_test">manual_test</option>
+                      <option value="template_send">template_send</option>
                     </select>
                     <select
                       className="w-full border rounded-lg px-3 py-2 text-sm"
