@@ -1,4 +1,4 @@
-const CACHE_NAME = "hoko-pwa-v10";
+const CACHE_NAME = "hoko-pwa-v11";
 const APP_SHELL = [
   "/",
   "/index.html",
@@ -31,16 +31,16 @@ self.addEventListener("fetch", (event) => {
 
   if (request.mode === "navigate") {
     event.respondWith(
-      caches.match("/index.html").then((cachedShell) => {
-        const networkRequest = fetch(request)
-          .then((response) => {
-            if (response && response.status === 200) {
-              caches.open(CACHE_NAME).then((cache) => cache.put("/index.html", response.clone()));
-            }
-            return response;
-          })
-          .catch(
-            () =>
+      fetch(request)
+        .then((response) => {
+          if (response && response.status === 200) {
+            caches.open(CACHE_NAME).then((cache) => cache.put("/index.html", response.clone()));
+          }
+          return response;
+        })
+        .catch(() =>
+          caches.match("/index.html").then(
+            (cachedShell) =>
               cachedShell ||
               new Response("Offline", {
                 status: 503,
@@ -49,10 +49,8 @@ self.addEventListener("fetch", (event) => {
                   "Content-Type": "text/plain; charset=utf-8"
                 }
               })
-          );
-
-        return cachedShell || networkRequest;
-      })
+          )
+        )
     );
     return;
   }
@@ -79,7 +77,38 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Serve cached JS/CSS first to speed up boot, then revalidate in background.
+  // Hashed JS/CSS assets should come from network first so deploys are visible immediately.
+  if (
+    (request.destination === "script" || request.destination === "style") &&
+    /\/assets\/.+-[A-Za-z0-9_-]+\.(js|css)$/.test(url.pathname)
+  ) {
+    event.respondWith(
+      fetch(request)
+          .then((response) => {
+            if (response && response.status === 200) {
+              caches.open(CACHE_NAME).then((cache) => cache.put(request, response.clone()));
+            }
+            return response;
+          })
+          .catch(
+            () =>
+              caches.match(request).then(
+                (cachedAsset) =>
+                  cachedAsset ||
+                  new Response("Offline", {
+                    status: 503,
+                    statusText: "Service Unavailable",
+                    headers: {
+                      "Content-Type": "text/plain; charset=utf-8"
+                    }
+                  })
+              )
+          )
+    );
+    return;
+  }
+
+  // Non-hashed JS/CSS can still use cache-first with background revalidation.
   if (request.destination === "script" || request.destination === "style") {
     event.respondWith(
       caches.match(request).then((cached) => {
