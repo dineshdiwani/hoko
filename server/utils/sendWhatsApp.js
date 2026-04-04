@@ -52,6 +52,45 @@ function resolveWapiSendUrl() {
   return `${baseUrl}/api/send-message/${encodeURIComponent(instanceId)}`;
 }
 
+function resolveWapiApiBaseUrl() {
+  const explicit = String(process.env.WAPI_API_URL || "").trim();
+  if (explicit) return explicit.replace(/\/+$/, "");
+
+  const sendUrl = String(process.env.WAPI_SEND_URL || "").trim();
+  if (sendUrl) {
+    return sendUrl
+      .replace(/\/send-template-message(?:\/[^/]+)?\/?$/i, "")
+      .replace(/\/send-message(?:\/[^/]+)?\/?$/i, "")
+      .replace(/\/+$/, "");
+  }
+
+  const baseUrl = String(process.env.WAPI_BASE_URL || "").trim().replace(/\/+$/, "");
+  if (!baseUrl) return "";
+  return `${baseUrl}/api`;
+}
+
+function resolveWapiTemplateListUrl() {
+  const explicit = String(
+    process.env.WAPI_TEMPLATE_LIST_URL || process.env.WAPI_TEMPLATES_URL || ""
+  ).trim();
+  if (explicit) return explicit;
+
+  const apiBaseUrl = resolveWapiApiBaseUrl();
+  if (!apiBaseUrl) return "";
+  return `${apiBaseUrl}/templates`;
+}
+
+function resolveWapiTemplateSendUrl() {
+  const explicit = String(process.env.WAPI_TEMPLATE_SEND_URL || "").trim();
+  if (explicit) return explicit;
+
+  const apiBaseUrl = resolveWapiApiBaseUrl();
+  const instanceId = String(process.env.WAPI_INSTANCE_ID || "").trim();
+  if (!apiBaseUrl) return "";
+  if (!instanceId) return `${apiBaseUrl}/send-template-message`;
+  return `${apiBaseUrl}/send-template-message/${encodeURIComponent(instanceId)}`;
+}
+
 function normalizeWapiRecipient(to) {
   const raw = String(to || "").trim();
   const stripPlus = String(process.env.WAPI_STRIP_PLUS || "").trim().toLowerCase() === "true";
@@ -59,9 +98,21 @@ function normalizeWapiRecipient(to) {
   return raw.replace(/^\+/, "");
 }
 
+function buildWapiHeaders() {
+  const token = String(process.env.WAPI_ACCESS_TOKEN || "").trim();
+  const headers = {
+    "Content-Type": "application/json"
+  };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+    headers["x-access-token"] = token;
+    headers.apikey = token;
+  }
+  return headers;
+}
+
 async function sendViaWapi({ to, body }) {
   const url = resolveWapiSendUrl();
-  const token = String(process.env.WAPI_ACCESS_TOKEN || "").trim();
   const toKey = String(process.env.WAPI_PAYLOAD_TO_KEY || "to").trim();
   const messageKey = String(process.env.WAPI_PAYLOAD_MESSAGE_KEY || "text").trim();
 
@@ -74,18 +125,9 @@ async function sendViaWapi({ to, body }) {
     [messageKey]: body
   };
 
-  const headers = {
-    "Content-Type": "application/json"
-  };
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-    headers["x-access-token"] = token;
-    headers.apikey = token;
-  }
-
   const response = await axios.post(url, payload, {
     timeout: 15000,
-    headers
+    headers: buildWapiHeaders()
   });
   const data = response?.data;
   if (!data || typeof data !== "object") {
@@ -116,6 +158,171 @@ async function sendViaWapi({ to, body }) {
       data?.id ||
       data?.message?.id ||
       ""
+    ).trim(),
+    raw: data
+  };
+}
+
+function extractTemplateRows(data) {
+  if (Array.isArray(data)) return data;
+  if (!data || typeof data !== "object") return [];
+  const candidates = [
+    data.templates,
+    data.data,
+    data.results,
+    data.items,
+    data.response
+  ];
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) return candidate;
+  }
+  return [];
+}
+
+function countTemplateBodyVariables(components) {
+  if (!Array.isArray(components)) return 0;
+  const bodyComponent = components.find(
+    (component) => String(component?.type || "").trim().toUpperCase() === "BODY"
+  );
+  const bodyText = String(
+    bodyComponent?.text || bodyComponent?.example?.body_text?.[0]?.join(" ") || ""
+  );
+  const matches = bodyText.match(/{{\d+}}/g);
+  return matches ? matches.length : 0;
+}
+
+function normalizeTemplateRecord(template) {
+  const name = String(
+    template?.name || template?.templateName || template?.elementName || template?.id || ""
+  ).trim();
+  const status = String(template?.status || template?.templateStatus || "").trim().toUpperCase();
+  const languageCode = String(
+    template?.language ||
+      template?.languageCode ||
+      template?.templateLanguage ||
+      template?.locale ||
+      "en"
+  ).trim();
+  const category = String(template?.category || template?.templateCategory || "").trim();
+  const components = Array.isArray(template?.components)
+    ? template.components
+    : Array.isArray(template?.template?.components)
+    ? template.template.components
+    : [];
+
+  if (!name) return null;
+
+  return {
+    id: String(template?.id || `${name}:${languageCode}`).trim(),
+    name,
+    status,
+    languageCode,
+    category,
+    bodyVariableCount: countTemplateBodyVariables(components),
+    components
+  };
+}
+
+async function fetchWapiApprovedTemplates() {
+  const url = resolveWapiTemplateListUrl();
+  if (!url) {
+    throw new Error(
+      "Missing WAPI template configuration: set WAPI_TEMPLATE_LIST_URL or WAPI_API_URL/WAPI_BASE_URL"
+    );
+  }
+
+  const response = await axios.get(url, {
+    timeout: 15000,
+    headers: buildWapiHeaders()
+  });
+  const rows = extractTemplateRows(response?.data);
+  const templates = rows
+    .map(normalizeTemplateRecord)
+    .filter(Boolean)
+    .filter((template) => !template.status || template.status === "APPROVED")
+    .sort((a, b) => a.name.localeCompare(b.name) || a.languageCode.localeCompare(b.languageCode));
+
+  return templates;
+}
+
+function buildTemplateComponents(parameters = []) {
+  const normalized = parameters
+    .map((parameter) => String(parameter || "").trim())
+    .filter(Boolean);
+  if (!normalized.length) return [];
+  return [
+    {
+      type: "body",
+      parameters: normalized.map((text) => ({
+        type: "text",
+        text
+      }))
+    }
+  ];
+}
+
+async function sendViaWapiTemplate({ to, templateName, languageCode, parameters = [] }) {
+  const url = resolveWapiTemplateSendUrl();
+  if (!url) {
+    throw new Error(
+      "Missing WAPI template send configuration: set WAPI_TEMPLATE_SEND_URL or WAPI_API_URL/WAPI_BASE_URL"
+    );
+  }
+
+  const payloadMode = String(process.env.WAPI_TEMPLATE_PAYLOAD_MODE || "meta")
+    .trim()
+    .toLowerCase();
+  const recipient = normalizeWapiRecipient(to);
+  const templateComponents = buildTemplateComponents(parameters);
+  const payload =
+    payloadMode === "flat"
+      ? {
+          to: recipient,
+          template_name: String(templateName || "").trim(),
+          language: String(languageCode || "en").trim(),
+          parameters: parameters.map((parameter) => String(parameter || "").trim())
+        }
+      : {
+          messaging_product: "whatsapp",
+          to: recipient,
+          type: "template",
+          template: {
+            name: String(templateName || "").trim(),
+            language: {
+              code: String(languageCode || "en").trim()
+            },
+            components: templateComponents
+          }
+        };
+
+  const response = await axios.post(url, payload, {
+    timeout: 15000,
+    headers: buildWapiHeaders()
+  });
+  const data = response?.data || {};
+  const statusValue = typeof data.status === "string" ? data.status.trim().toLowerCase() : data.status;
+  const explicitFailure =
+    data.success === false ||
+    data.ok === false ||
+    statusValue === false ||
+    ["error", "failed", "fail", "rejected", "invalid", "false"].includes(statusValue);
+
+  if (explicitFailure) {
+    throw new Error(
+      typeof data.message === "string" && data.message.trim()
+        ? data.message.trim()
+        : JSON.stringify(data).slice(0, 600)
+    );
+  }
+
+  return {
+    providerMessageId: String(
+      data?.whatsapp_message_id ||
+        data?.message_id ||
+        data?.id ||
+        data?.messages?.[0]?.id ||
+        data?.message?.id ||
+        ""
     ).trim(),
     raw: data
   };
@@ -155,5 +362,7 @@ async function sendWhatsAppMessage({ to, body }) {
 
 module.exports = {
   sendWhatsAppMessage,
-  normalizeE164
+  normalizeE164,
+  fetchWapiApprovedTemplates,
+  sendViaWapiTemplate
 };

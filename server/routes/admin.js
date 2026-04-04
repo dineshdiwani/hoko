@@ -22,7 +22,11 @@ const { requireAdminPermission } = require("../middleware/adminPermission");
 const { otpSendLimiter, otpVerifyLimiter } = require("../middleware/rateLimit");
 const { setOtp, verifyOtp } = require("../utils/otpStore");
 const { sendOtpEmail } = require("../utils/sendEmail");
-const { normalizeE164 } = require("../utils/sendWhatsApp");
+const {
+  normalizeE164,
+  fetchWapiApprovedTemplates,
+  sendViaWapiTemplate
+} = require("../utils/sendWhatsApp");
 const {
   sendTestWhatsAppCampaign,
   triggerWhatsAppCampaignForRequirement
@@ -59,6 +63,16 @@ const OTP_MAX_ATTEMPTS = Number(process.env.OTP_MAX_ATTEMPTS || 5);
 
 function normalizeText(value) {
   return String(value || "").trim().toLowerCase();
+}
+
+function summarizeProviderError(errorValue) {
+  if (!errorValue) return "";
+  if (typeof errorValue === "string") return errorValue;
+  try {
+    return JSON.stringify(errorValue).slice(0, 500);
+  } catch {
+    return "send_failed";
+  }
 }
 
 function normalizeRequirementId(value) {
@@ -1359,6 +1373,148 @@ router.get("/whatsapp/campaign-runs", adminAuth, requireAdminPermission("campaig
     .populate("requirementId", "product productName city category")
     .populate("createdByAdminId", "email role");
   res.json(runs);
+});
+
+router.get("/whatsapp/templates", adminAuth, requireAdminPermission("campaigns.read"), async (req, res) => {
+  const provider = String(process.env.WHATSAPP_PROVIDER || "mock").trim().toLowerCase();
+  if (provider !== "wapi") {
+    return res.status(400).json({ message: "Approved templates are only enabled for WAPI provider" });
+  }
+
+  try {
+    const templates = await fetchWapiApprovedTemplates();
+    return res.json({
+      provider,
+      count: templates.length,
+      items: templates
+    });
+  } catch (err) {
+    return res.status(502).json({
+      message: err?.message || "Failed to fetch approved templates from WAPI BSP"
+    });
+  }
+});
+
+router.post("/whatsapp/template-send", adminAuth, requireAdminPermission("campaigns.manage"), async (req, res) => {
+  const provider = String(process.env.WHATSAPP_PROVIDER || "mock").trim().toLowerCase();
+  if (provider !== "wapi") {
+    return res.status(400).json({ message: "Template sending is only enabled for WAPI provider" });
+  }
+
+  const contactIds = Array.isArray(req.body?.contactIds)
+    ? req.body.contactIds.map((value) => String(value || "").trim()).filter(Boolean)
+    : [];
+  const templateName = String(req.body?.templateName || "").trim();
+  const languageCode = String(req.body?.languageCode || "en").trim();
+  const parameters = Array.isArray(req.body?.parameters)
+    ? req.body.parameters.map((value) => String(value || "").trim())
+    : [];
+
+  if (!contactIds.length) {
+    return res.status(400).json({ message: "Select at least one contact" });
+  }
+  if (!templateName) {
+    return res.status(400).json({ message: "templateName required" });
+  }
+
+  const contacts = await WhatsAppContact.find({ _id: { $in: contactIds } }).lean();
+  if (!contacts.length) {
+    return res.status(404).json({ message: "Selected contacts not found" });
+  }
+
+  let attempted = 0;
+  let sent = 0;
+  let failed = 0;
+  let skipped = 0;
+  const results = [];
+
+  for (const contact of contacts) {
+    const mobileE164 = String(contact?.mobileE164 || "").trim();
+    let status = "skipped";
+    let reason = "";
+    let providerMessageId = "";
+
+    if (!mobileE164) {
+      reason = "missing_mobile";
+    } else if (contact.active === false) {
+      reason = "inactive";
+    } else if (contact.optInStatus !== "opted_in") {
+      reason = "not_opted_in";
+    } else if (contact.unsubscribedAt) {
+      reason = "unsubscribed";
+    } else if (contact.dndStatus === "dnd") {
+      reason = "dnd";
+    } else {
+      attempted += 1;
+      try {
+        const sendResult = await sendViaWapiTemplate({
+          to: mobileE164,
+          templateName,
+          languageCode,
+          parameters
+        });
+        status = "accepted";
+        providerMessageId = String(sendResult?.providerMessageId || "").trim();
+        sent += 1;
+      } catch (err) {
+        status = "failed";
+        reason = summarizeProviderError(err?.response?.data || err?.message || err);
+        failed += 1;
+      }
+    }
+
+    if (status === "skipped") {
+      skipped += 1;
+    }
+
+    await WhatsAppDeliveryLog.create({
+      requirementId: null,
+      campaignRunId: null,
+      triggerType: "template_send",
+      channel: "whatsapp",
+      mobileE164,
+      email: String(contact?.email || "").trim(),
+      status,
+      reason,
+      provider,
+      providerMessageId,
+      city: String(contact?.city || "").trim(),
+      category: Array.isArray(contact?.categories) ? String(contact.categories[0] || "").trim() : "",
+      product: `Template: ${templateName}`,
+      createdByAdminId: req.admin?._id || null
+    });
+
+    results.push({
+      contactId: String(contact?._id || "").trim(),
+      mobileE164,
+      firmName: String(contact?.firmName || "").trim(),
+      status,
+      reason,
+      providerMessageId
+    });
+  }
+
+  await logAdminAction(req.admin, "whatsapp_template_send", "whatsapp_contact", "bulk", {
+    templateName,
+    languageCode,
+    selectedContacts: contactIds.length,
+    attempted,
+    sent,
+    failed,
+    skipped
+  });
+
+  return res.json({
+    ok: sent > 0 && failed === 0,
+    templateName,
+    languageCode,
+    selectedContacts: contactIds.length,
+    attempted,
+    sent,
+    failed,
+    skipped,
+    results
+  });
 });
 
 router.get("/whatsapp/delivery-logs", adminAuth, requireAdminPermission("campaigns.read"), async (req, res) => {
