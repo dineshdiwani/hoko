@@ -202,11 +202,6 @@ export default function AdminWhatsApp() {
     setManualSelectedCities(availableManualCities);
   }, [availableManualCities, manualUseAllCities]);
 
-  useEffect(() => {
-    const validIds = new Set(eligibleTemplateContacts.map((contact) => String(contact._id)));
-    setSelectedTemplateContactIds((prev) => prev.filter((id) => validIds.has(String(id))));
-  }, [eligibleTemplateContacts]);
-
   const manualCitySelectionLabel = useMemo(() => {
     if (manualUseAllCities) return "All cities";
     if (!manualSelectedCities.length) return "Select cities";
@@ -236,6 +231,11 @@ export default function AdminWhatsApp() {
       ),
     [contacts]
   );
+
+  useEffect(() => {
+    const validIds = new Set(eligibleTemplateContacts.map((contact) => String(contact._id)));
+    setSelectedTemplateContactIds((prev) => prev.filter((id) => validIds.has(String(id))));
+  }, [eligibleTemplateContacts]);
 
   const filteredTemplateContacts = useMemo(() => {
     const query = normalizeText(templateContactSearch);
