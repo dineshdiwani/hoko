@@ -80,6 +80,89 @@ function resolveWapiTemplateListUrl() {
   return `${apiBaseUrl}/templates`;
 }
 
+function buildWapiTemplateListCandidates() {
+  const explicit = String(
+    process.env.WAPI_TEMPLATE_LIST_URL || process.env.WAPI_TEMPLATES_URL || ""
+  ).trim();
+  const apiBaseUrl = resolveWapiApiBaseUrl();
+  const sendUrl = String(process.env.WAPI_SEND_URL || "").trim().replace(/\/+$/, "");
+  const rootBaseUrlCandidates = [];
+  const candidates = [];
+
+  const pushCandidate = (method, url) => {
+    const normalizedMethod = String(method || "").trim().toUpperCase();
+    const normalizedUrl = String(url || "").trim().replace(/\/+$/, "");
+    if (!normalizedMethod || !normalizedUrl) return;
+    if (candidates.some((candidate) => candidate.method === normalizedMethod && candidate.url === normalizedUrl)) {
+      return;
+    }
+    candidates.push({ method: normalizedMethod, url: normalizedUrl });
+  };
+
+  const pushRootBaseUrl = (value) => {
+    const normalized = String(value || "").trim().replace(/\/+$/, "");
+    if (!normalized) return;
+    if (rootBaseUrlCandidates.includes(normalized)) return;
+    rootBaseUrlCandidates.push(normalized);
+  };
+
+  const tryPushRootFromUrl = (value) => {
+    const normalized = String(value || "").trim();
+    if (!normalized) return;
+    try {
+      const parsed = new URL(normalized);
+      pushRootBaseUrl(`${parsed.protocol}//${parsed.host}`);
+    } catch {
+      // Ignore malformed URLs and keep existing candidates.
+    }
+  };
+
+  if (explicit) {
+    pushCandidate("GET", explicit);
+    pushCandidate("POST", explicit);
+  }
+
+  if (apiBaseUrl) {
+    [
+      "/templates",
+      "/template",
+      "/template-message",
+      "/template-messages",
+      "/get-templates",
+      "/get-template-message"
+    ].forEach((suffix) => {
+      pushCandidate("GET", `${apiBaseUrl}${suffix}`);
+      pushCandidate("POST", `${apiBaseUrl}${suffix}`);
+    });
+  }
+
+  tryPushRootFromUrl(explicit);
+  tryPushRootFromUrl(apiBaseUrl);
+  tryPushRootFromUrl(sendUrl);
+
+  rootBaseUrlCandidates.forEach((baseUrl) => {
+    [
+      "/templates",
+      "/template",
+      "/template-message",
+      "/template-messages",
+      "/get-templates",
+      "/get-template-message",
+      "/api/templates",
+      "/api/template",
+      "/api/template-message",
+      "/api/template-messages",
+      "/api/get-templates",
+      "/api/get-template-message"
+    ].forEach((suffix) => {
+      pushCandidate("GET", `${baseUrl}${suffix}`);
+      pushCandidate("POST", `${baseUrl}${suffix}`);
+    });
+  });
+
+  return candidates;
+}
+
 function resolveWapiTemplateSendUrl() {
   const explicit = String(process.env.WAPI_TEMPLATE_SEND_URL || "").trim();
   if (explicit) return explicit;
@@ -179,6 +262,34 @@ function extractTemplateRows(data) {
   return [];
 }
 
+function buildTemplateListRequestConfig(candidate) {
+  const url = String(candidate?.url || "").trim();
+  const method = String(candidate?.method || "GET").trim().toUpperCase();
+  const requestConfig = {
+    method,
+    url,
+    timeout: 15000,
+    headers: buildWapiHeaders()
+  };
+
+  // WAPI vendor-console template list is a DataTables endpoint and returns
+  // rows only when pagination/sort params are provided.
+  if (/\/vendor-console\/whatsapp\/templates\/list-data(?:\?|$)/i.test(url)) {
+    requestConfig.params = {
+      draw: 1,
+      start: 0,
+      length: 100,
+      page: 1,
+      "order[0][column]": 4,
+      "order[0][dir]": "desc",
+      "search[value]": "",
+      "search[regex]": false
+    };
+  }
+
+  return requestConfig;
+}
+
 function countTemplateBodyVariables(components) {
   if (!Array.isArray(components)) return 0;
   const bodyComponent = components.find(
@@ -193,7 +304,12 @@ function countTemplateBodyVariables(components) {
 
 function normalizeTemplateRecord(template) {
   const name = String(
-    template?.name || template?.templateName || template?.elementName || template?.id || ""
+    template?.name ||
+      template?.template_name ||
+      template?.templateName ||
+      template?.elementName ||
+      template?.id ||
+      ""
   ).trim();
   const status = String(template?.status || template?.templateStatus || "").trim().toUpperCase();
   const languageCode = String(
@@ -224,25 +340,40 @@ function normalizeTemplateRecord(template) {
 }
 
 async function fetchWapiApprovedTemplates() {
-  const url = resolveWapiTemplateListUrl();
-  if (!url) {
+  const candidates = buildWapiTemplateListCandidates();
+  if (!candidates.length) {
     throw new Error(
       "Missing WAPI template configuration: set WAPI_TEMPLATE_LIST_URL or WAPI_API_URL/WAPI_BASE_URL"
     );
   }
 
-  const response = await axios.get(url, {
-    timeout: 15000,
-    headers: buildWapiHeaders()
-  });
-  const rows = extractTemplateRows(response?.data);
-  const templates = rows
-    .map(normalizeTemplateRecord)
-    .filter(Boolean)
-    .filter((template) => !template.status || template.status === "APPROVED")
-    .sort((a, b) => a.name.localeCompare(b.name) || a.languageCode.localeCompare(b.languageCode));
+  let lastError = null;
 
-  return templates;
+  for (const candidate of candidates) {
+    try {
+      const response = await axios(buildTemplateListRequestConfig(candidate));
+      const rows = extractTemplateRows(response?.data);
+      const templates = rows
+        .map(normalizeTemplateRecord)
+        .filter(Boolean)
+        .filter((template) => !template.status || template.status === "APPROVED")
+        .sort((a, b) => a.name.localeCompare(b.name) || a.languageCode.localeCompare(b.languageCode));
+
+      if (templates.length || rows.length) {
+        return templates;
+      }
+      lastError = new Error(`No templates returned from ${candidate.method} ${candidate.url}`);
+    } catch (err) {
+      lastError = err;
+    }
+  }
+
+  const attempted = candidates.map((candidate) => `${candidate.method} ${candidate.url}`).join(", ");
+  const lastMessage =
+    lastError?.response?.data?.message ||
+    lastError?.message ||
+    "Unknown upstream error";
+  throw new Error(`WAPI template fetch failed. Tried: ${attempted}. Last error: ${lastMessage}`);
 }
 
 function buildTemplateComponents(parameters = []) {
