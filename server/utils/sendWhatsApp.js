@@ -58,10 +58,20 @@ function resolveWapiApiBaseUrl() {
 
   const sendUrl = String(process.env.WAPI_SEND_URL || "").trim();
   if (sendUrl) {
-    return sendUrl
-      .replace(/\/send-template-message(?:\/[^/]+)?\/?$/i, "")
-      .replace(/\/send-message(?:\/[^/]+)?\/?$/i, "")
-      .replace(/\/+$/, "");
+    try {
+      const parsed = new URL(sendUrl);
+      const normalizedPath = parsed.pathname
+        .replace(/\/send-template-message(?:\/[^/]+)?\/?$/i, "")
+        .replace(/\/send-message(?:\/[^/]+)?\/?$/i, "")
+        .replace(/\/+$/, "");
+      return `${parsed.protocol}//${parsed.host}${normalizedPath}`;
+    } catch {
+      return sendUrl
+        .replace(/\?.*$/, "")
+        .replace(/\/send-template-message(?:\/[^/]+)?\/?$/i, "")
+        .replace(/\/send-message(?:\/[^/]+)?\/?$/i, "")
+        .replace(/\/+$/, "");
+    }
   }
 
   const baseUrl = String(process.env.WAPI_BASE_URL || "").trim().replace(/\/+$/, "");
