@@ -126,7 +126,10 @@ function extractMetaEvents(body) {
   const configuredProvider = String(process.env.WHATSAPP_PROVIDER || "meta")
     .trim()
     .toLowerCase();
-  const provider = configuredProvider === "wapi" ? "wapi" : "meta";
+  const provider =
+    configuredProvider === "wapi" || configuredProvider === "gupshup"
+      ? configuredProvider
+      : "meta";
   const entries = Array.isArray(body?.entry) ? body.entry : [];
   return entries.flatMap((entry) =>
     (Array.isArray(entry?.changes) ? entry.changes : []).flatMap((change) => {
@@ -150,7 +153,7 @@ function extractFallbackFormEvents(body) {
   const configuredProvider = String(process.env.WHATSAPP_PROVIDER || "wapi")
     .trim()
     .toLowerCase();
-  const provider = configuredProvider === "meta" ? "meta" : "wapi";
+  const provider = configuredProvider === "meta" ? "meta" : configuredProvider || "wapi";
   const mobileE164 = normalizeE164(body?.From || body?.WaId || body?.from || body?.mobile);
   const text = String(body?.Body || body?.message || body?.text || "").trim();
   if (!mobileE164 || !text) return [];
@@ -165,7 +168,33 @@ function extractFallbackFormEvents(body) {
   ];
 }
 
+function extractGupshupEvents(body) {
+  if (String(body?.type || "").trim().toLowerCase() !== "message") {
+    return [];
+  }
+  const payload = body?.payload || {};
+  const content = payload?.payload || {};
+  const messageType = String(payload?.type || "").trim().toLowerCase();
+  const text =
+    messageType === "text"
+      ? String(content?.text || content?.body || "").trim()
+      : String(content?.title || content?.text || "").trim();
+  const mobileE164 = normalizeE164(payload?.sender?.phone || payload?.source);
+  if (!mobileE164 || !text) return [];
+  return [
+    {
+      provider: "gupshup",
+      mobileE164,
+      text,
+      providerMessageId: String(payload?.id || payload?.gsId || "").trim(),
+      profileName: String(payload?.sender?.name || "").trim()
+    }
+  ];
+}
+
 function extractInboundEvents(body) {
+  const gupshupEvents = extractGupshupEvents(body);
+  if (gupshupEvents.length) return gupshupEvents;
   const metaEvents = extractMetaEvents(body);
   if (metaEvents.length) return metaEvents;
   return extractFallbackFormEvents(body);
@@ -177,7 +206,7 @@ function normalizeDeliveryStatus(rawStatus) {
   if (["delivered", "delivery"].includes(status)) return "delivered";
   if (["read", "seen"].includes(status)) return "read";
   if (["sent", "submitted"].includes(status)) return "sent";
-  if (["queued", "pending", "accepted"].includes(status)) return "queued";
+  if (["queued", "pending", "accepted", "enqueued"].includes(status)) return "queued";
   if (["failed", "error", "rejected", "undelivered"].includes(status)) return "failed";
   return "";
 }
@@ -186,7 +215,10 @@ function extractMetaDeliveryEvents(body) {
   const configuredProvider = String(process.env.WHATSAPP_PROVIDER || "meta")
     .trim()
     .toLowerCase();
-  const provider = configuredProvider === "wapi" ? "wapi" : "meta";
+  const provider =
+    configuredProvider === "wapi" || configuredProvider === "gupshup"
+      ? configuredProvider
+      : "meta";
   const entries = Array.isArray(body?.entry) ? body.entry : [];
   return entries.flatMap((entry) =>
     (Array.isArray(entry?.changes) ? entry.changes : []).flatMap((change) => {
@@ -208,6 +240,28 @@ function extractMetaDeliveryEvents(body) {
         .filter((event) => event.providerMessageId && event.status);
     })
   );
+}
+
+function extractGupshupDeliveryEvents(body) {
+  const eventType = String(body?.type || "").trim().toLowerCase();
+  if (!["message-event", "enqueued"].includes(eventType)) {
+    return [];
+  }
+
+  const payload = body?.payload || {};
+  const status = normalizeDeliveryStatus(payload?.type || body?.eventType || eventType);
+  const providerMessageId = String(payload?.gsId || payload?.id || payload?.messageId || "").trim();
+  if (!status || !providerMessageId) return [];
+
+  return [
+    {
+      provider: "gupshup",
+      mobileE164: normalizeE164(payload?.destination || payload?.phone || payload?.sender?.phone),
+      providerMessageId,
+      status,
+      reason: String(payload?.reason || payload?.type || "").trim()
+    }
+  ];
 }
 
 function extractWapiDeliveryEvents(body) {
@@ -242,6 +296,8 @@ function extractWapiDeliveryEvents(body) {
 }
 
 function extractDeliveryEvents(body) {
+  const gupshupEvents = extractGupshupDeliveryEvents(body);
+  if (gupshupEvents.length) return gupshupEvents;
   const metaEvents = extractMetaDeliveryEvents(body);
   if (metaEvents.length) return metaEvents;
   return extractWapiDeliveryEvents(body);

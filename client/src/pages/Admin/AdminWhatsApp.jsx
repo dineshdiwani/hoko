@@ -717,6 +717,7 @@ export default function AdminWhatsApp() {
       setSendingTemplate(true);
       const res = await api.post("/admin/whatsapp/template-send", {
         contactIds: selectedTemplateContactIds,
+        templateId: selectedTemplate.id,
         templateName: selectedTemplate.name,
         languageCode: selectedTemplate.languageCode,
         parameters: templateVariables.map((value) => String(value || "").trim())
@@ -932,9 +933,9 @@ export default function AdminWhatsApp() {
               <div className="border-t pt-4 space-y-3">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold">Approved Template Send (WAPI BSP)</p>
+                    <p className="text-sm font-semibold">Approved Template Send</p>
                     <p className="text-xs text-gray-500">
-                      Load approved templates from WAPI, select contacts here, and trigger the template directly.
+                      Load approved templates from the configured WhatsApp BSP, select contacts here, and trigger the template directly.
                     </p>
                   </div>
                   <button

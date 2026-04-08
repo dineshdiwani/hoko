@@ -25,7 +25,9 @@ const { sendOtpEmail } = require("../utils/sendEmail");
 const {
   normalizeE164,
   fetchWapiApprovedTemplates,
-  sendViaWapiTemplate
+  sendViaWapiTemplate,
+  fetchGupshupApprovedTemplates,
+  sendViaGupshupTemplate
 } = require("../utils/sendWhatsApp");
 const {
   sendTestWhatsAppCampaign,
@@ -1377,12 +1379,15 @@ router.get("/whatsapp/campaign-runs", adminAuth, requireAdminPermission("campaig
 
 router.get("/whatsapp/templates", adminAuth, requireAdminPermission("campaigns.read"), async (req, res) => {
   const provider = String(process.env.WHATSAPP_PROVIDER || "mock").trim().toLowerCase();
-  if (provider !== "wapi") {
-    return res.status(400).json({ message: "Approved templates are only enabled for WAPI provider" });
+  if (!["wapi", "gupshup"].includes(provider)) {
+    return res.status(400).json({ message: "Approved templates are only enabled for WAPI or Gupshup provider" });
   }
 
   try {
-    const templates = await fetchWapiApprovedTemplates();
+    const templates =
+      provider === "gupshup"
+        ? await fetchGupshupApprovedTemplates()
+        : await fetchWapiApprovedTemplates();
     return res.json({
       provider,
       count: templates.length,
@@ -1390,21 +1395,26 @@ router.get("/whatsapp/templates", adminAuth, requireAdminPermission("campaigns.r
     });
   } catch (err) {
     return res.status(502).json({
-      message: err?.message || "Failed to fetch approved templates from WAPI BSP"
+      message:
+        err?.message ||
+        (provider === "gupshup"
+          ? "Failed to fetch approved templates from Gupshup"
+          : "Failed to fetch approved templates from WAPI BSP")
     });
   }
 });
 
 router.post("/whatsapp/template-send", adminAuth, requireAdminPermission("campaigns.manage"), async (req, res) => {
   const provider = String(process.env.WHATSAPP_PROVIDER || "mock").trim().toLowerCase();
-  if (provider !== "wapi") {
-    return res.status(400).json({ message: "Template sending is only enabled for WAPI provider" });
+  if (!["wapi", "gupshup"].includes(provider)) {
+    return res.status(400).json({ message: "Template sending is only enabled for WAPI or Gupshup provider" });
   }
 
   const contactIds = Array.isArray(req.body?.contactIds)
     ? req.body.contactIds.map((value) => String(value || "").trim()).filter(Boolean)
     : [];
   const templateName = String(req.body?.templateName || "").trim();
+  const templateId = String(req.body?.templateId || "").trim();
   const languageCode = String(req.body?.languageCode || "en").trim();
   const parameters = Array.isArray(req.body?.parameters)
     ? req.body.parameters.map((value) => String(value || "").trim())
@@ -1413,8 +1423,8 @@ router.post("/whatsapp/template-send", adminAuth, requireAdminPermission("campai
   if (!contactIds.length) {
     return res.status(400).json({ message: "Select at least one contact" });
   }
-  if (!templateName) {
-    return res.status(400).json({ message: "templateName required" });
+  if (!templateName && !templateId) {
+    return res.status(400).json({ message: "templateName or templateId required" });
   }
 
   const contacts = await WhatsAppContact.find({ _id: { $in: contactIds } }).lean();
@@ -1447,8 +1457,9 @@ router.post("/whatsapp/template-send", adminAuth, requireAdminPermission("campai
     } else {
       attempted += 1;
       try {
-        const sendResult = await sendViaWapiTemplate({
+        const sendResult = await (provider === "gupshup" ? sendViaGupshupTemplate : sendViaWapiTemplate)({
           to: mobileE164,
+          templateId,
           templateName,
           languageCode,
           parameters

@@ -1,4 +1,5 @@
 const axios = require("axios");
+const querystring = require("querystring");
 
 function normalizeE164(value) {
   const raw = String(value || "").replace(/[^\d+]/g, "");
@@ -37,6 +38,99 @@ async function sendViaMeta({ to, body }) {
   const data = response?.data || {};
   return {
     providerMessageId: String(data?.messages?.[0]?.id || data?.message_id || data?.id || "").trim(),
+    raw: data
+  };
+}
+
+function normalizeGupshupRecipient(to) {
+  return String(to || "").replace(/[^\d]/g, "");
+}
+
+function buildGupshupHeaders() {
+  const apiKey = String(process.env.GUPSHUP_API_KEY || "").trim();
+  if (!apiKey) {
+    throw new Error("Missing Gupshup API configuration");
+  }
+  return {
+    apikey: apiKey,
+    "Content-Type": "application/x-www-form-urlencoded"
+  };
+}
+
+function resolveGupshupSendUrl() {
+  return String(process.env.GUPSHUP_SEND_URL || "https://api.gupshup.io/wa/api/v1/msg").trim();
+}
+
+function resolveGupshupTemplateSendUrl() {
+  return String(process.env.GUPSHUP_TEMPLATE_SEND_URL || resolveGupshupSendUrl()).trim();
+}
+
+function resolveGupshupTemplateListUrl() {
+  const explicit = String(process.env.GUPSHUP_TEMPLATE_LIST_URL || "").trim();
+  if (explicit) return explicit;
+  const appId = String(process.env.GUPSHUP_APP_ID || "").trim();
+  if (!appId) return "";
+  return `https://api.gupshup.io/wa/app/${encodeURIComponent(appId)}/template`;
+}
+
+function resolveGupshupSource() {
+  return String(
+    process.env.GUPSHUP_SOURCE ||
+      process.env.GUPSHUP_PHONE_NUMBER ||
+      process.env.WHATSAPP_PHONE_NUMBER ||
+      ""
+  )
+    .trim()
+    .replace(/[^\d]/g, "");
+}
+
+function buildGupshupFormPayload(payload) {
+  return querystring.stringify(payload);
+}
+
+async function sendViaGupshup({ to, body }) {
+  const url = resolveGupshupSendUrl();
+  const source = resolveGupshupSource();
+  const destination = normalizeGupshupRecipient(to);
+
+  if (!source) {
+    throw new Error("Missing Gupshup source configuration");
+  }
+  if (!destination) {
+    throw new Error("Missing Gupshup destination");
+  }
+
+  const payload = buildGupshupFormPayload({
+    channel: "whatsapp",
+    source,
+    destination,
+    "src.name": String(process.env.GUPSHUP_APP_NAME || process.env.APP_NAME || "Hoko").trim(),
+    message: JSON.stringify({
+      type: "text",
+      text: body
+    })
+  });
+
+  const response = await axios.post(url, payload, {
+    timeout: 15000,
+    headers: buildGupshupHeaders()
+  });
+  const data = response?.data || {};
+  const explicitFailure =
+    data?.status === "error" ||
+    data?.success === false ||
+    data?.ok === false;
+
+  if (explicitFailure) {
+    throw new Error(
+      typeof data?.message === "string" && data.message.trim()
+        ? data.message.trim()
+        : JSON.stringify(data).slice(0, 600)
+    );
+  }
+
+  return {
+    providerMessageId: String(data?.messageId || data?.id || data?.messages?.[0]?.id || "").trim(),
     raw: data
   };
 }
@@ -386,6 +480,75 @@ async function fetchWapiApprovedTemplates() {
   throw new Error(`WAPI template fetch failed. Tried: ${attempted}. Last error: ${lastMessage}`);
 }
 
+function extractTemplateParameterCount(template) {
+  const raw =
+    template?.bodyParamsCount ??
+    template?.body_params_count ??
+    template?.variableCount ??
+    template?.variablesCount ??
+    null;
+  const numeric = Number(raw);
+  if (Number.isFinite(numeric) && numeric >= 0) {
+    return numeric;
+  }
+  return countTemplateBodyVariables(
+    Array.isArray(template?.components)
+      ? template.components
+      : Array.isArray(template?.template?.components)
+      ? template.template.components
+      : []
+  );
+}
+
+function normalizeGupshupTemplateRecord(template) {
+  const name = String(
+    template?.elementName ||
+      template?.name ||
+      template?.templateName ||
+      template?.template_name ||
+      ""
+  ).trim();
+  if (!name) return null;
+
+  const languageCode = String(
+    template?.languageCode ||
+      template?.language ||
+      template?.locale ||
+      "en"
+  ).trim();
+  const status = String(template?.status || template?.templateStatus || "").trim().toUpperCase();
+
+  return {
+    id: String(template?.id || template?.templateId || `${name}:${languageCode}`).trim(),
+    name,
+    status,
+    languageCode,
+    category: String(template?.category || template?.templateCategory || "").trim(),
+    bodyVariableCount: extractTemplateParameterCount(template),
+    components: Array.isArray(template?.components) ? template.components : []
+  };
+}
+
+async function fetchGupshupApprovedTemplates() {
+  const url = resolveGupshupTemplateListUrl();
+  if (!url) {
+    throw new Error("Missing Gupshup template configuration: set GUPSHUP_APP_ID or GUPSHUP_TEMPLATE_LIST_URL");
+  }
+
+  const response = await axios.get(url, {
+    timeout: 15000,
+    headers: {
+      apikey: String(process.env.GUPSHUP_API_KEY || "").trim()
+    }
+  });
+  const rows = extractTemplateRows(response?.data);
+  return rows
+    .map(normalizeGupshupTemplateRecord)
+    .filter(Boolean)
+    .filter((template) => !template.status || ["APPROVED", "ACTIVE", "ENABLED"].includes(template.status))
+    .sort((a, b) => a.name.localeCompare(b.name) || a.languageCode.localeCompare(b.languageCode));
+}
+
 function buildTemplateComponents(parameters = []) {
   const normalized = parameters
     .map((parameter) => String(parameter || "").trim())
@@ -469,6 +632,55 @@ async function sendViaWapiTemplate({ to, templateName, languageCode, parameters 
   };
 }
 
+async function sendViaGupshupTemplate({ to, templateId, templateName, languageCode, parameters = [] }) {
+  const url = resolveGupshupTemplateSendUrl();
+  const source = resolveGupshupSource();
+  const destination = normalizeGupshupRecipient(to);
+
+  if (!source) {
+    throw new Error("Missing Gupshup source configuration");
+  }
+  if (!destination) {
+    throw new Error("Missing Gupshup destination");
+  }
+
+  const payload = buildGupshupFormPayload({
+    channel: "whatsapp",
+    source,
+    destination,
+    "src.name": String(process.env.GUPSHUP_APP_NAME || process.env.APP_NAME || "Hoko").trim(),
+    template: JSON.stringify({
+      id: String(templateId || templateName || "").trim(),
+      ...(templateName ? { name: String(templateName).trim() } : {}),
+      params: parameters.map((parameter) => String(parameter || "").trim()),
+      ...(languageCode ? { lang: String(languageCode).trim() } : {})
+    })
+  });
+
+  const response = await axios.post(url, payload, {
+    timeout: 15000,
+    headers: buildGupshupHeaders()
+  });
+  const data = response?.data || {};
+  const explicitFailure =
+    data?.status === "error" ||
+    data?.success === false ||
+    data?.ok === false;
+
+  if (explicitFailure) {
+    throw new Error(
+      typeof data?.message === "string" && data.message.trim()
+        ? data.message.trim()
+        : JSON.stringify(data).slice(0, 600)
+    );
+  }
+
+  return {
+    providerMessageId: String(data?.messageId || data?.id || data?.messages?.[0]?.id || "").trim(),
+    raw: data
+  };
+}
+
 async function sendWhatsAppMessage({ to, body }) {
   const provider = String(process.env.WHATSAPP_PROVIDER || "mock")
     .toLowerCase()
@@ -486,6 +698,13 @@ async function sendWhatsAppMessage({ to, body }) {
     if (provider === "meta") {
       const metaResult = await sendViaMeta({ to: recipient.replace(/^\+/, ""), body });
       return { ok: true, providerMessageId: metaResult?.providerMessageId || "", meta: metaResult?.raw || null };
+    } else if (provider === "gupshup") {
+      const gupshupResult = await sendViaGupshup({ to: recipient, body });
+      return {
+        ok: true,
+        providerMessageId: gupshupResult?.providerMessageId || "",
+        meta: gupshupResult?.raw || null
+      };
     } else if (provider === "wapi") {
       const wapiResult = await sendViaWapi({ to: recipient, body });
       return { ok: true, providerMessageId: wapiResult?.providerMessageId || "", meta: wapiResult?.raw || null };
@@ -505,5 +724,7 @@ module.exports = {
   sendWhatsAppMessage,
   normalizeE164,
   fetchWapiApprovedTemplates,
-  sendViaWapiTemplate
+  sendViaWapiTemplate,
+  fetchGupshupApprovedTemplates,
+  sendViaGupshupTemplate
 };
