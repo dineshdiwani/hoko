@@ -21,6 +21,7 @@ router.use(express.urlencoded({ extended: false }));
 
 const CONSENT_CONFIRM_WORDS = new Set(["yes", "y", "confirm", "i agree", "agree"]);
 const WA_ME_CONSENT_LINK = "https://wa.me/918079060554?text=Hi";
+const GREETING_WORDS = new Set(["hi", "hii", "hello", "hey", "start", "menu"]);
 
 function firstNonEmpty(values) {
   for (const value of values) {
@@ -130,6 +131,15 @@ function buildConsentConfirmedMessage() {
   return [
     "Consent confirmed.",
     "You will now receive Hoko WhatsApp updates on this number."
+  ].join("\n");
+}
+
+function buildGenericHelpMessage() {
+  return [
+    "Hi from Hoko.",
+    "Reply YES to confirm WhatsApp updates, or share your requirement details to continue.",
+    "",
+    `You can also use: ${WA_ME_CONSENT_LINK}`
   ].join("\n");
 }
 
@@ -300,6 +310,15 @@ router.post("/webhook", async (req, res) => {
     }
 
     if (consentHandled && !consentConfirmed) {
+      continue;
+    }
+
+    // Always acknowledge simple greetings so users do not see a silent chat.
+    if (GREETING_WORDS.has(normalizedInbound)) {
+      await sendWhatsAppMessage({
+        to: event.mobileE164,
+        body: buildGenericHelpMessage()
+      });
       continue;
     }
 
