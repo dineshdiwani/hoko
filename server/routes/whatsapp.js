@@ -20,7 +20,6 @@ router.use(express.json({ limit: "1mb" }));
 router.use(express.urlencoded({ extended: false }));
 
 const CONSENT_CONFIRM_WORDS = new Set(["yes", "y", "confirm", "i agree", "agree"]);
-const WA_ME_CONSENT_LINK = "https://wa.me/918079060554?text=Hi";
 const GREETING_WORDS = new Set(["hi", "hii", "hello", "hey", "start", "menu"]);
 
 function firstNonEmpty(values) {
@@ -120,26 +119,19 @@ function normalizeInboundText(value) {
 
 function buildConsentPromptMessage() {
   return [
-    "Thanks for contacting Hoko.",
-    "To receive WhatsApp updates and offers, please reply YES to confirm consent.",
-    "",
-    `If needed, open: ${WA_ME_CONSENT_LINK}`
+    "Thanks for contacting Hoko. To receive WhatsApp updates and offers, please reply YES to confirm consent."
   ].join("\n");
 }
 
 function buildConsentConfirmedMessage() {
   return [
-    "Consent confirmed.",
-    "You will now receive Hoko WhatsApp updates on this number."
+    "Consent confirmed. Post your buying requirement here: https://hokoapp.in/ and get the offers from sellers in your city or across India."
   ].join("\n");
 }
 
 function buildGenericHelpMessage() {
   return [
-    "Hi from Hoko.",
-    "Reply YES to confirm WhatsApp updates, or share your requirement details to continue.",
-    "",
-    `You can also use: ${WA_ME_CONSENT_LINK}`
+    "Welcome to Hoko. Post your buying requirement here: https://hokoapp.in/ and get the offers from sellers in your city or across India."
   ].join("\n");
 }
 
