@@ -5,6 +5,8 @@ const PendingOfferDraft = require("../models/PendingOfferDraft");
 const Requirement = require("../models/Requirement");
 const WhatsAppDeliveryLog = require("../models/WhatsAppDeliveryLog");
 const WhatsAppLead = require("../models/WhatsAppLead");
+const WhatsAppContact = require("../models/WhatsAppContact");
+const WhatsAppBuyerContact = require("../models/WhatsAppBuyerContact");
 const { sendWhatsAppMessage } = require("../utils/sendWhatsApp");
 const { resolvePublicAppUrl } = require("../utils/publicAppUrl");
 const {
@@ -16,6 +18,9 @@ const {
 
 router.use(express.json({ limit: "1mb" }));
 router.use(express.urlencoded({ extended: false }));
+
+const CONSENT_CONFIRM_WORDS = new Set(["yes", "y", "confirm", "i agree", "agree"]);
+const WA_ME_CONSENT_LINK = "https://wa.me/918079060554?text=Hi";
 
 function firstNonEmpty(values) {
   for (const value of values) {
@@ -108,6 +113,96 @@ function buildRegisterConfirmationMessage(requirement, deepLink, profile) {
   ].filter(Boolean).join("\n");
 }
 
+function normalizeInboundText(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function buildConsentPromptMessage() {
+  return [
+    "Thanks for contacting Hoko.",
+    "To receive WhatsApp updates and offers, please reply YES to confirm consent.",
+    "",
+    `If needed, open: ${WA_ME_CONSENT_LINK}`
+  ].join("\n");
+}
+
+function buildConsentConfirmedMessage() {
+  return [
+    "Consent confirmed.",
+    "You will now receive Hoko WhatsApp updates on this number."
+  ].join("\n");
+}
+
+async function loadContactByMobile(mobileE164) {
+  const [sellerContact, buyerContact] = await Promise.all([
+    WhatsAppContact.findOne({ mobileE164 }).sort({ updatedAt: -1 }),
+    WhatsAppBuyerContact.findOne({ mobileE164 })
+  ]);
+  return { sellerContact, buyerContact };
+}
+
+async function ensureBuyerProspect(mobileE164) {
+  const now = new Date();
+  return WhatsAppBuyerContact.findOneAndUpdate(
+    { mobileE164 },
+    {
+      $setOnInsert: {
+        mobileE164,
+        active: true,
+        optInStatus: "not_opted_in",
+        optInSource: "whatsapp_inbound_pending",
+        optInAt: null,
+        pendingOptInAt: now,
+        consentEvidence: "Inbound WhatsApp message captured. Awaiting YES confirmation.",
+        unsubscribedAt: null,
+        unsubscribeReason: "",
+        dndStatus: "allow",
+        dndSource: "",
+        source: "wa_me_inbound"
+      }
+    },
+    {
+      upsert: true,
+      new: true,
+      setDefaultsOnInsert: true
+    }
+  );
+}
+
+async function applyConsentConfirmed(contact, modelName, event) {
+  if (!contact?._id) return;
+  const now = new Date();
+  const update = {
+    active: true,
+    optInStatus: "opted_in",
+    optInSource: "whatsapp_inbound_confirmed",
+    optInAt: now,
+    pendingOptInAt: null,
+    consentEvidence: `Confirmed via inbound message "${String(event?.text || "").trim()}" at ${now.toISOString()}`,
+    unsubscribedAt: null,
+    unsubscribeReason: ""
+  };
+  if (modelName === "seller") {
+    await WhatsAppContact.findByIdAndUpdate(contact._id, { $set: update });
+  } else {
+    await WhatsAppBuyerContact.findByIdAndUpdate(contact._id, { $set: update });
+  }
+}
+
+async function applyConsentPending(contact, modelName, event) {
+  if (!contact?._id) return;
+  const now = new Date();
+  const update = {
+    pendingOptInAt: now,
+    consentEvidence: `Pending confirmation from inbound "${String(event?.text || "").trim()}" at ${now.toISOString()}`
+  };
+  if (modelName === "seller") {
+    await WhatsAppContact.findByIdAndUpdate(contact._id, { $set: update });
+  } else {
+    await WhatsAppBuyerContact.findByIdAndUpdate(contact._id, { $set: update });
+  }
+}
+
 router.get("/webhook", (req, res) => {
   const mode = String(req.query["hub.mode"] || "").trim();
   const token = String(req.query["hub.verify_token"] || "").trim();
@@ -162,6 +257,52 @@ router.post("/webhook", async (req, res) => {
   }
 
   for (const event of events) {
+    const normalizedInbound = normalizeInboundText(event.text);
+    const consentConfirmed = CONSENT_CONFIRM_WORDS.has(normalizedInbound);
+    const { sellerContact, buyerContact } = await loadContactByMobile(event.mobileE164);
+    let consentHandled = false;
+
+    if (!sellerContact && !buyerContact) {
+      await ensureBuyerProspect(event.mobileE164);
+    }
+
+    const latestSellerContact = sellerContact || null;
+    const latestBuyerContact =
+      buyerContact || (await WhatsAppBuyerContact.findOne({ mobileE164: event.mobileE164 }));
+    const sellerNeedsConsent = latestSellerContact && latestSellerContact.optInStatus !== "opted_in";
+    const buyerNeedsConsent = latestBuyerContact && latestBuyerContact.optInStatus !== "opted_in";
+
+    if (sellerNeedsConsent || buyerNeedsConsent) {
+      consentHandled = true;
+      if (consentConfirmed) {
+        if (sellerNeedsConsent) {
+          await applyConsentConfirmed(latestSellerContact, "seller", event);
+        }
+        if (buyerNeedsConsent) {
+          await applyConsentConfirmed(latestBuyerContact, "buyer", event);
+        }
+        await sendWhatsAppMessage({
+          to: event.mobileE164,
+          body: buildConsentConfirmedMessage()
+        });
+      } else {
+        if (sellerNeedsConsent) {
+          await applyConsentPending(latestSellerContact, "seller", event);
+        }
+        if (buyerNeedsConsent) {
+          await applyConsentPending(latestBuyerContact, "buyer", event);
+        }
+        await sendWhatsAppMessage({
+          to: event.mobileE164,
+          body: buildConsentPromptMessage()
+        });
+      }
+    }
+
+    if (consentHandled && !consentConfirmed) {
+      continue;
+    }
+
     const intent = classifyInboundText(event.text);
     const registerPayload = intent.kind === "register"
       ? parseRegisterPayload(event.text)

@@ -14,6 +14,8 @@ const PushSubscription = require("../models/PushSubscription");
 const NativePushToken = require("../models/NativePushToken");
 const PlatformSettings = require("../models/PlatformSettings");
 const WhatsAppContact = require("../models/WhatsAppContact");
+const WhatsAppBuyerContact = require("../models/WhatsAppBuyerContact");
+const WhatsAppTemplateRegistry = require("../models/WhatsAppTemplateRegistry");
 const WhatsAppCampaignRun = require("../models/WhatsAppCampaignRun");
 const WhatsAppDeliveryLog = require("../models/WhatsAppDeliveryLog");
 const AdminAuditLog = require("../models/AdminAuditLog");
@@ -58,7 +60,11 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 }
 });
 const WHATSAPP_UPLOAD_DIR = path.join(process.cwd(), "uploads", "admin");
-const WHATSAPP_UPLOAD_META_PATH = path.join(WHATSAPP_UPLOAD_DIR, "whatsapp-contacts-latest.json");
+const WHATSAPP_UPLOAD_META_PATHS = {
+  seller_contacts: path.join(WHATSAPP_UPLOAD_DIR, "whatsapp-contacts-seller-latest.json"),
+  buyer_contacts: path.join(WHATSAPP_UPLOAD_DIR, "whatsapp-contacts-buyer-latest.json"),
+  templates: path.join(WHATSAPP_UPLOAD_DIR, "whatsapp-templates-latest.json")
+};
 const ADMIN_JWT_EXPIRES = String(process.env.ADMIN_JWT_EXPIRES || "30d");
 const OTP_TTL_MS = Number(process.env.OTP_TTL_MINUTES || 5) * 60 * 1000;
 const OTP_MAX_ATTEMPTS = Number(process.env.OTP_MAX_ATTEMPTS || 5);
@@ -102,8 +108,17 @@ function getSafeUploadExt(originalName = "") {
 }
 
 async function saveLatestWhatsAppUpload(file) {
+  return saveLatestWhatsAppUploadByKey("seller_contacts", file, "whatsapp-contacts-seller-latest");
+}
+
+async function saveLatestWhatsAppUploadByKey(kind, file, filePrefix) {
+  const key = String(kind || "").trim().toLowerCase();
+  const metaPath = WHATSAPP_UPLOAD_META_PATHS[key];
+  if (!metaPath) {
+    throw new Error(`Unsupported WhatsApp upload kind: ${key}`);
+  }
   const ext = getSafeUploadExt(file?.originalname);
-  const filename = `whatsapp-contacts-latest${ext}`;
+  const filename = `${String(filePrefix || key).trim() || key}${ext}`;
   await fs.promises.mkdir(WHATSAPP_UPLOAD_DIR, { recursive: true });
   const absolutePath = path.join(WHATSAPP_UPLOAD_DIR, filename);
   await fs.promises.writeFile(absolutePath, file.buffer);
@@ -114,13 +129,20 @@ async function saveLatestWhatsAppUpload(file) {
     size: Number(file?.size || file?.buffer?.length || 0),
     uploadedAt: new Date().toISOString()
   };
-  await fs.promises.writeFile(WHATSAPP_UPLOAD_META_PATH, JSON.stringify(metadata, null, 2), "utf8");
+  await fs.promises.writeFile(metaPath, JSON.stringify(metadata, null, 2), "utf8");
   return metadata;
 }
 
 async function readLatestWhatsAppUploadMeta() {
+  return readLatestWhatsAppUploadMetaByKey("seller_contacts");
+}
+
+async function readLatestWhatsAppUploadMetaByKey(kind) {
+  const key = String(kind || "").trim().toLowerCase();
+  const metaPath = WHATSAPP_UPLOAD_META_PATHS[key];
+  if (!metaPath) return null;
   try {
-    const raw = await fs.promises.readFile(WHATSAPP_UPLOAD_META_PATH, "utf8");
+    const raw = await fs.promises.readFile(metaPath, "utf8");
     const parsed = JSON.parse(raw);
     if (!parsed?.filename) return null;
     return parsed;
@@ -187,6 +209,138 @@ function parseWhatsAppContactsFromWorkbook(buffer) {
   }
 
   return contacts;
+}
+
+function parseBuyerContactsFromWorkbook(buffer) {
+  const workbook = XLSX.read(buffer, { type: "buffer" });
+  const firstSheetName = workbook.SheetNames?.[0];
+  if (!firstSheetName) return [];
+  const sheet = workbook.Sheets[firstSheetName];
+  const rows = XLSX.utils.sheet_to_json(sheet, {
+    header: 1,
+    blankrows: false,
+    defval: ""
+  });
+
+  const contacts = [];
+  for (let index = 0; index < rows.length; index += 1) {
+    const row = rows[index] || [];
+    const mobileRaw = String(row[0] || "").trim();
+    const digits = toDigits(mobileRaw);
+    if (!digits) continue;
+    if (index === 0 && /mobile|phone|number/i.test(String(mobileRaw || ""))) {
+      continue;
+    }
+    const mobileE164 = normalizeE164(digits);
+    if (!mobileE164) continue;
+    contacts.push({
+      mobileE164,
+      active: true,
+      optInStatus: "not_opted_in",
+      optInSource: "buyer_excel_upload_pending_consent",
+      optInAt: null,
+      pendingOptInAt: new Date(),
+      consentEvidence: "Uploaded from buyer excel. Awaiting WhatsApp consent confirmation.",
+      unsubscribedAt: null,
+      unsubscribeReason: "",
+      dndStatus: "allow",
+      dndSource: "",
+      source: "buyer_excel"
+    });
+  }
+  return contacts;
+}
+
+function normalizeTemplateBoolean(value, fallback = false) {
+  if (typeof value === "boolean") return value;
+  const normalized = String(value || "").trim().toLowerCase();
+  if (["1", "true", "yes", "y", "active"].includes(normalized)) return true;
+  if (["0", "false", "no", "n", "inactive"].includes(normalized)) return false;
+  return fallback;
+}
+
+function readTemplateCell(row, indexByName, ...names) {
+  for (const name of names) {
+    const key = String(name || "").trim().toLowerCase();
+    if (!key) continue;
+    const idx = indexByName.get(key);
+    if (Number.isInteger(idx) && idx >= 0) {
+      return row[idx];
+    }
+  }
+  return "";
+}
+
+function parseTemplateRegistryFromWorkbook(buffer) {
+  const workbook = XLSX.read(buffer, { type: "buffer" });
+  const firstSheetName = workbook.SheetNames?.[0];
+  if (!firstSheetName) return { rows: [], errors: ["Workbook has no sheets"] };
+  const sheet = workbook.Sheets[firstSheetName];
+  const rows = XLSX.utils.sheet_to_json(sheet, {
+    header: 1,
+    blankrows: false,
+    defval: ""
+  });
+  if (!rows.length) return { rows: [], errors: ["Template sheet is empty"] };
+
+  const header = (rows[0] || []).map((cell) => String(cell || "").trim());
+  const indexByName = new Map(header.map((name, idx) => [String(name || "").trim().toLowerCase(), idx]));
+  const parsedRows = [];
+  const errors = [];
+  const allowedCategory = new Set(["MARKETING", "UTILITY", "AUTHENTICATION"]);
+  const allowedStatus = new Set(["APPROVED", "PENDING", "REJECTED", "PAUSED", "DISABLED", "ACTIVE", "ENABLED"]);
+
+  for (let index = 1; index < rows.length; index += 1) {
+    const row = rows[index] || [];
+    const key = String(readTemplateCell(row, indexByName, "key")).trim();
+    const templateName = String(readTemplateCell(row, indexByName, "template_name", "name")).trim();
+    const templateId = String(readTemplateCell(row, indexByName, "template_id", "id")).trim();
+    const language = String(readTemplateCell(row, indexByName, "language", "language_code", "languagecode") || "en").trim();
+    const categoryRaw = String(readTemplateCell(row, indexByName, "category") || "UTILITY").trim().toUpperCase();
+    const statusRaw = String(readTemplateCell(row, indexByName, "status") || "PENDING").trim().toUpperCase();
+    const variableCountRaw = Number(readTemplateCell(row, indexByName, "variable_count", "body_variable_count", "bodyvariablecount"));
+    const buttonUrlPattern = String(readTemplateCell(row, indexByName, "button_url_pattern", "button_url", "buttonurlpattern")).trim();
+    const isActive = normalizeTemplateBoolean(readTemplateCell(row, indexByName, "is_active", "active"), false);
+    const version = String(readTemplateCell(row, indexByName, "version") || "v1").trim() || "v1";
+    const fallbackKey = String(readTemplateCell(row, indexByName, "fallback_key")).trim();
+    const notes = String(readTemplateCell(row, indexByName, "notes")).trim();
+
+    if (!key && !templateName && !templateId) {
+      continue;
+    }
+    if (!key || !templateName) {
+      errors.push(`Row ${index + 1}: key and template_name are required`);
+      continue;
+    }
+    if (!allowedCategory.has(categoryRaw)) {
+      errors.push(`Row ${index + 1}: category must be MARKETING, UTILITY, or AUTHENTICATION`);
+      continue;
+    }
+    if (!allowedStatus.has(statusRaw)) {
+      errors.push(`Row ${index + 1}: status must be APPROVED/PENDING/REJECTED/PAUSED/DISABLED/ACTIVE/ENABLED`);
+      continue;
+    }
+    const variableCount = Number.isFinite(variableCountRaw) && variableCountRaw >= 0
+      ? Math.floor(variableCountRaw)
+      : 0;
+
+    parsedRows.push({
+      key,
+      templateName,
+      templateId,
+      language: language || "en",
+      category: categoryRaw,
+      status: statusRaw,
+      variableCount,
+      buttonUrlPattern,
+      isActive,
+      version,
+      fallbackKey,
+      notes
+    });
+  }
+
+  return { rows: parsedRows, errors };
 }
 
 function uniqueNormalizedList(values = []) {
@@ -454,6 +608,34 @@ async function logAdminAction(admin, action, targetType, targetId, meta = {}) {
   } catch {
     // best effort
   }
+}
+
+function normalizeRecipientType(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  return normalized === "buyer" || normalized === "buyer_contacts" ? "buyer_contacts" : "seller_contacts";
+}
+
+function isContactEligibleForWhatsApp(contact) {
+  if (!contact?.mobileE164) return { ok: false, reason: "missing_mobile" };
+  if (contact.active === false) return { ok: false, reason: "inactive" };
+  if (contact.optInStatus !== "opted_in") return { ok: false, reason: "not_opted_in" };
+  if (contact.unsubscribedAt) return { ok: false, reason: "unsubscribed" };
+  if (contact.dndStatus === "dnd") return { ok: false, reason: "dnd" };
+  return { ok: true, reason: "" };
+}
+
+async function resolveRecipientContacts(recipientType, ids = []) {
+  const normalizedIds = Array.isArray(ids)
+    ? ids.map((value) => String(value || "").trim()).filter(Boolean)
+    : [];
+  const normalizedType = normalizeRecipientType(recipientType);
+  const query = normalizedIds.length ? { _id: { $in: normalizedIds } } : {};
+  if (normalizedType === "buyer_contacts") {
+    const contacts = await WhatsAppBuyerContact.find(query).lean();
+    return { type: normalizedType, contacts };
+  }
+  const contacts = await WhatsAppContact.find(query).lean();
+  return { type: normalizedType, contacts };
 }
 
 router.get("/admins", adminAuth, requireAdminPermission("admins.read"), async (req, res) => {
@@ -1222,7 +1404,7 @@ router.get("/whatsapp/contacts/summary", adminAuth, requireAdminPermission("camp
       }
     ]),
     WhatsAppContact.findOne({ active: true }).sort({ updatedAt: -1 }).select("updatedAt").lean(),
-    readLatestWhatsAppUploadMeta()
+    readLatestWhatsAppUploadMetaByKey("seller_contacts")
   ]);
   const compliance = complianceRows[0] || { optedIn: 0, unsubscribed: 0, dnd: 0 };
   const uploadFile = uploadMeta
@@ -1246,7 +1428,7 @@ router.get("/whatsapp/contacts/summary", adminAuth, requireAdminPermission("camp
 });
 
 router.get("/whatsapp/contacts/uploaded-file", adminAuth, requireAdminPermission("campaigns.read"), async (req, res) => {
-  const uploadMeta = await readLatestWhatsAppUploadMeta();
+  const uploadMeta = await readLatestWhatsAppUploadMetaByKey("seller_contacts");
   if (!uploadMeta?.filename) {
     return res.status(404).json({ message: "No uploaded file found" });
   }
@@ -1404,15 +1586,144 @@ router.get("/whatsapp/templates", adminAuth, requireAdminPermission("campaigns.r
   }
 });
 
+router.get("/whatsapp/templates/registry", adminAuth, requireAdminPermission("campaigns.read"), async (req, res) => {
+  const includeInactive = String(req.query?.includeInactive || "").trim().toLowerCase() === "true";
+  const query = includeInactive ? {} : { isActive: true };
+  const items = await WhatsAppTemplateRegistry.find(query).sort({
+    key: 1,
+    language: 1,
+    version: -1,
+    updatedAt: -1
+  });
+  return res.json({
+    count: items.length,
+    items
+  });
+});
+
+router.post(
+  "/whatsapp/templates/upload",
+  adminAuth,
+  requireAdminPermission("campaigns.manage"),
+  upload.single("file"),
+  async (req, res) => {
+    if (!req.file?.buffer) {
+      return res.status(400).json({ message: "Excel file required" });
+    }
+
+    const mode = String(req.body?.mode || "replace").trim().toLowerCase();
+    const parsed = parseTemplateRegistryFromWorkbook(req.file.buffer);
+    if (parsed.errors.length) {
+      return res.status(400).json({
+        message: "Template sheet validation failed",
+        errors: parsed.errors.slice(0, 50)
+      });
+    }
+    if (!parsed.rows.length) {
+      return res.status(400).json({ message: "No valid template rows found in Excel" });
+    }
+
+    if (mode !== "append") {
+      await WhatsAppTemplateRegistry.deleteMany({});
+    }
+
+    let inserted = 0;
+    let updated = 0;
+    const errors = [];
+    let uploadFile = null;
+
+    try {
+      uploadFile = await saveLatestWhatsAppUploadByKey("templates", req.file, "whatsapp-templates-latest");
+    } catch (err) {
+      console.warn("Failed to save uploaded template file:", err?.message || err);
+    }
+
+    for (const row of parsed.rows) {
+      try {
+        const existing = await WhatsAppTemplateRegistry.findOne({
+          key: row.key,
+          language: row.language,
+          version: row.version
+        }).lean();
+        await WhatsAppTemplateRegistry.findOneAndUpdate(
+          {
+            key: row.key,
+            language: row.language,
+            version: row.version
+          },
+          {
+            $set: row
+          },
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+        if (existing) updated += 1;
+        else inserted += 1;
+      } catch (err) {
+        errors.push({
+          key: row.key,
+          language: row.language,
+          version: row.version,
+          error: err?.message || "Failed to save template"
+        });
+      }
+    }
+
+    await logAdminAction(req.admin, "upload_whatsapp_templates", "whatsapp_template_registry", "bulk", {
+      mode,
+      parsed: parsed.rows.length,
+      inserted,
+      updated,
+      failed: errors.length
+    });
+
+    return res.json({
+      parsed: parsed.rows.length,
+      inserted,
+      updated,
+      failed: errors.length,
+      uploadFile: uploadFile
+        ? {
+            originalName: uploadFile.originalName,
+            size: uploadFile.size,
+            uploadedAt: uploadFile.uploadedAt,
+            downloadPath: "/admin/whatsapp/templates/uploaded-file"
+          }
+        : null,
+      errors: errors.slice(0, 30)
+    });
+  }
+);
+
+router.get("/whatsapp/templates/uploaded-file", adminAuth, requireAdminPermission("campaigns.read"), async (req, res) => {
+  const uploadMeta = await readLatestWhatsAppUploadMetaByKey("templates");
+  if (!uploadMeta?.filename) {
+    return res.status(404).json({ message: "No uploaded file found" });
+  }
+
+  const absolutePath = path.join(WHATSAPP_UPLOAD_DIR, uploadMeta.filename);
+  try {
+    await fs.promises.access(absolutePath, fs.constants.R_OK);
+  } catch {
+    return res.status(404).json({ message: "Uploaded file is missing on server" });
+  }
+
+  const safeName = String(uploadMeta.originalName || uploadMeta.filename).replace(/["\r\n]/g, "_");
+  res.setHeader("Content-Type", uploadMeta.mimeType || "application/octet-stream");
+  res.setHeader("Content-Disposition", `attachment; filename="${safeName}"`);
+  return res.sendFile(absolutePath);
+});
+
 router.post("/whatsapp/template-send", adminAuth, requireAdminPermission("campaigns.manage"), async (req, res) => {
   const provider = String(process.env.WHATSAPP_PROVIDER || "mock").trim().toLowerCase();
   if (!["wapi", "gupshup"].includes(provider)) {
     return res.status(400).json({ message: "Template sending is only enabled for WAPI or Gupshup provider" });
   }
 
+  const recipientType = normalizeRecipientType(req.body?.recipientType);
   const contactIds = Array.isArray(req.body?.contactIds)
     ? req.body.contactIds.map((value) => String(value || "").trim()).filter(Boolean)
     : [];
+  const templateConfigId = String(req.body?.templateConfigId || "").trim();
   const templateName = String(req.body?.templateName || "").trim();
   const templateId = String(req.body?.templateId || "").trim();
   const languageCode = String(req.body?.languageCode || "en").trim();
@@ -1423,11 +1734,24 @@ router.post("/whatsapp/template-send", adminAuth, requireAdminPermission("campai
   if (!contactIds.length) {
     return res.status(400).json({ message: "Select at least one contact" });
   }
-  if (!templateName && !templateId) {
+  let resolvedTemplateName = templateName;
+  let resolvedTemplateId = templateId;
+  let resolvedLanguageCode = languageCode;
+  if (templateConfigId) {
+    const config = await WhatsAppTemplateRegistry.findById(templateConfigId).lean();
+    if (!config) {
+      return res.status(404).json({ message: "Template config not found" });
+    }
+    resolvedTemplateName = String(config.templateName || "").trim();
+    resolvedTemplateId = String(config.templateId || "").trim();
+    resolvedLanguageCode = String(config.language || "en").trim();
+  }
+
+  if (!resolvedTemplateName && !resolvedTemplateId) {
     return res.status(400).json({ message: "templateName or templateId required" });
   }
 
-  const contacts = await WhatsAppContact.find({ _id: { $in: contactIds } }).lean();
+  const { contacts } = await resolveRecipientContacts(recipientType, contactIds);
   if (!contacts.length) {
     return res.status(404).json({ message: "Selected contacts not found" });
   }
@@ -1443,25 +1767,17 @@ router.post("/whatsapp/template-send", adminAuth, requireAdminPermission("campai
     let status = "skipped";
     let reason = "";
     let providerMessageId = "";
-
-    if (!mobileE164) {
-      reason = "missing_mobile";
-    } else if (contact.active === false) {
-      reason = "inactive";
-    } else if (contact.optInStatus !== "opted_in") {
-      reason = "not_opted_in";
-    } else if (contact.unsubscribedAt) {
-      reason = "unsubscribed";
-    } else if (contact.dndStatus === "dnd") {
-      reason = "dnd";
+    const eligibility = isContactEligibleForWhatsApp(contact);
+    if (!eligibility.ok) {
+      reason = eligibility.reason;
     } else {
       attempted += 1;
       try {
         const sendResult = await (provider === "gupshup" ? sendViaGupshupTemplate : sendViaWapiTemplate)({
           to: mobileE164,
-          templateId,
-          templateName,
-          languageCode,
+          templateId: resolvedTemplateId,
+          templateName: resolvedTemplateName,
+          languageCode: resolvedLanguageCode,
           parameters
         });
         status = "accepted";
@@ -1491,7 +1807,7 @@ router.post("/whatsapp/template-send", adminAuth, requireAdminPermission("campai
       providerMessageId,
       city: String(contact?.city || "").trim(),
       category: Array.isArray(contact?.categories) ? String(contact.categories[0] || "").trim() : "",
-      product: `Template: ${templateName}`,
+      product: `Template: ${resolvedTemplateName || resolvedTemplateId}`,
       createdByAdminId: req.admin?._id || null
     });
 
@@ -1506,8 +1822,9 @@ router.post("/whatsapp/template-send", adminAuth, requireAdminPermission("campai
   }
 
   await logAdminAction(req.admin, "whatsapp_template_send", "whatsapp_contact", "bulk", {
-    templateName,
-    languageCode,
+    templateName: resolvedTemplateName || resolvedTemplateId,
+    languageCode: resolvedLanguageCode,
+    recipientType,
     selectedContacts: contactIds.length,
     attempted,
     sent,
@@ -1517,8 +1834,9 @@ router.post("/whatsapp/template-send", adminAuth, requireAdminPermission("campai
 
   return res.json({
     ok: sent > 0 && failed === 0,
-    templateName,
-    languageCode,
+    templateName: resolvedTemplateName || resolvedTemplateId,
+    languageCode: resolvedLanguageCode,
+    recipientType,
     selectedContacts: contactIds.length,
     attempted,
     sent,
@@ -1760,6 +2078,142 @@ router.post("/whatsapp/resend", adminAuth, requireAdminPermission("campaigns.man
     return res.status(400).json({ message: "Select at least one channel (WhatsApp or Email)" });
   }
 
+  const provider = String(process.env.WHATSAPP_PROVIDER || "mock").trim().toLowerCase();
+  const templateConfigId = String(req.body?.templateConfigId || "").trim();
+  const templateParameters = Array.isArray(req.body?.templateParameters)
+    ? req.body.templateParameters.map((value) => String(value || "").trim())
+    : [];
+  const recipientType = normalizeRecipientType(req.body?.recipientType);
+
+  if (channels.whatsapp && templateConfigId) {
+    if (channels.email) {
+      return res.status(400).json({ message: "Template auto mode currently supports WhatsApp channel only" });
+    }
+    if (!["wapi", "gupshup"].includes(provider)) {
+      return res.status(400).json({ message: "Template sending is only enabled for WAPI or Gupshup provider" });
+    }
+
+    const templateConfig = await WhatsAppTemplateRegistry.findById(templateConfigId).lean();
+    if (!templateConfig) {
+      return res.status(404).json({ message: "Selected template config not found" });
+    }
+
+    if (!Array.isArray(contactFilters.contactIds) || !contactFilters.contactIds.length) {
+      return res.status(400).json({ message: "Contact list is required for template auto mode" });
+    }
+
+    const { contacts } = await resolveRecipientContacts(recipientType, contactFilters.contactIds);
+    if (!contacts.length) {
+      return res.status(404).json({ message: "Selected contacts not found" });
+    }
+
+    const run = await WhatsAppCampaignRun.create({
+      requirementId: requirement._id,
+      triggerType: "manual_resend",
+      status: "created",
+      city: requirement.city || "",
+      category: requirement.category || "",
+      channels,
+      createdByAdminId: req.admin?._id || null,
+      notes: `Template auto mode: ${templateConfig.templateName || templateConfig.templateId}`
+    });
+
+    let attempted = 0;
+    let sent = 0;
+    let failed = 0;
+    let skipped = 0;
+    const results = [];
+    for (const contact of contacts) {
+      const mobileE164 = String(contact?.mobileE164 || "").trim();
+      const eligibility = isContactEligibleForWhatsApp(contact);
+      let status = "skipped";
+      let reason = eligibility.reason || "";
+      let providerMessageId = "";
+
+      if (eligibility.ok) {
+        attempted += 1;
+        try {
+          const sendResult = await (provider === "gupshup" ? sendViaGupshupTemplate : sendViaWapiTemplate)({
+            to: mobileE164,
+            templateId: String(templateConfig.templateId || "").trim(),
+            templateName: String(templateConfig.templateName || "").trim(),
+            languageCode: String(templateConfig.language || "en").trim(),
+            parameters: templateParameters
+          });
+          status = "accepted";
+          providerMessageId = String(sendResult?.providerMessageId || "").trim();
+          sent += 1;
+        } catch (err) {
+          status = "failed";
+          reason = summarizeProviderError(err?.response?.data || err?.message || err);
+          failed += 1;
+        }
+      } else {
+        skipped += 1;
+      }
+
+      await WhatsAppDeliveryLog.create({
+        requirementId: requirement._id,
+        campaignRunId: run._id,
+        triggerType: "manual_resend",
+        channel: "whatsapp",
+        mobileE164,
+        email: String(contact?.email || "").trim(),
+        status,
+        reason,
+        provider,
+        providerMessageId,
+        city: String(requirement?.city || "").trim(),
+        category: String(requirement?.category || "").trim(),
+        product: `Template Auto: ${templateConfig.templateName || templateConfig.templateId}`,
+        createdByAdminId: req.admin?._id || null
+      });
+
+      results.push({
+        contactId: String(contact?._id || "").trim(),
+        mobileE164,
+        status,
+        reason,
+        providerMessageId
+      });
+    }
+
+    run.status = failed > 0 && sent === 0 ? "failed" : "completed";
+    run.attempted = attempted;
+    run.sent = sent;
+    run.failed = failed;
+    run.skipped = skipped;
+    run.channelStats = {
+      whatsapp: { attempted, sent, failed, skipped },
+      email: { attempted: 0, sent: 0, failed: 0, skipped: 0 }
+    };
+    await run.save();
+
+    await logAdminAction(req.admin, "whatsapp_resend_post_template", "requirement", requirementId, {
+      templateConfigId,
+      templateName: templateConfig.templateName || "",
+      recipientType,
+      attempted,
+      sent,
+      failed,
+      skipped
+    });
+
+    return res.json({
+      ok: sent > 0 && failed === 0,
+      mode: "template_auto",
+      templateConfigId,
+      templateName: templateConfig.templateName || templateConfig.templateId || "",
+      recipientType,
+      campaignRunId: run._id,
+      attempted,
+      sent,
+      failed,
+      skipped,
+      results
+    });
+  }
+
   const resendResult = await triggerWhatsAppCampaignForRequirement(
     requirement,
     {
@@ -1893,6 +2347,171 @@ router.post(
             size: uploadFile.size,
             uploadedAt: uploadFile.uploadedAt,
             downloadPath: "/admin/whatsapp/contacts/uploaded-file"
+          }
+        : null,
+      errors: errors.slice(0, 30)
+    });
+  }
+);
+
+router.get("/whatsapp/buyer-contacts", adminAuth, requireAdminPermission("campaigns.read"), async (req, res) => {
+  const contacts = await WhatsAppBuyerContact.find({})
+    .sort({ updatedAt: -1 })
+    .limit(5000);
+  return res.json(contacts);
+});
+
+router.get("/whatsapp/buyer-contacts/summary", adminAuth, requireAdminPermission("campaigns.read"), async (req, res) => {
+  const [total, complianceRows, latestContact, uploadMeta] = await Promise.all([
+    WhatsAppBuyerContact.countDocuments({ active: true }),
+    WhatsAppBuyerContact.aggregate([
+      { $match: { active: true } },
+      {
+        $group: {
+          _id: null,
+          optedIn: {
+            $sum: { $cond: [{ $eq: ["$optInStatus", "opted_in"] }, 1, 0] }
+          },
+          unsubscribed: {
+            $sum: { $cond: [{ $ne: ["$unsubscribedAt", null] }, 1, 0] }
+          },
+          dnd: {
+            $sum: { $cond: [{ $eq: ["$dndStatus", "dnd"] }, 1, 0] }
+          }
+        }
+      }
+    ]),
+    WhatsAppBuyerContact.findOne({ active: true }).sort({ updatedAt: -1 }).select("updatedAt").lean(),
+    readLatestWhatsAppUploadMetaByKey("buyer_contacts")
+  ]);
+
+  const compliance = complianceRows[0] || { optedIn: 0, unsubscribed: 0, dnd: 0 };
+  const uploadFile = uploadMeta
+    ? {
+        originalName: uploadMeta.originalName,
+        size: uploadMeta.size,
+        uploadedAt: uploadMeta.uploadedAt,
+        downloadPath: "/admin/whatsapp/buyer-contacts/uploaded-file"
+      }
+    : null;
+
+  return res.json({
+    total,
+    compliance,
+    lastUpdatedAt: latestContact?.updatedAt || null,
+    uploadFile
+  });
+});
+
+router.get("/whatsapp/consent-config", adminAuth, requireAdminPermission("campaigns.read"), async (req, res) => {
+  const waMeLink = String(process.env.WHATSAPP_CONSENT_WA_ME_LINK || "https://wa.me/918079060554?text=Hi").trim();
+  const [pendingCount, optedInCount] = await Promise.all([
+    WhatsAppBuyerContact.countDocuments({ active: true, optInStatus: "not_opted_in" }),
+    WhatsAppBuyerContact.countDocuments({ active: true, optInStatus: "opted_in" })
+  ]);
+  return res.json({
+    waMeLink,
+    pendingCount,
+    optedInCount
+  });
+});
+
+router.get("/whatsapp/buyer-contacts/uploaded-file", adminAuth, requireAdminPermission("campaigns.read"), async (req, res) => {
+  const uploadMeta = await readLatestWhatsAppUploadMetaByKey("buyer_contacts");
+  if (!uploadMeta?.filename) {
+    return res.status(404).json({ message: "No uploaded file found" });
+  }
+
+  const absolutePath = path.join(WHATSAPP_UPLOAD_DIR, uploadMeta.filename);
+  try {
+    await fs.promises.access(absolutePath, fs.constants.R_OK);
+  } catch {
+    return res.status(404).json({ message: "Uploaded file is missing on server" });
+  }
+
+  const safeName = String(uploadMeta.originalName || uploadMeta.filename).replace(/["\r\n]/g, "_");
+  res.setHeader("Content-Type", uploadMeta.mimeType || "application/octet-stream");
+  res.setHeader("Content-Disposition", `attachment; filename="${safeName}"`);
+  return res.sendFile(absolutePath);
+});
+
+router.post(
+  "/whatsapp/buyer-contacts/upload",
+  adminAuth,
+  requireAdminPermission("campaigns.manage"),
+  upload.single("file"),
+  async (req, res) => {
+    if (!req.file?.buffer) {
+      return res.status(400).json({ message: "Excel file required" });
+    }
+
+    const mode = String(req.body?.mode || "replace").toLowerCase();
+    let parsedContacts = [];
+    try {
+      parsedContacts = parseBuyerContactsFromWorkbook(req.file.buffer);
+    } catch {
+      return res.status(400).json({
+        message: "Invalid Excel file. Please upload a valid .xls or .xlsx file."
+      });
+    }
+    if (!parsedContacts.length) {
+      return res.status(400).json({
+        message: "No valid rows found. Expected buyer mobile numbers in column A."
+      });
+    }
+
+    if (mode !== "append") {
+      await WhatsAppBuyerContact.deleteMany({});
+    }
+
+    let inserted = 0;
+    let updated = 0;
+    const errors = [];
+    let uploadFile = null;
+
+    try {
+      uploadFile = await saveLatestWhatsAppUploadByKey("buyer_contacts", req.file, "whatsapp-contacts-buyer-latest");
+    } catch (err) {
+      console.warn("Failed to save uploaded buyer contacts file:", err?.message || err);
+    }
+
+    for (const contact of parsedContacts) {
+      try {
+        const existing = await WhatsAppBuyerContact.findOne({ mobileE164: contact.mobileE164 }).lean();
+        await WhatsAppBuyerContact.findOneAndUpdate(
+          { mobileE164: contact.mobileE164 },
+          contact,
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+        if (existing) updated += 1;
+        else inserted += 1;
+      } catch (err) {
+        errors.push({
+          mobileE164: contact.mobileE164,
+          error: err?.message || "Failed to save buyer contact"
+        });
+      }
+    }
+
+    await logAdminAction(req.admin, "upload_whatsapp_buyer_contacts", "whatsapp_buyer_contact", "bulk", {
+      mode,
+      parsed: parsedContacts.length,
+      inserted,
+      updated,
+      failed: errors.length
+    });
+
+    return res.json({
+      parsed: parsedContacts.length,
+      inserted,
+      updated,
+      failed: errors.length,
+      uploadFile: uploadFile
+        ? {
+            originalName: uploadFile.originalName,
+            size: uploadFile.size,
+            uploadedAt: uploadFile.uploadedAt,
+            downloadPath: "/admin/whatsapp/buyer-contacts/uploaded-file"
           }
         : null,
       errors: errors.slice(0, 30)

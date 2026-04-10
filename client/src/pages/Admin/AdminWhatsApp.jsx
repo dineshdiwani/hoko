@@ -15,7 +15,9 @@ export default function AdminWhatsApp() {
   });
   const [requirements, setRequirements] = useState([]);
   const [contacts, setContacts] = useState([]);
+  const [buyerContacts, setBuyerContacts] = useState([]);
   const [approvedTemplates, setApprovedTemplates] = useState([]);
+  const [templateRegistry, setTemplateRegistry] = useState([]);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [campaignRuns, setCampaignRuns] = useState([]);
   const [postStatuses, setPostStatuses] = useState([]);
@@ -26,9 +28,25 @@ export default function AdminWhatsApp() {
     lastUpdatedAt: null,
     uploadFile: null
   });
-  const [notificationFile, setNotificationFile] = useState(null);
+  const [buyerWhatsAppSummary, setBuyerWhatsAppSummary] = useState({
+    total: 0,
+    lastUpdatedAt: null,
+    uploadFile: null
+  });
+  const [sellerContactFile, setSellerContactFile] = useState(null);
+  const [buyerContactFile, setBuyerContactFile] = useState(null);
+  const [templateSheetFile, setTemplateSheetFile] = useState(null);
   const [uploadingWhatsApp, setUploadingWhatsApp] = useState(false);
+  const [uploadingBuyerWhatsApp, setUploadingBuyerWhatsApp] = useState(false);
+  const [uploadingTemplateSheet, setUploadingTemplateSheet] = useState(false);
   const [downloadingWhatsAppFile, setDownloadingWhatsAppFile] = useState(false);
+  const [downloadingBuyerWhatsAppFile, setDownloadingBuyerWhatsAppFile] = useState(false);
+  const [downloadingTemplateSheetFile, setDownloadingTemplateSheetFile] = useState(false);
+  const [consentConfig, setConsentConfig] = useState({
+    waMeLink: "https://wa.me/918079060554?text=Hi",
+    pendingCount: 0,
+    optedInCount: 0
+  });
   const [unsubscribeMobile, setUnsubscribeMobile] = useState("");
   const [unsubscribeReason, setUnsubscribeReason] = useState("");
   const [dndBulk, setDndBulk] = useState("");
@@ -72,9 +90,16 @@ export default function AdminWhatsApp() {
   const [templateContactSearch, setTemplateContactSearch] = useState("");
   const [selectedTemplateContactIds, setSelectedTemplateContactIds] = useState([]);
   const [selectedTemplateKey, setSelectedTemplateKey] = useState("");
+  const [templateRecipientType, setTemplateRecipientType] = useState("seller_contacts");
   const [templateVariables, setTemplateVariables] = useState([]);
   const [sendingTemplate, setSendingTemplate] = useState(false);
-  const fileInputRef = useRef(null);
+  const [autoModeUseTemplate, setAutoModeUseTemplate] = useState(true);
+  const [autoModeTemplateRegistryId, setAutoModeTemplateRegistryId] = useState("");
+  const [autoModeRecipientType, setAutoModeRecipientType] = useState("seller_contacts");
+  const [autoModeTemplateVariables, setAutoModeTemplateVariables] = useState([]);
+  const sellerFileInputRef = useRef(null);
+  const buyerFileInputRef = useRef(null);
+  const templateFileInputRef = useRef(null);
 
   const normalizeText = (value) => String(value || "").trim().toLowerCase();
   const uniqueByNormalized = (values) => {
@@ -220,16 +245,21 @@ export default function AdminWhatsApp() {
     return [selected, ...availableManualCategories];
   }, [availableManualCategories, manualCategory]);
 
+  const templateRecipientPool = useMemo(
+    () => (templateRecipientType === "buyer_contacts" ? buyerContacts : contacts),
+    [templateRecipientType, contacts, buyerContacts]
+  );
+
   const eligibleTemplateContacts = useMemo(
     () =>
-      contacts.filter(
+      templateRecipientPool.filter(
         (contact) =>
           contact.active !== false &&
           contact.optInStatus === "opted_in" &&
           !contact.unsubscribedAt &&
           contact.dndStatus !== "dnd"
       ),
-    [contacts]
+    [templateRecipientPool]
   );
 
   useEffect(() => {
@@ -255,34 +285,63 @@ export default function AdminWhatsApp() {
   }, [eligibleTemplateContacts, templateContactSearch]);
 
   const selectedTemplate = useMemo(
-    () => approvedTemplates.find((item) => String(item.id) === String(selectedTemplateKey)) || null,
-    [approvedTemplates, selectedTemplateKey]
+    () => templateRegistry.find((item) => String(item._id) === String(selectedTemplateKey)) || null,
+    [templateRegistry, selectedTemplateKey]
   );
 
   useEffect(() => {
-    const variableCount = Number(selectedTemplate?.bodyVariableCount || 0);
+    const variableCount = Number(selectedTemplate?.variableCount || 0);
     setTemplateVariables((prev) => Array.from({ length: variableCount }, (_, index) => prev[index] || ""));
   }, [selectedTemplate]);
+
+  const selectedAutoTemplate = useMemo(
+    () => templateRegistry.find((item) => String(item._id) === String(autoModeTemplateRegistryId)) || null,
+    [templateRegistry, autoModeTemplateRegistryId]
+  );
+  const activeTemplateRegistry = useMemo(
+    () =>
+      templateRegistry.filter(
+        (item) =>
+          item?.isActive === true &&
+          ["APPROVED", "ACTIVE", "ENABLED"].includes(String(item?.status || "").toUpperCase())
+      ),
+    [templateRegistry]
+  );
+
+  useEffect(() => {
+    const variableCount = Number(selectedAutoTemplate?.variableCount || 0);
+    setAutoModeTemplateVariables((prev) =>
+      Array.from({ length: variableCount }, (_, index) => prev[index] || "")
+    );
+  }, [selectedAutoTemplate]);
 
   const loadData = useCallback(async () => {
     const settled = await Promise.allSettled([
       api.get("/admin/options"),
       api.get("/admin/whatsapp/contacts/summary"),
+      api.get("/admin/whatsapp/buyer-contacts/summary"),
+      api.get("/admin/whatsapp/consent-config"),
       api.get("/admin/whatsapp/campaign-runs"),
       api.get("/admin/whatsapp/contacts"),
+      api.get("/admin/whatsapp/buyer-contacts"),
       api.get("/admin/requirements"),
       api.get("/admin/whatsapp/post-statuses"),
-      api.get("/admin/whatsapp/templates")
+      api.get("/admin/whatsapp/templates"),
+      api.get("/admin/whatsapp/templates/registry?includeInactive=true")
     ]);
 
     const [
       optionsResult,
       summaryResult,
+      buyerSummaryResult,
+      consentConfigResult,
       runsResult,
       contactsResult,
+      buyerContactsResult,
       requirementsResult,
       postStatusesResult,
-      templatesResult
+      templatesResult,
+      templateRegistryResult
     ] = settled;
 
     const optionsData =
@@ -304,6 +363,24 @@ export default function AdminWhatsApp() {
         uploadFile: null
       }
     );
+    setBuyerWhatsAppSummary(
+      buyerSummaryResult.status === "fulfilled" ? buyerSummaryResult.value?.data || {} : {
+        total: 0,
+        lastUpdatedAt: null,
+        uploadFile: null
+      }
+    );
+    setConsentConfig(
+      consentConfigResult.status === "fulfilled" ? consentConfigResult.value?.data || {
+        waMeLink: "https://wa.me/918079060554?text=Hi",
+        pendingCount: 0,
+        optedInCount: 0
+      } : {
+        waMeLink: "https://wa.me/918079060554?text=Hi",
+        pendingCount: 0,
+        optedInCount: 0
+      }
+    );
     setCampaignRuns(
       runsResult.status === "fulfilled" && Array.isArray(runsResult.value?.data)
         ? runsResult.value.data
@@ -312,6 +389,11 @@ export default function AdminWhatsApp() {
     setContacts(
       contactsResult.status === "fulfilled" && Array.isArray(contactsResult.value?.data)
         ? contactsResult.value.data
+        : []
+    );
+    setBuyerContacts(
+      buyerContactsResult.status === "fulfilled" && Array.isArray(buyerContactsResult.value?.data)
+        ? buyerContactsResult.value.data
         : []
     );
     setRequirements(
@@ -328,6 +410,11 @@ export default function AdminWhatsApp() {
         ? templatesResult.value.data.items
         : []
     );
+    setTemplateRegistry(
+      templateRegistryResult.status === "fulfilled" && Array.isArray(templateRegistryResult.value?.data?.items)
+        ? templateRegistryResult.value.data.items
+        : []
+    );
   }, []);
 
   useEffect(() => {
@@ -337,11 +424,24 @@ export default function AdminWhatsApp() {
   const loadTemplates = useCallback(async () => {
     try {
       setLoadingTemplates(true);
-      const res = await api.get("/admin/whatsapp/templates");
-      setApprovedTemplates(Array.isArray(res.data?.items) ? res.data.items : []);
+      const [providerRes, registryRes] = await Promise.allSettled([
+        api.get("/admin/whatsapp/templates"),
+        api.get("/admin/whatsapp/templates/registry?includeInactive=true")
+      ]);
+      setApprovedTemplates(
+        providerRes.status === "fulfilled" && Array.isArray(providerRes.value?.data?.items)
+          ? providerRes.value.data.items
+          : []
+      );
+      setTemplateRegistry(
+        registryRes.status === "fulfilled" && Array.isArray(registryRes.value?.data?.items)
+          ? registryRes.value.data.items
+          : []
+      );
     } catch (err) {
       setApprovedTemplates([]);
-      alert(err?.response?.data?.message || "Failed to load approved templates");
+      setTemplateRegistry([]);
+      alert(err?.response?.data?.message || "Failed to load templates");
     } finally {
       setLoadingTemplates(false);
     }
@@ -398,26 +498,26 @@ export default function AdminWhatsApp() {
     loadDeliveryLogs().catch(() => {});
   }, [loadDeliveryLogs]);
 
-  const handleNotificationFile = (event) => {
+  const handleExcelFileSelect = (event, setter) => {
     const file = event.target.files?.[0] || null;
     if (!file) {
-      setNotificationFile(null);
+      setter(null);
       return;
     }
     const lower = file.name.toLowerCase();
     if (!lower.endsWith(".xls") && !lower.endsWith(".xlsx")) {
       alert("Please upload an Excel file (.xls or .xlsx)");
       event.target.value = "";
-      setNotificationFile(null);
+      setter(null);
       return;
     }
-    setNotificationFile(file);
+    setter(file);
   };
 
   const uploadWhatsAppContacts = async () => {
-    if (!notificationFile) return;
+    if (!sellerContactFile) return;
     const formData = new FormData();
-    formData.append("file", notificationFile);
+    formData.append("file", sellerContactFile);
     formData.append("mode", "replace");
     try {
       setUploadingWhatsApp(true);
@@ -430,9 +530,9 @@ export default function AdminWhatsApp() {
       alert(
         `Upload complete. Parsed: ${stats.parsed || 0}, Inserted: ${stats.inserted || 0}, Updated: ${stats.updated || 0}, Failed: ${stats.failed || 0}`
       );
-      setNotificationFile(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
+      setSellerContactFile(null);
+      if (sellerFileInputRef.current) {
+        sellerFileInputRef.current.value = "";
       }
       await loadData();
     } catch (err) {
@@ -450,15 +550,72 @@ export default function AdminWhatsApp() {
     }
   };
 
-  const downloadWhatsAppUploadedFile = async () => {
+  const uploadBuyerWhatsAppContacts = async () => {
+    if (!buyerContactFile) return;
+    const formData = new FormData();
+    formData.append("file", buyerContactFile);
+    formData.append("mode", "replace");
     try {
-      setDownloadingWhatsAppFile(true);
-      const res = await api.get("/admin/whatsapp/contacts/uploaded-file", {
+      setUploadingBuyerWhatsApp(true);
+      const res = await api.post("/admin/whatsapp/buyer-contacts/upload", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data"
+        }
+      });
+      const stats = res.data || {};
+      alert(
+        `Buyer upload complete. Parsed: ${stats.parsed || 0}, Inserted: ${stats.inserted || 0}, Updated: ${stats.updated || 0}, Failed: ${stats.failed || 0}`
+      );
+      setBuyerContactFile(null);
+      if (buyerFileInputRef.current) {
+        buyerFileInputRef.current.value = "";
+      }
+      await loadData();
+    } catch (err) {
+      alert(err?.response?.data?.message || "Failed to upload buyer contacts");
+    } finally {
+      setUploadingBuyerWhatsApp(false);
+    }
+  };
+
+  const uploadTemplateRegistrySheet = async () => {
+    if (!templateSheetFile) return;
+    const formData = new FormData();
+    formData.append("file", templateSheetFile);
+    formData.append("mode", "replace");
+    try {
+      setUploadingTemplateSheet(true);
+      const res = await api.post("/admin/whatsapp/templates/upload", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data"
+        }
+      });
+      const stats = res.data || {};
+      alert(
+        `Template sheet upload complete. Parsed: ${stats.parsed || 0}, Inserted: ${stats.inserted || 0}, Updated: ${stats.updated || 0}, Failed: ${stats.failed || 0}`
+      );
+      setTemplateSheetFile(null);
+      if (templateFileInputRef.current) {
+        templateFileInputRef.current.value = "";
+      }
+      await loadData();
+    } catch (err) {
+      const errors = Array.isArray(err?.response?.data?.errors) ? err.response.data.errors.join("\n") : "";
+      alert(err?.response?.data?.message || errors || "Failed to upload template sheet");
+    } finally {
+      setUploadingTemplateSheet(false);
+    }
+  };
+
+  const downloadUploadedFile = async (url, fallbackName, setter) => {
+    try {
+      setter(true);
+      const res = await api.get(url, {
         responseType: "blob"
       });
       const disposition = String(res.headers?.["content-disposition"] || "");
       const match = disposition.match(/filename=\"([^\"]+)\"/i);
-      const fileName = match?.[1] || "whatsapp-contacts.xlsx";
+      const fileName = match?.[1] || fallbackName;
       const blobUrl = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement("a");
       link.href = blobUrl;
@@ -481,7 +638,42 @@ export default function AdminWhatsApp() {
       }
       alert(message);
     } finally {
-      setDownloadingWhatsAppFile(false);
+      setter(false);
+    }
+  };
+
+  const downloadWhatsAppUploadedFile = async () =>
+    downloadUploadedFile(
+      "/admin/whatsapp/contacts/uploaded-file",
+      "whatsapp-seller-contacts.xlsx",
+      setDownloadingWhatsAppFile
+    );
+
+  const downloadBuyerWhatsAppUploadedFile = async () =>
+    downloadUploadedFile(
+      "/admin/whatsapp/buyer-contacts/uploaded-file",
+      "whatsapp-buyer-contacts.xlsx",
+      setDownloadingBuyerWhatsAppFile
+    );
+
+  const downloadTemplateSheetUploadedFile = async () =>
+    downloadUploadedFile(
+      "/admin/whatsapp/templates/uploaded-file",
+      "whatsapp-templates.xlsx",
+      setDownloadingTemplateSheetFile
+    );
+
+  const copyConsentLink = async () => {
+    const link = String(consentConfig?.waMeLink || "https://wa.me/918079060554?text=Hi");
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(link);
+        alert("Consent wa.me link copied");
+      } else {
+        alert(link);
+      }
+    } catch {
+      alert(link);
     }
   };
 
@@ -571,11 +763,11 @@ export default function AdminWhatsApp() {
       alert("Select a requirement");
       return;
     }
-    if (!manualCategory) {
+    if (autoModeRecipientType === "seller_contacts" && !manualCategory) {
       alert("Please select category");
       return;
     }
-    if (!manualUseAllCities && !manualSelectedCities.length) {
+    if (autoModeRecipientType === "seller_contacts" && !manualUseAllCities && !manualSelectedCities.length) {
       alert("Select at least one city or enable all cities");
       return;
     }
@@ -586,6 +778,7 @@ export default function AdminWhatsApp() {
     }
 
     const message = buildManualMessage(requirement);
+    const sourceContacts = autoModeRecipientType === "buyer_contacts" ? buyerContacts : contacts;
     const selectedCityKeys = manualUseAllCities
       ? []
       : manualSelectedCities.map((city) => normalizeText(city)).filter(Boolean);
@@ -602,18 +795,24 @@ export default function AdminWhatsApp() {
                 .map((item) => normalizeText(item))
                 .filter(Boolean)
             : []);
-    const cityFilteredContacts = contacts.filter((contact) =>
-      manualUseAllCities ? true : selectedCityKeys.includes(normalizeText(contact.city))
-    );
-    const categoryFilteredContacts = cityFilteredContacts.filter((contact) => {
-      const categories = getContactCategories(contact);
-      return categories.some(
-        (category) =>
-          category === selectedCategoryKey ||
-          category.includes(selectedCategoryKey) ||
-          selectedCategoryKey.includes(category)
-      );
-    });
+    const cityFilteredContacts =
+      autoModeRecipientType === "buyer_contacts"
+        ? sourceContacts
+        : sourceContacts.filter((contact) =>
+            manualUseAllCities ? true : selectedCityKeys.includes(normalizeText(contact.city))
+          );
+    const categoryFilteredContacts =
+      autoModeRecipientType === "buyer_contacts"
+        ? cityFilteredContacts
+        : cityFilteredContacts.filter((contact) => {
+            const categories = getContactCategories(contact);
+            return categories.some(
+              (category) =>
+                category === selectedCategoryKey ||
+                category.includes(selectedCategoryKey) ||
+                selectedCategoryKey.includes(category)
+            );
+          });
 
     const queue = categoryFilteredContacts
       .filter((contact) => contact.active !== false)
@@ -622,7 +821,7 @@ export default function AdminWhatsApp() {
       .filter((contact) => contact.dndStatus !== "dnd")
       .map((contact) => ({
         id: contact._id,
-        firmName: contact.firmName || "-",
+        firmName: contact.firmName || (autoModeRecipientType === "buyer_contacts" ? "Buyer lead" : "-"),
         city: contact.city || "-",
         mobileE164: contact.mobileE164,
         email: contact.email || "",
@@ -637,7 +836,9 @@ export default function AdminWhatsApp() {
     setManualQueue(queue);
     if (!queue.length) {
       alert(
-        `No eligible contacts found. City matches: ${cityFilteredContacts.length}, Category matches: ${categoryFilteredContacts.length}. Check selected city/category and opt-in/DND status.`
+        autoModeRecipientType === "buyer_contacts"
+          ? "No eligible buyer contacts found. Check uploaded buyer list and compliance status."
+          : `No eligible contacts found. City matches: ${cityFilteredContacts.length}, Category matches: ${categoryFilteredContacts.length}. Check selected city/category and opt-in/DND status.`
       );
       return;
     }
@@ -649,6 +850,10 @@ export default function AdminWhatsApp() {
       alert("Select a requirement and create pending queue first");
       return;
     }
+    if (autoModeUseTemplate && !selectedAutoTemplate) {
+      alert("Select an approved template for auto mode before sending");
+      return;
+    }
 
     setManualQueue((prev) =>
       prev.map((row) =>
@@ -657,13 +862,19 @@ export default function AdminWhatsApp() {
     );
 
     try {
-      const response = await api.post("/admin/whatsapp/resend", {
+      const payload = {
         requirementId: manualRequirementId,
         channels: { whatsapp: true, email: false },
+        recipientType: autoModeRecipientType,
         contactFilters: {
           contactIds: [String(entry.id)]
         }
-      });
+      };
+      if (autoModeUseTemplate && selectedAutoTemplate) {
+        payload.templateConfigId = selectedAutoTemplate._id;
+        payload.templateParameters = autoModeTemplateVariables.map((value) => String(value || "").trim());
+      }
+      const response = await api.post("/admin/whatsapp/resend", payload);
       const sent = Number(response?.data?.sent || 0);
       const failed = Number(response?.data?.failed || 0);
       const nextStatus = sent > 0 && failed === 0 ? "sent" : "failed";
@@ -716,10 +927,12 @@ export default function AdminWhatsApp() {
     try {
       setSendingTemplate(true);
       const res = await api.post("/admin/whatsapp/template-send", {
+        recipientType: templateRecipientType,
         contactIds: selectedTemplateContactIds,
-        templateId: selectedTemplate.id,
-        templateName: selectedTemplate.name,
-        languageCode: selectedTemplate.languageCode,
+        templateConfigId: selectedTemplate._id,
+        templateId: selectedTemplate.templateId || "",
+        templateName: selectedTemplate.templateName || "",
+        languageCode: selectedTemplate.language || "en",
         parameters: templateVariables.map((value) => String(value || "").trim())
       });
       const payload = res.data || {};
@@ -777,19 +990,30 @@ export default function AdminWhatsApp() {
   };
 
   const hasManualRequirement = Boolean(String(manualRequirementId || "").trim());
-  const hasManualCategory = Boolean(String(manualCategory || "").trim());
-  const hasManualCitySelection = manualUseAllCities || manualSelectedCities.length > 0;
+  const hasManualCategory =
+    autoModeRecipientType === "buyer_contacts"
+      ? true
+      : Boolean(String(manualCategory || "").trim());
+  const hasManualCitySelection =
+    autoModeRecipientType === "buyer_contacts"
+      ? true
+      : (manualUseAllCities || manualSelectedCities.length > 0);
   const hasManualChannelSelection = manualChannels.whatsapp || manualChannels.email;
   const canCreateManualQueue = hasManualRequirement && hasManualCategory && hasManualCitySelection;
   const canResendSelectedPost =
     canCreateManualQueue &&
     hasManualChannelSelection &&
+    (!autoModeUseTemplate || !manualChannels.whatsapp || Boolean(selectedAutoTemplate)) &&
     manualQueue.length > 0 &&
     !resendingPost;
 
   const resendSelectedPost = async () => {
     if (!canCreateManualQueue) {
-      alert("Select pending post, category, and city filters first");
+      alert(
+        autoModeRecipientType === "buyer_contacts"
+          ? "Select pending post first"
+          : "Select pending post, category, and city filters first"
+      );
       return;
     }
     if (!hasManualChannelSelection) {
@@ -800,21 +1024,31 @@ export default function AdminWhatsApp() {
       alert("Create pending queue first so API send uses the same filtered contacts");
       return;
     }
+    if (autoModeUseTemplate && manualChannels.whatsapp && !selectedAutoTemplate) {
+      alert("Select an approved template for auto mode");
+      return;
+    }
     try {
       setResendingPost(true);
       const selectedCityKeys = manualUseAllCities
         ? []
         : manualSelectedCities.map((city) => normalizeText(city)).filter(Boolean);
       const selectedCategoryKey = normalizeText(manualCategory);
-      const res = await api.post("/admin/whatsapp/resend", {
+      const payload = {
         requirementId: manualRequirementId,
         channels: manualChannels,
+        recipientType: autoModeRecipientType,
         contactFilters: {
           cityKeys: selectedCityKeys,
           categoryKeys: selectedCategoryKey ? [selectedCategoryKey] : [],
           contactIds: manualQueue.map((entry) => String(entry?.id || "").trim()).filter(Boolean)
         }
-      });
+      };
+      if (autoModeUseTemplate && selectedAutoTemplate) {
+        payload.templateConfigId = selectedAutoTemplate._id;
+        payload.templateParameters = autoModeTemplateVariables.map((value) => String(value || "").trim());
+      }
+      const res = await api.post("/admin/whatsapp/resend", payload);
       const stats = res.data || {};
       alert(
         `Resend complete. Attempted: ${stats.attempted || 0}, Sent: ${stats.sent || 0}, Failed: ${stats.failed || 0}, Skipped: ${stats.skipped || 0}`
@@ -839,57 +1073,124 @@ export default function AdminWhatsApp() {
 
         <div className="space-y-8">
           <div>
-            <h2 className="text-lg font-bold mb-3">WhatsApp Broadcast Contacts</h2>
+            <h2 className="text-lg font-bold mb-3">WhatsApp Excel Uploads</h2>
             <div className="bg-white border rounded-2xl p-3 space-y-4">
-              <div>
-                <label className="text-sm text-gray-600">Excel File</label>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".xls,.xlsx"
-                  onChange={handleNotificationFile}
-                  className="mt-2 block w-full text-sm"
-                />
-                <p className="text-xs text-gray-600 mt-1">
-                  Selected file: {notificationFile?.name || "None"}
-                </p>
-                <p className="text-xs text-gray-600 mt-1">
-                  Last uploaded file: {whatsAppSummary?.uploadFile?.originalName || "None"}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  Columns required in order: A Firm Name, B City, C Country ISD Code, D Mobile Number, E Categories (use ; between multiple categories), F Email.
-                </p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="border rounded-xl p-3 space-y-2">
+                  <p className="text-sm font-semibold">1) Seller contacts sheet</p>
+                  <input
+                    ref={sellerFileInputRef}
+                    type="file"
+                    accept=".xls,.xlsx"
+                    onChange={(event) => handleExcelFileSelect(event, setSellerContactFile)}
+                    className="block w-full text-sm"
+                  />
+                  <p className="text-xs text-gray-600">Selected: {sellerContactFile?.name || "None"}</p>
+                  <p className="text-xs text-gray-500">A Firm, B City, C ISD, D Mobile, E Categories, F Email</p>
+                  <button
+                    onClick={uploadWhatsAppContacts}
+                    className="btn-primary w-auto px-3 py-2 text-sm rounded-lg"
+                    disabled={!sellerContactFile || uploadingWhatsApp}
+                  >
+                    {uploadingWhatsApp ? "Uploading..." : "Upload Seller Contacts"}
+                  </button>
+                  <p className="text-xs text-gray-600">Active: {whatsAppSummary.total || 0}</p>
+                  <button
+                    type="button"
+                    onClick={downloadWhatsAppUploadedFile}
+                    disabled={!whatsAppSummary?.uploadFile || downloadingWhatsAppFile}
+                    className="underline text-blue-700 disabled:text-gray-400 disabled:no-underline text-xs"
+                  >
+                    {downloadingWhatsAppFile ? "Downloading..." : "Download seller file"}
+                  </button>
+                </div>
+
+                <div className="border rounded-xl p-3 space-y-2">
+                  <p className="text-sm font-semibold">2) Buyer contacts sheet</p>
+                  <input
+                    ref={buyerFileInputRef}
+                    type="file"
+                    accept=".xls,.xlsx"
+                    onChange={(event) => handleExcelFileSelect(event, setBuyerContactFile)}
+                    className="block w-full text-sm"
+                  />
+                  <p className="text-xs text-gray-600">Selected: {buyerContactFile?.name || "None"}</p>
+                  <p className="text-xs text-gray-500">Column A: mobile numbers only</p>
+                  <button
+                    onClick={uploadBuyerWhatsAppContacts}
+                    className="btn-primary w-auto px-3 py-2 text-sm rounded-lg"
+                    disabled={!buyerContactFile || uploadingBuyerWhatsApp}
+                  >
+                    {uploadingBuyerWhatsApp ? "Uploading..." : "Upload Buyer Contacts"}
+                  </button>
+                  <p className="text-xs text-gray-600">Active: {buyerWhatsAppSummary.total || 0}</p>
+                  <button
+                    type="button"
+                    onClick={downloadBuyerWhatsAppUploadedFile}
+                    disabled={!buyerWhatsAppSummary?.uploadFile || downloadingBuyerWhatsAppFile}
+                    className="underline text-blue-700 disabled:text-gray-400 disabled:no-underline text-xs"
+                  >
+                    {downloadingBuyerWhatsAppFile ? "Downloading..." : "Download buyer file"}
+                  </button>
+                </div>
+
+                <div className="border rounded-xl p-3 space-y-2">
+                  <p className="text-sm font-semibold">3) Approved templates sheet</p>
+                  <input
+                    ref={templateFileInputRef}
+                    type="file"
+                    accept=".xls,.xlsx"
+                    onChange={(event) => handleExcelFileSelect(event, setTemplateSheetFile)}
+                    className="block w-full text-sm"
+                  />
+                  <p className="text-xs text-gray-600">Selected: {templateSheetFile?.name || "None"}</p>
+                  <p className="text-xs text-gray-500">Use columns from the template registry spec</p>
+                  <button
+                    onClick={uploadTemplateRegistrySheet}
+                    className="btn-primary w-auto px-3 py-2 text-sm rounded-lg"
+                    disabled={!templateSheetFile || uploadingTemplateSheet}
+                  >
+                    {uploadingTemplateSheet ? "Uploading..." : "Upload Template Sheet"}
+                  </button>
+                  <p className="text-xs text-gray-600">Registry rows: {templateRegistry.length}</p>
+                  <button
+                    type="button"
+                    onClick={downloadTemplateSheetUploadedFile}
+                    disabled={downloadingTemplateSheetFile}
+                    className="underline text-blue-700 disabled:text-gray-400 disabled:no-underline text-xs"
+                  >
+                    {downloadingTemplateSheetFile ? "Downloading..." : "Download template file"}
+                  </button>
+                </div>
               </div>
+
               <div className="text-xs text-gray-600">
                 <p>
-                  Active WhatsApp contacts: <span className="font-semibold">{whatsAppSummary.total || 0}</span>
+                  Seller opted-in: {whatsAppSummary?.compliance?.optedIn || 0} | Seller unsubscribed: {whatsAppSummary?.compliance?.unsubscribed || 0} | Seller DND: {whatsAppSummary?.compliance?.dnd || 0}
                 </p>
                 <p className="mt-1">
-                  Opted-in: {whatsAppSummary?.compliance?.optedIn || 0} | Unsubscribed: {whatsAppSummary?.compliance?.unsubscribed || 0} | DND: {whatsAppSummary?.compliance?.dnd || 0}
+                  Buyer opted-in: {buyerWhatsAppSummary?.compliance?.optedIn || 0} | Buyer unsubscribed: {buyerWhatsAppSummary?.compliance?.unsubscribed || 0} | Buyer DND: {buyerWhatsAppSummary?.compliance?.dnd || 0}
                 </p>
               </div>
-              <button
-                onClick={uploadWhatsAppContacts}
-                className="btn-primary w-auto px-3 py-2 text-sm rounded-lg"
-                disabled={!notificationFile || uploadingWhatsApp}
-              >
-                {uploadingWhatsApp ? "Uploading..." : "Upload Excel Contacts"}
-              </button>
-              <div className="text-xs text-gray-600 space-y-1">
-                <p>
-                  Last updated on:{" "}
-                  <span className="font-medium">
-                    {formatDateTime(whatsAppSummary?.lastUpdatedAt || whatsAppSummary?.uploadFile?.uploadedAt)}
-                  </span>
+              <div className="border rounded-xl p-3 bg-amber-50 border-amber-200 space-y-2">
+                <p className="text-sm font-semibold text-amber-800">Consent Flow (Step 1/2/3)</p>
+                <p className="text-xs text-amber-700">
+                  Step 1: Share this wa.me link through SMS/call/ads. Step 2: User sends Hi. Step 3: User replies YES and becomes opted-in.
                 </p>
-                <button
-                  type="button"
-                  onClick={downloadWhatsAppUploadedFile}
-                  disabled={!whatsAppSummary?.uploadFile || downloadingWhatsAppFile}
-                  className="underline text-blue-700 disabled:text-gray-400 disabled:no-underline"
-                >
-                  {downloadingWhatsAppFile ? "Downloading..." : "Download last uploaded file"}
-                </button>
+                <p className="text-xs break-all">
+                  <span className="font-semibold">wa.me link:</span> {consentConfig.waMeLink}
+                </p>
+                <div className="flex items-center gap-2 text-xs">
+                  <button
+                    type="button"
+                    onClick={copyConsentLink}
+                    className="px-3 py-1.5 rounded border border-amber-300 text-amber-800"
+                  >
+                    Copy Consent Link
+                  </button>
+                  <span>Pending consent: <span className="font-semibold">{consentConfig.pendingCount || 0}</span></span>
+                  <span>Opted-in: <span className="font-semibold">{consentConfig.optedInCount || 0}</span></span>
+                </div>
               </div>
             </div>
           </div>
@@ -935,7 +1236,7 @@ export default function AdminWhatsApp() {
                   <div>
                     <p className="text-sm font-semibold">Approved Template Send</p>
                     <p className="text-xs text-gray-500">
-                      Load approved templates from the configured WhatsApp BSP, select contacts here, and trigger the template directly.
+                      Use uploaded approved template registry and send to seller or buyer contact lists.
                     </p>
                   </div>
                   <button
@@ -947,19 +1248,35 @@ export default function AdminWhatsApp() {
                     {loadingTemplates ? "Refreshing..." : "Refresh Templates"}
                   </button>
                 </div>
+                <div className="text-xs text-gray-600">
+                  BSP templates: {approvedTemplates.length} | Uploaded registry templates: {templateRegistry.length}
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <select
+                    className="w-full border rounded-lg px-3 py-2 text-sm"
+                    value={templateRecipientType}
+                    onChange={(e) => {
+                      setTemplateRecipientType(e.target.value);
+                      setSelectedTemplateContactIds([]);
+                    }}
+                  >
+                    <option value="seller_contacts">Seller contacts</option>
+                    <option value="buyer_contacts">Buyer contacts</option>
+                  </select>
                   <select
                     className="w-full border rounded-lg px-3 py-2 text-sm"
                     value={selectedTemplateKey}
                     onChange={(e) => setSelectedTemplateKey(e.target.value)}
                   >
-                    <option value="">Select approved template</option>
-                    {approvedTemplates.map((template) => (
-                      <option key={template.id} value={template.id}>
-                        {`${template.name} | ${template.languageCode}${template.category ? ` | ${template.category}` : ""}`}
+                    <option value="">Select uploaded template</option>
+                    {activeTemplateRegistry.map((template) => (
+                      <option key={template._id} value={template._id}>
+                        {`${template.key} | ${template.templateName} | ${template.language}${template.category ? ` | ${template.category}` : ""}`}
                       </option>
                     ))}
                   </select>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-1 gap-3">
                   <input
                     className="w-full border rounded-lg px-3 py-2 text-sm"
                     placeholder="Search contacts by firm, mobile, city, category"
@@ -970,7 +1287,7 @@ export default function AdminWhatsApp() {
                 {selectedTemplate && (
                   <div className="rounded-lg border bg-gray-50 p-3 text-xs text-gray-700">
                     <div>
-                      Selected template: <span className="font-semibold">{selectedTemplate.name}</span> | Language: {selectedTemplate.languageCode} | Variables: {selectedTemplate.bodyVariableCount || 0}
+                      Selected template: <span className="font-semibold">{selectedTemplate.templateName}</span> | Language: {selectedTemplate.language} | Variables: {selectedTemplate.variableCount || 0} | Status: {selectedTemplate.status}
                     </div>
                     {!!templateVariables.length && (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
@@ -1010,7 +1327,7 @@ export default function AdminWhatsApp() {
                     Selected: <span className="font-semibold">{selectedTemplateContactIds.length}</span>
                   </div>
                   <div className="px-3 py-1.5 rounded border bg-gray-50">
-                    Eligible contacts: <span className="font-semibold">{eligibleTemplateContacts.length}</span>
+                    Eligible contacts ({templateRecipientType === "buyer_contacts" ? "buyers" : "sellers"}): <span className="font-semibold">{eligibleTemplateContacts.length}</span>
                   </div>
                 </div>
                 <div className="space-y-2 max-h-72 overflow-auto border rounded-lg p-2">
@@ -1026,7 +1343,7 @@ export default function AdminWhatsApp() {
                           className="mt-0.5"
                         />
                         <div>
-                          <div className="font-semibold">{contact.firmName || "-"} | {contact.mobileE164}</div>
+                          <div className="font-semibold">{contact.firmName || (templateRecipientType === "buyer_contacts" ? "Buyer lead" : "-")} | {contact.mobileE164}</div>
                           <div className="text-gray-500">
                             {contact.city} | {contact.email || "-"} | Categories: {(contact.categories || []).join(", ") || "-"}
                           </div>
@@ -1058,7 +1375,7 @@ export default function AdminWhatsApp() {
                 <p className="text-xs text-gray-500">
                   First dropdown shows all posts. You can re-trigger previously sent posts.
                 </p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                   <select className="w-full border rounded-lg px-3 py-2 text-sm" value={manualRequirementId} onChange={(e) => {
                     const nextRequirementId = e.target.value;
                     setManualRequirementId(nextRequirementId);
@@ -1089,13 +1406,25 @@ export default function AdminWhatsApp() {
                   </select>
                   <select
                     className="w-full border rounded-lg px-3 py-2 text-sm"
+                    value={autoModeRecipientType}
+                    onChange={(e) => {
+                      setAutoModeRecipientType(e.target.value);
+                      setManualQueue([]);
+                    }}
+                  >
+                    <option value="seller_contacts">Target seller contacts</option>
+                    <option value="buyer_contacts">Target buyer contacts</option>
+                  </select>
+                  <select
+                    className="w-full border rounded-lg px-3 py-2 text-sm"
                     value={manualCategory}
                     onChange={(e) => {
                       setManualCategory(e.target.value);
                       setManualQueue([]);
                     }}
+                    disabled={autoModeRecipientType === "buyer_contacts"}
                   >
-                    <option value="">Select Category</option>
+                    <option value="">{autoModeRecipientType === "buyer_contacts" ? "Category not required for buyers" : "Select Category"}</option>
                     {manualCategoryOptions.map((category) => (
                       <option key={`manual-category-${category}`} value={category}>
                         {category}
@@ -1105,12 +1434,13 @@ export default function AdminWhatsApp() {
                   <div className="relative">
                     <button
                       type="button"
-                      className="w-full border rounded-lg px-3 py-2 text-sm text-left bg-white"
+                      className={`w-full border rounded-lg px-3 py-2 text-sm text-left ${autoModeRecipientType === "buyer_contacts" ? "bg-gray-100 text-gray-500" : "bg-white"}`}
                       onClick={() => setManualCityMenuOpen((prev) => !prev)}
+                      disabled={autoModeRecipientType === "buyer_contacts"}
                     >
-                      {manualCitySelectionLabel}
+                      {autoModeRecipientType === "buyer_contacts" ? "City filter not required for buyers" : manualCitySelectionLabel}
                     </button>
-                    {manualCityMenuOpen && (
+                    {manualCityMenuOpen && autoModeRecipientType !== "buyer_contacts" && (
                       <div className="absolute z-20 mt-2 w-full max-h-60 overflow-auto rounded-xl border bg-white p-2 shadow-lg">
                         <label className="flex items-center gap-2 text-xs text-gray-700 border rounded-lg px-3 py-2 mb-2">
                           <input
@@ -1157,7 +1487,7 @@ export default function AdminWhatsApp() {
                 <div className="rounded-lg border p-3">
                   <p className="text-xs font-semibold text-gray-700 mb-2">Trigger Channels</p>
                   <p className="text-xs text-gray-500 mb-2">
-                    These channels are used when you click "Resend to Sellers (API)".
+                    These channels are used when you click "Send Selected Post via API".
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                     <label className="flex items-center gap-2 text-xs text-gray-700 border rounded-lg px-3 py-2">
@@ -1177,6 +1507,7 @@ export default function AdminWhatsApp() {
                       <input
                         type="checkbox"
                         checked={manualChannels.email}
+                        disabled={autoModeUseTemplate && manualChannels.whatsapp}
                         onChange={(e) =>
                           setManualChannels((prev) => ({
                             ...prev,
@@ -1187,6 +1518,11 @@ export default function AdminWhatsApp() {
                       Trigger Email
                     </label>
                   </div>
+                  {autoModeUseTemplate && manualChannels.whatsapp && (
+                    <p className="text-[11px] text-amber-700 mt-2">
+                      Template auto mode currently supports WhatsApp channel only.
+                    </p>
+                  )}
                 </div>
                 <button
                   onClick={createManualQueue}
@@ -1203,7 +1539,7 @@ export default function AdminWhatsApp() {
                   {resendingPost ? "Sending..." : "Send Selected Post via API"}
                 </button>
                 <p className="text-xs text-gray-500">
-                  Use this button for automatic sending through server logic to selected channels (WhatsApp/Email). It is different from the per-contact manual send buttons below.
+                  Automatic mode uses the selected recipient list and optional uploaded approved template. Per-contact manual send remains available below.
                 </p>
                 <pre className="text-xs whitespace-pre-wrap bg-gray-50 border rounded-lg p-3 text-gray-700">
                   {manualMessagePreview || "Select post to preview message"}
@@ -1234,6 +1570,49 @@ export default function AdminWhatsApp() {
                     </div>
                   ))}
                   {manualQueue.length === 0 && <p className="text-xs text-gray-500">No pending queue created yet.</p>}
+                </div>
+                <div className="rounded-lg border p-3 space-y-2">
+                  <label className="flex items-center gap-2 text-xs text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={autoModeUseTemplate}
+                      onChange={(e) => setAutoModeUseTemplate(e.target.checked)}
+                    />
+                    Use approved template in auto mode (Send Selected Post via API)
+                  </label>
+                  {autoModeUseTemplate && (
+                    <>
+                      <select
+                        className="w-full border rounded-lg px-3 py-2 text-sm"
+                        value={autoModeTemplateRegistryId}
+                        onChange={(e) => setAutoModeTemplateRegistryId(e.target.value)}
+                      >
+                        <option value="">Select template for auto mode</option>
+                        {activeTemplateRegistry.map((template) => (
+                          <option key={`auto-template-${template._id}`} value={template._id}>
+                            {`${template.key} | ${template.templateName} | ${template.language}`}
+                          </option>
+                        ))}
+                      </select>
+                      {!!autoModeTemplateVariables.length && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                          {autoModeTemplateVariables.map((value, index) => (
+                            <input
+                              key={`auto-template-variable-${index + 1}`}
+                              className="w-full border rounded-lg px-3 py-2 text-sm"
+                              placeholder={`Auto variable ${index + 1}`}
+                              value={value}
+                              onChange={(e) =>
+                                setAutoModeTemplateVariables((prev) =>
+                                  prev.map((item, itemIndex) => (itemIndex === index ? e.target.value : item))
+                                )
+                              }
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
                 <div className="border rounded-xl p-3 space-y-3">
                   <p className="text-sm font-semibold">Delivery Logs (Manual + API)</p>

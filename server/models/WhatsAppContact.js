@@ -50,6 +50,14 @@ const whatsAppContactSchema = new mongoose.Schema(
       type: Date,
       default: Date.now
     },
+    pendingOptInAt: {
+      type: Date,
+      default: null
+    },
+    consentEvidence: {
+      type: String,
+      default: ""
+    },
     unsubscribedAt: {
       type: Date,
       default: null
