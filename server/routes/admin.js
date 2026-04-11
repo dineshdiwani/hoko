@@ -2269,20 +2269,18 @@ router.post("/whatsapp/resend", adminAuth, requireAdminPermission("campaigns.man
       if (eligibility.ok) {
         attempted += 1;
         try {
-          if (templateParameters.length < 4) {
-            templateParameters = [
-              String(requirement._id),
-              requirement.productName || requirement.product || "Item",
-              requirement.city || "Location",
-              String(requirement.quantity || "") + " " + String(requirement.type || "pcs")
-            ];
-          }
+          const params = [
+            String(requirement._id),
+            requirement.productName || requirement.product || "Item",
+            requirement.city || "Location",
+            String(requirement.quantity || "") + " " + String(requirement.type || "pcs")
+          ];
           const sendResult = await (provider === "gupshup" ? sendViaGupshupTemplate : sendViaWapiTemplate)({
             to: mobileE164,
             templateId: String(templateConfig.templateId || "").trim(),
             templateName: String(templateConfig.templateName || "").trim(),
             languageCode: String(templateConfig.language || "en").trim(),
-            parameters: templateParameters
+            parameters: params
           });
           status = "accepted";
           providerMessageId = String(sendResult?.providerMessageId || "").trim();
