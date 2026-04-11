@@ -705,8 +705,17 @@ router.post("/webhook", async (req, res) => {
       continue;
     }
 
-    // For existing opted-in users, send invite template on any message
+    // For existing opted-in users, check if they want to be seller
     const isOptedIn = latestBuyerContact?.optInStatus === "opted_in" || latestSellerContact?.optInStatus === "opted_in";
+    if (isOptedIn && (SELLER_WORDS.has(normalizedInbound) || normalizedInbound === "sell")) {
+      consentState.set(consentKey, { step: CONSENT_STATES.AWAITING_SELLER_CITY, mobileE164: event.mobileE164 });
+      await sendWhatsAppMessage({
+        to: event.mobileE164,
+        body: "Please share your city name to receive relevant requirements."
+      });
+      continue;
+    }
+    
     if (isOptedIn) {
       const inviteResult = await createTempRequirementAndSendInvite(event.mobileE164);
       console.log(`[Buyer Invite] Opted-in contact ${event.mobileE164}, TempReq: ${inviteResult?.tempRequirement?._id}`);
