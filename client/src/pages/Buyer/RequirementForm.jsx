@@ -471,10 +471,12 @@ export default function RequirementForm({ isPublic = false }) {
       if (isEditMode) {
         await api.put(`/buyer/requirement/${requirementId}`, payload);
       } else if (isPublic && tempRequirementRef) {
-        await api.post("/buyer/requirement/public", {
+        const publicPayload = {
           ...payload,
           ref: tempRequirementRef
-        });
+        };
+        console.log("Public requirement payload:", publicPayload);
+        await api.post("/buyer/requirement/public", publicPayload);
       } else {
         await api.post("/buyer/requirement", payload);
       }
@@ -501,10 +503,11 @@ export default function RequirementForm({ isPublic = false }) {
       }
     } catch (err) {
       console.error("Requirement submit error:", err);
+      const errorMsg = err?.response?.data?.message || err?.message || "Unknown error";
       alert(
         isEditMode
-          ? "Failed to update requirement. Try again."
-          : "Failed to post requirement. Try again."
+          ? `Failed to update requirement: ${errorMsg}`
+          : `Failed to post requirement: ${errorMsg}`
       );
     } finally {
       setUploading(false);

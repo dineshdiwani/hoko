@@ -424,22 +424,30 @@ async function sendRequirementAckTemplate(mobileE164, requirementId) {
 router.post("/requirement/public", async (req, res) => {
   const { ref, productName, product, city, category, quantity, type, details, brand, makeBrand, typeModel, offerInvitedFrom } = req.body;
 
+  console.log("[Public Requirement] Received ref:", ref);
+
   if (!ref) {
     return res.status(400).json({ message: "ref is required" });
   }
 
-  let refId = ref;
-  if (ref.includes("ref=")) {
-    const match = ref.match(/ref=([a-f0-9]{24})/i);
-    if (match) {
-      refId = match[1];
-    }
+  let refId = ref.trim();
+  const hexMatch = refId.match(/([a-f0-9]{20,24})/i);
+  if (hexMatch) {
+    refId = hexMatch[1];
+    console.log("[Public Requirement] Extracted refId:", refId);
   }
 
-  let tempRequirement = await TempRequirement.findOne({
-    _id: refId,
-    status: "pending"
-  }).lean();
+  let tempRequirement = null;
+  try {
+    tempRequirement = await TempRequirement.findOne({
+      _id: refId,
+      status: "pending"
+    }).lean();
+  } catch (err) {
+    console.error("[Public Requirement] Query error:", err.message);
+  }
+
+  console.log("[Public Requirement] TempRequirement:", tempRequirement ? "found" : "not found");
 
   if (!tempRequirement) {
     return res.status(404).json({ message: "Invalid or expired reference. Please start again from WhatsApp." });
