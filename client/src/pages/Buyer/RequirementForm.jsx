@@ -43,9 +43,20 @@ export default function RequirementForm({ isPublic = false }) {
   const { id: requirementId } = useParams();
   const [searchParams] = useSearchParams();
   const rawRef = searchParams.get("ref") || "";
-  const tempRequirementRef = rawRef.includes("ref=") 
-    ? (new URL(rawRef.startsWith("http") ? rawRef : `https://hokoapp.in${rawRef}`).searchParams.get("ref") || rawRef)
-    : rawRef;
+  let tempRequirementRef = rawRef;
+  if (rawRef.includes("ref=")) {
+    const match = rawRef.match(/ref=([a-f0-9]+)/i);
+    if (match) {
+      tempRequirementRef = match[1];
+    } else {
+      try {
+        const url = new URL(rawRef);
+        tempRequirementRef = url.searchParams.get("ref") || rawRef;
+      } catch {
+        tempRequirementRef = rawRef.split("/ref=").pop() || rawRef;
+      }
+    }
+  }
   const isEditMode = Boolean(requirementId);
   const session = getSession();
   const sessionCity = String(session?.city || "").trim();

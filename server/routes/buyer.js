@@ -425,17 +425,32 @@ router.post("/requirement/public", async (req, res) => {
   const { ref, productName, product, city, category, quantity, type, details, brand, makeBrand, typeModel, offerInvitedFrom } = req.body;
 
   if (!ref) {
-    return res.status(400).json({ message: "ref (temp requirement ID) is required" });
+    return res.status(400).json({ message: "ref is required" });
   }
 
-  const tempRequirement = await TempRequirement.findOne({
-    _id: ref,
+  let refId = ref;
+  if (ref.includes("ref=")) {
+    const match = ref.match(/ref=([a-f0-9]{24})/i);
+    if (match) {
+      refId = match[1];
+    }
+  }
+
+  let tempRequirement = await TempRequirement.findOne({
+    _id: refId,
     status: "pending"
   }).lean();
 
   if (!tempRequirement) {
     return res.status(404).json({ message: "Invalid or expired reference. Please start again from WhatsApp." });
   }
+
+  if (new Date(tempRequirement.expiresAt) < new Date()) {
+    await TempRequirement.findByIdAndUpdate(tempRequirement._id, { $set: { status: "expired" } });
+    return res.status(410).json({ message: "Reference has expired. Please start again from WhatsApp." });
+  }
+
+  const mobileE164 = tempRequirement.mobileE164;
 
   if (new Date(tempRequirement.expiresAt) < new Date()) {
     await TempRequirement.findByIdAndUpdate(tempRequirement._id, { $set: { status: "expired" } });
