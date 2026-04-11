@@ -29,7 +29,7 @@ const tempRequirementSchema = new mongoose.Schema(
     },
     templateUsed: {
       type: String,
-      default: "buyer_invite_post_requirement_v2"
+      default: "buyer_invite_post_requirement"
     },
     expiresAt: {
       type: Date,

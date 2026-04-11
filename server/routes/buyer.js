@@ -334,7 +334,7 @@ async function sendRequirementAckTemplate(mobileE164, requirementId) {
   const displayId = String(requirementId).slice(-6).toUpperCase();
 
   const templateConfig = await WhatsAppTemplateRegistry.findOne({
-    key: "buyer_requirement_ack_v3",
+    key: "buyer_join_app_invite",
     isActive: true
   }).lean();
 

@@ -153,7 +153,7 @@ async function sendBuyerInviteTemplate(to, tempRequirementId) {
   const deepLink = `${appBase}/post-requirement?ref=${tempRequirementId}`;
 
   const templateConfig = await WhatsAppTemplateRegistry.findOne({
-    key: "buyer_invite_post_requirement_v2",
+    key: "buyer_invite_post_requirement",
     isActive: true
   }).lean();
 
