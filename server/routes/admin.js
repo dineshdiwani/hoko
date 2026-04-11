@@ -2274,10 +2274,10 @@ router.post("/whatsapp/resend", adminAuth, requireAdminPermission("campaigns.man
         try {
           if (!templateParameters.length) {
             templateParameters = [
+              String(requirement._id),
               requirement.productName || requirement.product || "Item",
               requirement.city || "Location",
-              String(requirement.quantity || "") + " " + String(requirement.type || "pcs"),
-              String(requirement._id)
+              String(requirement.quantity || "") + " " + String(requirement.type || "pcs")
             ];
           }
           const sendResult = await (provider === "gupshup" ? sendViaGupshupTemplate : sendViaWapiTemplate)({
