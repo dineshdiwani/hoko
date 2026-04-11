@@ -42,7 +42,10 @@ export default function RequirementForm({ isPublic = false }) {
   const navigate = useNavigate();
   const { id: requirementId } = useParams();
   const [searchParams] = useSearchParams();
-  const tempRequirementRef = searchParams.get("ref") || "";
+  const rawRef = searchParams.get("ref") || "";
+  const tempRequirementRef = rawRef.includes("ref=") 
+    ? (new URL(rawRef.startsWith("http") ? rawRef : `https://hokoapp.in${rawRef}`).searchParams.get("ref") || rawRef)
+    : rawRef;
   const isEditMode = Boolean(requirementId);
   const session = getSession();
   const sessionCity = String(session?.city || "").trim();
