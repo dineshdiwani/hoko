@@ -2219,9 +2219,6 @@ router.post("/whatsapp/resend", adminAuth, requireAdminPermission("campaigns.man
 
   const provider = String(process.env.WHATSAPP_PROVIDER || "mock").trim().toLowerCase();
   const templateConfigId = String(req.body?.templateConfigId || "").trim();
-  let templateParameters = Array.isArray(req.body?.templateParameters)
-    ? req.body.templateParameters.map((value) => String(value || "").trim())
-    : [];
   const recipientType = normalizeRecipientType(req.body?.recipientType);
 
   if (channels.whatsapp && templateConfigId) {
