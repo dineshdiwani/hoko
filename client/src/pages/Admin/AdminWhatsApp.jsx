@@ -1268,6 +1268,25 @@ export default function AdminWhatsApp() {
                     >
                       {loadingTemplates ? "Refreshing..." : "Refresh Templates"}
                     </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!confirm("Fix template IDs for buyer_invite_post_requirement and buyer_join_app_invite?")) return;
+                        try {
+                          setLoadingTemplates(true);
+                          const res = await api.post("/admin/whatsapp/templates/fix");
+                          alert(`Fixed ${res.data.updated} templates`);
+                          await loadTemplates();
+                        } catch (err) {
+                          alert(err?.response?.data?.message || "Fix failed");
+                        } finally {
+                          setLoadingTemplates(false);
+                        }
+                      }}
+                      className="px-3 py-2 rounded-lg text-sm font-semibold bg-red-600 text-white hover:bg-red-700"
+                    >
+                      Fix Template IDs
+                    </button>
                   </div>
                 </div>
                 <div className="text-xs text-gray-600">

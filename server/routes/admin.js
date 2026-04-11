@@ -293,8 +293,8 @@ function parseTemplateRegistryFromWorkbook(buffer) {
   for (let index = 1; index < rows.length; index += 1) {
     const row = rows[index] || [];
     const key = String(readTemplateCell(row, indexByName, "key")).trim();
-    const templateName = String(readTemplateCell(row, indexByName, "template_name", "name")).trim();
-    const templateId = String(readTemplateCell(row, indexByName, "template_id", "id")).trim();
+    const templateName = String(readTemplateCell(row, indexByName, "template_name", "name", "template name")).trim();
+    const templateId = String(readTemplateCell(row, indexByName, "template_id", "id", " template_id")).trim();
     const language = String(readTemplateCell(row, indexByName, "language", "language_code", "languagecode") || "en").trim();
     const categoryRaw = String(readTemplateCell(row, indexByName, "category") || "UTILITY").trim().toUpperCase();
     const statusRaw = String(readTemplateCell(row, indexByName, "status") || "PENDING").trim().toUpperCase();
@@ -1792,6 +1792,58 @@ router.get("/whatsapp/templates/uploaded-file", adminAuth, requireAdminPermissio
   res.setHeader("Content-Disposition", `attachment; filename="${safeName}"`);
   return res.sendFile(absolutePath);
 });
+
+router.post(
+  "/whatsapp/templates/fix",
+  adminAuth,
+  requireAdminPermission("campaigns.manage"),
+  async (req, res) => {
+    const templates = [
+      {
+        key: "buyer_invite_post_requirement",
+        templateName: "buyer_invite_post_requirement_v2",
+        templateId: "c236ec98-5807-4910-9135-c8f7774ccd54",
+        language: "en",
+        category: "MARKETING",
+        status: "APPROVED",
+        variableCount: 1,
+        isActive: true
+      },
+      {
+        key: "buyer_join_app_invite",
+        templateName: "buyer_join_app_invite_v1",
+        templateId: "46202a21-d425-4cb0-9d60-455aef42bd96",
+        language: "en",
+        category: "MARKETING",
+        status: "APPROVED",
+        variableCount: 1,
+        isActive: true
+      }
+    ];
+
+    let updated = 0;
+    let errors = [];
+
+    for (const t of templates) {
+      try {
+        await WhatsAppTemplateRegistry.findOneAndUpdate(
+          { key: t.key },
+          { $set: t },
+          { upsert: true, new: true }
+        );
+        updated += 1;
+      } catch (err) {
+        errors.push({ key: t.key, error: err?.message });
+      }
+    }
+
+    return res.json({
+      success: true,
+      updated,
+      errors
+    });
+  }
+);
 
 router.post("/whatsapp/template-send", adminAuth, requireAdminPermission("campaigns.manage"), async (req, res) => {
   const provider = String(process.env.WHATSAPP_PROVIDER || "mock").trim().toLowerCase();
