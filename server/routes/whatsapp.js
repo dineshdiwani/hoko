@@ -693,7 +693,7 @@ router.post("/webhook", async (req, res) => {
       const cities = citiesData?.value || [];
       const inputCity = normalizeCityName(event.text);
       const matchedCity = cities.find(c => normalizeCityName(c) === inputCity);
-      const cityToSave = matchedCity || text.trim();
+      const cityToSave = matchedCity || event.text.trim();
       
       const deepLink = await sendSellerInviteLink(event.mobileE164, cityToSave);
       await sendWhatsAppMessage({
