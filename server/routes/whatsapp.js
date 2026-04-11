@@ -134,7 +134,10 @@ function buildConsentConfirmedMessage() {
 
 function buildGenericHelpMessage() {
   return [
-    "Welcome to Hoko. Post your buying requirement here: https://hokoapp.in/ and get the offers from sellers in your city or across India."
+    "Welcome to Hoko!",
+    "Post your buying requirement and get offers from sellers in your city or across India.",
+    "",
+    "To receive WhatsApp updates about your requirements, please reply YES to confirm consent."
   ].join("\n");
 }
 
