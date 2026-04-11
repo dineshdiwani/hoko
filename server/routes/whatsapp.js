@@ -428,6 +428,14 @@ router.post("/webhook", async (req, res) => {
       continue;
     }
 
+    // For existing opted-in users, send invite template on any message
+    const isOptedIn = latestBuyerContact?.optInStatus === "opted_in" || latestSellerContact?.optInStatus === "opted_in";
+    if (isOptedIn) {
+      const inviteResult = await createTempRequirementAndSendInvite(event.mobileE164);
+      console.log(`[Buyer Invite] Opted-in contact ${event.mobileE164}, TempReq: ${inviteResult?.tempRequirement?._id}`);
+      continue;
+    }
+
     // Always acknowledge simple greetings so users do not see a silent chat.
     if (GREETING_WORDS.has(normalizedInbound)) {
       await sendWhatsAppMessage({
