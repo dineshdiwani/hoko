@@ -10,6 +10,10 @@ const User = require("../models/User");
 const Notification = require("../models/Notification");
 const ChatMessage = require("../models/ChatMessage");
 const PlatformSettings = require("../models/PlatformSettings");
+const TempRequirement = require("../models/TempRequirement");
+const WhatsAppTemplateRegistry = require("../models/WhatsAppTemplateRegistry");
+const WhatsAppDeliveryLog = require("../models/WhatsAppDeliveryLog");
+const WhatsAppBuyerContact = require("../models/WhatsAppBuyerContact");
 const { getModerationRules, checkTextForFlags } = require("../utils/moderation");
 const {
   buildNotificationData,
@@ -26,6 +30,8 @@ const {
 const sendPush = require("../utils/sendPush");
 const { sendAdminEventEmail, sendEmailToRecipient } = require("../utils/sendEmail");
 const { triggerWhatsAppCampaignForRequirement } = require("../services/whatsAppCampaign");
+const { sendViaGupshupTemplate, sendViaWapiTemplate } = require("../utils/sendWhatsApp");
+const { resolvePublicAppUrl } = require("../utils/publicAppUrl");
 const auth = require("../middleware/auth");
 const buyerOnly = require("../middleware/buyerOnly");
 
@@ -289,6 +295,215 @@ const buyerDocUpload = multer({
     }
     cb(null, true);
   }
+});
+
+function resolveWhatsAppProvider() {
+  return String(process.env.WHATSAPP_PROVIDER || "mock").trim().toLowerCase();
+}
+
+async function findOrCreateSoftUserByMobile(mobileE164, city = "user_default") {
+  const existingSoftUser = await User.findOne({
+    mobile: mobileE164,
+    passwordHash: { $exists: false },
+    $or: [
+      { email: { $exists: false } },
+      { email: "" }
+    ]
+  }).lean();
+
+  if (existingSoftUser) {
+    return { user: existingSoftUser, created: false };
+  }
+
+  const softUser = await User.create({
+    mobile: mobileE164,
+    city: city || "user_default",
+    roles: { buyer: true, seller: false, admin: false }
+  });
+
+  return { user: softUser, created: true };
+}
+
+async function sendRequirementAckTemplate(mobileE164, requirementId) {
+  const provider = resolveWhatsAppProvider();
+  if (!["gupshup", "wapi"].includes(provider)) {
+    console.log(`[Requirement Ack] Provider ${provider} not supported`);
+    return { ok: false, reason: "unsupported_provider" };
+  }
+
+  const displayId = String(requirementId).slice(-6).toUpperCase();
+
+  const templateConfig = await WhatsAppTemplateRegistry.findOne({
+    key: "buyer_requirement_ack_v3",
+    isActive: true
+  }).lean();
+
+  if (!templateConfig) {
+    console.warn("[Requirement Ack] Template config not found for buyer_requirement_ack_v3");
+    return { ok: false, reason: "template_not_configured" };
+  }
+
+  try {
+    const templateId = String(templateConfig.templateId || "").trim();
+    const languageCode = String(templateConfig.language || "en").trim();
+    const displayId = String(requirementId).slice(-6).toUpperCase();
+    const parameters = [displayId];
+
+    const result = provider === "gupshup"
+      ? await sendViaGupshupTemplate({
+          to: mobileE164,
+          templateId,
+          templateName: templateConfig.templateName,
+          languageCode,
+          parameters
+        })
+      : await sendViaWapiTemplate({
+          to: mobileE164,
+          templateName: templateConfig.templateName,
+          languageCode,
+          parameters
+        });
+
+    await WhatsAppDeliveryLog.create({
+      requirementId: null,
+      campaignRunId: null,
+      triggerType: "buyer_requirement_ack",
+      channel: "whatsapp",
+      mobileE164,
+      email: "",
+      status: "accepted",
+      reason: "",
+      provider,
+      providerMessageId: result?.providerMessageId || "",
+      city: "",
+      category: "",
+      product: `ack_${requirementId}`,
+      createdByAdminId: null
+    });
+
+    await WhatsAppBuyerContact.findOneAndUpdate(
+      { mobileE164 },
+      {
+        $set: {
+          active: true,
+          optInStatus: "opted_in",
+          optInAt: new Date(),
+          optInSource: "requirement_acknowledged"
+        }
+      },
+      { upsert: true, new: true }
+    );
+
+    console.log(`[Requirement Ack] Sent ack to ${mobileE164} for req ${requirementId}`);
+    return { ok: true, providerMessageId: result?.providerMessageId };
+  } catch (err) {
+    console.error(`[Requirement Ack] Failed for ${mobileE164}:`, err?.message || err);
+    await WhatsAppDeliveryLog.create({
+      requirementId: null,
+      campaignRunId: null,
+      triggerType: "buyer_requirement_ack",
+      channel: "whatsapp",
+      mobileE164,
+      email: "",
+      status: "failed",
+      reason: err?.message || "send_failed",
+      provider,
+      providerMessageId: "",
+      city: "",
+      category: "",
+      product: `ack_${requirementId}`,
+      createdByAdminId: null
+    });
+    return { ok: false, reason: err?.message || "send_failed" };
+  }
+}
+
+/**
+ * Public endpoint for WhatsApp-initiated requirement submission
+ */
+router.post("/requirement/public", async (req, res) => {
+  const { ref, productName, product, city, category, quantity, type, details, brand, makeBrand, typeModel, offerInvitedFrom } = req.body;
+
+  if (!ref) {
+    return res.status(400).json({ message: "ref (temp requirement ID) is required" });
+  }
+
+  const tempRequirement = await TempRequirement.findOne({
+    _id: ref,
+    status: "pending"
+  }).lean();
+
+  if (!tempRequirement) {
+    return res.status(404).json({ message: "Invalid or expired reference. Please start again from WhatsApp." });
+  }
+
+  if (new Date(tempRequirement.expiresAt) < new Date()) {
+    await TempRequirement.findByIdAndUpdate(tempRequirement._id, { $set: { status: "expired" } });
+    return res.status(410).json({ message: "Reference has expired. Please start again from WhatsApp." });
+  }
+
+  const mobileE164 = tempRequirement.mobileE164;
+  const { user: softUser } = await findOrCreateSoftUserByMobile(mobileE164, city);
+
+  const moderationRules = await getModerationRules();
+  const textParts = [productName, product, details, brand, makeBrand, typeModel, type].filter(Boolean);
+  const flaggedReason = checkTextForFlags(textParts.join(" "), moderationRules);
+
+  const requirement = await Requirement.create({
+    productName: productName || product,
+    product: productName || product,
+    city,
+    category,
+    quantity,
+    type,
+    details,
+    brand,
+    makeBrand,
+    typeModel,
+    status: "open",
+    statusUpdatedAt: new Date(),
+    expiresAt: (() => {
+      const days = clamp(30, MIN_POST_AUTO_EXPIRY_DAYS, MAX_POST_AUTO_EXPIRY_DAYS, 30);
+      const next = new Date();
+      next.setDate(next.getDate() + days);
+      return next;
+    })(),
+    offerInvitedFrom: normalizeOfferInvitedFrom(offerInvitedFrom),
+    attachments: [],
+    buyerId: softUser._id,
+    moderation: flaggedReason
+      ? { flagged: true, flaggedAt: new Date(), flaggedReason }
+      : undefined
+  });
+
+  await TempRequirement.findByIdAndUpdate(tempRequirement._id, {
+    $set: {
+      status: "completed",
+      requirementId: requirement._id,
+      userId: softUser._id
+    }
+  });
+
+  const ackResult = await sendRequirementAckTemplate(mobileE164, requirement._id);
+
+  setImmediate(async () => {
+    try {
+      await triggerWhatsAppCampaignForRequirement(requirement, {
+        triggerType: "buyer_post",
+        contactFilters: { cityKeys: [normalizeText(city)] }
+      });
+    } catch (err) {
+      console.warn("[WhatsApp Campaign] Trigger failed:", err?.message || err);
+    }
+  });
+
+  return res.status(201).json({
+    success: true,
+    requirementId: requirement._id,
+    tempRequirementId: tempRequirement._id,
+    ackSent: ackResult.ok,
+    message: "Requirement submitted successfully"
+  });
 });
 
 /**

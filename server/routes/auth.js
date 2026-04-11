@@ -1,6 +1,8 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const Requirement = require("../models/Requirement");
+const TempRequirement = require("../models/TempRequirement");
 const router = express.Router();
 const { setOtp, verifyOtp } = require("../utils/otpStore");
 const { sendAdminEventEmail, sendOtpEmail } = require("../utils/sendEmail");
@@ -25,6 +27,43 @@ const DEFAULT_ROLES = {
   seller: false,
   admin: false
 };
+
+async function mergeSoftUserRequirements(userId, mobileE164) {
+  if (!userId || !mobileE164) return { merged: false };
+
+  const softUser = await User.findOne({
+    mobile: mobileE164,
+    _id: { $ne: userId },
+    passwordHash: { $exists: false },
+    $or: [{ email: { $exists: false } }, { email: "" }]
+  }).lean();
+
+  if (!softUser) {
+    return { merged: false, reason: "no_soft_user" };
+  }
+
+  const softUserId = softUser._id;
+
+  const requirementsMerged = await Requirement.updateMany(
+    { buyerId: softUserId },
+    { $set: { buyerId: userId } }
+  );
+
+  await TempRequirement.updateMany(
+    { userId: softUserId },
+    { $set: { userId: userId } }
+  );
+
+  await User.findByIdAndDelete(softUserId);
+
+  console.log(`[Soft User Merge] Merged ${requirementsMerged.modifiedCount} requirements from soft user ${softUserId} to ${userId}`);
+
+  return {
+    merged: true,
+    softUserId: String(softUserId),
+    requirementsMerged: requirementsMerged.modifiedCount
+  };
+}
 
 let googleClient = null;
 let googleAuthInitError = null;
@@ -161,7 +200,7 @@ router.post("/login", otpSendLimiter, async (req, res) => {
 
 /* -------- VERIFY OTP -------- */
 router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
-  const { email, otp, role, city, acceptTerms } = req.body || {};
+  const { email, otp, role, city, acceptTerms, mobile } = req.body || {};
   const normalizedEmail = normalizeEmail(email);
 
   if (!normalizedEmail || !otp) {
@@ -230,6 +269,8 @@ router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
   }
   await user.save();
 
+  const mergeResult = await mergeSoftUserRequirements(user._id, mobile);
+
   const token = jwt.sign(
     { id: user._id, role: normalizedRole, tokenVersion: user.tokenVersion || 0 },
     process.env.JWT_SECRET,
@@ -245,15 +286,17 @@ router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
       roles: user.roles,
       city: user.city,
       preferredCurrency: user.preferredCurrency || "INR",
-      sellerProfile: user.sellerProfile
-    }
+      sellerProfile: user.sellerProfile,
+      mobile: user.mobile
+    },
+    merge: mergeResult.merged ? mergeResult : undefined
   });
 });
 
 /* -------- GOOGLE LOGIN -------- */
 router.post("/google", async (req, res) => {
   try {
-    const { credential, role, city, acceptTerms } = req.body || {};
+    const { credential, role, city, acceptTerms, mobile } = req.body || {};
     if (!credential) {
       return res.status(400).json({ message: "Missing credential" });
     }
@@ -381,6 +424,8 @@ router.post("/google", async (req, res) => {
       await user.save();
     }
 
+    const mergeResult = await mergeSoftUserRequirements(user._id, mobile);
+
     const token = jwt.sign(
       { id: user._id, role: normalizedRole, tokenVersion: user.tokenVersion || 0 },
       process.env.JWT_SECRET,
@@ -398,8 +443,10 @@ router.post("/google", async (req, res) => {
         roles: user.roles,
         city: user.city,
         preferredCurrency: user.preferredCurrency || "INR",
-        sellerProfile: user.sellerProfile
-      }
+        sellerProfile: user.sellerProfile,
+        mobile: user.mobile
+      },
+      merge: mergeResult.merged ? mergeResult : undefined
     });
   } catch (err) {
     console.error("Google login unexpected error:", err?.stack || err?.message || err);

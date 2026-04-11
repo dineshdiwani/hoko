@@ -3,12 +3,15 @@ const router = express.Router();
 
 const PendingOfferDraft = require("../models/PendingOfferDraft");
 const Requirement = require("../models/Requirement");
+const TempRequirement = require("../models/TempRequirement");
 const WhatsAppDeliveryLog = require("../models/WhatsAppDeliveryLog");
 const WhatsAppLead = require("../models/WhatsAppLead");
 const WhatsAppContact = require("../models/WhatsAppContact");
 const WhatsAppBuyerContact = require("../models/WhatsAppBuyerContact");
 const { sendWhatsAppMessage } = require("../utils/sendWhatsApp");
+const { sendViaGupshupTemplate, sendViaWapiTemplate } = require("../utils/sendWhatsApp");
 const { resolvePublicAppUrl } = require("../utils/publicAppUrl");
+const WhatsAppTemplateRegistry = require("../models/WhatsAppTemplateRegistry");
 const {
   classifyInboundText,
   extractDeliveryEvents,
@@ -133,6 +136,113 @@ function buildGenericHelpMessage() {
   return [
     "Welcome to Hoko. Post your buying requirement here: https://hokoapp.in/ and get the offers from sellers in your city or across India."
   ].join("\n");
+}
+
+function resolveWhatsAppProvider() {
+  return String(process.env.WHATSAPP_PROVIDER || "mock").trim().toLowerCase();
+}
+
+async function sendBuyerInviteTemplate(to, tempRequirementId) {
+  const provider = resolveWhatsAppProvider();
+  if (!["gupshup", "wapi"].includes(provider)) {
+    console.log(`[Buyer Invite] Provider ${provider} not supported for template send`);
+    return { ok: false, reason: "unsupported_provider" };
+  }
+
+  const appBase = resolvePublicAppUrl();
+  const deepLink = `${appBase}/post-requirement?ref=${tempRequirementId}`;
+
+  const templateConfig = await WhatsAppTemplateRegistry.findOne({
+    key: "buyer_invite_post_requirement_v2",
+    isActive: true
+  }).lean();
+
+  if (!templateConfig) {
+    console.warn("[Buyer Invite] Template config not found for buyer_invite_post_requirement_v2");
+    return { ok: false, reason: "template_not_configured" };
+  }
+
+  try {
+    const templateId = String(templateConfig.templateId || "").trim();
+    const languageCode = String(templateConfig.language || "en").trim();
+    const parameters = [deepLink];
+
+    const result = provider === "gupshup"
+      ? await sendViaGupshupTemplate({
+          to,
+          templateId,
+          templateName: templateConfig.templateName,
+          languageCode,
+          parameters
+        })
+      : await sendViaWapiTemplate({
+          to,
+          templateName: templateConfig.templateName,
+          languageCode,
+          parameters
+        });
+
+    console.log(`[Buyer Invite] Sent to ${to}, providerMessageId: ${result?.providerMessageId}`);
+    return { ok: true, providerMessageId: result?.providerMessageId, deepLink };
+  } catch (err) {
+    console.error(`[Buyer Invite] Failed to send to ${to}:`, err?.message || err);
+    return { ok: false, reason: err?.message || "send_failed" };
+  }
+}
+
+async function createTempRequirementAndSendInvite(mobileE164) {
+  const existing = await TempRequirement.findOne({
+    mobileE164,
+    status: "pending"
+  }).sort({ createdAt: -1 });
+
+  if (existing) {
+    console.log(`[Buyer Invite] Existing pending TempRequirement found for ${mobileE164}`);
+  }
+
+  const tempReq = await TempRequirement.findOneAndUpdate(
+    {
+      mobileE164,
+      status: "pending"
+    },
+    {
+      $set: {
+        mobileE164,
+        status: "pending",
+        source: "whatsapp",
+        templateUsed: "buyer_invite_post_requirement_v2"
+      },
+      $setOnInsert: {
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      }
+    },
+    {
+      upsert: true,
+      new: true,
+      setDefaultsOnInsert: true
+    }
+  );
+
+  const sendResult = await sendBuyerInviteTemplate(mobileE164, tempReq._id.toString());
+
+  await WhatsAppDeliveryLog.create({
+    requirementId: null,
+    campaignRunId: null,
+    triggerType: "buyer_invite",
+    channel: "whatsapp",
+    mobileE164,
+    email: "",
+    status: sendResult.ok ? "accepted" : "failed",
+    reason: sendResult.ok ? "" : sendResult.reason,
+    provider: resolveWhatsAppProvider(),
+    providerMessageId: sendResult.providerMessageId || "",
+    city: "",
+    category: "",
+    product: "buyer_invite",
+    createdByAdminId: null
+  });
+
+  return { tempRequirement: tempReq, sendResult };
 }
 
 async function loadContactByMobile(mobileE164) {
@@ -266,6 +376,13 @@ router.post("/webhook", async (req, res) => {
 
     if (!sellerContact && !buyerContact) {
       await ensureBuyerProspect(event.mobileE164);
+      const isGreeting = GREETING_WORDS.has(normalizedInbound);
+      const isConsentConfirm = consentConfirmed;
+      if (!isConsentConfirm) {
+        const inviteResult = await createTempRequirementAndSendInvite(event.mobileE164);
+        console.log(`[Buyer Invite] New contact ${event.mobileE164}, TempReq: ${inviteResult?.tempRequirement?._id}`);
+        continue;
+      }
     }
 
     const latestSellerContact = sellerContact || null;
