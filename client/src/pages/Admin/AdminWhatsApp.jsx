@@ -1293,7 +1293,7 @@ export default function AdminWhatsApp() {
                     <option value="">Select uploaded template</option>
                     {activeTemplateRegistry.map((template) => (
                       <option key={template._id} value={template._id}>
-                        {`${template.key} | ${template.templateName} | ${template.language}${template.category ? ` | ${template.category}` : ""}`}
+                        {`${template.key} | ${template.templateName} | ${template.templateId || "NO_ID"} | ${template.language}${template.category ? ` | ${template.category}` : ""}`}
                       </option>
                     ))}
                   </select>
