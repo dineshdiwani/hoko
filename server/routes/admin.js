@@ -2270,10 +2270,10 @@ router.post("/whatsapp/resend", adminAuth, requireAdminPermission("campaigns.man
         attempted += 1;
         try {
           const params = [
-            String(requirement._id),
             requirement.productName || requirement.product || "Item",
             requirement.city || "Location",
-            String(requirement.quantity || "") + " " + String(requirement.type || "pcs")
+            String(requirement.quantity || "") + " " + String(requirement.type || "pcs"),
+            String(requirement._id)
           ];
           const sendResult = await (provider === "gupshup" ? sendViaGupshupTemplate : sendViaWapiTemplate)({
             to: mobileE164,
