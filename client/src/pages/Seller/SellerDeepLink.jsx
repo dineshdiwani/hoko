@@ -28,6 +28,7 @@ function clearPendingOfferIntent() {
 }
 
 export default function SellerDeepLink() {
+  console.log("[SellerDeepLink] Component mounted");
   const navigate = useNavigate();
   const location = useLocation();
   const { requirementId } = useParams();

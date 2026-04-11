@@ -354,11 +354,11 @@ function AppShell() {
         <Route path="/seller/register" element={<SellerRegister />} />
         <Route path="/seller/login" element={<SellerLogin />} />
         <Route
-          path="/seller/deeplink/:requirementId"
+          path="/seller/offer/new"
           element={<SellerDeepLink />}
         />
         <Route
-          path="/seller/offer/new"
+          path="/seller/deeplink/:requirementId"
           element={<SellerDeepLink />}
         />
 
