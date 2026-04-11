@@ -105,34 +105,6 @@ async function sendSellerInviteLink(mobileE164, city) {
   return `${appBase}/seller`;
 }
 
-function buildConsentConfirmedSellerMessage() {
-  return [
-    "Great! As a seller, you'll receive requirements in your city.",
-    "",
-    "Please share your city name to get started."
-  ].join("\n");
-}
-
-function buildSellerOptInWelcomeMessage() {
-
-function buildSellerOptInWelcomeMessage() {
-  return [
-    "Welcome to Hoko Seller!",
-    "",
-    "To receive requirement notifications in your city, please share your city name."
-  ].join("\n");
-}
-
-function buildSellerOptInCityReceivedMessage(city) {
-  return [
-    `Got it! You will receive requirement notifications for ${city}.`,
-    "",
-    "To start receiving requirements, download the Hoko Seller app: https://hokoapp.in/seller",
-    "",
-    "Reply CITY to change your city."
-  ].join("\n");
-}
-
 function normalizeCityName(city) {
   return String(city || "").trim().toLowerCase().replace(/[^a-z0-9\s]/g, "");
 }
@@ -240,8 +212,6 @@ async function notifyMatchingSellers(requirement) {
   console.log(`[Seller Notify] Notified ${results.optedIn.length} opted-in sellers for requirement ${requirementId}`);
   return results;
 }
-
-module.exports = { notifyMatchingSellers };
 
 function firstNonEmpty(values) {
   for (const value of values) {
