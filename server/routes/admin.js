@@ -2273,11 +2273,12 @@ router.post("/whatsapp/resend", adminAuth, requireAdminPermission("campaigns.man
         attempted += 1;
         try {
           if (!templateParameters.length) {
+            const appBase = String(process.env.PUBLIC_APP_URL || "https://hokoapp.in").trim();
             templateParameters = [
-              String(requirement._id),
               requirement.productName || requirement.product || "Item",
               requirement.city || "Location",
-              String(requirement.quantity || "") + " " + String(requirement.type || "pcs")
+              String(requirement.quantity || "") + " " + String(requirement.type || "pcs"),
+              `${appBase}/seller/offer/new?ref=${requirement._id}`
             ];
           }
           const sendResult = await (provider === "gupshup" ? sendViaGupshupTemplate : sendViaWapiTemplate)({
