@@ -376,13 +376,13 @@ router.post("/webhook", async (req, res) => {
 
     if (!sellerContact && !buyerContact) {
       await ensureBuyerProspect(event.mobileE164);
-      const isGreeting = GREETING_WORDS.has(normalizedInbound);
-      const isConsentConfirm = consentConfirmed;
-      if (!isConsentConfirm) {
-        const inviteResult = await createTempRequirementAndSendInvite(event.mobileE164);
-        console.log(`[Buyer Invite] New contact ${event.mobileE164}, TempReq: ${inviteResult?.tempRequirement?._id}`);
-        continue;
-      }
+      await sendWhatsAppMessage({
+        to: event.mobileE164,
+        body: buildGenericHelpMessage()
+      });
+      const inviteResult = await createTempRequirementAndSendInvite(event.mobileE164);
+      console.log(`[Buyer Invite] New contact ${event.mobileE164}, TempReq: ${inviteResult?.tempRequirement?._id}`);
+      continue;
     }
 
     const latestSellerContact = sellerContact || null;
@@ -404,6 +404,9 @@ router.post("/webhook", async (req, res) => {
           to: event.mobileE164,
           body: buildConsentConfirmedMessage()
         });
+        const inviteResult = await createTempRequirementAndSendInvite(event.mobileE164);
+        console.log(`[Buyer Invite] Consented contact ${event.mobileE164}, TempReq: ${inviteResult?.tempRequirement?._id}`);
+        continue;
       } else {
         if (sellerNeedsConsent) {
           await applyConsentPending(latestSellerContact, "seller", event);
