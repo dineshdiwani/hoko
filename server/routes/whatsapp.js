@@ -691,7 +691,7 @@ router.post("/webhook", async (req, res) => {
     if (currentConsentState?.step === CONSENT_STATES.AWAITING_SELLER_CITY) {
       const citiesData = await PlatformSettings.findOne({ key: "cities" }).lean();
       const cities = citiesData?.value || [];
-      const inputCity = normalizeCityName(text);
+      const inputCity = normalizeCityName(event.text);
       const matchedCity = cities.find(c => normalizeCityName(c) === inputCity);
       const cityToSave = matchedCity || text.trim();
       
