@@ -2219,7 +2219,7 @@ router.post("/whatsapp/resend", adminAuth, requireAdminPermission("campaigns.man
 
   const provider = String(process.env.WHATSAPP_PROVIDER || "mock").trim().toLowerCase();
   const templateConfigId = String(req.body?.templateConfigId || "").trim();
-  const templateParameters = Array.isArray(req.body?.templateParameters)
+  let templateParameters = Array.isArray(req.body?.templateParameters)
     ? req.body.templateParameters.map((value) => String(value || "").trim())
     : [];
   const recipientType = normalizeRecipientType(req.body?.recipientType);
@@ -2272,6 +2272,14 @@ router.post("/whatsapp/resend", adminAuth, requireAdminPermission("campaigns.man
       if (eligibility.ok) {
         attempted += 1;
         try {
+          if (!templateParameters.length) {
+            templateParameters = [
+              requirement.productName || requirement.product || "Item",
+              requirement.city || "Location",
+              String(requirement.quantity || "") + " " + String(requirement.type || "pcs"),
+              String(requirement._id)
+            ];
+          }
           const sendResult = await (provider === "gupshup" ? sendViaGupshupTemplate : sendViaWapiTemplate)({
             to: mobileE164,
             templateId: String(templateConfig.templateId || "").trim(),
