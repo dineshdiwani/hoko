@@ -2831,7 +2831,7 @@ router.post("/opted-in-sellers/campaign/send", adminAuth, requireAdminPermission
 
   for (const seller of sellers) {
     try {
-      const parameters = [product, city, quantity, deepLink];
+      const parameters = [product, city, quantity, String(requirementId)];
       let result;
 
       if (provider === "gupshup") {
