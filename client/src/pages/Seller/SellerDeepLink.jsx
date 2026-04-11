@@ -218,11 +218,15 @@ export default function SellerDeepLink() {
   };
 
   useEffect(() => {
+    const fullUrl = window.location.href;
+    const searchParams = new URLSearchParams(window.location.search);
+    const refValue = searchParams.get("ref");
+    console.log("[SellerDeepLink] Full URL:", fullUrl);
+    console.log("[SellerDeepLink] ref param:", refValue);
     console.log("[SellerDeepLink] requirementIdValue:", requirementIdValue);
-    console.log("[SellerDeepLink] routeRequirementId:", routeRequirementId);
     console.log("[SellerDeepLink] queryPostId:", queryPostId);
-    console.log("[SellerDeepLink] params:", Object.fromEntries(params.entries()));
     if (!requirementIdValue) {
+      console.log("[SellerDeepLink] Redirecting to login - no requirementIdValue");
       navigate("/seller/login", { replace: true });
       return;
     }
