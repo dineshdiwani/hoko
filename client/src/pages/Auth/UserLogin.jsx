@@ -13,6 +13,7 @@ export default function UserLogin({ role = "buyer" }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const mobileFromUrl = searchParams.get("mobile") || "";
+  const isFromRequirement = searchParams.has("redirect");
   const postLoginRedirect = String(
     localStorage.getItem("post_login_redirect") || ""
   ).trim();
@@ -407,10 +408,12 @@ export default function UserLogin({ role = "buyer" }) {
         <div className="grid gap-10 lg:grid-cols-[1fr_1fr] items-center">
           <div className="text-slate-900">
             <h1 className="page-hero mb-4">
-              Access, fast and secure
+              {isFromRequirement ? "Login to track your requirement" : "Access, fast and secure"}
             </h1>
             <p className="text-slate-600 text-lg leading-relaxed">
-              Sign in with your email and verify instantly using an OTP sent to your inbox.
+              {isFromRequirement
+                ? "Get instant notifications when sellers respond to your requirement"
+                : "Sign in with your email and verify instantly using an OTP sent to your inbox."}
             </p>
             <div className="mt-8 hidden lg:block">
               <div className="inline-flex items-center gap-3 rounded-full border border-slate-200 px-4 py-2 text-slate-500 text-sm">
@@ -426,10 +429,10 @@ export default function UserLogin({ role = "buyer" }) {
               }`}
             >
               <h1 className="text-2xl font-bold text-center text-gray-800 mb-1">
-                Login
+                {isFromRequirement ? "One step away!" : "Login"}
               </h1>
               <p className="text-center text-gray-500 mb-4">
-                Continue with email OTP
+                {isFromRequirement ? "Login to see seller responses" : "Continue with email OTP"}
               </p>
 
               {step === "LOGIN" && (

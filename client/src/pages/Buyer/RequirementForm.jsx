@@ -483,11 +483,11 @@ export default function RequirementForm({ isPublic = false }) {
       });
 
       if (isPublic) {
-        const confirmed = window.confirm(
-          "Your requirement has been posted successfully!\n\nPlease login to get notified on mobile.\n\nClick OK to login."
-        );
-        if (confirmed) {
-          navigate("/buyer/login", { replace: true });
+        const session = getSession();
+        if (session?.mobile) {
+          navigate("/buyer/dashboard", { replace: true });
+        } else {
+          navigate("/buyer/login?redirect=/buyer/dashboard", { replace: true });
         }
       } else {
         alert(
