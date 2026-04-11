@@ -1586,6 +1586,86 @@ router.get("/whatsapp/templates", adminAuth, requireAdminPermission("campaigns.r
   }
 });
 
+router.post(
+  "/whatsapp/templates/sync",
+  adminAuth,
+  requireAdminPermission("campaigns.manage"),
+  async (req, res) => {
+    const provider = String(process.env.WHATSAPP_PROVIDER || "mock").trim().toLowerCase();
+    if (!["wapi", "gupshup"].includes(provider)) {
+      return res.status(400).json({ message: "Template sync is only enabled for WAPI or Gupshup provider" });
+    }
+
+    try {
+      const templates =
+        provider === "gupshup"
+          ? await fetchGupshupApprovedTemplates()
+          : await fetchWapiApprovedTemplates();
+
+      let inserted = 0;
+      let updated = 0;
+      const errors = [];
+
+      for (const template of templates) {
+        try {
+          const existing = await WhatsAppTemplateRegistry.findOne({
+            templateName: template.name,
+            language: template.languageCode
+          }).lean();
+
+          const updateData = {
+            templateName: template.name,
+            templateId: template.id,
+            language: template.languageCode,
+            category: template.category || "UTILITY",
+            status: template.status || "APPROVED",
+            variableCount: template.bodyVariableCount || 0,
+            isActive: ["APPROVED", "ACTIVE", "ENABLED"].includes(template.status)
+          };
+
+          await WhatsAppTemplateRegistry.findOneAndUpdate(
+            {
+              templateName: template.name,
+              language: template.languageCode
+            },
+            { $set: updateData },
+            { upsert: true, new: true, setDefaultsOnInsert: true }
+          );
+
+          if (existing) updated += 1;
+          else inserted += 1;
+        } catch (err) {
+          errors.push({
+            template: template.name,
+            error: err?.message || "Failed to sync"
+          });
+        }
+      }
+
+      await logAdminAction(req.admin, "sync_whatsapp_templates", "whatsapp_template_registry", "bulk", {
+        provider,
+        total: templates.length,
+        inserted,
+        updated,
+        failed: errors.length
+      });
+
+      return res.json({
+        provider,
+        total: templates.length,
+        inserted,
+        updated,
+        failed: errors.length,
+        errors: errors.slice(0, 20)
+      });
+    } catch (err) {
+      return res.status(502).json({
+        message: err?.message || "Failed to sync templates from provider"
+      });
+    }
+  }
+);
+
 router.get("/whatsapp/templates/registry", adminAuth, requireAdminPermission("campaigns.read"), async (req, res) => {
   const includeInactive = String(req.query?.includeInactive || "").trim().toLowerCase() === "true";
   const query = includeInactive ? {} : { isActive: true };
@@ -1747,8 +1827,14 @@ router.post("/whatsapp/template-send", adminAuth, requireAdminPermission("campai
     resolvedLanguageCode = String(config.language || "en").trim();
   }
 
-  if (!resolvedTemplateName && !resolvedTemplateId) {
-    return res.status(400).json({ message: "templateName or templateId required" });
+  if (provider === "gupshup" && !resolvedTemplateId) {
+    return res.status(400).json({ 
+      message: "Gupshup requires templateId (UUID). templateName is not supported. " +
+               "Use /admin/whatsapp/templates to fetch approved templates with their UUIDs."
+    });
+  }
+  if (!resolvedTemplateId && !resolvedTemplateName) {
+    return res.status(400).json({ message: "templateId or templateName required" });
   }
 
   const { contacts } = await resolveRecipientContacts(recipientType, contactIds);

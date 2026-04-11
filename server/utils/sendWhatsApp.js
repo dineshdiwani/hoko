@@ -501,6 +501,14 @@ function extractTemplateParameterCount(template) {
 }
 
 function normalizeGupshupTemplateRecord(template) {
+  const uuid = String(
+    template?.id ||
+      template?.templateId ||
+      template?.uuid ||
+      ""
+  ).trim();
+  if (!uuid) return null;
+
   const name = String(
     template?.elementName ||
       template?.name ||
@@ -508,7 +516,6 @@ function normalizeGupshupTemplateRecord(template) {
       template?.template_name ||
       ""
   ).trim();
-  if (!name) return null;
 
   const languageCode = String(
     template?.languageCode ||
@@ -519,8 +526,8 @@ function normalizeGupshupTemplateRecord(template) {
   const status = String(template?.status || template?.templateStatus || "").trim().toUpperCase();
 
   return {
-    id: String(template?.id || template?.templateId || `${name}:${languageCode}`).trim(),
-    name,
+    id: uuid,
+    name: name || uuid,
     status,
     languageCode,
     category: String(template?.category || template?.templateCategory || "").trim(),
@@ -601,9 +608,10 @@ async function sendViaWapiTemplate({ to, templateName, languageCode, parameters 
 
   const response = await axios.post(url, payload, {
     timeout: 15000,
-    headers: buildWapiHeaders()
+    headers: buildGupshupHeaders()
   });
   const data = response?.data || {};
+  console.log(`[Gupshup Template Send] to=${destination} templateId=${resolvedTemplateId} response=`, JSON.stringify(data));
   const statusValue = typeof data.status === "string" ? data.status.trim().toLowerCase() : data.status;
   const explicitFailure =
     data.success === false ||
@@ -644,16 +652,23 @@ async function sendViaGupshupTemplate({ to, templateId, templateName, languageCo
     throw new Error("Missing Gupshup destination");
   }
 
+  const resolvedTemplateId = String(templateId || "").trim();
+  if (!resolvedTemplateId) {
+    throw new Error(
+      "Gupshup template send requires templateId (UUID). " +
+      "templateName is not supported for sending. " +
+      "Use fetchGupshupApprovedTemplates() to get the template UUID."
+    );
+  }
+
   const payload = buildGupshupFormPayload({
     channel: "whatsapp",
     source,
     destination,
     "src.name": String(process.env.GUPSHUP_APP_NAME || process.env.APP_NAME || "Hoko").trim(),
     template: JSON.stringify({
-      id: String(templateId || templateName || "").trim(),
-      ...(templateName ? { name: String(templateName).trim() } : {}),
-      params: parameters.map((parameter) => String(parameter || "").trim()),
-      ...(languageCode ? { lang: String(languageCode).trim() } : {})
+      id: resolvedTemplateId,
+      params: parameters.map((parameter) => String(parameter || "").trim())
     })
   });
 

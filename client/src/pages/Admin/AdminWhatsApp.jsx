@@ -1239,14 +1239,36 @@ export default function AdminWhatsApp() {
                       Use uploaded approved template registry and send to seller or buyer contact lists.
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={loadTemplates}
-                    disabled={loadingTemplates}
-                    className="px-3 py-2 rounded-lg text-sm font-semibold border border-gray-300 disabled:opacity-60"
-                  >
-                    {loadingTemplates ? "Refreshing..." : "Refresh Templates"}
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!confirm("Sync will update registry with latest variable counts from provider. Continue?")) return;
+                        try {
+                          setLoadingTemplates(true);
+                          const res = await api.post("/admin/whatsapp/templates/sync");
+                          alert(`Synced: ${res.data.inserted} inserted, ${res.data.updated} updated`);
+                          await loadTemplates();
+                        } catch (err) {
+                          alert(err?.response?.data?.message || "Sync failed");
+                        } finally {
+                          setLoadingTemplates(false);
+                        }
+                      }}
+                      disabled={loadingTemplates}
+                      className="px-3 py-2 rounded-lg text-sm font-semibold bg-green-600 text-white hover:bg-green-700 disabled:opacity-60"
+                    >
+                      Sync from Provider
+                    </button>
+                    <button
+                      type="button"
+                      onClick={loadTemplates}
+                      disabled={loadingTemplates}
+                      className="px-3 py-2 rounded-lg text-sm font-semibold border border-gray-300 disabled:opacity-60"
+                    >
+                      {loadingTemplates ? "Refreshing..." : "Refresh Templates"}
+                    </button>
+                  </div>
                 </div>
                 <div className="text-xs text-gray-600">
                   BSP templates: {approvedTemplates.length} | Uploaded registry templates: {templateRegistry.length}
