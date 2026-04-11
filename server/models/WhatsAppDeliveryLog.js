@@ -14,7 +14,7 @@ const whatsAppDeliveryLogSchema = new mongoose.Schema(
     },
     triggerType: {
       type: String,
-      enum: ["buyer_post", "manual_resend", "manual_test", "manual_queue", "template_send"],
+      enum: ["buyer_post", "buyer_invite", "buyer_requirement_ack", "manual_resend", "manual_test", "manual_queue", "template_send"],
       default: "buyer_post"
     },
     channel: {
