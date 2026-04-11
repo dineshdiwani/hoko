@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { getSession, setSession } from "../../services/storage";
 import { fetchOptions } from "../../services/options";
 import api from "../../services/api";
@@ -11,6 +11,8 @@ export default function UserLogin({ role = "buyer" }) {
   const isSeller = role === "seller";
   const currentRole = isSeller ? "seller" : "buyer";
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const mobileFromUrl = searchParams.get("mobile") || "";
   const postLoginRedirect = String(
     localStorage.getItem("post_login_redirect") || ""
   ).trim();
@@ -247,7 +249,8 @@ export default function UserLogin({ role = "buyer" }) {
         otp,
         role: currentRole,
         city,
-        acceptTerms: acceptedTerms
+        acceptTerms: acceptedTerms,
+        mobile: mobileFromUrl
       })
       .then(async (res) => {
         const user = res.data.user || {};
@@ -331,7 +334,8 @@ export default function UserLogin({ role = "buyer" }) {
         credential,
         role: currentRole,
         city: selectedCity,
-        acceptTerms: hasAcceptedTerms
+        acceptTerms: hasAcceptedTerms,
+        mobile: mobileFromUrl
       })
       .then(async (res) => {
         const user = res.data.user || {};

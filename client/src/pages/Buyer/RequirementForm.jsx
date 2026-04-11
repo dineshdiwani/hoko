@@ -470,13 +470,23 @@ export default function RequirementForm({ isPublic = false }) {
         unit: payload.type
       });
 
-      alert(
-        isEditMode
-          ? "Requirement updated successfully"
-          : "Requirement posted successfully"
-      );
-      navigate(isPublic ? "/" : "/buyer/dashboard", { replace: true });
-    } catch {
+      if (isPublic) {
+        const confirmed = window.confirm(
+          "Your requirement has been posted successfully!\n\nPlease login to get notified on mobile.\n\nClick OK to login."
+        );
+        if (confirmed) {
+          navigate("/buyer/login", { replace: true });
+        }
+      } else {
+        alert(
+          isEditMode
+            ? "Requirement updated successfully"
+            : "Requirement posted successfully"
+        );
+        navigate("/buyer/dashboard", { replace: true });
+      }
+    } catch (err) {
+      console.error("Requirement submit error:", err);
       alert(
         isEditMode
           ? "Failed to update requirement. Try again."

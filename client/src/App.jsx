@@ -271,7 +271,8 @@ function AppShell() {
         {/* Buyer */}
         <Route path="/buyer/login" element={<BuyerLogin />} />
         
-        {/* Public post requirement route - accessible without login */}
+        {/* Public post requirement routes - accessible without login */}
+        <Route path="/post-requirement" element={<RequirementForm isPublic={true} />} />
         <Route path="/buyer/requirement/new" element={<RequirementForm isPublic={true} />} />
 
         <Route
@@ -311,17 +312,6 @@ function AppShell() {
           element={
             requireBuyer() ? (
               <BuyerSettings />
-            ) : (
-              <Navigate to="/buyer/login" replace />
-            )
-          }
-        />
-
-        <Route
-          path="/buyer/requirement/new"
-          element={
-            requireBuyer() ? (
-              <RequirementForm />
             ) : (
               <Navigate to="/buyer/login" replace />
             )
