@@ -431,11 +431,20 @@ router.post("/requirement/public", async (req, res) => {
   }
 
   let refId = ref.trim();
-  const hexMatch = refId.match(/([a-f0-9]{20,24})/i);
-  if (hexMatch) {
-    refId = hexMatch[1];
-    console.log("[Public Requirement] Extracted refId:", refId);
+  try {
+    const decoded = decodeURIComponent(refId);
+    const idMatch = decoded.match(/([a-f0-9]{20,24})/i);
+    if (idMatch) {
+      refId = idMatch[1];
+    }
+  } catch {
+    const idMatch = refId.match(/([a-f0-9]{20,24})/i);
+    if (idMatch) {
+      refId = idMatch[1];
+    }
   }
+
+  console.log("[Public Requirement] Extracted refId:", refId);
 
   let tempRequirement = null;
   try {
@@ -465,7 +474,6 @@ router.post("/requirement/public", async (req, res) => {
     return res.status(410).json({ message: "Reference has expired. Please start again from WhatsApp." });
   }
 
-  const mobileE164 = tempRequirement.mobileE164;
   const { user: softUser } = await findOrCreateSoftUserByMobile(mobileE164, city);
 
   const moderationRules = await getModerationRules();

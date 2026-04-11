@@ -43,19 +43,15 @@ export default function RequirementForm({ isPublic = false }) {
   const { id: requirementId } = useParams();
   const [searchParams] = useSearchParams();
   const rawRef = searchParams.get("ref") || "";
+  console.log("[RequirementForm] rawRef:", rawRef);
   let tempRequirementRef = rawRef;
-  if (rawRef.includes("ref=")) {
-    const match = rawRef.match(/ref=([a-f0-9]+)/i);
-    if (match) {
-      tempRequirementRef = match[1];
-    } else {
-      try {
-        const url = new URL(rawRef);
-        tempRequirementRef = url.searchParams.get("ref") || rawRef;
-      } catch {
-        tempRequirementRef = rawRef.split("/ref=").pop() || rawRef;
-      }
-    }
+  
+  const decodedRef = decodeURIComponent(rawRef);
+  console.log("[RequirementForm] decodedRef:", decodedRef);
+  const idMatch = decodedRef.match(/ref=([a-f0-9]{20,24})/i);
+  if (idMatch) {
+    tempRequirementRef = idMatch[1];
+    console.log("[RequirementForm] Extracted ID:", tempRequirementRef);
   }
   const isEditMode = Boolean(requirementId);
   const session = getSession();
