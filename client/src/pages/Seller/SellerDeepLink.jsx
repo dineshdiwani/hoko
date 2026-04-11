@@ -218,6 +218,10 @@ export default function SellerDeepLink() {
   };
 
   useEffect(() => {
+    console.log("[SellerDeepLink] requirementIdValue:", requirementIdValue);
+    console.log("[SellerDeepLink] routeRequirementId:", routeRequirementId);
+    console.log("[SellerDeepLink] queryPostId:", queryPostId);
+    console.log("[SellerDeepLink] params:", Object.fromEntries(params.entries()));
     if (!requirementIdValue) {
       navigate("/seller/login", { replace: true });
       return;
