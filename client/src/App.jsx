@@ -357,6 +357,10 @@ function AppShell() {
           path="/seller/deeplink/:requirementId"
           element={<SellerDeepLink />}
         />
+        <Route
+          path="/seller/offer/new"
+          element={<SellerDeepLink />}
+        />
 
         <Route
           path="/seller/dashboard"

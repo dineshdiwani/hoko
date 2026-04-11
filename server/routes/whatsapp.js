@@ -8,10 +8,12 @@ const WhatsAppDeliveryLog = require("../models/WhatsAppDeliveryLog");
 const WhatsAppLead = require("../models/WhatsAppLead");
 const WhatsAppContact = require("../models/WhatsAppContact");
 const WhatsAppBuyerContact = require("../models/WhatsAppBuyerContact");
+const OptedInSeller = require("../models/OptedInSeller");
 const { sendWhatsAppMessage } = require("../utils/sendWhatsApp");
 const { sendViaGupshupTemplate, sendViaWapiTemplate } = require("../utils/sendWhatsApp");
 const { resolvePublicAppUrl } = require("../utils/publicAppUrl");
 const WhatsAppTemplateRegistry = require("../models/WhatsAppTemplateRegistry");
+const PlatformSettings = require("../models/PlatformSettings");
 const {
   classifyInboundText,
   extractDeliveryEvents,
@@ -24,6 +26,182 @@ router.use(express.urlencoded({ extended: false }));
 
 const CONSENT_CONFIRM_WORDS = new Set(["yes", "y", "confirm", "i agree", "agree"]);
 const GREETING_WORDS = new Set(["hi", "hii", "hello", "hey", "start", "menu"]);
+const SELLER_OPT_IN_WORDS = new Set(["sell", "seller", "register as seller", "i want to sell", "want to sell", "join as seller"]);
+
+const sellerOptInState = new Map();
+
+function buildSellerOptInWelcomeMessage() {
+  return [
+    "Welcome to Hoko Seller!",
+    "",
+    "To receive requirement notifications in your city, please share your city name."
+  ].join("\n");
+}
+
+function buildSellerOptInCityReceivedMessage(city) {
+  return [
+    `Got it! You will receive requirement notifications for ${city}.`,
+    "",
+    "To start receiving requirements, download the Hoko Seller app: https://hokoapp.in/seller",
+    "",
+    "Reply CITY to change your city."
+  ].join("\n");
+}
+
+function normalizeCityName(city) {
+  return String(city || "").trim().toLowerCase().replace(/[^a-z0-9\s]/g, "");
+}
+
+function getSellerOptInStateKey(mobileE164) {
+  return `seller_optin:${mobileE164}`;
+}
+
+async function handleSellerOptIn(mobileE164, text, cityMap = []) {
+  const key = getSellerOptInStateKey(mobileE164);
+  const state = sellerOptInState.get(key);
+
+  if (!state) {
+    sellerOptInState.set(key, { step: "awaiting_city", mobileE164, startedAt: Date.now() });
+    return { responded: true, message: buildSellerOptInWelcomeMessage() };
+  }
+
+  if (state.step === "awaiting_city") {
+    const inputCity = normalizeCityName(text);
+    if (inputCity === "city") {
+      return { responded: true, message: "Please enter your city name." };
+    }
+
+    const matchedCity = (cityMap || []).find(c => normalizeCityName(c) === inputCity);
+    const cityToSave = matchedCity || text.trim();
+
+    await OptedInSeller.findOneAndUpdate(
+      { mobileE164 },
+      {
+        $set: {
+          mobileE164,
+          mobile: mobileE164.replace(/^\+/, ""),
+          city: cityToSave,
+          source: "whatsapp_keyword",
+          status: "active",
+          optedInAt: new Date()
+        }
+      },
+      { upsert: true, new: true }
+    );
+
+    sellerOptInState.delete(key);
+
+    return { responded: true, message: buildSellerOptInCityReceivedMessage(cityToSave), city: cityToSave };
+  }
+
+  return { responded: false };
+}
+
+async function sendSellerRequirementInvite(to, requirementId, product, city, quantity) {
+  const provider = resolveWhatsAppProvider();
+  if (!["gupshup", "wapi"].includes(provider)) {
+    console.log(`[Seller Invite] Provider ${provider} not supported for template send`);
+    return { ok: false, reason: "unsupported_provider" };
+  }
+
+  const appBase = resolvePublicAppUrl();
+  const deepLink = `${appBase}/seller/offer/new?ref=${requirementId}`;
+
+  const templateConfig = await WhatsAppTemplateRegistry.findOne({
+    key: "seller_new_requirement_invite_v2",
+    isActive: true
+  }).lean();
+
+  if (!templateConfig) {
+    console.warn("[Seller Invite] Template config not found for seller_new_requirement_invite_v2");
+    return { ok: false, reason: "template_not_configured" };
+  }
+
+  try {
+    const templateId = String(templateConfig.templateId || "").trim();
+    const languageCode = String(templateConfig.language || "en").trim();
+    const parameters = [product, city, quantity, deepLink];
+
+    const result = provider === "gupshup"
+      ? await sendViaGupshupTemplate({
+          to,
+          templateId,
+          templateName: templateConfig.templateName,
+          languageCode,
+          parameters
+        })
+      : await sendViaWapiTemplate({
+          to,
+          templateName: templateConfig.templateName,
+          languageCode,
+          parameters
+        });
+
+    console.log(`[Seller Invite] Sent to ${to}, providerMessageId: ${result?.providerMessageId}`);
+    return { ok: true, providerMessageId: result?.providerMessageId, deepLink };
+  } catch (err) {
+    console.error(`[Seller Invite] Failed to send to ${to}:`, err?.message || err);
+    return { ok: false, reason: err?.message || "send_failed" };
+  }
+}
+
+async function notifyMatchingSellers(requirement) {
+  const requirementId = requirement._id;
+  const product = requirement.productName || requirement.product || "New requirement";
+  const city = requirement.city || "";
+  const category = requirement.category || "";
+  const quantity = String(requirement.quantity || "") + " " + String(requirement.type || "pcs");
+
+  const results = { optedIn: [], registered: [], failed: [] };
+
+  const optedInSellers = await OptedInSeller.find({
+    city,
+    status: "active",
+    ...(category ? { categories: category } : {})
+  }).lean();
+
+  for (const seller of optedInSellers) {
+    const sendResult = await sendSellerRequirementInvite(
+      seller.mobileE164,
+      requirementId,
+      product,
+      city,
+      quantity
+    );
+
+    await WhatsAppDeliveryLog.create({
+      requirementId,
+      campaignRunId: null,
+      triggerType: "seller_requirement_notify",
+      channel: "whatsapp",
+      mobileE164: seller.mobileE164,
+      email: "",
+      status: sendResult.ok ? "accepted" : "failed",
+      reason: sendResult.ok ? "" : sendResult.reason,
+      provider: resolveWhatsAppProvider(),
+      providerMessageId: sendResult.providerMessageId || "",
+      city,
+      category,
+      product: product,
+      createdByAdminId: null
+    });
+
+    if (sendResult.ok) {
+      results.optedIn.push(seller.mobileE164);
+      await OptedInSeller.findByIdAndUpdate(seller._id, {
+        $set: { lastNotifiedAt: new Date() },
+        $inc: { totalNotificationsSent: 1 }
+      });
+    } else {
+      results.failed.push(seller.mobileE164);
+    }
+  }
+
+  console.log(`[Seller Notify] Notified ${results.optedIn.length} opted-in sellers for requirement ${requirementId}`);
+  return results;
+}
+
+module.exports = { notifyMatchingSellers };
 
 function firstNonEmpty(values) {
   for (const value of values) {
@@ -445,6 +623,36 @@ router.post("/webhook", async (req, res) => {
       continue;
     }
 
+    // Handle seller opt-in keywords
+    if (SELLER_OPT_IN_WORDS.has(normalizedInbound) || normalizedInbound.includes("sell")) {
+      const citiesData = await PlatformSettings.findOne({ key: "cities" }).lean();
+      const cities = citiesData?.value || [];
+      const optInResult = await handleSellerOptIn(event.mobileE164, event.text, cities);
+      if (optInResult.responded) {
+        await sendWhatsAppMessage({
+          to: event.mobileE164,
+          body: optInResult.message
+        });
+        console.log(`[Seller OptIn] ${event.mobileE164} - ${optInResult.message.includes("receive") ? "opted in" : "awaiting city"}`);
+        continue;
+      }
+    }
+
+    // Check if user is in seller opt-in flow
+    const optInKey = getSellerOptInStateKey(event.mobileE164);
+    if (sellerOptInState.has(optInKey)) {
+      const citiesData = await PlatformSettings.findOne({ key: "cities" }).lean();
+      const cities = citiesData?.value || [];
+      const optInResult = await handleSellerOptIn(event.mobileE164, event.text, cities);
+      if (optInResult.responded) {
+        await sendWhatsAppMessage({
+          to: event.mobileE164,
+          body: optInResult.message
+        });
+        continue;
+      }
+    }
+
     const intent = classifyInboundText(event.text);
     const registerPayload = intent.kind === "register"
       ? parseRegisterPayload(event.text)
@@ -543,5 +751,6 @@ router.post("/webhook", async (req, res) => {
 });
 
 module.exports = router;
+module.exports.notifyMatchingSellers = notifyMatchingSellers;
 
 

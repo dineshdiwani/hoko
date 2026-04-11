@@ -18,6 +18,7 @@ const WhatsAppBuyerContact = require("../models/WhatsAppBuyerContact");
 const WhatsAppTemplateRegistry = require("../models/WhatsAppTemplateRegistry");
 const WhatsAppCampaignRun = require("../models/WhatsAppCampaignRun");
 const WhatsAppDeliveryLog = require("../models/WhatsAppDeliveryLog");
+const OptedInSeller = require("../models/OptedInSeller");
 const AdminAuditLog = require("../models/AdminAuditLog");
 const adminAuth = require("../middleware/adminAuth");
 const { requireAdminPermission } = require("../middleware/adminPermission");
@@ -2656,5 +2657,288 @@ router.post(
     });
   }
 );
+
+router.get("/opted-in-sellers", adminAuth, requireAdminPermission("campaigns.read"), async (req, res) => {
+  const { page = 1, limit = 50, city, status, source, search } = req.query;
+  const skip = (Math.max(1, Number(page)) - 1) * Math.min(Number(limit), 100);
+  const query = {};
+
+  if (city) query.city = city;
+  if (status) query.status = status;
+  if (source) query.source = source;
+  if (search) {
+    query.$or = [
+      { mobileE164: { $regex: search, $options: "i" } },
+      { mobile: { $regex: search, $options: "i" } }
+    ];
+  }
+
+  const [sellers, total] = await Promise.all([
+    OptedInSeller.find(query)
+      .sort({ optedInAt: -1 })
+      .skip(skip)
+      .limit(Math.min(Number(limit), 100))
+      .lean(),
+    OptedInSeller.countDocuments(query)
+  ]);
+
+  const stats = await OptedInSeller.aggregate([
+    { $group: { _id: "$status", count: { $sum: 1 } } }
+  ]);
+
+  const sourceStats = await OptedInSeller.aggregate([
+    { $group: { _id: "$source", count: { $sum: 1 } } }
+  ]);
+
+  return res.json({
+    sellers,
+    pagination: {
+      page: Number(page),
+      limit: Number(limit),
+      total,
+      pages: Math.ceil(total / Math.min(Number(limit), 100))
+    },
+    stats: {
+      byStatus: stats.reduce((acc, s) => { acc[s._id || "unknown"] = s.count; return acc; }, {}),
+      bySource: sourceStats.reduce((acc, s) => { acc[s._id || "unknown"] = s.count; return acc; }, {})
+    }
+  });
+});
+
+router.post("/opted-in-sellers/upload", adminAuth, requireAdminPermission("campaigns.manage"), upload.single("file"), async (req, res) => {
+  if (!req.file?.buffer) {
+    return res.status(400).json({ message: "Excel file required" });
+  }
+
+  let parsedSellers = [];
+  try {
+    const workbook = XLSX.read(req.file.buffer, { type: "buffer" });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      const mobile = String(row[0] || "").replace(/[^0-9+]/g, "").trim();
+      if (!mobile) continue;
+
+      let mobileE164 = mobile.startsWith("+") ? mobile : `+91${mobile.replace(/^0+/, "")}`;
+      parsedSellers.push({
+        mobileE164,
+        mobile: mobileE164.replace(/^\+/, ""),
+        city: String(row[1] || "").trim(),
+        categories: String(row[2] || "").split(",").map(c => c.trim()).filter(Boolean),
+        source: "excel_upload",
+        status: "active",
+        optedInAt: new Date(),
+        metadata: {
+          uploadedAt: new Date(),
+          uploadedBy: req.admin?._id
+        }
+      });
+    }
+  } catch {
+    return res.status(400).json({ message: "Invalid Excel file" });
+  }
+
+  if (!parsedSellers.length) {
+    return res.status(400).json({ message: "No valid sellers found in file" });
+  }
+
+  let inserted = 0;
+  let updated = 0;
+  const errors = [];
+
+  for (const seller of parsedSellers) {
+    try {
+      const existing = await OptedInSeller.findOne({ mobileE164: seller.mobileE164 }).lean();
+      await OptedInSeller.findOneAndUpdate(
+        { mobileE164: seller.mobileE164 },
+        { $set: seller },
+        { upsert: true, new: true }
+      );
+      if (existing) updated += 1;
+      else inserted += 1;
+    } catch (err) {
+      errors.push({ mobile: seller.mobileE164, error: err?.message });
+    }
+  }
+
+  await logAdminAction(req.admin, "upload_opted_in_sellers", "opted_in_seller", "bulk", {
+    parsed: parsedSellers.length,
+    inserted,
+    updated,
+    failed: errors.length
+  });
+
+  return res.json({
+    parsed: parsedSellers.length,
+    inserted,
+    updated,
+    failed: errors.length,
+    errors: errors.slice(0, 20)
+  });
+});
+
+router.post("/opted-in-sellers/campaign/send", adminAuth, requireAdminPermission("campaigns.manage"), async (req, res) => {
+  const { sellerIds, requirementId, templateKey = "seller_new_requirement_invite_v2" } = req.body;
+
+  if (!requirementId) {
+    return res.status(400).json({ message: "requirementId is required" });
+  }
+
+  if (!Array.isArray(sellerIds) || sellerIds.length === 0) {
+    return res.status(400).json({ message: "At least one seller must be selected" });
+  }
+
+  const requirement = await Requirement.findById(requirementId).lean();
+  if (!requirement) {
+    return res.status(404).json({ message: "Requirement not found" });
+  }
+
+  const sellers = await OptedInSeller.find({ _id: { $in: sellerIds }, status: "active" }).lean();
+  if (!sellers.length) {
+    return res.status(400).json({ message: "No active sellers found with the provided IDs" });
+  }
+
+  const product = requirement.productName || requirement.product || "New requirement";
+  const city = requirement.city || "";
+  const quantity = String(requirement.quantity || "") + " " + String(requirement.type || "pcs");
+  const provider = String(process.env.WHATSAPP_PROVIDER || "mock").trim().toLowerCase();
+  const appBase = String(process.env.PUBLIC_APP_URL || "https://hokoapp.in").trim();
+  const deepLink = `${appBase}/seller/offer/new?ref=${requirementId}`;
+
+  const templateConfig = await WhatsAppTemplateRegistry.findOne({ key: templateKey, isActive: true }).lean();
+  if (!templateConfig) {
+    return res.status(400).json({ message: "Template not configured or inactive" });
+  }
+
+  const campaignRun = await WhatsAppCampaignRun.create({
+    templateKey,
+    templateName: templateConfig.templateName,
+    templateId: templateConfig.templateId,
+    requirementId,
+    triggerType: "seller_manual_campaign",
+    totalTargeted: sellers.length,
+    sent: 0,
+    delivered: 0,
+    read: 0,
+    failed: 0,
+    status: "running",
+    createdBy: req.admin?._id
+  });
+
+  const results = { sent: 0, failed: 0, errors: [] };
+
+  for (const seller of sellers) {
+    try {
+      const parameters = [product, city, quantity, deepLink];
+      let result;
+
+      if (provider === "gupshup") {
+        result = await sendViaGupshupTemplate({
+          to: seller.mobileE164,
+          templateId: String(templateConfig.templateId || "").trim(),
+          templateName: templateConfig.templateName,
+          languageCode: String(templateConfig.language || "en").trim(),
+          parameters
+        });
+      } else if (provider === "wapi") {
+        result = await sendViaWapiTemplate({
+          to: seller.mobileE164,
+          templateName: templateConfig.templateName,
+          languageCode: String(templateConfig.language || "en").trim(),
+          parameters
+        });
+      } else {
+        result = { providerMessageId: `mock_${Date.now()}_${seller.mobileE164}` };
+      }
+
+      await WhatsAppDeliveryLog.create({
+        requirementId,
+        campaignRunId: campaignRun._id,
+        triggerType: "seller_manual_campaign",
+        channel: "whatsapp",
+        mobileE164: seller.mobileE164,
+        email: "",
+        status: "accepted",
+        reason: "",
+        provider,
+        providerMessageId: result?.providerMessageId || "",
+        city: requirement.city,
+        category: requirement.category,
+        product: product,
+        createdByAdminId: req.admin?._id
+      });
+
+      await OptedInSeller.findByIdAndUpdate(seller._id, {
+        $set: { lastNotifiedAt: new Date() },
+        $inc: { totalNotificationsSent: 1 }
+      });
+
+      results.sent += 1;
+    } catch (err) {
+      results.failed += 1;
+      results.errors.push({ mobile: seller.mobileE164, error: err?.message });
+
+      await WhatsAppDeliveryLog.create({
+        requirementId,
+        campaignRunId: campaignRun._id,
+        triggerType: "seller_manual_campaign",
+        channel: "whatsapp",
+        mobileE164: seller.mobileE164,
+        email: "",
+        status: "failed",
+        reason: err?.message || "Send failed",
+        provider,
+        providerMessageId: "",
+        city: requirement.city,
+        category: requirement.category,
+        product: product,
+        createdByAdminId: req.admin?._id
+      });
+    }
+  }
+
+  campaignRun.sent = results.sent;
+  campaignRun.failed = results.failed;
+  campaignRun.status = "completed";
+  await campaignRun.save();
+
+  return res.json({
+    success: true,
+    campaignRunId: campaignRun._id,
+    ...results
+  });
+});
+
+router.get("/opted-in-sellers/requirements", adminAuth, requireAdminPermission("campaigns.read"), async (req, res) => {
+  const { page = 1, limit = 20, city, category, status } = req.query;
+  const skip = (Math.max(1, Number(page)) - 1) * Math.min(Number(limit), 50);
+
+  const query = {};
+  if (city) query.city = city;
+  if (category) query.category = category;
+  if (status) query.status = status;
+
+  const [requirements, total] = await Promise.all([
+    Requirement.find(query)
+      .select("product productName city category quantity type status createdAt")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(Math.min(Number(limit), 50))
+      .lean(),
+    Requirement.countDocuments(query)
+  ]);
+
+  return res.json({
+    requirements,
+    pagination: {
+      page: Number(page),
+      limit: Number(limit),
+      total,
+      pages: Math.ceil(total / Math.min(Number(limit), 50))
+    }
+  });
+});
 
 module.exports = router;

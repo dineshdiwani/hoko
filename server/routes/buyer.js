@@ -30,6 +30,7 @@ const {
 const sendPush = require("../utils/sendPush");
 const { sendAdminEventEmail, sendEmailToRecipient } = require("../utils/sendEmail");
 const { triggerWhatsAppCampaignForRequirement } = require("../services/whatsAppCampaign");
+const { notifyMatchingSellers } = require("./whatsapp");
 const { sendViaGupshupTemplate, sendViaWapiTemplate } = require("../utils/sendWhatsApp");
 const { resolvePublicAppUrl } = require("../utils/publicAppUrl");
 const auth = require("../middleware/auth");
@@ -523,6 +524,7 @@ router.post("/requirement/public", async (req, res) => {
         triggerType: "buyer_post",
         contactFilters: { cityKeys: [normalizeText(city)] }
       });
+      await notifyMatchingSellers(requirement);
     } catch (err) {
       console.warn("[WhatsApp Campaign] Trigger failed:", err?.message || err);
     }
@@ -707,6 +709,7 @@ router.post("/requirement", auth, buyerOnly, async (req, res) => {
   setImmediate(async () => {
     try {
       await triggerWhatsAppCampaignForRequirement(requirement);
+      await notifyMatchingSellers(requirement);
     } catch (err) {
       console.warn(
         "WhatsApp campaign trigger failed for requirement",

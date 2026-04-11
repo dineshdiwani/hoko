@@ -11,6 +11,7 @@ const Notification = require("../models/Notification");
 const ChatMessage = require("../models/ChatMessage");
 const PlatformSettings = require("../models/PlatformSettings");
 const PendingOfferDraft = require("../models/PendingOfferDraft");
+const OptedInSeller = require("../models/OptedInSeller");
 const auth = require("../middleware/auth");
 const sellerOnly = require("../middleware/sellerOnly");
 const sendPush = require("../utils/sendPush");
@@ -516,6 +517,133 @@ router.post(
     });
   }
 );
+
+/**
+ * Get requirement details for public offer (deep link)
+ */
+router.get("/offer/requirement/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const requirement = await Requirement.findById(id)
+      .select("product productName city category quantity type details offerInvitedFrom status buyerId")
+      .lean();
+
+    if (!requirement) {
+      return res.status(404).json({ message: "Requirement not found" });
+    }
+
+    const effectiveStatus = requirement.status === "open" ? "open" : "closed";
+    if (effectiveStatus !== "open") {
+      return res.status(410).json({ message: "This requirement is no longer accepting offers" });
+    }
+
+    return res.json({
+      requirement: {
+        _id: requirement._id,
+        product: requirement.product || requirement.productName,
+        city: requirement.city,
+        category: requirement.category,
+        quantity: requirement.quantity,
+        unit: requirement.type,
+        details: requirement.details,
+        status: effectiveStatus
+      }
+    });
+  } catch (err) {
+    console.error("[Public Offer] Error:", err?.message || err);
+    return res.status(500).json({ message: "Failed to load requirement" });
+  }
+});
+
+/**
+ * Submit offer on requirement (public - for opted-in sellers)
+ */
+router.post("/offer/public", async (req, res) => {
+  try {
+    const {
+      requirementId,
+      price,
+      message,
+      deliveryTime,
+      paymentTerms,
+      mobile,
+      email,
+      firmName,
+      sellerName
+    } = req.body;
+
+    if (!requirementId) {
+      return res.status(400).json({ message: "requirementId is required" });
+    }
+
+    if (!mobile) {
+      return res.status(400).json({ message: "mobile is required for public offers" });
+    }
+
+    const requirement = await Requirement.findById(requirementId);
+    if (!requirement) {
+      return res.status(404).json({ message: "Requirement not found" });
+    }
+
+    if (requirement.status !== "open") {
+      return res.status(400).json({
+        message: "This requirement is no longer open for offers"
+      });
+    }
+
+    const mobileE164 = mobile.startsWith("+") ? mobile : `+91${mobile}`;
+
+    let sellerUser = null;
+    const existingUser = await User.findOne({ mobile: mobileE164 }).select("_id roles").lean();
+    if (existingUser && existingUser.roles?.seller) {
+      sellerUser = existingUser;
+    }
+
+    const moderationRules = await getModerationRules();
+    const flaggedReason = checkTextForFlags(message || "", moderationRules);
+
+    if (sellerUser) {
+      return res.status(403).json({
+        message: "You are already registered as a seller. Please login to submit your offer.",
+        requiresLogin: true,
+        redirectTo: "/seller/login"
+      });
+    }
+
+    await PendingOfferDraft.findOneAndUpdate(
+      {
+        mobileE164,
+        requirementId: requirement._id,
+        status: "pending"
+      },
+      {
+        $set: {
+          mobileE164,
+          requirementId: requirement._id,
+          source: { type: "whatsapp_deep_link" },
+          price: price || 0,
+          deliveryDays: deliveryTime,
+          note: message,
+          rawMessage: message,
+          sellerEmail: email,
+          sellerFirmName: firmName,
+          sellerName: sellerName
+        }
+      },
+      { upsert: true, new: true }
+    );
+
+    return res.json({
+      success: true,
+      message: "Offer submitted successfully! You will be notified when the buyer responds.",
+      pendingOffer: true,
+      requirementId: requirement._id
+    });
+  } catch (err) {
+    console.error("[Public Offer] Error:", err?.message || err);
+    return res.status(500).json({ message: "Failed to submit offer" });
+  }
+});
 
 /**
  * Submit offer on requirement

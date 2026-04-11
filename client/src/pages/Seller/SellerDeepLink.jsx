@@ -61,7 +61,7 @@ export default function SellerDeepLink() {
   }, [params]);
   const routeRequirementId = extractObjectId(requirementId);
   const queryPostId = extractObjectId(
-    packedData.postId || packedData.requirementId || params.get("postId")
+    packedData.postId || packedData.requirementId || params.get("postId") || params.get("ref")
   );
   const routeIdValid = OBJECT_ID_REGEX.test(routeRequirementId);
   const queryIdValid = OBJECT_ID_REGEX.test(queryPostId);
