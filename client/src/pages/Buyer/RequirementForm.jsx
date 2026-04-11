@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { fetchOptions } from "../../services/options";
 import api from "../../services/api";
 import { getSession } from "../../services/auth";
@@ -38,9 +38,11 @@ function saveLastRequirementPrefs({ city, category, unit }) {
   } catch {}
 }
 
-export default function RequirementForm() {
+export default function RequirementForm({ isPublic = false }) {
   const navigate = useNavigate();
   const { id: requirementId } = useParams();
+  const [searchParams] = useSearchParams();
+  const tempRequirementRef = searchParams.get("ref") || "";
   const isEditMode = Boolean(requirementId);
   const session = getSession();
   const sessionCity = String(session?.city || "").trim();
@@ -454,6 +456,11 @@ export default function RequirementForm() {
 
       if (isEditMode) {
         await api.put(`/buyer/requirement/${requirementId}`, payload);
+      } else if (isPublic && tempRequirementRef) {
+        await api.post("/buyer/requirement/public", {
+          ...payload,
+          ref: tempRequirementRef
+        });
       } else {
         await api.post("/buyer/requirement", payload);
       }
@@ -468,7 +475,7 @@ export default function RequirementForm() {
           ? "Requirement updated successfully"
           : "Requirement posted successfully"
       );
-      navigate("/buyer/dashboard", { replace: true });
+      navigate(isPublic ? "/" : "/buyer/dashboard", { replace: true });
     } catch {
       alert(
         isEditMode

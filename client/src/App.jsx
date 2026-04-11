@@ -270,6 +270,9 @@ function AppShell() {
 
         {/* Buyer */}
         <Route path="/buyer/login" element={<BuyerLogin />} />
+        
+        {/* Public post requirement route - accessible without login */}
+        <Route path="/post-requirement" element={<RequirementForm isPublic={true} />} />
 
         <Route
           path="/buyer/dashboard"
