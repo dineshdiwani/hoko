@@ -132,7 +132,7 @@ async function sendSellerRequirementInvite(to, requirementId, product, city, qua
   try {
     const templateId = String(templateConfig.templateId || "").trim();
     const languageCode = String(templateConfig.language || "en").trim();
-    const parameters = [product, city, quantity, deepLink];
+    const parameters = [String(requirementId), product, city, quantity];
 
     const result = provider === "gupshup"
       ? await sendViaGupshupTemplate({
