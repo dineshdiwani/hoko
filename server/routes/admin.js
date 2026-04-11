@@ -2272,7 +2272,7 @@ router.post("/whatsapp/resend", adminAuth, requireAdminPermission("campaigns.man
       if (eligibility.ok) {
         attempted += 1;
         try {
-          if (!templateParameters.length) {
+          if (templateParameters.length < 4) {
             templateParameters = [
               String(requirement._id),
               requirement.productName || requirement.product || "Item",
