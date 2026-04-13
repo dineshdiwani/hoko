@@ -319,13 +319,29 @@ function normalizeInboundText(value) {
 
 function buildConsentPromptMessage() {
   return [
-    "Thanks for contacting Hoko. To receive WhatsApp updates and offers, please reply YES to confirm consent."
+    "🔥 Welcome to Hoko",
+    "India's smart way to buy & sell 😎",
+    "",
+    "🛒 Want to BUY? → Get multiple offers from sellers",
+    "🏪 Want to SELL? → Get real buyer requirements",
+    "",
+    "👉 Reply with, If you are a",
+    "1️⃣ BUYER",
+    "2️⃣ SELLER"
   ].join("\n");
 }
 
 function buildConsentConfirmedMessage() {
   return [
-    "Consent confirmed. Post your buying requirement here: https://hokoapp.in/ and get the offers from sellers in your city or across India."
+    "🔥 Welcome to Hoko",
+    "India's smart way to buy & sell 😎",
+    "",
+    "🛒 Want to BUY? → Get multiple offers from sellers",
+    "🏪 Want to SELL? → Get real buyer requirements",
+    "",
+    "👉 Reply with, If you are a",
+    "1️⃣ BUYER",
+    "2️⃣ SELLER"
   ].join("\n");
 }
 
