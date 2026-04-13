@@ -43,38 +43,46 @@ function getConsentStateKey(mobileE164) {
 
 function buildRoleSelectionMessage() {
   return [
-    "Are you a Buyer or Seller?",
+    "No problem!",
     "",
-    "Reply BUYER to post your requirement",
-    "Reply SELLER to receive requirements in your city"
+    "🛒 Reply BUYER → To post your requirement",
+    "🏪 Reply SELLER → To receive buyer requirements"
   ].join("\n");
 }
 
 function buildConsentPromptMessage() {
   return [
-    "Thanks for contacting Hoko!",
+    "🔥 Welcome to Hoko",
+    "India's smart way to buy & sell 😎",
     "",
-    "To receive WhatsApp updates about requirements and offers, please reply YES to confirm consent."
+    "🛒 Want to BUY? → Get multiple offers from sellers",
+    "🏪 Want to SELL? → Get real buyer requirements",
+    "",
+    "👉 Reply with, If you are a",
+    "1️⃣ BUYER",
+    "2️⃣ SELLER"
   ].join("\n");
 }
 
 function buildConsentConfirmedBuyerMessage(deepLink) {
   return [
-    "Great! As a buyer, you can:",
+    "Great! You're set as a BUYER 👍",
     "",
-    "• Post your requirement and get offers from sellers",
-    "• Compare offers from multiple sellers",
-    "• Chat with sellers directly",
+    "📝 Click below to post your requirement:",
+    deepLink,
     "",
-    `Click below to post your requirement:\n${deepLink}`
+    "You'll receive offers from sellers on WhatsApp!"
   ].join("\n");
 }
 
 function buildConsentConfirmedSellerMessage(city, deepLink) {
   return [
-    `Got it! You will receive requirement notifications for ${city}.`,
+    "Perfect! You're set as a SELLER 👍",
     "",
-    "Click below to join as a seller:\n" + deepLink
+    `📍 You'll receive requirements for ${city}`,
+    "",
+    "🏪 Click to join:",
+    deepLink
   ].join("\n");
 }
 
@@ -323,10 +331,15 @@ function buildConsentConfirmedMessage() {
 
 function buildGenericHelpMessage() {
   return [
-    "Welcome to Hoko!",
-    "Post your buying requirement and get offers from sellers in your city or across India.",
+    "🔥 Welcome to Hoko",
+    "India's smart way to buy & sell 😎",
     "",
-    "To receive WhatsApp updates about your requirements, please reply YES to confirm consent."
+    "🛒 Want to BUY? → Get multiple offers from sellers",
+    "🏪 Want to SELL? → Get real buyer requirements",
+    "",
+    "👉 Reply with, If you are a",
+    "1️⃣ BUYER",
+    "2️⃣ SELLER"
   ].join("\n");
 }
 
