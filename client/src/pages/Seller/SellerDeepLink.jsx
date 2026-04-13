@@ -264,6 +264,13 @@ export default function SellerDeepLink() {
   };
 
   useEffect(() => {
+    const session = getSession();
+    if (session?.token && session?.roles?.seller && session?.city && !form.sellerCity) {
+      setForm((prev) => ({ ...prev, sellerCity: session.city }));
+    }
+  }, []);
+
+  useEffect(() => {
     const fullUrl = window.location.href;
     const searchParams = new URLSearchParams(window.location.search);
     const refValue = searchParams.get("ref");
