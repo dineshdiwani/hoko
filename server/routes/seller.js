@@ -711,10 +711,10 @@ router.post("/offer/public", async (req, res) => {
         if (mobileE164) {
           const appBase = String(process.env.PUBLIC_APP_URL || "https://hokoapp.in").trim();
           const sellerLoginLink = `${appBase}/seller/login?whatsapp_token=${mobileE164}&ref=${requirementIdStr}`;
-          console.log("[Public Offer] Sending to seller:", { to: mobileE164, templateKey: "seller_quote_received_ack_v1", buttonUrl: sellerLoginLink });
+          console.log("[Public Offer] Sending to seller:", { to: mobileE164, templateKey: "seller_quote_received_ack", buttonUrl: sellerLoginLink });
           await sendWhatsAppTemplate({
             to: mobileE164,
-            templateKey: "seller_quote_received_ack_v1",
+            templateKey: "seller_quote_received_ack",
             parameters: [],
             buttonUrl: sellerLoginLink,
             requirementId: requirementIdStr
@@ -730,10 +730,10 @@ router.post("/offer/public", async (req, res) => {
           const appBase = String(process.env.PUBLIC_APP_URL || "https://hokoapp.in").trim();
           const buyerOfferLink = `${appBase}/buyer/requirement/${requirementIdStr}/offers`;
           const buyerParams = [buyerName, productName, priceStr, buyerOfferLink];
-          console.log("[Public Offer] Sending to buyer:", { to: buyerMobileE164, templateKey: "_buyer_first_offer_alert_v2", params: buyerParams });
+          console.log("[Public Offer] Sending to buyer:", { to: buyerMobileE164, templateKey: "_buyer_first_offer_alert", params: buyerParams });
           await sendWhatsAppTemplate({
             to: buyerMobileE164,
-            templateKey: "_buyer_first_offer_alert_v2",
+            templateKey: "_buyer_first_offer_alert",
             parameters: buyerParams,
             requirementId: requirementIdStr
           });
