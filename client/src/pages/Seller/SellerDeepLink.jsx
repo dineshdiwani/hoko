@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import api from "../../services/api";
 import { getSession, setSession } from "../../services/storage";
+import { fetchOptions } from "../../services/options";
 
 const PENDING_OFFER_KEY = "pending_seller_offer_intent";
 const POST_LOGIN_REDIRECT_SOURCE_KEY = "post_login_redirect_source";
@@ -40,6 +41,7 @@ export default function SellerDeepLink() {
   const [attachments, setAttachments] = useState([]);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [cameraError, setCameraError] = useState("");
+  const [cities, setCities] = useState([]);
   const [form, setForm] = useState({
     price: "",
     message: "",
@@ -235,7 +237,8 @@ export default function SellerDeepLink() {
         deliveryTime: payload.deliveryTime || "",
         paymentTerms: payload.paymentTerms || "",
         mobile: payload.mobile || "",
-        sellerName: payload.sellerName || ""
+        sellerName: payload.sellerName || "",
+        sellerCity: payload.sellerCity || ""
       });
       clearPendingOfferIntent();
       setAttachments([]);
@@ -268,6 +271,16 @@ export default function SellerDeepLink() {
     if (session?.token && session?.roles?.seller && session?.city && !form.sellerCity) {
       setForm((prev) => ({ ...prev, sellerCity: session.city }));
     }
+  }, []);
+
+  useEffect(() => {
+    fetchOptions()
+      .then((data) => {
+        if (Array.isArray(data.cities) && data.cities.length) {
+          setCities(data.cities);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -425,7 +438,7 @@ export default function SellerDeepLink() {
         return;
       }
       if (!sellerCity) {
-        alert("Please enter your city.");
+        alert("Please select your city.");
         return;
       }
       submitOffer(payload);
@@ -642,12 +655,17 @@ export default function SellerDeepLink() {
               className="app-input"
               placeholder="WhatsApp number *"
             />
-            <input
+            <select
               value={form.sellerCity}
               onChange={(e) => setForm((prev) => ({ ...prev, sellerCity: e.target.value }))}
               className="app-input"
-              placeholder="Your city *"
-            />
+              required
+            >
+              <option value="">Select your city *</option>
+              {cities.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
             <input
               value={form.price}
               onChange={(e) => setForm((prev) => ({ ...prev, price: e.target.value }))}
