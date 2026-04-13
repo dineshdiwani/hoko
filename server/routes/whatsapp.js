@@ -139,16 +139,18 @@ async function sendSellerRequirementInvite(to, requirementId, product, city, qua
           templateId,
           templateName: templateConfig.templateName,
           languageCode,
-          parameters
+          parameters,
+          buttonUrl: deepLink
         })
       : await sendViaWapiTemplate({
           to,
           templateName: templateConfig.templateName,
           languageCode,
-          parameters
+          parameters,
+          buttonUrl: deepLink
         });
 
-    console.log(`[Seller Invite] Sent to ${to}, providerMessageId: ${result?.providerMessageId}`);
+    console.log(`[Seller Invite] Sent to ${to}, providerMessageId: ${result?.providerMessageId}, deepLink: ${deepLink}`);
     return { ok: true, providerMessageId: result?.providerMessageId, deepLink };
   } catch (err) {
     console.error(`[Seller Invite] Failed to send to ${to}:`, err?.message || err);

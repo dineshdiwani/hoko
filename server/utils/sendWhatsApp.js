@@ -572,7 +572,7 @@ function buildTemplateComponents(parameters = []) {
   ];
 }
 
-async function sendViaWapiTemplate({ to, templateName, languageCode, parameters = [] }) {
+async function sendViaWapiTemplate({ to, templateName, languageCode, parameters = [], buttonUrl }) {
   const url = resolveWapiTemplateSendUrl();
   if (!url) {
     throw new Error(
@@ -585,6 +585,19 @@ async function sendViaWapiTemplate({ to, templateName, languageCode, parameters 
     .toLowerCase();
   const recipient = normalizeWapiRecipient(to);
   const templateComponents = buildTemplateComponents(parameters);
+  
+  if (buttonUrl) {
+    templateComponents.push({
+      type: "button",
+      sub_type: "url",
+      index: "0",
+      parameters: [{
+        type: "text",
+        text: String(buttonUrl).trim()
+      }]
+    });
+  }
+  
   const payload =
     payloadMode === "flat"
       ? {
@@ -640,7 +653,7 @@ async function sendViaWapiTemplate({ to, templateName, languageCode, parameters 
   };
 }
 
-async function sendViaGupshupTemplate({ to, templateId, templateName, languageCode, parameters = [] }) {
+async function sendViaGupshupTemplate({ to, templateId, templateName, languageCode, parameters = [], buttonUrl }) {
   const url = resolveGupshupTemplateSendUrl();
   const source = resolveGupshupSource();
   const destination = normalizeGupshupRecipient(to);
@@ -661,15 +674,21 @@ async function sendViaGupshupTemplate({ to, templateId, templateName, languageCo
     );
   }
 
+  const templatePayload = {
+    id: resolvedTemplateId,
+    params: parameters.map((parameter) => String(parameter || "").trim())
+  };
+
+  if (buttonUrl) {
+    templatePayload["button-url"] = String(buttonUrl).trim();
+  }
+
   const payload = buildGupshupFormPayload({
     channel: "whatsapp",
     source,
     destination,
     "src.name": String(process.env.GUPSHUP_APP_NAME || process.env.APP_NAME || "Hoko").trim(),
-    template: JSON.stringify({
-      id: resolvedTemplateId,
-      params: parameters.map((parameter) => String(parameter || "").trim())
-    })
+    template: JSON.stringify(templatePayload)
   });
 
   const response = await axios.post(url, payload, {
