@@ -2808,7 +2808,7 @@ router.post("/opted-in-sellers/campaign/send", adminAuth, requireAdminPermission
   const quantity = String(requirement.quantity || "") + " " + String(requirement.type || "pcs");
   const provider = String(process.env.WHATSAPP_PROVIDER || "mock").trim().toLowerCase();
   const appBase = String(process.env.PUBLIC_APP_URL || "https://hokoapp.in").trim();
-  const deepLink = `${appBase}/seller/offer/new?ref=${requirementId}`;
+  const deepLink = `${appBase}/seller/deeplink/${encodeURIComponent(String(requirementId || "").trim())}`;
 
   const templateConfig = await WhatsAppTemplateRegistry.findOne({ key: templateKey, isActive: true }).lean();
   if (!templateConfig) {

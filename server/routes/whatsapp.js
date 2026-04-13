@@ -116,8 +116,7 @@ async function sendSellerRequirementInvite(to, requirementId, product, city, qua
     return { ok: false, reason: "unsupported_provider" };
   }
 
-  const appBase = resolvePublicAppUrl();
-  const deepLink = `${appBase}/seller/offer/new?ref=${requirementId}`;
+  const deepLink = buildSellerDeepLink(requirementId);
 
   const templateConfig = await WhatsAppTemplateRegistry.findOne({
     key: "seller_new_requirement_invite_v2",
