@@ -238,6 +238,7 @@ export default function SellerDeepLink() {
       });
       clearPendingOfferIntent();
       setAttachments([]);
+      console.log("[SellerDeepLink] Offer submitted successfully");
       alert(
         isAuto
           ? "Offer submitted now. Thank you."
@@ -245,9 +246,17 @@ export default function SellerDeepLink() {
       );
       navigate("/seller/login", { replace: true });
     } catch (err) {
-      const message =
-        err?.response?.data?.message || "Failed to submit offer. Try again.";
-      alert(message);
+      console.log("[SellerDeepLink] Submit error:", err);
+      console.log("[SellerDeepLink] Error response:", err?.response?.data);
+      const status = err?.response?.status;
+      const serverMessage = err?.response?.data?.message;
+      if (serverMessage) {
+        alert(serverMessage);
+      } else if (status === 403) {
+        alert("You are not authorized to submit this offer.");
+      } else {
+        alert("Failed to submit offer. Please try again.");
+      }
       setSubmitting(false);
       return;
     }
