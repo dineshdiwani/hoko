@@ -800,24 +800,14 @@ router.post("/offer", auth, sellerOnly, async (req, res) => {
 
       setImmediate(() => {
         (async () => {
-          const sellerName = String(req.user?.name || req.user?.businessName || "Seller").trim();
           const productName = String(requirement.product || requirement.productName || "your requirement").trim();
           const priceStr = String(price || "").trim();
           const requirementIdStr = String(requirement._id || "").trim();
           
-          const sellerParams = [sellerName, productName, priceStr];
-          await sendWhatsAppTemplate({
-            to: sellerMobileE164,
-            templateKey: "seller_quote_received_ack_v1",
-            parameters: sellerParams,
-            requirementId: requirementIdStr
-          });
-          
           const buyerMobileE164 = normalizeE164(buyer?.mobile);
           if (buyerMobileE164) {
             const buyerName = String(buyer?.name || "Buyer").trim();
-            const offerPrice = priceStr;
-            const buyerParams = [buyerName, productName, offerPrice, requirementIdStr];
+            const buyerParams = [buyerName, productName, priceStr, requirementIdStr];
             await sendWhatsAppTemplate({
               to: buyerMobileE164,
               templateKey: "_buyer_first_offer_alert_v2",
@@ -825,7 +815,7 @@ router.post("/offer", auth, sellerOnly, async (req, res) => {
               requirementId: requirementIdStr
             });
           }
-        })().catch((err) => console.error("[WhatsApp] Offer notification error:", err));
+        })().catch((err) => console.error("[WhatsApp] Buyer notification error:", err));
       });
 
       const io = req.app.get("io");
