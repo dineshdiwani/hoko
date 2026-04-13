@@ -248,8 +248,8 @@ export default function SellerDeepLink() {
       const message =
         err?.response?.data?.message || "Failed to submit offer. Try again.";
       alert(message);
-    } finally {
       setSubmitting(false);
+      return;
     }
   };
 
