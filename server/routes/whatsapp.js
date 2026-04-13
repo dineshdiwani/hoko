@@ -601,32 +601,28 @@ router.post("/webhook", async (req, res) => {
       await ensureBuyerProspect(event.mobileE164);
       
       if (currentConsentState === CONSENT_STATES.AWAITING_ROLE) {
-        if (BUYER_WORDS.has(normalizedInbound) || normalizedInbound === "buy") {
+        if (BUYER_WORDS.has(normalizedInbound) || normalizedInbound === "buy" || normalizedInbound === "1") {
           consentState.delete(consentKey);
           await applyConsentConfirmed(await WhatsAppBuyerContact.findOne({ mobileE164: event.mobileE164 }), "buyer", event);
-          const deepLink = await sendBuyerInviteLink(event.mobileE164);
-          await sendWhatsAppMessage({
-            to: event.mobileE164,
-            body: buildConsentConfirmedBuyerMessage(deepLink)
-          });
-          console.log(`[Buyer Invite] New buyer ${event.mobileE164}`);
+          const result = await sendBuyerRequirementInvite(event.mobileE164);
+          console.log(`[Buyer Invite] New buyer ${event.mobileE164}, template sent:`, result);
           continue;
         }
         
-        if (SELLER_WORDS.has(normalizedInbound) || normalizedInbound === "sell") {
+        if (SELLER_WORDS.has(normalizedInbound) || normalizedInbound === "sell" || normalizedInbound === "2") {
           consentState.delete(consentKey);
           consentState.set(consentKey, { step: CONSENT_STATES.AWAITING_SELLER_CITY, mobileE164: event.mobileE164 });
           await applyConsentConfirmed(await WhatsAppBuyerContact.findOne({ mobileE164: event.mobileE164 }), "buyer", event);
           await sendWhatsAppMessage({
             to: event.mobileE164,
-            body: "Please share your city name to receive relevant requirements."
+            body: "Perfect! Share your city name to receive relevant requirements. 📍"
           });
           continue;
         }
         
         await sendWhatsAppMessage({
           to: event.mobileE164,
-          body: "Please reply BUYER or SELLER to continue."
+          body: buildRoleSelectionMessage()
         });
         continue;
       }
@@ -689,23 +685,19 @@ router.post("/webhook", async (req, res) => {
 
     // Handle role selection for opted-in contacts
     if (currentConsentState?.step === CONSENT_STATES.AWAITING_ROLE) {
-      if (BUYER_WORDS.has(normalizedInbound) || normalizedInbound === "buy") {
+      if (BUYER_WORDS.has(normalizedInbound) || normalizedInbound === "buy" || normalizedInbound === "1") {
         consentState.delete(consentKey);
-        const deepLink = await sendBuyerInviteLink(event.mobileE164);
-        await sendWhatsAppMessage({
-          to: event.mobileE164,
-          body: buildConsentConfirmedBuyerMessage(deepLink)
-        });
-        console.log(`[Buyer Invite] Existing buyer ${event.mobileE164}`);
+        const result = await sendBuyerRequirementInvite(event.mobileE164);
+        console.log(`[Buyer Invite] Sent template to ${event.mobileE164}, result:`, result);
         continue;
       }
       
-      if (SELLER_WORDS.has(normalizedInbound) || normalizedInbound === "sell") {
+      if (SELLER_WORDS.has(normalizedInbound) || normalizedInbound === "sell" || normalizedInbound === "2") {
         consentState.delete(consentKey);
         consentState.set(consentKey, { step: CONSENT_STATES.AWAITING_SELLER_CITY, mobileE164: event.mobileE164 });
         await sendWhatsAppMessage({
           to: event.mobileE164,
-          body: "Please share your city name to receive relevant requirements."
+          body: "Perfect! Share your city name to receive relevant requirements. 📍"
         });
         continue;
       }
