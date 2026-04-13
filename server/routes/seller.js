@@ -646,6 +646,7 @@ router.post("/offer/public", async (req, res) => {
     
     const sellerCityInput = String(sellerCity || "").trim();
     const requirementCity = requirement?.city;
+    console.log("[Public Offer] City check:", { inviteMode, effectiveInviteMode, sellerCityInput, requirementCity, cityMatches: cityMatches(sellerCityInput, requirementCity) });
     if (effectiveInviteMode === "city" && !cityMatches(sellerCityInput, requirementCity)) {
       return res.status(403).json({
         message: inviteMode === "anywhere"
@@ -654,7 +655,8 @@ router.post("/offer/public", async (req, res) => {
       });
     }
 
-    const mobileE164 = mobile.startsWith("+") ? mobile : `+91${mobile}`;
+    const mobileStr = String(mobile || "").trim();
+    const mobileE164 = mobileStr.startsWith("+") ? mobileStr : `+91${mobileStr}`;
 
     let sellerUser = null;
     const existingUser = await User.findOne({ mobile: mobileE164 }).select("_id roles").lean();
