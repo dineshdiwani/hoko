@@ -619,12 +619,14 @@ async function sendViaWapiTemplate({ to, templateName, languageCode, parameters 
           }
         };
 
+  console.log(`[WAPI Template Send] to=${recipient} template=${templateName} payload=`, JSON.stringify(payload, null, 2));
+
   const response = await axios.post(url, payload, {
     timeout: 15000,
     headers: buildGupshupHeaders()
   });
   const data = response?.data || {};
-  console.log(`[Gupshup Template Send] to=${destination} templateId=${resolvedTemplateId} response=`, JSON.stringify(data));
+  console.log(`[WAPI Template Send] response=`, JSON.stringify(data));
   const statusValue = typeof data.status === "string" ? data.status.trim().toLowerCase() : data.status;
   const explicitFailure =
     data.success === false ||
@@ -682,6 +684,8 @@ async function sendViaGupshupTemplate({ to, templateId, templateName, languageCo
   if (buttonUrl) {
     templatePayload["button-url"] = String(buttonUrl).trim();
   }
+
+  console.log(`[Gupshup Template Send] to=${destination} templateId=${resolvedTemplateId} buttonUrl=${buttonUrl} templatePayload=`, JSON.stringify(templatePayload));
 
   const payload = buildGupshupFormPayload({
     channel: "whatsapp",
