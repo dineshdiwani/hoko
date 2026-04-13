@@ -600,43 +600,25 @@ router.post("/webhook", async (req, res) => {
     if (!sellerContact && !buyerContact) {
       await ensureBuyerProspect(event.mobileE164);
       
-      if (currentConsentState === CONSENT_STATES.AWAITING_ROLE) {
-        if (BUYER_WORDS.has(normalizedInbound) || normalizedInbound === "buy" || normalizedInbound === "1") {
-          consentState.delete(consentKey);
-          await applyConsentConfirmed(await WhatsAppBuyerContact.findOne({ mobileE164: event.mobileE164 }), "buyer", event);
-          const result = await sendBuyerRequirementInvite(event.mobileE164);
-          console.log(`[Buyer Invite] New buyer ${event.mobileE164}, template sent:`, result);
-          continue;
-        }
-        
-        if (SELLER_WORDS.has(normalizedInbound) || normalizedInbound === "sell" || normalizedInbound === "2") {
-          consentState.delete(consentKey);
-          consentState.set(consentKey, { step: CONSENT_STATES.AWAITING_SELLER_CITY, mobileE164: event.mobileE164 });
-          await applyConsentConfirmed(await WhatsAppBuyerContact.findOne({ mobileE164: event.mobileE164 }), "buyer", event);
-          await sendWhatsAppMessage({
-            to: event.mobileE164,
-            body: "Perfect! Share your city name to receive relevant requirements. 📍"
-          });
-          continue;
-        }
-        
-        await sendWhatsAppMessage({
-          to: event.mobileE164,
-          body: buildRoleSelectionMessage()
-        });
-        continue;
-      }
-      
-      if (consentConfirmed) {
+      // New user - show greeting and handle BUYER/SELLER directly
+      if (BUYER_WORDS.has(normalizedInbound) || normalizedInbound === "buy" || normalizedInbound === "1" || normalizedInbound === "buyer") {
         await applyConsentConfirmed(await WhatsAppBuyerContact.findOne({ mobileE164: event.mobileE164 }), "buyer", event);
-        consentState.set(consentKey, { step: CONSENT_STATES.AWAITING_ROLE, mobileE164: event.mobileE164 });
+        const result = await sendBuyerRequirementInvite(event.mobileE164);
+        console.log(`[Buyer] New buyer ${event.mobileE164}, template sent:`, result);
+        continue;
+      }
+      
+      if (SELLER_WORDS.has(normalizedInbound) || normalizedInbound === "sell" || normalizedInbound === "2" || normalizedInbound === "seller") {
+        consentState.set(consentKey, { step: CONSENT_STATES.AWAITING_SELLER_CITY, mobileE164: event.mobileE164 });
+        await applyConsentConfirmed(await WhatsAppBuyerContact.findOne({ mobileE164: event.mobileE164 }), "buyer", event);
         await sendWhatsAppMessage({
           to: event.mobileE164,
-          body: buildRoleSelectionMessage()
+          body: "Perfect! Share your city name to receive relevant requirements. 📍"
         });
         continue;
       }
       
+      // Default - show greeting
       await sendWhatsAppMessage({
         to: event.mobileE164,
         body: buildGenericHelpMessage()
@@ -647,36 +629,13 @@ router.post("/webhook", async (req, res) => {
     const latestSellerContact = sellerContact || null;
     const latestBuyerContact =
       buyerContact || (await WhatsAppBuyerContact.findOne({ mobileE164: event.mobileE164 }));
-    const sellerNeedsConsent = latestSellerContact && latestSellerContact.optInStatus !== "opted_in";
-    const buyerNeedsConsent = latestBuyerContact && latestBuyerContact.optInStatus !== "opted_in";
 
-    if (sellerNeedsConsent || buyerNeedsConsent) {
-      consentHandled = true;
-      if (consentConfirmed) {
-        if (sellerNeedsConsent) {
-          await applyConsentConfirmed(latestSellerContact, "seller", event);
-        }
-        if (buyerNeedsConsent) {
-          await applyConsentConfirmed(latestBuyerContact, "buyer", event);
-        }
-        consentState.set(consentKey, { step: CONSENT_STATES.AWAITING_ROLE, mobileE164: event.mobileE164 });
-        await sendWhatsAppMessage({
-          to: event.mobileE164,
-          body: buildRoleSelectionMessage()
-        });
-        continue;
-      } else {
-        if (sellerNeedsConsent) {
-          await applyConsentPending(latestSellerContact, "seller", event);
-        }
-        if (buyerNeedsConsent) {
-          await applyConsentPending(latestBuyerContact, "buyer", event);
-        }
-        await sendWhatsAppMessage({
-          to: event.mobileE164,
-          body: buildConsentPromptMessage()
-        });
-      }
+    // Existing users - auto-confirm consent and handle BUYER/SELLER
+    if (latestSellerContact?.optInStatus !== "opted_in") {
+      await applyConsentConfirmed(latestSellerContact, "seller", event);
+    }
+    if (latestBuyerContact?.optInStatus !== "opted_in") {
+      await applyConsentConfirmed(latestBuyerContact, "buyer", event);
     }
 
     if (consentHandled && !consentConfirmed) {
@@ -735,34 +694,15 @@ router.post("/webhook", async (req, res) => {
       continue;
     }
 
-    // For existing opted-in users, check if they want to be seller
-    const isOptedIn = latestBuyerContact?.optInStatus === "opted_in" || latestSellerContact?.optInStatus === "opted_in";
-    if (isOptedIn && (SELLER_WORDS.has(normalizedInbound) || normalizedInbound === "sell")) {
-      consentState.set(consentKey, { step: CONSENT_STATES.AWAITING_SELLER_CITY, mobileE164: event.mobileE164 });
-      await sendWhatsAppMessage({
-        to: event.mobileE164,
-        body: "Please share your city name to receive relevant requirements."
-      });
-      continue;
-    }
-    
-    if (isOptedIn) {
-      const inviteResult = await createTempRequirementAndSendInvite(event.mobileE164);
-      console.log(`[Buyer Invite] Opted-in contact ${event.mobileE164}, TempReq: ${inviteResult?.tempRequirement?._id}`);
-      continue;
-    }
-
-    // Handle BUYER/SELLER for any user (before greeting check)
+    // Handle BUYER/SELLER for opted-in users
     if (BUYER_WORDS.has(normalizedInbound) || normalizedInbound === "buy" || normalizedInbound === "1" || normalizedInbound === "buyer") {
-      await applyConsentConfirmed(await WhatsAppBuyerContact.findOne({ mobileE164: event.mobileE164 }), "buyer", event);
       const result = await sendBuyerRequirementInvite(event.mobileE164);
-      console.log(`[Buyer] Direct BUYER response from ${event.mobileE164}, result:`, result);
+      console.log(`[Buyer] Opted-in buyer ${event.mobileE164}, result:`, result);
       continue;
     }
     
     if (SELLER_WORDS.has(normalizedInbound) || normalizedInbound === "sell" || normalizedInbound === "2" || normalizedInbound === "seller") {
       consentState.set(consentKey, { step: CONSENT_STATES.AWAITING_SELLER_CITY, mobileE164: event.mobileE164 });
-      await applyConsentConfirmed(await WhatsAppBuyerContact.findOne({ mobileE164: event.mobileE164 }), "buyer", event);
       await sendWhatsAppMessage({
         to: event.mobileE164,
         body: "Perfect! Share your city name to receive relevant requirements. 📍"
