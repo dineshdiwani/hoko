@@ -126,7 +126,7 @@ export default function SellerDeepLink() {
     const session = getSession();
     const isSeller = session?.role === "seller" || Boolean(session?.roles?.seller);
     if (!session?.token) {
-      navigate("/buyer/login", { replace: true });
+      navigate("/seller/login", { replace: true });
       return;
     }
     if (session?.token && !isSeller) {
