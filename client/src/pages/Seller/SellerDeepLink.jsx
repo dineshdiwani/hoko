@@ -46,7 +46,8 @@ export default function SellerDeepLink() {
     deliveryTime: "",
     paymentTerms: "",
     mobile: "",
-    sellerName: ""
+    sellerName: "",
+    sellerCity: ""
   });
   const autoSubmitTriedRef = useRef(false);
   const videoRef = useRef(null);
@@ -392,7 +393,8 @@ export default function SellerDeepLink() {
       deliveryTime: String(form.deliveryTime || "").trim(),
       paymentTerms: String(form.paymentTerms || "").trim(),
       mobile: String(form.mobile || "").trim(),
-      sellerName: String(form.sellerName || "").trim()
+      sellerName: String(form.sellerName || "").trim(),
+      sellerCity: String(form.sellerCity || "").trim()
     };
 
     if (!payload.price || Number(payload.price) <= 0) {
@@ -406,12 +408,17 @@ export default function SellerDeepLink() {
     if (!session?.token || !canBecomeSeller) {
       const mobile = String(form.mobile || "").trim();
       const sellerName = String(form.sellerName || "").trim();
+      const sellerCity = String(form.sellerCity || "").trim();
       if (!mobile) {
         alert("Please enter your WhatsApp number.");
         return;
       }
       if (!sellerName) {
         alert("Please enter your name.");
+        return;
+      }
+      if (!sellerCity) {
+        alert("Please enter your city.");
         return;
       }
       submitOffer(payload);
@@ -627,6 +634,12 @@ export default function SellerDeepLink() {
               type="tel"
               className="app-input"
               placeholder="WhatsApp number *"
+            />
+            <input
+              value={form.sellerCity}
+              onChange={(e) => setForm((prev) => ({ ...prev, sellerCity: e.target.value }))}
+              className="app-input"
+              placeholder="Your city *"
             />
             <input
               value={form.price}

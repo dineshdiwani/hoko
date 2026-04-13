@@ -615,7 +615,8 @@ router.post("/offer/public", async (req, res) => {
       mobile,
       email,
       firmName,
-      sellerName
+      sellerName,
+      sellerCity
     } = req.body;
 
     if (!requirementId) {
@@ -643,9 +644,9 @@ router.post("/offer/public", async (req, res) => {
         ? "city"
         : inviteMode;
     
-    const sellerCity = "";
+    const sellerCityInput = String(sellerCity || "").trim();
     const requirementCity = requirement?.city;
-    if (effectiveInviteMode === "city" && !cityMatches(sellerCity, requirementCity)) {
+    if (effectiveInviteMode === "city" && !cityMatches(sellerCityInput, requirementCity)) {
       return res.status(403).json({
         message: inviteMode === "anywhere"
           ? "Buyer has already selected a same-city offer, so this post is now limited to the buyer city"
@@ -689,7 +690,8 @@ router.post("/offer/public", async (req, res) => {
           rawMessage: message,
           sellerEmail: email,
           sellerFirmName: firmName,
-          sellerName: sellerName
+          sellerName: sellerName,
+          sellerCity: sellerCityInput
         }
       },
       { upsert: true, new: true }

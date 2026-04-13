@@ -36,6 +36,22 @@ const pendingOfferDraftSchema = new mongoose.Schema(
     status: {
       type: String,
       default: "pending"
+    },
+    sellerName: {
+      type: String,
+      default: ""
+    },
+    sellerEmail: {
+      type: String,
+      default: ""
+    },
+    sellerFirmName: {
+      type: String,
+      default: ""
+    },
+    sellerCity: {
+      type: String,
+      default: ""
     }
   },
   { timestamps: true }
