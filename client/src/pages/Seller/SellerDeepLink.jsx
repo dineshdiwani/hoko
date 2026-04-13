@@ -44,7 +44,9 @@ export default function SellerDeepLink() {
     price: "",
     message: "",
     deliveryTime: "",
-    paymentTerms: ""
+    paymentTerms: "",
+    mobile: "",
+    sellerName: ""
   });
   const autoSubmitTriedRef = useRef(false);
   const videoRef = useRef(null);
@@ -169,10 +171,46 @@ export default function SellerDeepLink() {
     setSubmitting(true);
     try {
       const sellerSession = await ensureSellerSession();
-      if (!sellerSession.ok) {
-        redirectToAuthOrRegister(payload);
+      if (sellerSession.ok) {
+        let nextAttachments = [];
+        if (attachments.length) {
+          for (const item of attachments) {
+            const formData = new FormData();
+            formData.append("file", item);
+            const uploadRes = await api.post("/seller/offer/attachments", formData, {
+              headers: { "Content-Type": "multipart/form-data" }
+            });
+            const uploadedUrls =
+              uploadRes?.data?.files?.map((entry) => entry.url).filter(Boolean) || [];
+            if (uploadedUrls.length) {
+              nextAttachments.push(...uploadedUrls);
+            }
+          }
+        }
+        await api.post("/seller/offer", {
+          requirementId: requirementIdValue,
+          price: Number(payload.price),
+          message: payload.message || "",
+          deliveryTime: payload.deliveryTime || "",
+          paymentTerms: payload.paymentTerms || "",
+          attachments: nextAttachments
+        });
+        clearPendingOfferIntent();
+        setAttachments([]);
+        alert(
+          isAuto
+            ? "Offer submitted now. Thank you."
+            : "Offer submitted successfully."
+        );
+        const dashboardParams = new URLSearchParams();
+        dashboardParams.set("openRequirement", requirementIdValue);
+        if (city) dashboardParams.set("city", city);
+        navigate(`/seller/dashboard?${dashboardParams.toString()}`, {
+          replace: true
+        });
         return;
       }
+      
       let nextAttachments = [];
       if (attachments.length) {
         for (const item of attachments) {
@@ -188,13 +226,15 @@ export default function SellerDeepLink() {
           }
         }
       }
-      await api.post("/seller/offer", {
+      
+      await api.post("/seller/offer/public", {
         requirementId: requirementIdValue,
         price: Number(payload.price),
         message: payload.message || "",
         deliveryTime: payload.deliveryTime || "",
         paymentTerms: payload.paymentTerms || "",
-        attachments: nextAttachments
+        mobile: payload.mobile || "",
+        sellerName: payload.sellerName || ""
       });
       clearPendingOfferIntent();
       setAttachments([]);
@@ -203,12 +243,7 @@ export default function SellerDeepLink() {
           ? "Offer submitted now. Thank you."
           : "Offer submitted successfully."
       );
-      const dashboardParams = new URLSearchParams();
-      dashboardParams.set("openRequirement", requirementIdValue);
-      if (city) dashboardParams.set("city", city);
-      navigate(`/seller/dashboard?${dashboardParams.toString()}`, {
-        replace: true
-      });
+      navigate("/seller/login", { replace: true });
     } catch (err) {
       const message =
         err?.response?.data?.message || "Failed to submit offer. Try again.";
@@ -559,6 +594,19 @@ export default function SellerDeepLink() {
                 <p className="ui-body mt-1 whitespace-pre-line">{postDetails}</p>
               ) : null}
             </div>
+            <input
+              value={form.sellerName}
+              onChange={(e) => setForm((prev) => ({ ...prev, sellerName: e.target.value }))}
+              className="app-input"
+              placeholder="Your name *"
+            />
+            <input
+              value={form.mobile}
+              onChange={(e) => setForm((prev) => ({ ...prev, mobile: e.target.value }))}
+              type="tel"
+              className="app-input"
+              placeholder="WhatsApp number *"
+            />
             <input
               value={form.price}
               onChange={(e) => setForm((prev) => ({ ...prev, price: e.target.value }))}

@@ -656,7 +656,7 @@ router.post("/offer/public", async (req, res) => {
       });
     }
 
-    await PendingOfferDraft.findOneAndUpdate(
+    const pendingOffer = await PendingOfferDraft.findOneAndUpdate(
       {
         mobileE164,
         requirementId: requirement._id,
@@ -678,6 +678,42 @@ router.post("/offer/public", async (req, res) => {
       },
       { upsert: true, new: true }
     );
+
+    setImmediate(() => {
+      (async () => {
+        const sellerNameStr = String(sellerName || "Seller").trim();
+        const productName = String(requirement.product || requirement.productName || "your requirement").trim();
+        const priceStr = String(price || "0").trim();
+        const requirementIdStr = String(requirement._id || "").trim();
+        
+        if (mobileE164) {
+          const appBase = String(process.env.PUBLIC_APP_URL || "https://hokoapp.in").trim();
+          const sellerLoginLink = `${appBase}/seller/login?whatsapp_token=${mobileE164}&ref=${requirementIdStr}`;
+          const sellerParams = [sellerNameStr, productName, priceStr, sellerLoginLink];
+          await sendWhatsAppTemplate({
+            to: mobileE164,
+            templateKey: "seller_quote_received_ack_v1",
+            parameters: sellerParams,
+            requirementId: requirementIdStr
+          });
+        }
+        
+        const buyer = await User.findById(requirement.buyerId).select("mobile name").lean();
+        const buyerMobileE164 = normalizeE164(buyer?.mobile);
+        if (buyerMobileE164) {
+          const buyerName = String(buyer?.name || "Buyer").trim();
+          const appBase = String(process.env.PUBLIC_APP_URL || "https://hokoapp.in").trim();
+          const buyerOfferLink = `${appBase}/buyer/requirement/${requirementIdStr}/offers`;
+          const buyerParams = [buyerName, productName, priceStr, buyerOfferLink];
+          await sendWhatsAppTemplate({
+            to: buyerMobileE164,
+            templateKey: "_buyer_first_offer_alert_v2",
+            parameters: buyerParams,
+            requirementId: requirementIdStr
+          });
+        }
+      })().catch((err) => console.error("[WhatsApp] Offer notification error:", err));
+    });
 
     return res.json({
       success: true,
