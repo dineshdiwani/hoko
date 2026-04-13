@@ -22,8 +22,8 @@ const pendingOfferDraftSchema = new mongoose.Schema(
       default: null
     },
     deliveryDays: {
-      type: Number,
-      default: null
+      type: String,
+      default: ""
     },
     note: {
       type: String,

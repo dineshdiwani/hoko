@@ -690,11 +690,19 @@ router.post("/webhook", async (req, res) => {
 
     // Handle seller city input after role selection
     if (currentConsentState?.step === CONSENT_STATES.AWAITING_SELLER_CITY) {
+      const inboundText = String(event.text || "").trim();
+      if (!inboundText) {
+        await sendWhatsAppMessage({
+          to: event.mobileE164,
+          body: "Please share your city name."
+        });
+        continue;
+      }
       const citiesData = await PlatformSettings.findOne({ key: "cities" }).lean();
       const cities = citiesData?.value || [];
-      const inputCity = normalizeCityName(event.text);
+      const inputCity = normalizeCityName(inboundText);
       const matchedCity = cities.find(c => normalizeCityName(c) === inputCity);
-      const cityToSave = matchedCity || event.text.trim();
+      const cityToSave = matchedCity || inboundText;
       
       const deepLink = await sendSellerInviteLink(event.mobileE164, cityToSave);
       await sendWhatsAppMessage({
