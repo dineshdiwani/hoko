@@ -100,6 +100,19 @@ async function sendBuyerInviteLink(mobileE164) {
   return `${appBase}/buyer/requirement/new?ref=${tempReq._id.toString()}`;
 }
 
+async function sendBuyerRequirementInvite(mobileE164) {
+  const tempReq = await TempRequirement.findOneAndUpdate(
+    { mobileE164, status: "pending" },
+    {
+      $set: { status: "pending", source: "whatsapp", templateUsed: "buyer_invite_post_requirement" },
+      $setOnInsert: { expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) }
+    },
+    { upsert: true, new: true, setDefaultsOnInsert: true }
+  );
+  
+  return await sendBuyerInviteTemplate(mobileE164, tempReq._id.toString());
+}
+
 async function sendSellerInviteLink(mobileE164, city) {
   await OptedInSeller.findOneAndUpdate(
     { mobileE164 },
