@@ -752,6 +752,24 @@ router.post("/webhook", async (req, res) => {
       continue;
     }
 
+    // Handle BUYER/SELLER for any user (before greeting check)
+    if (BUYER_WORDS.has(normalizedInbound) || normalizedInbound === "buy" || normalizedInbound === "1" || normalizedInbound === "buyer") {
+      await applyConsentConfirmed(await WhatsAppBuyerContact.findOne({ mobileE164: event.mobileE164 }), "buyer", event);
+      const result = await sendBuyerRequirementInvite(event.mobileE164);
+      console.log(`[Buyer] Direct BUYER response from ${event.mobileE164}, result:`, result);
+      continue;
+    }
+    
+    if (SELLER_WORDS.has(normalizedInbound) || normalizedInbound === "sell" || normalizedInbound === "2" || normalizedInbound === "seller") {
+      consentState.set(consentKey, { step: CONSENT_STATES.AWAITING_SELLER_CITY, mobileE164: event.mobileE164 });
+      await applyConsentConfirmed(await WhatsAppBuyerContact.findOne({ mobileE164: event.mobileE164 }), "buyer", event);
+      await sendWhatsAppMessage({
+        to: event.mobileE164,
+        body: "Perfect! Share your city name to receive relevant requirements. 📍"
+      });
+      continue;
+    }
+
     // Always acknowledge simple greetings so users do not see a silent chat.
     if (GREETING_WORDS.has(normalizedInbound)) {
       await sendWhatsAppMessage({
