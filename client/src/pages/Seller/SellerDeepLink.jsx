@@ -240,6 +240,12 @@ export default function SellerDeepLink() {
         sellerName: payload.sellerName || "",
         sellerCity: payload.sellerCity || ""
       });
+      localStorage.setItem("pending_whatsapp_offer_data", JSON.stringify({
+        mobile: payload.mobile || "",
+        sellerName: payload.sellerName || "",
+        sellerCity: payload.sellerCity || "",
+        requirementId: requirementIdValue
+      }));
       clearPendingOfferIntent();
       setAttachments([]);
       console.log("[SellerDeepLink] Offer submitted successfully");

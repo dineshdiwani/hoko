@@ -286,7 +286,35 @@ export default function UserLogin({ role = "buyer" }) {
           localStorage.removeItem("login_intent_role");
         }
         setBuyerDashboardDefaultTab(user.city || city);
+        
+        const pendingWhatsAppData = localStorage.getItem("pending_whatsapp_offer_data");
+        
         if (currentRole === "buyer" && sellerIntent && !sellerCapable) {
+          if (pendingWhatsAppData) {
+            try {
+              const data = JSON.parse(pendingWhatsAppData);
+              if (data.mobile && data.sellerCity) {
+                await api.post("/seller/profile", {
+                  businessName: data.sellerName || data.mobile,
+                  city: data.sellerCity
+                });
+                await api.post("/auth/switch-role", { role: "seller" });
+                setSession({
+                  ...JSON.parse(localStorage.getItem("session") || "{}"),
+                  role: "seller",
+                  roles: { ...(user?.roles || {}), seller: true }
+                });
+                localStorage.removeItem("pending_whatsapp_offer_data");
+                const dashboardParams = new URLSearchParams();
+                dashboardParams.set("openRequirement", data.requirementId || "");
+                if (data.sellerCity) dashboardParams.set("city", data.sellerCity);
+                navigate(`/seller/dashboard?${dashboardParams.toString()}`, { replace: true });
+                return;
+              }
+            } catch (e) {
+              console.error("[Login] Failed to auto-register seller:", e);
+            }
+          }
           navigate("/seller/register", { replace: true });
           return;
         }
@@ -374,7 +402,35 @@ export default function UserLogin({ role = "buyer" }) {
           localStorage.removeItem("login_intent_role");
         }
         setBuyerDashboardDefaultTab(user.city || selectedCity);
+        
+        const pendingWhatsAppData = localStorage.getItem("pending_whatsapp_offer_data");
+        
         if (currentRole === "buyer" && sellerIntent && !sellerCapable) {
+          if (pendingWhatsAppData) {
+            try {
+              const data = JSON.parse(pendingWhatsAppData);
+              if (data.mobile && data.sellerCity) {
+                await api.post("/seller/profile", {
+                  businessName: data.sellerName || data.mobile,
+                  city: data.sellerCity
+                });
+                await api.post("/auth/switch-role", { role: "seller" });
+                setSession({
+                  ...JSON.parse(localStorage.getItem("session") || "{}"),
+                  role: "seller",
+                  roles: { ...(user?.roles || {}), seller: true }
+                });
+                localStorage.removeItem("pending_whatsapp_offer_data");
+                const dashboardParams = new URLSearchParams();
+                dashboardParams.set("openRequirement", data.requirementId || "");
+                if (data.sellerCity) dashboardParams.set("city", data.sellerCity);
+                navigate(`/seller/dashboard?${dashboardParams.toString()}`, { replace: true });
+                return;
+              }
+            } catch (e) {
+              console.error("[Login] Failed to auto-register seller:", e);
+            }
+          }
           navigate("/seller/register", { replace: true });
           return;
         }
