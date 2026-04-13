@@ -22,7 +22,8 @@ const {
   serializeNotification
 } = require("../utils/notifications");
 const { normalizeRequirementAttachmentsForResponse } = require("../utils/attachments");
-const { normalizeE164 } = require("../utils/sendWhatsApp");
+const { normalizeE164, sendViaGupshupTemplate, sendViaWapiTemplate } = require("../utils/sendWhatsApp");
+const WhatsAppTemplateRegistry = require("../models/WhatsAppTemplateRegistry");
 
 const offerUploadDir = path.join(__dirname, "../uploads/offers");
 if (!fs.existsSync(offerUploadDir)) {
@@ -55,6 +56,51 @@ function safeFilename(originalname) {
     .replace(/[^a-zA-Z0-9_-]+/g, "_")
     .slice(0, 60);
   return `${base || "file"}${ext}`;
+}
+
+async function sendWhatsAppTemplate({ to, templateKey, parameters = [], buttonUrl, requirementId, buyerId }) {
+  if (!to) return;
+  
+  const templateConfig = await WhatsAppTemplateRegistry.findOne({
+    key: templateKey,
+    isActive: true
+  }).lean();
+  
+  if (!templateConfig) {
+    console.warn(`[WhatsApp] Template not found or inactive: ${templateKey}`);
+    return;
+  }
+  
+  const provider = String(process.env.WHATSAPP_PROVIDER || "mock").trim().toLowerCase();
+  
+  try {
+    let result;
+    if (provider === "gupshup") {
+      result = await sendViaGupshupTemplate({
+        to,
+        templateId: String(templateConfig.templateId || "").trim(),
+        templateName: templateConfig.templateName,
+        languageCode: String(templateConfig.language || "en").trim(),
+        parameters,
+        buttonUrl
+      });
+    } else if (provider === "wapi") {
+      result = await sendViaWapiTemplate({
+        to,
+        templateName: templateConfig.templateName,
+        languageCode: String(templateConfig.language || "en").trim(),
+        parameters,
+        buttonUrl
+      });
+    } else {
+      result = { providerMessageId: `mock_${Date.now()}` };
+    }
+    
+    console.log(`[WhatsApp] Sent ${templateKey} to ${to}, result:`, result?.providerMessageId || "ok");
+    return result;
+  } catch (err) {
+    console.error(`[WhatsApp] Failed to send ${templateKey} to ${to}:`, err?.message);
+  }
 }
 
 const offerAttachmentStorage = multer.diskStorage({
@@ -751,6 +797,36 @@ router.post("/offer", auth, sellerOnly, async (req, res) => {
           }
         );
       }
+
+      setImmediate(() => {
+        (async () => {
+          const sellerName = String(req.user?.name || req.user?.businessName || "Seller").trim();
+          const productName = String(requirement.product || requirement.productName || "your requirement").trim();
+          const priceStr = String(price || "").trim();
+          const requirementIdStr = String(requirement._id || "").trim();
+          
+          const sellerParams = [sellerName, productName, priceStr];
+          await sendWhatsAppTemplate({
+            to: sellerMobileE164,
+            templateKey: "seller_quote_received_ack_v1",
+            parameters: sellerParams,
+            requirementId: requirementIdStr
+          });
+          
+          const buyerMobileE164 = normalizeE164(buyer?.mobile);
+          if (buyerMobileE164) {
+            const buyerName = String(buyer?.name || "Buyer").trim();
+            const offerPrice = priceStr;
+            const buyerParams = [buyerName, productName, offerPrice, requirementIdStr];
+            await sendWhatsAppTemplate({
+              to: buyerMobileE164,
+              templateKey: "_buyer_first_offer_alert_v2",
+              parameters: buyerParams,
+              requirementId: requirementIdStr
+            });
+          }
+        })().catch((err) => console.error("[WhatsApp] Offer notification error:", err));
+      });
 
       const io = req.app.get("io");
       if (shouldNotifyBuyerEvent(buyer, "newOffer")) {
