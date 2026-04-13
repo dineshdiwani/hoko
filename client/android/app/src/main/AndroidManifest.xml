@@ -30,6 +30,7 @@
 
                 <data android:scheme="https" android:host="hokoapp.in" />
                 <data android:scheme="https" android:host="www.hokoapp.in" />
+                <data android:pathPrefix="/seller/" />
             </intent-filter>
 
         </activity>
