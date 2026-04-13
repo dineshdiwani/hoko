@@ -711,11 +711,12 @@ router.post("/offer/public", async (req, res) => {
         if (mobileE164) {
           const appBase = String(process.env.PUBLIC_APP_URL || "https://hokoapp.in").trim();
           const sellerLoginLink = `${appBase}/seller/login?whatsapp_token=${mobileE164}&ref=${requirementIdStr}`;
-          console.log("[Public Offer] Sending to seller:", { to: mobileE164, templateKey: "seller_quote_received_ack", buttonUrl: sellerLoginLink });
+          const sellerParams = [productName];
+          console.log("[Public Offer] Sending to seller:", { to: mobileE164, templateKey: "seller_quote_received_ack", params: sellerParams, buttonUrl: sellerLoginLink });
           await sendWhatsAppTemplate({
             to: mobileE164,
             templateKey: "seller_quote_received_ack",
-            parameters: [],
+            parameters: sellerParams,
             buttonUrl: sellerLoginLink,
             requirementId: requirementIdStr
           });
