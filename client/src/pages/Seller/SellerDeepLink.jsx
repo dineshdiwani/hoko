@@ -381,7 +381,9 @@ export default function SellerDeepLink() {
       price: String(form.price || "").trim(),
       message: String(form.message || "").trim(),
       deliveryTime: String(form.deliveryTime || "").trim(),
-      paymentTerms: String(form.paymentTerms || "").trim()
+      paymentTerms: String(form.paymentTerms || "").trim(),
+      mobile: String(form.mobile || "").trim(),
+      sellerName: String(form.sellerName || "").trim()
     };
 
     if (!payload.price || Number(payload.price) <= 0) {
@@ -393,7 +395,17 @@ export default function SellerDeepLink() {
     const canBecomeSeller = Boolean(session?.token && session?.roles?.seller);
 
     if (!session?.token || !canBecomeSeller) {
-      redirectToAuthOrRegister(payload);
+      const mobile = String(form.mobile || "").trim();
+      const sellerName = String(form.sellerName || "").trim();
+      if (!mobile) {
+        alert("Please enter your WhatsApp number.");
+        return;
+      }
+      if (!sellerName) {
+        alert("Please enter your name.");
+        return;
+      }
+      submitOffer(payload);
       return;
     }
 
