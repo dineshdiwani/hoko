@@ -1888,6 +1888,52 @@ router.get("/requirements/:id/offers", auth, buyerOnly, async (req, res) => {
 });
 
 /**
+ * Claim a temp requirement and convert to real requirement
+ */
+router.post("/requirements/:id/claim", auth, buyerOnly, async (req, res) => {
+  const requirementId = String(req.params.id || "").trim();
+  const userId = String(req.user._id || "");
+  
+  const tempReq = await TempRequirement.findById(requirementId);
+  if (tempReq) {
+    await TempRequirement.findByIdAndUpdate(requirementId, {
+      $set: { buyerId: userId, status: "claimed" }
+    });
+  }
+  
+  const existing = await Requirement.findOne({ tempRequirementId: requirementId });
+  if (existing) {
+    if (String(existing.buyerId) !== userId) {
+      await Requirement.findByIdAndUpdate(existing._id, {
+        $set: { buyerId: userId }
+      });
+    }
+    return res.json({ ok: true, requirementId: existing._id });
+  }
+  
+  if (tempReq) {
+    const newReq = await Requirement.create({
+      buyerId: userId,
+      tempRequirementId: tempReq._id,
+      productName: tempReq.productName,
+      product: tempReq.product,
+      quantity: tempReq.quantity,
+      type: tempReq.type,
+      city: tempReq.city,
+      category: tempReq.category,
+      details: tempReq.details,
+      status: "open"
+    });
+    await TempRequirement.findByIdAndUpdate(requirementId, {
+      $set: { status: "claimed", requirementId: newReq._id }
+    });
+    return res.json({ ok: true, requirementId: newReq._id });
+  }
+  
+  return res.json({ ok: true, requirementId });
+});
+
+/**
  * Update buyer offer outcome state
  */
 router.post("/offers/:offerId/outcome", auth, buyerOnly, async (req, res) => {

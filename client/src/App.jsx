@@ -6,7 +6,9 @@ import {
   Route,
   Navigate,
   Link,
-  useLocation
+  useLocation,
+  useParams,
+  useNavigate
 } from "react-router-dom";
 
 const BuyerWelcome = lazy(() => import("./pages/Buyer/welcome"));
@@ -96,6 +98,30 @@ function requireSeller() {
 
 function requireAdmin() {
   return Boolean(localStorage.getItem("admin_token"));
+}
+
+function BuyerOfferRouteHandler() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const session = getSession();
+  
+  useEffect(() => {
+    if (session?.token && (session.role === "buyer" || session.roles?.buyer)) {
+      localStorage.setItem("pending_buyer_requirement_ref", id);
+      navigate(`/buyer/requirement/${id}/offers`, { replace: true });
+    } else {
+      localStorage.setItem("pending_buyer_requirement_ref", id);
+      navigate("/buyer/login", { replace: true });
+    }
+  }, [id, session, navigate]);
+  
+  return (
+    <div className="page">
+      <div className="page-shell py-10">
+        <p>Loading...</p>
+      </div>
+    </div>
+  );
 }
 
 function AppShell() {
@@ -332,11 +358,7 @@ function AppShell() {
         <Route
           path="/buyer/requirement/:id/offers"
           element={
-            requireBuyer() ? (
-              <OfferList />
-            ) : (
-              <Navigate to="/buyer/login" replace />
-            )
+            <BuyerOfferRouteHandler />
           }
         />
         <Route

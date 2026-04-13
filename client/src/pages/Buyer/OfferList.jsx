@@ -70,6 +70,12 @@ export default function OfferList() {
   useEffect(() => {
     async function load() {
       try {
+        const pendingRef = localStorage.getItem("pending_buyer_requirement_ref");
+        if (pendingRef && pendingRef === id) {
+          localStorage.removeItem("pending_buyer_requirement_ref");
+          await api.post(`/buyer/requirements/${id}/claim`);
+        }
+        
         const res = await api.get(
           `/buyer/requirements/${id}/offers`
         );
