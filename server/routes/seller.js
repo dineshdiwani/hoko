@@ -681,6 +681,8 @@ router.post("/offer/public", async (req, res) => {
 
     setImmediate(() => {
       (async () => {
+        console.log("[Public Offer] Sending WhatsApp notifications", { mobileE164, requirementId: requirement._id });
+        
         const sellerNameStr = String(sellerName || "Seller").trim();
         const productName = String(requirement.product || requirement.productName || "your requirement").trim();
         const priceStr = String(price || "0").trim();
@@ -690,12 +692,15 @@ router.post("/offer/public", async (req, res) => {
           const appBase = String(process.env.PUBLIC_APP_URL || "https://hokoapp.in").trim();
           const sellerLoginLink = `${appBase}/seller/login?whatsapp_token=${mobileE164}&ref=${requirementIdStr}`;
           const sellerParams = [sellerNameStr, productName, priceStr, sellerLoginLink];
+          console.log("[Public Offer] Sending to seller:", { to: mobileE164, templateKey: "seller_quote_received_ack_v1", params: sellerParams });
           await sendWhatsAppTemplate({
             to: mobileE164,
             templateKey: "seller_quote_received_ack_v1",
             parameters: sellerParams,
             requirementId: requirementIdStr
           });
+        } else {
+          console.log("[Public Offer] No seller mobile, skipping seller notification");
         }
         
         const buyer = await User.findById(requirement.buyerId).select("mobile name").lean();
@@ -705,12 +710,15 @@ router.post("/offer/public", async (req, res) => {
           const appBase = String(process.env.PUBLIC_APP_URL || "https://hokoapp.in").trim();
           const buyerOfferLink = `${appBase}/buyer/requirement/${requirementIdStr}/offers`;
           const buyerParams = [buyerName, productName, priceStr, buyerOfferLink];
+          console.log("[Public Offer] Sending to buyer:", { to: buyerMobileE164, templateKey: "_buyer_first_offer_alert_v2", params: buyerParams });
           await sendWhatsAppTemplate({
             to: buyerMobileE164,
             templateKey: "_buyer_first_offer_alert_v2",
             parameters: buyerParams,
             requirementId: requirementIdStr
           });
+        } else {
+          console.log("[Public Offer] No buyer mobile found");
         }
       })().catch((err) => console.error("[WhatsApp] Offer notification error:", err));
     });
