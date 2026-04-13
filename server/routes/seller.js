@@ -637,6 +637,22 @@ router.post("/offer/public", async (req, res) => {
       });
     }
 
+    const inviteMode = normalizeOfferInvitedFrom(requirement.offerInvitedFrom);
+    const effectiveInviteMode =
+      inviteMode === "anywhere" && (await isRequirementLockedToBuyerCity(requirement))
+        ? "city"
+        : inviteMode;
+    
+    const sellerCity = "";
+    const requirementCity = requirement?.city;
+    if (effectiveInviteMode === "city" && !cityMatches(sellerCity, requirementCity)) {
+      return res.status(403).json({
+        message: inviteMode === "anywhere"
+          ? "Buyer has already selected a same-city offer, so this post is now limited to the buyer city"
+          : "Offers for this post are invited only from the buyer city"
+      });
+    }
+
     const mobileE164 = mobile.startsWith("+") ? mobile : `+91${mobile}`;
 
     let sellerUser = null;
