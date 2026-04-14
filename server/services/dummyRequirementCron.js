@@ -277,10 +277,10 @@ async function sendToNewSeller(mobileE164, city) {
   console.log(`[DummyReq] Sent to new seller ${mobileE164} for city ${city}`);
 }
 
-async function runCron() {
+async function runCron(params = {}) {
   const settings = await PlatformSettings.findOne().lean();
-  const quantity = settings?.dummyRequirementSettings?.quantity || 3;
-  const maxQty = settings?.dummyRequirementSettings?.maxQuantity || 10;
+  const quantity = params?.quantity || settings?.dummyRequirementSettings?.quantity || 3;
+  const maxQty = params?.maxQuantity || settings?.dummyRequirementSettings?.maxQuantity || 10;
   
   console.log(`[DummyReq Cron] Running... (qty: ${quantity}, maxQty: ${maxQty})`);
   

@@ -27,7 +27,7 @@ function restartCron() {
   }
   if (cronRunning) {
     cronIntervalId = setInterval(() => {
-      runCron().catch(err => console.error("[DummyReq Cron] Error:", err));
+      runCron({ quantity: defaultQuantity, maxQuantity: maxQuantity }).catch(err => console.error("[DummyReq Cron] Error:", err));
     }, cronIntervalMs);
   }
   console.log(`[DummyReq] Cron restarted - interval: ${cronIntervalMs/3600000}h, running: ${cronRunning}`);
@@ -77,7 +77,7 @@ router.post("/settings", adminAuth, async (req, res) => {
 
 router.post("/run-now", adminAuth, async (req, res) => {
   try {
-    await runCron();
+    await runCron({ quantity: defaultQuantity, maxQuantity: maxQuantity });
     lastRunAt = new Date();
     logActivity("manual_run", "Dummy requirements generated and sent");
     res.json({ ok: true });
