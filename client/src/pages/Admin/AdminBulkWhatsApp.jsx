@@ -4,9 +4,10 @@ import AdminNav from "../../components/AdminNav";
 
 export default function AdminBulkWhatsApp() {
   const [templates, setTemplates] = useState([]);
-  const [stats, setStats] = useState({ total: 0, byCity: [] });
+  const [stats, setStats] = useState({ total: 0, byCity: [], byCategory: [] });
   const [mode, setMode] = useState("city");
   const [city, setCity] = useState("");
+  const [category, setCategory] = useState("");
   const [phones, setPhones] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState("");
   const [parameters, setParameters] = useState("");
@@ -36,7 +37,10 @@ export default function AdminBulkWhatsApp() {
       alert("City and template required");
       return;
     }
-    if (!confirm(`Send to all opted-in sellers in ${city}?`)) return;
+    const confirmMsg = category 
+      ? `Send to opted-in sellers in ${city} with category "${category}"?`
+      : `Send to all opted-in sellers in ${city}?`;
+    if (!confirm(confirmMsg)) return;
 
     setSending(true);
     setResult(null);
@@ -44,6 +48,7 @@ export default function AdminBulkWhatsApp() {
       const params = parameters ? parameters.split(",").map(p => p.trim()) : [];
       const res = await api.post("/bulk-whatsapp/send-city", {
         city,
+        category: category || undefined,
         templateKey: selectedTemplate,
         parameters: params,
         buttonUrl: buttonUrl || undefined
@@ -150,6 +155,22 @@ export default function AdminBulkWhatsApp() {
                 >
                   <option value="">Select city...</option>
                   {stats.byCity.map((c) => (
+                    <option key={c._id} value={c._id}>
+                      {c._id} ({c.count})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-sm text-gray-600 block mb-1">Category (optional)</label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="w-full border rounded-lg px-3 py-2"
+                >
+                  <option value="">All categories</option>
+                  {stats.byCategory.map((c) => (
                     <option key={c._id} value={c._id}>
                       {c._id} ({c.count})
                     </option>

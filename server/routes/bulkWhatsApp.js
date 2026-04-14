@@ -70,7 +70,7 @@ router.post("/send", adminAuth, async (req, res) => {
 
 router.post("/send-city", adminAuth, async (req, res) => {
   try {
-    const { city, templateKey, templateId, parameters = [], buttonUrl, provider, limit } = req.body;
+    const { city, templateKey, templateId, parameters = [], buttonUrl, provider, limit, category } = req.body;
     
     if (!city) {
       return res.status(400).json({ message: "city required" });
@@ -94,6 +94,10 @@ router.post("/send-city", adminAuth, async (req, res) => {
       active: { $ne: false },
       unsubscribedAt: { $exists: false }
     };
+    
+    if (category && category !== "all") {
+      query.categories = { $regex: new RegExp(category, "i") };
+    }
     
     const sellers = await WhatsAppContact.find(query)
       .select("mobileE164 name")
@@ -159,7 +163,14 @@ router.get("/stats", adminAuth, async (req, res) => {
       { $sort: { count: -1 } },
       { $limit: 20 }
     ]);
-    res.json({ total, byCity });
+    const byCategory = await WhatsAppContact.aggregate([
+      { $match: { optInStatus: "opted_in", active: { $ne: false } } },
+      { $unwind: "$categories" },
+      { $group: { _id: "$categories", count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 30 }
+    ]);
+    res.json({ total, byCity, byCategory });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
