@@ -32,6 +32,7 @@ function restartCron() {
 async function loadSettings() {
   try {
     const settings = await PlatformSettings.findOne().lean();
+    console.log("[DummyReq] Loaded settings:", JSON.stringify(settings?.dummyRequirementSettings).slice(0, 200));
     if (settings?.dummyRequirementSettings) {
       if (settings.dummyRequirementSettings.intervalHours) cronIntervalMs = settings.dummyRequirementSettings.intervalHours * 60 * 60 * 1000;
       if (settings.dummyRequirementSettings.quantity) defaultQuantity = settings.dummyRequirementSettings.quantity;
@@ -88,7 +89,7 @@ router.post("/settings", adminAuth, async (req, res) => {
     if (quantity) defaultQuantity = Number(quantity);
     if (maxQuantity) maxQuantity = Number(maxQuantity);
     
-    await PlatformSettings.findOneAndUpdate(
+    const result = await PlatformSettings.findOneAndUpdate(
       {},
       { $set: { 
         "dummyRequirementSettings.running": cronRunning,
@@ -98,6 +99,7 @@ router.post("/settings", adminAuth, async (req, res) => {
       } },
       { upsert: true, new: true }
     );
+    console.log("[DummyReq] Settings saved:", JSON.stringify(result?.dummyRequirementSettings).slice(0, 200));
     
     restartCron();
     logActivity("settings", `Interval: ${intervalHours}h, Qty: ${quantity}, Max: ${maxQuantity}`);

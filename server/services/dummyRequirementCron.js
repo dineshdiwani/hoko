@@ -25,11 +25,29 @@ async function getCategories() {
 }
 
 async function getCities() {
-  const settings = await PlatformSettings.findOne().lean();
-  const citiesFromDb = settings?.cities;
-  return Array.isArray(citiesFromDb) && citiesFromDb.length > 0
-    ? citiesFromDb
-    : ["Delhi", "Mumbai", "Bangalore", "Chennai", "Hyderabad", "Pune", "Kolkata"];
+  try {
+    const settings = await PlatformSettings.findOne().lean();
+    const citiesFromDb = settings?.cities;
+    if (Array.isArray(citiesFromDb) && citiesFromDb.length > 0) {
+      return citiesFromDb;
+    }
+  } catch (err) {
+    console.log("[DummyReq] getCities error:", err.message);
+  }
+  return ["Delhi", "Mumbai", "Bangalore", "Chennai", "Hyderabad", "Pune", "Kolkata", "Ahmedabad", "Surat", "Jaipur"];
+}
+
+async function getCategories() {
+  try {
+    const settings = await PlatformSettings.findOne().lean();
+    const cats = settings?.categories;
+    if (Array.isArray(cats) && cats.length > 0) {
+      return cats;
+    }
+  } catch (err) {
+    console.log("[DummyReq] getCategories error:", err.message);
+  }
+  return ["electronics", "furniture", "electrical", "industrial", "plumbing", "household", "logistics", "general"];
 }
 
 function getRandomCategory(categories) {
@@ -37,8 +55,19 @@ function getRandomCategory(categories) {
 }
 
 async function generateDummyRequirements(count = 3, maxQty = 500) {
-  const cities = await getCities();
-  const categories = await getCategories();
+  let cities = await getCities();
+  let categories = await getCategories();
+  
+  console.log("[DummyReq] Cities:", cities);
+  console.log("[DummyReq] Categories:", categories);
+  
+  if (!Array.isArray(cities) || cities.length === 0) {
+    cities = ["Delhi", "Mumbai", "Bangalore", "Chennai", "Hyderabad", "Pune", "Kolkata"];
+  }
+  if (!Array.isArray(categories) || categories.length === 0) {
+    categories = ["electronics", "furniture", "electrical", "industrial", "plumbing"];
+  }
+  
   const generated = [];
   
   let dummyBuyer = await mongoose.model("User").findOne({ phone: "+919999999999" });
