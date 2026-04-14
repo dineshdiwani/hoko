@@ -618,6 +618,7 @@ app.use("/api/reports", require("./routes/reports"));
 app.use("/api/meta", require("./routes/meta"));
 app.use("/api/whatsapp", require("./routes/whatsapp"));
 app.use("/api/bulk-sms", require("./routes/bulkSms"));
+app.use("/api/dummy-requirements", require("./routes/dummyRequirementApi"));
 app.use("/api/admin-auth", require("./routes/adminAuth"));
 app.use("/api/admin", require("./routes/adminStats"));
 
