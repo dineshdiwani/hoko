@@ -21,31 +21,17 @@ function logActivity(action, details) {
 }
 
 function restartCron() {
-  if (cronIntervalId) clearInterval(cronIntervalId);
+  if (cronIntervalId) {
+    clearInterval(cronIntervalId);
+    cronIntervalId = null;
+  }
   if (cronRunning) {
     cronIntervalId = setInterval(() => {
       runCron().catch(err => console.error("[DummyReq Cron] Error:", err));
     }, cronIntervalMs);
   }
+  console.log(`[DummyReq] Cron restarted - interval: ${cronIntervalMs/3600000}h, running: ${cronRunning}`);
 }
-
-async function loadSettings() {
-  try {
-    const settings = await PlatformSettings.findOne().lean();
-    console.log("[DummyReq] Loaded settings:", JSON.stringify(settings?.dummyRequirementSettings).slice(0, 200));
-    if (settings?.dummyRequirementSettings) {
-      if (settings.dummyRequirementSettings.intervalHours) cronIntervalMs = settings.dummyRequirementSettings.intervalHours * 60 * 60 * 1000;
-      if (settings.dummyRequirementSettings.quantity) defaultQuantity = settings.dummyRequirementSettings.quantity;
-      if (settings.dummyRequirementSettings.maxQuantity) maxQuantity = settings.dummyRequirementSettings.maxQuantity;
-      if (typeof settings.dummyRequirementSettings.running === "boolean") cronRunning = settings.dummyRequirementSettings.running;
-    }
-  } catch (err) {
-    console.log("[DummyReq] Failed to load settings:", err.message);
-  }
-  restartCron();
-}
-
-loadSettings();
 
 router.get("/status", adminAuth, async (req, res) => {
   res.json({
@@ -63,16 +49,6 @@ router.get("/status", adminAuth, async (req, res) => {
 router.post("/toggle", adminAuth, async (req, res) => {
   try {
     cronRunning = !cronRunning;
-    await PlatformSettings.findOneAndUpdate(
-      {},
-      { $set: { 
-        "dummyRequirementSettings.running": cronRunning,
-        "dummyRequirementSettings.intervalHours": cronIntervalMs / 3600000,
-        "dummyRequirementSettings.quantity": defaultQuantity,
-        "dummyRequirementSettings.maxQuantity": maxQuantity
-      } },
-      { upsert: true, new: true }
-    );
     restartCron();
     logActivity("toggle", `Cron ${cronRunning ? "started" : "stopped"}`);
     res.json({ ok: true, cronRunning });
@@ -84,30 +60,17 @@ router.post("/toggle", adminAuth, async (req, res) => {
 
 router.post("/settings", adminAuth, async (req, res) => {
   try {
-    const { intervalHours, quantity, maxQuantity } = req.body;
-    cronIntervalMs = Number(intervalHours || 12) * 60 * 60 * 1000;
-    defaultQuantity = Number(quantity || 3);
-    maxQuantity = Number(maxQuantity || 500);
+    const { intervalHours, quantity, maxQuantity: maxQty } = req.body;
     
-    console.log("[DummyReq] Saving settings - intervalHours:", intervalHours, "quantity:", quantity, "maxQuantity:", maxQuantity);
-    
-    const result = await PlatformSettings.findOneAndUpdate(
-      {},
-      { $set: { 
-        "dummyRequirementSettings.running": cronRunning,
-        "dummyRequirementSettings.intervalHours": Number(intervalHours || 12),
-        "dummyRequirementSettings.quantity": Number(quantity || 3),
-        "dummyRequirementSettings.maxQuantity": Number(maxQuantity || 500)
-      } },
-      { upsert: true, new: true }
-    );
-    console.log("[DummyReq] Settings saved successfully");
+    if (intervalHours) cronIntervalMs = Number(intervalHours) * 60 * 60 * 1000;
+    if (quantity) defaultQuantity = Number(quantity);
+    if (maxQty) maxQuantity = Number(maxQty);
     
     restartCron();
-    logActivity("settings", `Interval: ${intervalHours}h, Qty: ${quantity}, Max: ${maxQuantity}`);
-    res.json({ ok: true, intervalHours, quantity, maxQuantity });
+    logActivity("settings", `Interval: ${intervalHours}h, Qty: ${quantity}, Max: ${maxQty}`);
+    res.json({ ok: true });
   } catch (err) {
-    console.log("[DummyReq] Settings ERROR:", err.stack);
+    console.log("[DummyReq] Settings error:", err);
     res.status(500).json({ message: err.message });
   }
 });
