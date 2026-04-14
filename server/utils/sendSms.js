@@ -79,13 +79,11 @@ async function sendBulkSms({ numbers, message, templateId }) {
   for (const mobile of uniqueNumbers) {
     try {
       const mobileDigits = mobile.replace(/^\+/, "");
-      const senderId = process.env.FAST2SMS_SENDER_ID;
       const templateId = process.env.FAST2SMS_TEMPLATE_ID;
       const payload = {
         message: message.trim(),
         route: "dlt",
         numbers: mobileDigits,
-        sender_id: senderId || "HOKO",
         template_id: templateId || "1007503173490976095"
       };
 
