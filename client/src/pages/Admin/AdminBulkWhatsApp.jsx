@@ -4,9 +4,10 @@ import AdminNav from "../../components/AdminNav";
 
 export default function AdminBulkWhatsApp() {
   const [templates, setTemplates] = useState([]);
-  const [stats, setStats] = useState({ total: 0, byCity: [] });
+  const [stats, setStats] = useState({ total: 0, byCity: [], byCategory: [] });
   const [mode, setMode] = useState("city");
   const [city, setCity] = useState("");
+  const [category, setCategory] = useState("");
   const [phones, setPhones] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState("");
   const [parameters, setParameters] = useState("");
@@ -44,6 +45,7 @@ export default function AdminBulkWhatsApp() {
       const params = parameters ? parameters.split(",").map(p => p.trim()) : [];
       const res = await api.post("/bulk-whatsapp/send-city", {
         city,
+        category: category || undefined,
         templateKey: selectedTemplate,
         parameters: params,
         buttonUrl: buttonUrl || undefined
@@ -141,15 +143,56 @@ export default function AdminBulkWhatsApp() {
               </div>
 
               {mode === "city" ? (
-                <div>
-                  <label className="text-sm text-gray-600 block mb-1">City</label>
-                  <input
-                    type="text"
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    placeholder="e.g., Delhi, Mumbai, Chennai"
-                    className="w-full border rounded-lg px-3 py-2"
-                  />
+                <>
+                  <div>
+                    <label className="text-sm text-gray-600 block mb-1">City</label>
+                    {stats.byCity?.length > 0 ? (
+                      <select
+                        value={city}
+                        onChange={(e) => setCity(e.target.value)}
+                        className="w-full border rounded-lg px-3 py-2"
+                      >
+                        <option value="">Select city...</option>
+                        {stats.byCity.map((c) => (
+                          <option key={c._id} value={c._id}>{c._id} ({c.count})</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        type="text"
+                        value={city}
+                        onChange={(e) => setCity(e.target.value)}
+                        placeholder="Type city name"
+                        className="w-full border rounded-lg px-3 py-2"
+                      />
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="text-sm text-gray-600 block mb-1">Category (optional)</label>
+                    {stats.byCategory?.length > 0 ? (
+                      <select
+                        value={category}
+                        onChange={(e) => setCategory(e.target.value)}
+                        className="w-full border rounded-lg px-3 py-2"
+                      >
+                        <option value="">All categories</option>
+                        {stats.byCategory.map((c) => (
+                          <option key={c._id} value={c._id}>{c._id} ({c.count})</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        type="text"
+                        value={category}
+                        onChange={(e) => setCategory(e.target.value)}
+                        placeholder="Type category"
+                        className="w-full border rounded-lg px-3 py-2"
+                      />
+                    )}
+                  </div>
+                </>
+              )}
                 </div>
               ) : (
                 <div>
