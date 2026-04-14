@@ -92,9 +92,10 @@ async function generateDummyRequirements(count = 3, maxQty = 500) {
   
   let dummyBuyer = await mongoose.model("User").findOne({ phone: "+919999999999" });
   if (!dummyBuyer) {
+    const randomCity = getRandomCity(cities);
     dummyBuyer = await mongoose.model("User").create({
       phone: "+919999999999",
-      city: "Delhi",
+      city: randomCity,
       roles: { buyer: true },
       buyerSettings: { name: "Demo Buyer" },
       verified: true
