@@ -16,6 +16,7 @@ let lastRunAt = null;
 let cronIntervalMs = 12 * 60 * 60 * 1000;
 let cronIntervalId = null;
 let defaultQuantity = 3;
+let productsPerMessage = 3;
 
 const activityLogs = [];
 
@@ -40,6 +41,7 @@ async function loadSettings() {
     if (settings?.value) {
       if (settings.value.intervalHours) cronIntervalMs = settings.value.intervalHours * 60 * 60 * 1000;
       if (settings.value.quantity) defaultQuantity = settings.value.quantity;
+      if (settings.value.productsPerMessage) productsPerMessage = settings.value.productsPerMessage;
       if (typeof settings.value.running === "boolean") cronRunning = settings.value.running;
     }
   } catch (err) {
@@ -56,6 +58,7 @@ router.get("/status", adminAuth, async (req, res) => {
     lastRunAt,
     intervalHours: cronIntervalMs / (60 * 60 * 1000),
     quantity: defaultQuantity,
+    productsPerMessage: productsPerMessage,
     totalDummyRequirements: await DummyRequirement.countDocuments(),
     sentCount: await DummyRequirement.countDocuments({ status: "sent" }),
     newCount: await DummyRequirement.countDocuments({ status: "new" })
@@ -81,19 +84,20 @@ router.post("/toggle", adminAuth, async (req, res) => {
 
 router.post("/settings", adminAuth, async (req, res) => {
   try {
-    const { intervalHours, quantity } = req.body;
+    const { intervalHours, quantity, productsPerMessage } = req.body;
     if (intervalHours) cronIntervalMs = Number(intervalHours) * 60 * 60 * 1000;
     if (quantity) defaultQuantity = Number(quantity);
+    if (productsPerMessage) productsPerMessage = Number(productsPerMessage);
     
     await Config.findOneAndUpdate(
       { key: "dummyRequirementConfig" },
-      { key: "dummyRequirementConfig", value: { running: cronRunning, intervalHours: cronIntervalMs / 3600000, quantity: defaultQuantity } },
+      { key: "dummyRequirementConfig", value: { running: cronRunning, intervalHours: cronIntervalMs / 3600000, quantity: defaultQuantity, productsPerMessage } },
       { upsert: true, new: true }
     );
     
     restartCron();
-    logActivity("settings", `Interval: ${intervalHours}h, Qty: ${quantity}`);
-    res.json({ ok: true, intervalHours, quantity });
+    logActivity("settings", `Interval: ${intervalHours}h, Qty: ${quantity}, PerMsg: ${productsPerMessage}`);
+    res.json({ ok: true });
   } catch (err) {
     console.log("[DummyReq] Settings error:", err);
     res.status(500).json({ message: err.message });

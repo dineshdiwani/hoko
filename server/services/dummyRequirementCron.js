@@ -82,7 +82,7 @@ async function buildDummyRequirementMessage(dummies, sellerCity) {
   return lines.join("\n");
 }
 
-async function sendToSellers(dummies) {
+async function sendToSellers(dummies, productsPerMsg = 3) {
   const cities = await getCities();
   const cityToDummies = {};
   
@@ -102,7 +102,8 @@ async function sendToSellers(dummies) {
     
     if (!sellers.length) continue;
     
-    const message = await buildDummyRequirementMessage(cityDummies, city);
+    const selectedDummies = cityDummies.slice(0, productsPerMsg);
+    const message = await buildDummyRequirementMessage(selectedDummies, city);
     
     for (const seller of sellers) {
       try {
@@ -151,14 +152,15 @@ async function sendToNewSeller(mobileE164, city) {
 async function runCron() {
   const settings = await PlatformSettings.findOne({ key: "dummyRequirementConfig" }).lean();
   const quantity = settings?.value?.quantity || 3;
+  const productsPerMsg = settings?.value?.productsPerMessage || 3;
   
-  console.log(`[DummyReq Cron] Running... (qty: ${quantity})`);
+  console.log(`[DummyReq Cron] Running... (qty: ${quantity}, perMsg: ${productsPerMsg})`);
   
   await generateDummyRequirements(quantity);
   
   const dummies = await DummyRequirement.find({ status: "new" }).limit(10);
   if (dummies.length > 0) {
-    await sendToSellers(dummies);
+    await sendToSellers(dummies, productsPerMsg);
   }
   
   console.log("[DummyReq Cron] Completed");
