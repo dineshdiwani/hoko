@@ -30,14 +30,18 @@ export default function AdminDummyRequirements() {
     try {
       const res = await api.get("/dummy-requirements/logs");
       setLogs(res.data || []);
-    } catch {}
+    } catch (err) {
+      console.log("[DummyReq] loadLogs error:", err.response?.data || err.message);
+    }
   }, []);
 
   const loadRequirements = useCallback(async () => {
     try {
       const res = await api.get("/dummy-requirements/requirements?limit=50");
       setRequirements(res.data?.items || []);
-    } catch {}
+    } catch (err) {
+      console.log("[DummyReq] loadRequirements error:", err.response?.data || err.message);
+    }
   }, []);
 
   const loadAll = useCallback(async () => {
@@ -58,7 +62,8 @@ export default function AdminDummyRequirements() {
       await loadStatus();
     } catch (err) {
       console.log("[DummyReq] toggle error:", err.response?.data || err.message);
-      alert(err?.response?.data?.message || "Failed");
+      const msg = err?.response?.data?.message || err?.message || "Failed";
+      alert(`Error: ${msg}\nStatus: ${err?.response?.status}`);
     }
   };
 
@@ -75,7 +80,8 @@ export default function AdminDummyRequirements() {
       alert("Settings saved!");
     } catch (err) {
       console.log("[DummyReq] settings error:", err.response?.data || err.message);
-      alert(err?.response?.data?.message || "Failed");
+      const msg = err?.response?.data?.message || err?.message || "Failed";
+      alert(`Error: ${msg}\nStatus: ${err?.response?.status}`);
     }
   };
 
@@ -90,7 +96,8 @@ export default function AdminDummyRequirements() {
       alert("Done!");
     } catch (err) {
       console.log("[DummyReq] run-now error:", err.response?.data || err.message);
-      alert(err?.response?.data?.message || "Failed");
+      const msg = err?.response?.data?.message || err?.message || "Failed";
+      alert(`Error: ${msg}\nStatus: ${err?.response?.status}`);
     } finally {
       setRefreshing(false);
     }
