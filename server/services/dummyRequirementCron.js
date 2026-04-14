@@ -8,12 +8,6 @@ const WhatsAppTemplateRegistry = require("../models/WhatsAppTemplateRegistry");
 const { sendWhatsAppMessage, sendViaWapiTemplate, sendViaGupshupTemplate } = require("../utils/sendWhatsApp");
 const { resolvePublicAppUrl } = require("../utils/publicAppUrl");
 
-const configSchema = new mongoose.Schema({
-  key: { type: String, required: true, unique: true },
-  value: mongoose.Schema.Types.Mixed
-}, { timestamps: true });
-const Config = mongoose.model("Config", configSchema);
-
 const productsByCategory = {
   electronics: ["LED Lights", "AC", "Fan", "Refrigerator", "Washing Machine", "Microwave", "Geyser", "Air Cooler"],
   furniture: ["Chairs", "Tables", "Sofa", "Beds", "Almirah", "Mattress", "Pillows"],
@@ -227,9 +221,9 @@ async function sendToNewSeller(mobileE164, city) {
 }
 
 async function runCron() {
-  const settings = await Config.findOne({ key: "dummyRequirementConfig" }).lean();
-  const quantity = settings?.value?.quantity || 3;
-  const maxQty = settings?.value?.maxQuantity || 500;
+  const settings = await PlatformSettings.findOne({ key: "dummyRequirementSettings" }).lean();
+  const quantity = settings?.dummyRequirementSettings?.quantity || 3;
+  const maxQty = settings?.dummyRequirementSettings?.maxQuantity || 500;
   
   console.log(`[DummyReq Cron] Running... (qty: ${quantity}, maxQty: ${maxQty})`);
   

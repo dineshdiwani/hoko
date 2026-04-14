@@ -1,15 +1,9 @@
 const express = require("express");
 const router = express.Router();
 const adminAuth = require("../middleware/adminAuth");
-const mongoose = require("mongoose");
+const PlatformSettings = require("../models/PlatformSettings");
 const DummyRequirement = require("../models/DummyRequirement");
 const { generateDummyRequirements, sendToSellers, runCron } = require("../services/dummyRequirementCron");
-
-const configSchema = new mongoose.Schema({
-  key: { type: String, required: true, unique: true },
-  value: mongoose.Schema.Types.Mixed
-}, { timestamps: true });
-const Config = mongoose.model("Config", configSchema);
 
 let cronRunning = true;
 let lastRunAt = null;
@@ -37,12 +31,12 @@ function restartCron() {
 
 async function loadSettings() {
   try {
-    const settings = await Config.findOne({ key: "dummyRequirementConfig" }).lean();
-    if (settings?.value) {
-      if (settings.value.intervalHours) cronIntervalMs = settings.value.intervalHours * 60 * 60 * 1000;
-      if (settings.value.quantity) defaultQuantity = settings.value.quantity;
-      if (settings.value.maxQuantity) maxQuantity = settings.value.maxQuantity;
-      if (typeof settings.value.running === "boolean") cronRunning = settings.value.running;
+    const settings = await PlatformSettings.findOne({ key: "dummyRequirementSettings" }).lean();
+    if (settings?.dummyRequirementSettings) {
+      if (settings.dummyRequirementSettings.intervalHours) cronIntervalMs = settings.dummyRequirementSettings.intervalHours * 60 * 60 * 1000;
+      if (settings.dummyRequirementSettings.quantity) defaultQuantity = settings.dummyRequirementSettings.quantity;
+      if (settings.dummyRequirementSettings.maxQuantity) maxQuantity = settings.dummyRequirementSettings.maxQuantity;
+      if (typeof settings.dummyRequirementSettings.running === "boolean") cronRunning = settings.dummyRequirementSettings.running;
     }
   } catch (err) {
     console.log("[DummyReq] Failed to load settings:", err.message);
@@ -68,12 +62,16 @@ router.get("/status", adminAuth, async (req, res) => {
 router.post("/toggle", adminAuth, async (req, res) => {
   try {
     cronRunning = !cronRunning;
-    const result = await Config.findOneAndUpdate(
-      { key: "dummyRequirementConfig" },
-      { $set: { value: { running: cronRunning, intervalHours: cronIntervalMs / 3600000, quantity: defaultQuantity, maxQuantity } } },
+    await PlatformSettings.findOneAndUpdate(
+      { key: "dummyRequirementSettings" },
+      { $set: { 
+        "dummyRequirementSettings.running": cronRunning,
+        "dummyRequirementSettings.intervalHours": cronIntervalMs / 3600000,
+        "dummyRequirementSettings.quantity": defaultQuantity,
+        "dummyRequirementSettings.maxQuantity": maxQuantity
+      } },
       { upsert: true, new: true }
     );
-    console.log("[DummyReq] Toggle result:", result);
     restartCron();
     logActivity("toggle", `Cron ${cronRunning ? "started" : "stopped"}`);
     res.json({ ok: true, cronRunning });
@@ -90,12 +88,16 @@ router.post("/settings", adminAuth, async (req, res) => {
     if (quantity) defaultQuantity = Number(quantity);
     if (maxQuantity) maxQuantity = Number(maxQuantity);
     
-    const result = await Config.findOneAndUpdate(
-      { key: "dummyRequirementConfig" },
-      { $set: { value: { running: cronRunning, intervalHours: cronIntervalMs / 3600000, quantity: defaultQuantity, maxQuantity } } },
+    await PlatformSettings.findOneAndUpdate(
+      { key: "dummyRequirementSettings" },
+      { $set: { 
+        "dummyRequirementSettings.running": cronRunning,
+        "dummyRequirementSettings.intervalHours": cronIntervalMs / 3600000,
+        "dummyRequirementSettings.quantity": defaultQuantity,
+        "dummyRequirementSettings.maxQuantity": maxQuantity
+      } },
       { upsert: true, new: true }
     );
-    console.log("[DummyReq] Settings result:", result);
     
     restartCron();
     logActivity("settings", `Interval: ${intervalHours}h, Qty: ${quantity}, Max: ${maxQuantity}`);

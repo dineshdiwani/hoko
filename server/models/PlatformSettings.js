@@ -2,7 +2,18 @@ const mongoose = require("mongoose");
 
 const platformSettingsSchema = new mongoose.Schema(
   {
+    key: {
+      type: String,
+      unique: true,
+      sparse: true
+    },
     cities: [{ type: String }],
+    dummyRequirementSettings: {
+      running: { type: Boolean, default: true },
+      intervalHours: { type: Number, default: 12 },
+      quantity: { type: Number, default: 3 },
+      maxQuantity: { type: Number, default: 500 }
+    },
     categories: [{ type: String }],
     units: [{ type: String }],
     currencies: [{ type: String }],
