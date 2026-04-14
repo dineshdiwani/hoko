@@ -4,7 +4,8 @@ const DummyRequirement = require("../models/DummyRequirement");
 const Requirement = require("../models/Requirement");
 const OptedInSeller = require("../models/OptedInSeller");
 const WhatsAppContact = require("../models/WhatsAppContact");
-const { sendWhatsAppMessage, sendViaWapiTemplate } = require("../utils/sendWhatsApp");
+const WhatsAppTemplateRegistry = require("../models/WhatsAppTemplateRegistry");
+const { sendWhatsAppMessage, sendViaWapiTemplate, sendViaGupshupTemplate } = require("../utils/sendWhatsApp");
 const { resolvePublicAppUrl } = require("../utils/publicAppUrl");
 
 const productsByCategory = {
@@ -109,8 +110,67 @@ async function buildDummyRequirementMessage(dummies, sellerCity) {
   return lines.join("\n");
 }
 
+async function sendTemplateToSellers(sellers, dummies, city, provider) {
+  const templateConfig = await WhatsAppTemplateRegistry.findOne({
+    key: "seller_new_requirement_invite_v2",
+    isActive: true
+  }).lean();
+
+  if (!templateConfig) {
+    console.warn("[DummyReq] Template not found, falling back to text");
+    const message = await buildDummyRequirementMessage(dummies, city);
+    for (const seller of sellers) {
+      try {
+        await sendWhatsAppMessage({ to: seller.mobileE164, body: message });
+      } catch (err) {
+        console.log("[DummyReq] Failed:", err.message);
+      }
+    }
+    return;
+  }
+
+  for (const dummy of dummies) {
+    const requirementId = dummy.realRequirementId ? String(dummy.realRequirementId) : "demo";
+    const deeplink = `${process.env.CLIENT_URL || "https://hoko.app"}/seller/deeplink/${requirementId}`;
+
+    for (const seller of sellers) {
+      try {
+        const params = [
+          String(dummy.product || ""),
+          String(dummy.city || ""),
+          String(dummy.quantity || ""),
+          deeplink
+        ];
+
+        if (provider === "gupshup") {
+          await sendViaGupshupTemplate({
+            to: seller.mobileE164,
+            templateId: templateConfig.templateId,
+            templateName: templateConfig.templateName,
+            languageCode: templateConfig.language || "en",
+            parameters: params,
+            buttonUrl: deeplink
+          });
+        } else {
+          await sendViaWapiTemplate({
+            to: seller.mobileE164,
+            templateId: templateConfig.templateId,
+            templateName: templateConfig.templateName,
+            languageCode: templateConfig.language || "en",
+            parameters: params,
+            buttonUrl: deeplink
+          });
+        }
+        console.log(`[DummyReq] Template sent to ${seller.mobileE164} for ${dummy.product}`);
+      } catch (err) {
+        console.log(`[DummyReq] Template failed for ${seller.mobileE164}:`, err.message);
+      }
+    }
+  }
+}
+
 async function sendToSellers(dummies, productsPerMsg = 3) {
-  const cities = await getCities();
+  const provider = String(process.env.WHATSAPP_PROVIDER || "wapi").toLowerCase();
   const cityToDummies = {};
   
   for (const dummy of dummies) {
@@ -130,19 +190,7 @@ async function sendToSellers(dummies, productsPerMsg = 3) {
     if (!sellers.length) continue;
     
     const selectedDummies = cityDummies.slice(0, productsPerMsg);
-    const message = await buildDummyRequirementMessage(selectedDummies, city);
-    
-    for (const seller of sellers) {
-      try {
-        await sendWhatsAppMessage({
-          to: seller.mobileE164,
-          body: message
-        });
-        console.log(`[DummyReq] Sent to ${seller.mobileE164} for ${city}`);
-      } catch (err) {
-        console.log(`[DummyReq] Failed for ${seller.mobileE164}:`, err.message);
-      }
-    }
+    await sendTemplateToSellers(sellers, selectedDummies, city, provider);
     
     await DummyRequirement.updateMany(
       { _id: { $in: cityDummies.map(d => d._id) } },
@@ -158,15 +206,12 @@ async function sendToNewSeller(mobileE164, city) {
   }).limit(3);
   
   if (!dummies.length) {
-    dummies.push(...await generateDummyRequirements(1));
+    const generated = await generateDummyRequirements(1);
+    dummies.push(...generated);
   }
   
-  const message = await buildDummyRequirementMessage(dummies, city);
-  
-  await sendWhatsAppMessage({
-    to: mobileE164,
-    body: message
-  });
+  const provider = String(process.env.WHATSAPP_PROVIDER || "wapi").toLowerCase();
+  await sendTemplateToSellers([{ mobileE164 }], dummies, city, provider);
   
   await DummyRequirement.updateMany(
     { _id: { $in: dummies.map(d => d._id) } },
