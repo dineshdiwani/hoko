@@ -87,8 +87,6 @@ async function generateDummyRequirements(count = 3, maxQty = 500) {
   
   const generated = [];
   
-  const generated = [];
-  
   let dummyBuyer = await mongoose.model("User").findOne({ phone: "+919999999999" });
   if (!dummyBuyer) {
     dummyBuyer = await mongoose.model("User").create({
