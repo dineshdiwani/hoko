@@ -25,10 +25,12 @@ export default function AdminBulkWhatsApp() {
         api.get("/bulk-whatsapp/templates"),
         api.get("/bulk-whatsapp/stats")
       ]);
+      console.log("Templates:", templatesRes.data);
+      console.log("Stats:", statsRes.data);
       setTemplates(templatesRes.data || []);
       setStats(statsRes.data || { total: 0, byCity: [], byCategory: [] });
     } catch (err) {
-      console.log("Load error:", err.message);
+      console.log("Load error:", err.response?.data || err.message);
     }
   };
 
