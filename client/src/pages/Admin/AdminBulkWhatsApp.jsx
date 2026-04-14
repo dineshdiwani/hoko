@@ -55,6 +55,7 @@ export default function AdminBulkWhatsApp() {
       });
       setResult(res.data);
     } catch (err) {
+      console.log("Error:", err.response?.data);
       alert(err?.response?.data?.message || err.message);
     } finally {
       setSending(false);
@@ -232,6 +233,8 @@ export default function AdminBulkWhatsApp() {
               <p className="font-semibold mb-2">Result</p>
               <p className="text-green-600">Sent: {result.sent?.length || 0}</p>
               <p className="text-red-600">Failed: {result.failed?.length || 0}</p>
+              {result.total !== undefined && <p className="text-gray-600">Total matched: {result.total}</p>}
+              {result.message && <p className="text-orange-600">{result.message}</p>}
               {result.failed?.length > 0 && (
                 <div className="mt-2 text-sm text-gray-500">
                   {result.failed.map((f, i) => (
