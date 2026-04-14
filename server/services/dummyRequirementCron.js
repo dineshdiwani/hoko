@@ -33,19 +33,21 @@ async function getCategories() {
 }
 
 async function getCities() {
+  // Use fallback cities - skip DB for now
+  return ["Delhi", "Mumbai", "Bangalore", "Chennai", "Hyderabad", "Pune", "Kolkata", "Ahmedabad", "Surat", "Jaipur", "Gurgaon", "Noida"];
+}
+
+async function getCategories() {
   try {
     const settings = await PlatformSettings.findOne().lean();
-    console.log("[DummyReq] getCities - settings:", settings?._id, "cities:", settings?.cities?.slice(0,3));
-    const citiesFromDb = settings?.cities;
-    if (Array.isArray(citiesFromDb) && citiesFromDb.length > 0) {
-      console.log("[DummyReq] getCities - found:", citiesFromDb.length);
-      return citiesFromDb;
+    const cats = settings?.categories;
+    if (Array.isArray(cats) && cats.length > 0) {
+      return cats;
     }
   } catch (err) {
-    console.log("[DummyReq] getCities error:", err.message);
+    console.log("[DummyReq] getCategories error:", err.message);
   }
-  console.log("[DummyReq] getCities - using fallback");
-  return ["Delhi", "Mumbai", "Bangalore", "Chennai", "Hyderabad", "Pune", "Kolkata", "Ahmedabad", "Surat", "Jaipur"];
+  return ["Electronics", "Furniture", "Electrical", "Industrial", "Plumbing", "Household", "Logistics", "General"];
 }
 
 function getRandomCategory(categories) {
