@@ -15,22 +15,6 @@ function randomInt(min, max) {
 function randomItem(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-function randomItem(arr) {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
-function getRandomCategory() {
-  const keys = Object.keys(productsByCategory);
-  return randomItem(keys);
-}
-
-function getRandomProduct(category) {
-  const products = productsByCategory[category] || productsByCategory.general;
-  return randomItem(products);
-}
 
 async function getCategories() {
   const settings = await PlatformSettings.findOne({ key: "categories" }).lean();
@@ -50,11 +34,6 @@ function getRandomCategory(categories) {
   return categories[Math.floor(Math.random() * categories.length)];
 }
 
-function getRandomProduct(category, productsByCategory) {
-  const products = productsByCategory[category] || productsByCategory.general;
-  return products[Math.floor(Math.random() * products.length)];
-}
-
 async function generateDummyRequirements(count = 3, maxQty = 500) {
   const cities = await getCities();
   const categories = await getCategories();
@@ -72,7 +51,7 @@ async function generateDummyRequirements(count = 3, maxQty = 500) {
   
   for (let i = 0; i < count; i++) {
     const category = getRandomCategory(categories);
-    const product = category; // Use category as product name since it's from platform settings
+    const product = category;
     const city = randomItem(cities);
     const quantity = randomInt(10, maxQty);
     
