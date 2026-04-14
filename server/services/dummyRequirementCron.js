@@ -94,6 +94,7 @@ async function generateDummyRequirements(count = 3, maxQty = 500) {
   if (!dummyBuyer) {
     dummyBuyer = await mongoose.model("User").create({
       phone: "+919999999999",
+      city: "Delhi",
       roles: { buyer: true },
       buyerSettings: { name: "Demo Buyer" },
       verified: true
