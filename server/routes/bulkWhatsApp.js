@@ -196,4 +196,34 @@ router.get("/stats", adminAuth, async (req, res) => {
   }
 });
 
+router.get("/cities", adminAuth, async (req, res) => {
+  try {
+    const cities = await WhatsAppContact.distinct("city", { 
+      optInStatus: "opted_in", 
+      active: { $ne: false },
+      unsubscribedAt: { $exists: false }
+    });
+    res.json(cities.sort());
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+router.get("/debug", adminAuth, async (req, res) => {
+  try {
+    const total = await WhatsAppContact.countDocuments();
+    const optedIn = await WhatsAppContact.countDocuments({ optInStatus: "opted_in" });
+    const active = await WhatsAppContact.countDocuments({ active: { $ne: false } });
+    const optedInActive = await WhatsAppContact.countDocuments({ optInStatus: "opted_in", active: { $ne: false } });
+    const cities = await WhatsAppContact.aggregate([
+      { $group: { _id: "$city", count: { $sum: 1 }, optedIn: { $sum: { $cond: [{ $eq: ["$optInStatus", "opted_in"] }, 1, 0] } } },
+      { $sort: { count: -1 } },
+      { $limit: 10 }
+    ]);
+    res.json({ total, optedIn, active, optedInActive, cities });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 module.exports = router;
