@@ -105,7 +105,7 @@ async function generateDummyRequirements(count = 3, maxQty = 500) {
   for (let i = 0; i < count; i++) {
     const category = getRandomCategory(categories);
     const city = getRandomCity(cities);
-    const quantity = randomInt(10, maxQty);
+    const quantity = randomInt(1, maxQty);
     
     console.log(`[DummyReq] Loop ${i}: city="${city}" (${typeof city}), category="${category}" (${typeof category})`);
     
