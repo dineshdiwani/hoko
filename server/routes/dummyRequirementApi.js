@@ -68,11 +68,12 @@ router.get("/status", adminAuth, async (req, res) => {
 router.post("/toggle", adminAuth, async (req, res) => {
   try {
     cronRunning = !cronRunning;
-    await Config.findOneAndUpdate(
+    const result = await Config.findOneAndUpdate(
       { key: "dummyRequirementConfig" },
       { $set: { value: { running: cronRunning, intervalHours: cronIntervalMs / 3600000, quantity: defaultQuantity, maxQuantity } } },
       { upsert: true, new: true }
     );
+    console.log("[DummyReq] Toggle result:", result);
     restartCron();
     logActivity("toggle", `Cron ${cronRunning ? "started" : "stopped"}`);
     res.json({ ok: true, cronRunning });
@@ -89,11 +90,12 @@ router.post("/settings", adminAuth, async (req, res) => {
     if (quantity) defaultQuantity = Number(quantity);
     if (maxQuantity) maxQuantity = Number(maxQuantity);
     
-    await Config.findOneAndUpdate(
+    const result = await Config.findOneAndUpdate(
       { key: "dummyRequirementConfig" },
       { $set: { value: { running: cronRunning, intervalHours: cronIntervalMs / 3600000, quantity: defaultQuantity, maxQuantity } } },
       { upsert: true, new: true }
     );
+    console.log("[DummyReq] Settings result:", result);
     
     restartCron();
     logActivity("settings", `Interval: ${intervalHours}h, Qty: ${quantity}, Max: ${maxQuantity}`);
