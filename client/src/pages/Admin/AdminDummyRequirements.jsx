@@ -124,7 +124,7 @@ export default function AdminDummyRequirements() {
                 />
               </div>
               <div>
-                <label className="text-sm text-gray-600">Quantity per run</label>
+                <label className="text-sm text-gray-600">Products/Services per message</label>
                 <input
                   type="number"
                   value={quantity}
