@@ -61,31 +61,41 @@ router.get("/status", adminAuth, async (req, res) => {
 });
 
 router.post("/toggle", adminAuth, async (req, res) => {
-  cronRunning = !cronRunning;
-  await PlatformSettings.findOneAndUpdate(
-    { key: "dummyRequirementConfig" },
-    { key: "dummyRequirementConfig", value: { running: cronRunning, intervalHours: cronIntervalMs / 3600000, quantity: defaultQuantity } },
-    { upsert: true }
-  );
-  restartCron();
-  logActivity("toggle", `Cron ${cronRunning ? "started" : "stopped"}`);
-  res.json({ ok: true, cronRunning });
+  try {
+    cronRunning = !cronRunning;
+    await PlatformSettings.findOneAndUpdate(
+      { key: "dummyRequirementConfig" },
+      { key: "dummyRequirementConfig", value: { running: cronRunning, intervalHours: cronIntervalMs / 3600000, quantity: defaultQuantity } },
+      { upsert: true }
+    );
+    restartCron();
+    logActivity("toggle", `Cron ${cronRunning ? "started" : "stopped"}`);
+    res.json({ ok: true, cronRunning });
+  } catch (err) {
+    console.log("[DummyReq] Toggle error:", err);
+    res.status(500).json({ message: err.message });
+  }
 });
 
 router.post("/settings", adminAuth, async (req, res) => {
-  const { intervalHours, quantity } = req.body;
-  if (intervalHours) cronIntervalMs = Number(intervalHours) * 60 * 60 * 1000;
-  if (quantity) defaultQuantity = Number(quantity);
-  
-  await PlatformSettings.findOneAndUpdate(
-    { key: "dummyRequirementConfig" },
-    { key: "dummyRequirementConfig", value: { running: cronRunning, intervalHours: cronIntervalMs / 3600000, quantity: defaultQuantity } },
-    { upsert: true }
-  );
-  
-  restartCron();
-  logActivity("settings", `Interval: ${intervalHours}h, Qty: ${quantity}`);
-  res.json({ ok: true });
+  try {
+    const { intervalHours, quantity } = req.body;
+    if (intervalHours) cronIntervalMs = Number(intervalHours) * 60 * 60 * 1000;
+    if (quantity) defaultQuantity = Number(quantity);
+    
+    await PlatformSettings.findOneAndUpdate(
+      { key: "dummyRequirementConfig" },
+      { key: "dummyRequirementConfig", value: { running: cronRunning, intervalHours: cronIntervalMs / 3600000, quantity: defaultQuantity } },
+      { upsert: true }
+    );
+    
+    restartCron();
+    logActivity("settings", `Interval: ${intervalHours}h, Qty: ${quantity}`);
+    res.json({ ok: true, intervalHours, quantity });
+  } catch (err) {
+    console.log("[DummyReq] Settings error:", err);
+    res.status(500).json({ message: err.message });
+  }
 });
 
 router.post("/run-now", adminAuth, async (req, res) => {
