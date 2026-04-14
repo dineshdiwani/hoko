@@ -34,7 +34,8 @@ const consentState = new Map();
 const CONSENT_STATES = {
   PENDING: "pending_consent",
   AWAITING_ROLE: "awaiting_role",
-  AWAITING_SELLER_CITY: "awaiting_seller_city"
+  AWAITING_SELLER_CITY: "awaiting_seller_city",
+  AWAITING_SELLER_CATEGORIES: "awaiting_seller_categories"
 };
 
 function getConsentStateKey(mobileE164) {
@@ -697,13 +698,39 @@ router.post("/webhook", async (req, res) => {
       const matchedCity = cities.find(c => normalizeCityName(c) === inputCity);
       const cityToSave = matchedCity || inboundText;
       
+      // Ask for products/services next
+      consentState.set(consentKey, { 
+        step: CONSENT_STATES.AWAITING_SELLER_CATEGORIES, 
+        mobileE164: event.mobileE164,
+        city: cityToSave 
+      });
+      await sendWhatsAppMessage({
+        to: event.mobileE164,
+        body: "What products/services do you supply? 📦"
+      });
+      continue;
+    }
+    
+    // Handle seller categories input
+    if (currentConsentState?.step === CONSENT_STATES.AWAITING_SELLER_CATEGORIES) {
+      const inboundText = String(event.text || "").trim();
+      const cityToSave = currentConsentState?.city || "Unknown";
+      
+      if (!inboundText) {
+        await sendWhatsAppMessage({
+          to: event.mobileE164,
+          body: "Please share what you supply."
+        });
+        continue;
+      }
+      
       const deepLink = await sendSellerInviteLink(event.mobileE164, cityToSave);
       await sendWhatsAppMessage({
         to: event.mobileE164,
         body: buildConsentConfirmedSellerMessage(cityToSave, deepLink)
       });
       consentState.delete(consentKey);
-      console.log(`[Seller OptIn] ${event.mobileE164} - City: ${cityToSave}`);
+      console.log(`[Seller OptIn] ${event.mobileE164} - City: ${cityToSave}, Products: ${inboundText}`);
       continue;
     }
 
@@ -720,6 +747,7 @@ router.post("/webhook", async (req, res) => {
         to: event.mobileE164,
         body: "Perfect!👍 Which city do you operate in? 📍"
       });
+      continue;
       continue;
     }
 
