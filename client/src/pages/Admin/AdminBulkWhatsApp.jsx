@@ -37,7 +37,7 @@ export default function AdminBulkWhatsApp() {
       alert("City and template required");
       return;
     }
-    const confirmMsg = category 
+    const confirmMsg = category
       ? `Send to opted-in sellers in ${city} with category "${category}"?`
       : `Send to all opted-in sellers in ${city}?`;
     if (!confirm(confirmMsg)) return;
@@ -145,40 +145,43 @@ export default function AdminBulkWhatsApp() {
                 </select>
               </div>
 
-              {mode === "city" ? (
-                <div>
-                <label className="text-sm text-gray-600 block mb-1">City</label>
-                <select
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2"
-                >
-                  <option value="">Select city...</option>
-                  {stats.byCity.map((c) => (
-                    <option key={c._id} value={c._id}>
-                      {c._id} ({c.count})
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {mode === "city" && (
+                <>
+                  <div>
+                    <label className="text-sm text-gray-600 block mb-1">City</label>
+                    <select
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                      className="w-full border rounded-lg px-3 py-2"
+                    >
+                      <option value="">Select city...</option>
+                      {stats.byCity.map((c) => (
+                        <option key={c._id} value={c._id}>
+                          {c._id} ({c.count})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-              <div>
-                <label className="text-sm text-gray-600 block mb-1">Category (optional)</label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2"
-                >
-                  <option value="">All categories</option>
-                  {stats.byCategory.map((c) => (
-                    <option key={c._id} value={c._id}>
-                      {c._id} ({c.count})
-                    </option>
-                  ))}
-                </select>
-              </div>
-                </div>
-              ) : (
+                  <div>
+                    <label className="text-sm text-gray-600 block mb-1">Category (optional)</label>
+                    <select
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value)}
+                      className="w-full border rounded-lg px-3 py-2"
+                    >
+                      <option value="">All categories</option>
+                      {stats.byCategory.map((c) => (
+                        <option key={c._id} value={c._id}>
+                          {c._id} ({c.count})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
+
+              {mode === "phones" && (
                 <div>
                   <label className="text-sm text-gray-600 block mb-1">Phone Numbers</label>
                   <textarea
