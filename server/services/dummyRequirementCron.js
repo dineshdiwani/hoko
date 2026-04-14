@@ -33,8 +33,9 @@ async function getCategories() {
 }
 
 async function getCities() {
-  // Use fallback cities - skip DB for now
-  return ["Delhi", "Mumbai", "Bangalore", "Chennai", "Hyderabad", "Pune", "Kolkata", "Ahmedabad", "Surat", "Jaipur", "Gurgaon", "Noida"];
+  const fallback = ["Delhi", "Mumbai", "Bangalore", "Chennai", "Hyderabad", "Pune", "Kolkata"];
+  console.log("[DummyReq] getCities called, returning fallback");
+  return fallback;
 }
 
 async function getCategories() {
@@ -107,17 +108,24 @@ async function generateDummyRequirements(count = 3, maxQty = 500) {
     const city = getRandomCity(cities);
     const quantity = randomInt(10, maxQty);
     
-    console.log(`[DummyReq] Creating req ${i}: city=${city} category=${category} qty=${quantity}`);
+    console.log(`[DummyReq] Loop ${i}: city="${city}" (${typeof city}), category="${category}" (${typeof category})`);
     
-    const dummy = await DummyRequirement.create({
-      product: String(category),
-      quantity: quantity,
-      unit: randomItem(["pieces", "units", "pcs", "kg", "boxes"]),
-      city: String(city),
-      category: String(category),
-      isDummy: true,
-      status: "new"
-    });
+    if (!city || typeof city !== 'string' || city.length === 0) {
+      console.error("[DummyReq] Invalid city, using default");
+      continue;
+    }
+    
+    try {
+      const dummy = await DummyRequirement.create({
+        product: String(category),
+        quantity: quantity,
+        unit: randomItem(["pieces", "units", "pcs", "kg", "boxes"]),
+        city: String(city),
+        category: String(category),
+        isDummy: true,
+        status: "new"
+      });
+      console.log("[DummyReq] Dummy created:", dummy._id);
     
     const requirement = await Requirement.create({
       buyerId: dummyBuyer._id,
