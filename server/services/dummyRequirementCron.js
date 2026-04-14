@@ -8,18 +8,13 @@ const WhatsAppTemplateRegistry = require("../models/WhatsAppTemplateRegistry");
 const { sendWhatsAppMessage, sendViaWapiTemplate, sendViaGupshupTemplate } = require("../utils/sendWhatsApp");
 const { resolvePublicAppUrl } = require("../utils/publicAppUrl");
 
-const productsByCategory = {
-  electronics: ["LED Lights", "AC", "Fan", "Refrigerator", "Washing Machine", "Microwave", "Geyser", "Air Cooler"],
-  furniture: ["Chairs", "Tables", "Sofa", "Beds", "Almirah", "Mattress", "Pillows"],
-  electrical: ["Cables", "Switches", "Wires", "MCB", "DB Box", "LED Bulbs"],
-  industrial: ["Motor", "Pump", "Compressor", "Generator", "Hydraulic Pump"],
-  plumbing: ["Pipes", "Fittings", "Valves", "Taps", "Shower"],
-  household: ["2BHK Rental", "3BHK Rental", "PG", "Hostel", "Flat for Rent"],
-  logistics: ["House Shifting", "Office Relocation", "Vehicle Transport", "Local Moving"],
-  general: ["Raw Materials", "Office Supplies", "Packaging Material", "Tools"]
-};
-
 function randomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function randomItem(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
@@ -37,13 +32,32 @@ function getRandomProduct(category) {
   return randomItem(products);
 }
 
+async function getCategories() {
+  const settings = await PlatformSettings.findOne({ key: "categories" }).lean();
+  return Array.isArray(settings?.categories) && settings.categories.length > 0
+    ? settings.categories
+    : ["electronics", "furniture", "electrical", "industrial", "plumbing", "household", "logistics", "general"];
+}
+
 async function getCities() {
   const settings = await PlatformSettings.findOne({ key: "cities" }).lean();
-  return Array.isArray(settings?.value) ? settings.value : ["Delhi", "Mumbai", "Bangalore", "Chennai", "Hyderabad", "Pune", "Kolkata"];
+  return Array.isArray(settings?.cities) && settings.cities.length > 0
+    ? settings.cities
+    : ["Delhi", "Mumbai", "Bangalore", "Chennai", "Hyderabad", "Pune", "Kolkata"];
+}
+
+function getRandomCategory(categories) {
+  return categories[Math.floor(Math.random() * categories.length)];
+}
+
+function getRandomProduct(category, productsByCategory) {
+  const products = productsByCategory[category] || productsByCategory.general;
+  return products[Math.floor(Math.random() * products.length)];
 }
 
 async function generateDummyRequirements(count = 3, maxQty = 500) {
   const cities = await getCities();
+  const categories = await getCategories();
   const generated = [];
   
   let dummyBuyer = await mongoose.model("User").findOne({ phone: "+919999999999" });
@@ -57,8 +71,8 @@ async function generateDummyRequirements(count = 3, maxQty = 500) {
   }
   
   for (let i = 0; i < count; i++) {
-    const category = getRandomCategory();
-    const product = getRandomProduct(category);
+    const category = getRandomCategory(categories);
+    const product = category; // Use category as product name since it's from platform settings
     const city = randomItem(cities);
     const quantity = randomInt(10, maxQty);
     
