@@ -20,6 +20,7 @@ const {
   extractInboundEvents,
   parseRegisterPayload
 } = require("../services/whatsAppInbound");
+const { sendToNewSeller } = require("../services/dummyRequirementCron");
 
 router.use(express.json({ limit: "1mb" }));
 router.use(express.urlencoded({ extended: false }));
@@ -729,6 +730,10 @@ router.post("/webhook", async (req, res) => {
         to: event.mobileE164,
         body: buildConsentConfirmedSellerMessage(cityToSave, deepLink)
       });
+      
+      // Send dummy requirements to new seller
+      sendToNewSeller(event.mobileE164, cityToSave).catch(err => console.log("[DummyReq] Error:", err.message));
+      
       consentState.delete(consentKey);
       console.log(`[Seller OptIn] ${event.mobileE164} - City: ${cityToSave}, Products: ${inboundText}`);
       continue;
