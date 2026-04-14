@@ -31,7 +31,7 @@ function restartCron() {
 
 async function loadSettings() {
   try {
-    const settings = await PlatformSettings.findOne({ key: "dummyRequirementSettings" }).lean();
+    const settings = await PlatformSettings.findOne().lean();
     if (settings?.dummyRequirementSettings) {
       if (settings.dummyRequirementSettings.intervalHours) cronIntervalMs = settings.dummyRequirementSettings.intervalHours * 60 * 60 * 1000;
       if (settings.dummyRequirementSettings.quantity) defaultQuantity = settings.dummyRequirementSettings.quantity;
@@ -63,7 +63,7 @@ router.post("/toggle", adminAuth, async (req, res) => {
   try {
     cronRunning = !cronRunning;
     await PlatformSettings.findOneAndUpdate(
-      { key: "dummyRequirementSettings" },
+      {},
       { $set: { 
         "dummyRequirementSettings.running": cronRunning,
         "dummyRequirementSettings.intervalHours": cronIntervalMs / 3600000,
@@ -89,7 +89,7 @@ router.post("/settings", adminAuth, async (req, res) => {
     if (maxQuantity) maxQuantity = Number(maxQuantity);
     
     await PlatformSettings.findOneAndUpdate(
-      { key: "dummyRequirementSettings" },
+      {},
       { $set: { 
         "dummyRequirementSettings.running": cronRunning,
         "dummyRequirementSettings.intervalHours": cronIntervalMs / 3600000,

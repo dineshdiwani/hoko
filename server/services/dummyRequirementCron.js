@@ -17,16 +17,18 @@ function randomItem(arr) {
 }
 
 async function getCategories() {
-  const settings = await PlatformSettings.findOne({ key: "categories" }).lean();
-  return Array.isArray(settings?.categories) && settings.categories.length > 0
-    ? settings.categories
+  const settings = await PlatformSettings.findOne().lean();
+  const cats = settings?.categories;
+  return Array.isArray(cats) && cats.length > 0
+    ? cats
     : ["electronics", "furniture", "electrical", "industrial", "plumbing", "household", "logistics", "general"];
 }
 
 async function getCities() {
-  const settings = await PlatformSettings.findOne({ key: "cities" }).lean();
-  return Array.isArray(settings?.cities) && settings.cities.length > 0
-    ? settings.cities
+  const settings = await PlatformSettings.findOne().lean();
+  const citiesFromDb = settings?.cities;
+  return Array.isArray(citiesFromDb) && citiesFromDb.length > 0
+    ? citiesFromDb
     : ["Delhi", "Mumbai", "Bangalore", "Chennai", "Hyderabad", "Pune", "Kolkata"];
 }
 
@@ -214,7 +216,7 @@ async function sendToNewSeller(mobileE164, city) {
 }
 
 async function runCron() {
-  const settings = await PlatformSettings.findOne({ key: "dummyRequirementSettings" }).lean();
+  const settings = await PlatformSettings.findOne().lean();
   const quantity = settings?.dummyRequirementSettings?.quantity || 3;
   const maxQty = settings?.dummyRequirementSettings?.maxQuantity || 500;
   
