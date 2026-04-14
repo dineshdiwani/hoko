@@ -25,10 +25,6 @@ router.post("/send", adminAuth, async (req, res) => {
       return res.status(400).json({ message: "Template not found. Provide templateKey or templateId" });
     }
     
-    if (!templateConfig.templateId) {
-      return res.status(400).json({ message: "Template missing templateId (UUID)" });
-    }
-    
     const providerType = provider || "gupshup";
     const results = { sent: [], failed: [], total: phones.length };
     
@@ -36,12 +32,6 @@ router.post("/send", adminAuth, async (req, res) => {
       try {
         const normalized = String(phone).replace(/[^\d+]/g, "");
         const mobileE164 = normalized.startsWith("+") ? normalized : `+${normalized}`;
-        
-        console.log(`[Bulk WhatsApp] Sending to: ${mobileE164}, template: ${templateConfig.templateName}, templateId: ${templateConfig.templateId}`);
-        
-        if (!templateConfig.templateId) {
-          throw new Error("Template missing templateId (UUID)");
-        }
         
         const params = [...parameters];
         
@@ -80,7 +70,7 @@ router.post("/send", adminAuth, async (req, res) => {
 
 router.post("/send-city", adminAuth, async (req, res) => {
   try {
-    const { city, templateKey, templateId, parameters = [], buttonUrl, provider, limit, category } = req.body;
+    const { city, templateKey, templateId, parameters = [], buttonUrl, provider, limit } = req.body;
     
     if (!city) {
       return res.status(400).json({ message: "city required" });
@@ -98,10 +88,6 @@ router.post("/send-city", adminAuth, async (req, res) => {
       return res.status(400).json({ message: "Template not found" });
     }
     
-    if (!templateConfig.templateId) {
-      return res.status(400).json({ message: "Template missing templateId" });
-    }
-    
     const query = {
       city: { $regex: new RegExp(city, "i") },
       optInStatus: "opted_in",
@@ -109,22 +95,12 @@ router.post("/send-city", adminAuth, async (req, res) => {
       unsubscribedAt: { $exists: false }
     };
     
-    if (category && category !== "all") {
-      query.categories = { $regex: new RegExp(category, "i") };
-    }
-    
     const sellers = await WhatsAppContact.find(query)
       .select("mobileE164 name")
       .limit(Number(limit) || 100);
     
     const providerType = provider || "gupshup";
     const results = { sent: [], failed: [], total: sellers.length };
-    
-    console.log(`[Bulk WhatsApp City] Query: city=${city}, category=${category}, found=${sellers.length}`);
-    
-    if (sellers.length === 0) {
-      return res.json({ message: "No opted-in sellers found in this city", sent: [], failed: [], total: 0 });
-    }
     
     for (const seller of sellers) {
       try {
@@ -183,44 +159,7 @@ router.get("/stats", adminAuth, async (req, res) => {
       { $sort: { count: -1 } },
       { $limit: 20 }
     ]);
-    const byCategory = await WhatsAppContact.aggregate([
-      { $match: { optInStatus: "opted_in", active: { $ne: false } } },
-      { $unwind: "$categories" },
-      { $group: { _id: "$categories", count: { $sum: 1 } } },
-      { $sort: { count: -1 } },
-      { $limit: 30 }
-    ]);
-    res.json({ total, byCity, byCategory });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-router.get("/cities", adminAuth, async (req, res) => {
-  try {
-    const cities = await WhatsAppContact.distinct("city", { 
-      optInStatus: "opted_in", 
-      active: { $ne: false },
-      unsubscribedAt: { $exists: false }
-    });
-    res.json(cities.sort());
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-router.get("/debug", adminAuth, async (req, res) => {
-  try {
-    const total = await WhatsAppContact.countDocuments();
-    const optedIn = await WhatsAppContact.countDocuments({ optInStatus: "opted_in" });
-    const active = await WhatsAppContact.countDocuments({ active: { $ne: false } });
-    const optedInActive = await WhatsAppContact.countDocuments({ optInStatus: "opted_in", active: { $ne: false } });
-    const cities = await WhatsAppContact.aggregate([
-      { $group: { _id: "$city", count: { $sum: 1 }, optedIn: { $sum: { $cond: [{ $eq: ["$optInStatus", "opted_in"] }, 1, 0] } } },
-      { $sort: { count: -1 } },
-      { $limit: 10 }
-    ]);
-    res.json({ total, optedIn, active, optedInActive, cities });
+    res.json({ total, byCity });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

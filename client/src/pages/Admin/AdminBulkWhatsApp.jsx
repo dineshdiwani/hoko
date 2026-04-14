@@ -4,10 +4,9 @@ import AdminNav from "../../components/AdminNav";
 
 export default function AdminBulkWhatsApp() {
   const [templates, setTemplates] = useState([]);
-  const [stats, setStats] = useState({ total: 0, byCity: [], byCategory: [] });
+  const [stats, setStats] = useState({ total: 0, byCity: [] });
   const [mode, setMode] = useState("city");
   const [city, setCity] = useState("");
-  const [category, setCategory] = useState("");
   const [phones, setPhones] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState("");
   const [parameters, setParameters] = useState("");
@@ -25,12 +24,10 @@ export default function AdminBulkWhatsApp() {
         api.get("/bulk-whatsapp/templates"),
         api.get("/bulk-whatsapp/stats")
       ]);
-      console.log("Templates:", templatesRes.data);
-      console.log("Stats:", statsRes.data);
-      setTemplates(templatesRes.data || []);
-      setStats(statsRes.data || { total: 0, byCity: [], byCategory: [] });
+      setTemplates(templatesRes.data);
+      setStats(statsRes.data);
     } catch (err) {
-      console.log("Load error:", err.response?.data || err.message);
+      console.log("Load error:", err.message);
     }
   };
 
@@ -39,10 +36,7 @@ export default function AdminBulkWhatsApp() {
       alert("City and template required");
       return;
     }
-    const confirmMsg = category
-      ? `Send to opted-in sellers in ${city} with category "${category}"?`
-      : `Send to all opted-in sellers in ${city}?`;
-    if (!confirm(confirmMsg)) return;
+    if (!confirm(`Send to all opted-in sellers in ${city}?`)) return;
 
     setSending(true);
     setResult(null);
@@ -50,7 +44,6 @@ export default function AdminBulkWhatsApp() {
       const params = parameters ? parameters.split(",").map(p => p.trim()) : [];
       const res = await api.post("/bulk-whatsapp/send-city", {
         city,
-        category: category || undefined,
         templateKey: selectedTemplate,
         parameters: params,
         buttonUrl: buttonUrl || undefined
@@ -100,13 +93,13 @@ export default function AdminBulkWhatsApp() {
 
         <div className="space-y-4">
           <div className="bg-white border rounded-2xl p-4">
-            <p className="font-semibold mb-3">Stats: {stats.total} opted-in sellers</p>
+            <p className="font-semibold mb-3">Opted-in Sellers: {stats.total}</p>
             <div className="flex flex-wrap gap-2">
-              {stats.byCity?.map((c) => (
+              {stats.byCity.map((c) => (
                 <span key={c._id} className="bg-gray-100 px-2 py-1 rounded text-sm">
                   {c._id}: {c.count}
                 </span>
-              )) || <span className="text-gray-500">No data</span>}
+              ))}
             </div>
           </div>
 
@@ -147,33 +140,18 @@ export default function AdminBulkWhatsApp() {
                 </select>
               </div>
 
-              {mode === "city" && (
-                <>
-                  <div>
-                    <label className="text-sm text-gray-600 block mb-1">City</label>
-                    <input
-                      type="text"
-                      value={city}
-                      onChange={(e) => setCity(e.target.value)}
-                      placeholder="Delhi, Mumbai..."
-                      className="w-full border rounded-lg px-3 py-2"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm text-gray-600 block mb-1">Category (optional)</label>
-                    <input
-                      type="text"
-                      value={category}
-                      onChange={(e) => setCategory(e.target.value)}
-                      placeholder="Electronics, Furniture..."
-                      className="w-full border rounded-lg px-3 py-2"
-                    />
-                  </div>
-                </>
-              )}
-
-              {mode === "phones" && (
+              {mode === "city" ? (
+                <div>
+                  <label className="text-sm text-gray-600 block mb-1">City</label>
+                  <input
+                    type="text"
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    placeholder="e.g., Delhi, Mumbai, Chennai"
+                    className="w-full border rounded-lg px-3 py-2"
+                  />
+                </div>
+              ) : (
                 <div>
                   <label className="text-sm text-gray-600 block mb-1">Phone Numbers</label>
                   <textarea
@@ -188,18 +166,18 @@ export default function AdminBulkWhatsApp() {
               )}
 
               <div>
-                <label className="text-sm text-gray-600 block mb-1">Parameters</label>
+                <label className="text-sm text-gray-600 block mb-1">Parameters (comma separated)</label>
                 <input
                   type="text"
                   value={parameters}
                   onChange={(e) => setParameters(e.target.value)}
-                  placeholder="param1, param2"
+                  placeholder="param1, param2, param3"
                   className="w-full border rounded-lg px-3 py-2"
                 />
               </div>
 
               <div>
-                <label className="text-sm text-gray-600 block mb-1">Button URL</label>
+                <label className="text-sm text-gray-600 block mb-1">Button URL (optional)</label>
                 <input
                   type="text"
                   value={buttonUrl}
@@ -224,7 +202,13 @@ export default function AdminBulkWhatsApp() {
               <p className="font-semibold mb-2">Result</p>
               <p className="text-green-600">Sent: {result.sent?.length || 0}</p>
               <p className="text-red-600">Failed: {result.failed?.length || 0}</p>
-              {result.message && <p className="text-orange-600">{result.message}</p>}
+              {result.failed?.length > 0 && (
+                <div className="mt-2 text-sm text-gray-500">
+                  {result.failed.map((f, i) => (
+                    <div key={i}>{f.phone}: {f.error}</div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
