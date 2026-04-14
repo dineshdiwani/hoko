@@ -10,7 +10,7 @@ let lastRunAt = null;
 let cronIntervalMs = 12 * 60 * 60 * 1000;
 let cronIntervalId = null;
 let defaultQuantity = 3;
-let maxQuantity = 500;
+let maxQuantity = 10;
 
 const activityLogs = [];
 

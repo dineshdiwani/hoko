@@ -10,7 +10,7 @@ export default function AdminDummyRequirements() {
   const [refreshing, setRefreshing] = useState(false);
   const [intervalHours, setIntervalHours] = useState(12);
   const [quantity, setQuantity] = useState(3);
-  const [maxQuantity, setMaxQuantity] = useState(500);
+  const [maxQuantity, setMaxQuantity] = useState(10);
 
   const loadStatus = useCallback(async () => {
     try {
