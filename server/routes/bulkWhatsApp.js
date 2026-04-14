@@ -94,11 +94,11 @@ router.post("/send-city", adminAuth, async (req, res) => {
     }
     
     const query = {
-      city: { $regex: new RegExp(city, "i") },
-      optInStatus: "opted_in",
-      active: { $ne: false },
-      unsubscribedAt: { $exists: false }
+      city: city,
+      optInStatus: "opted_in"
     };
+    
+    console.log("[BulkWhatsApp] Exact city query:", city);
     
     if (category) {
       query.categories = { $regex: new RegExp(category, "i") };
