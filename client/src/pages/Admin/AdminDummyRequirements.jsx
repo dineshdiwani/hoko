@@ -14,12 +14,16 @@ export default function AdminDummyRequirements() {
 
   const loadStatus = useCallback(async () => {
     try {
+      console.log("[DummyReq] loading status from:", api.defaults.baseURL + "/dummy-requirements/status");
       const res = await api.get("/dummy-requirements/status");
+      console.log("[DummyReq] status response:", res.data);
       setStatus(res.data);
       setIntervalHours(res.data.intervalHours || 12);
       setQuantity(res.data.quantity || 3);
       setMaxQuantity(res.data.maxQuantity || 500);
-    } catch {}
+    } catch (err) {
+      console.log("[DummyReq] loadStatus error:", err.response?.data || err.message);
+    }
   }, []);
 
   const loadLogs = useCallback(async () => {
@@ -48,23 +52,29 @@ export default function AdminDummyRequirements() {
 
   const toggleCron = async () => {
     try {
-      await api.post("/dummy-requirements/toggle");
+      console.log("[DummyReq] toggling cron...");
+      const res = await api.post("/dummy-requirements/toggle");
+      console.log("[DummyReq] toggle response:", res.data);
       await loadStatus();
     } catch (err) {
+      console.log("[DummyReq] toggle error:", err.response?.data || err.message);
       alert(err?.response?.data?.message || "Failed");
     }
   };
 
   const saveSettings = async () => {
     try {
-      await api.post("/dummy-requirements/settings", {
+      console.log("[DummyReq] saving settings...");
+      const res = await api.post("/dummy-requirements/settings", {
         intervalHours: Number(intervalHours),
         quantity: Number(quantity),
         maxQuantity: Number(maxQuantity)
       });
+      console.log("[DummyReq] settings response:", res.data);
       await loadStatus();
       alert("Settings saved!");
     } catch (err) {
+      console.log("[DummyReq] settings error:", err.response?.data || err.message);
       alert(err?.response?.data?.message || "Failed");
     }
   };
@@ -73,10 +83,13 @@ export default function AdminDummyRequirements() {
     if (!confirm("Generate and send dummy requirements now?")) return;
     setRefreshing(true);
     try {
-      await api.post("/dummy-requirements/run-now");
+      console.log("[DummyReq] running cron now...");
+      const res = await api.post("/dummy-requirements/run-now");
+      console.log("[DummyReq] run-now response:", res.data);
       await loadAll();
       alert("Done!");
     } catch (err) {
+      console.log("[DummyReq] run-now error:", err.response?.data || err.message);
       alert(err?.response?.data?.message || "Failed");
     } finally {
       setRefreshing(false);
