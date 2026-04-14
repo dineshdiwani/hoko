@@ -720,7 +720,7 @@ async function sendViaGupshupTemplate({ to, templateId, templateName, languageCo
 }
 
 async function sendWhatsAppMessage({ to, body }) {
-  const provider = String(process.env.WHATSAPP_PROVIDER || "mock")
+  const provider = String(process.env.WHATSAPP_PROVIDER || "gupshup")
     .toLowerCase()
     .trim();
   const recipient = normalizeE164(to);
@@ -743,9 +743,6 @@ async function sendWhatsAppMessage({ to, body }) {
         providerMessageId: gupshupResult?.providerMessageId || "",
         meta: gupshupResult?.raw || null
       };
-    } else if (provider === "wapi") {
-      const wapiResult = await sendViaWapi({ to: recipient, body });
-      return { ok: true, providerMessageId: wapiResult?.providerMessageId || "", meta: wapiResult?.raw || null };
     } else {
       console.log("[WhatsApp mock]", { to: recipient, body });
       return { ok: true, mock: true, providerMessageId: "", meta: null };

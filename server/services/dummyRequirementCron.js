@@ -227,7 +227,7 @@ async function sendTemplateToSellers(sellers, dummies, city, provider) {
 }
 
 async function sendToSellers(dummies) {
-  const provider = String(process.env.WHATSAPP_PROVIDER || "wapi").toLowerCase();
+  const provider = "gupshup";
   const cityToDummies = {};
   
   for (const dummy of dummies) {
@@ -266,7 +266,7 @@ async function sendToNewSeller(mobileE164, city) {
     dummies.push(...generated);
   }
   
-  const provider = String(process.env.WHATSAPP_PROVIDER || "wapi").toLowerCase();
+  const provider = "gupshup";
   await sendTemplateToSellers([{ mobileE164 }], dummies, city, provider);
   
   await DummyRequirement.updateMany(

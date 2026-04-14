@@ -134,7 +134,7 @@ function normalizeCityName(city) {
 
 async function sendSellerRequirementInvite(to, requirementId, product, city, quantity) {
   const provider = resolveWhatsAppProvider();
-  if (!["gupshup", "wapi"].includes(provider)) {
+  if (!["gupshup", "meta"].includes(provider)) {
     console.log(`[Seller Invite] Provider ${provider} not supported for template send`);
     return { ok: false, reason: "unsupported_provider" };
   }
@@ -380,7 +380,7 @@ function resolveWhatsAppProvider() {
 
 async function sendBuyerInviteTemplate(to, tempRequirementId) {
   const provider = resolveWhatsAppProvider();
-  if (!["gupshup", "wapi"].includes(provider)) {
+  if (!["gupshup", "meta"].includes(provider)) {
     console.log(`[Buyer Invite] Provider ${provider} not supported for template send`);
     return { ok: false, reason: "unsupported_provider" };
   }
