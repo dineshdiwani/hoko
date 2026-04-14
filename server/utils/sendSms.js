@@ -77,10 +77,11 @@ async function sendBulkSms({ numbers, message }) {
 
   for (const mobile of uniqueNumbers) {
     try {
+      const mobileDigits = mobile.replace(/^\+/, "");
       const payload = {
         message: message.trim(),
         route: "quick",
-        numbers: mobile
+        numbers: mobileDigits
       };
 
       const res = await axios.post(
@@ -94,20 +95,24 @@ async function sendBulkSms({ numbers, message }) {
         }
       );
 
+      console.log("[Fast2SMS] Response:", JSON.stringify(res.data));
+
       if (res.data && res.data.return === true) {
         results.sent++;
       } else {
         results.failed++;
         results.failures.push({
           mobile,
-          reason: res.data?.message?.[0] || "Unknown error"
+          reason: res.data?.message?.[0] || JSON.stringify(res.data)
         });
       }
     } catch (err) {
+      const errMsg = err.response?.data ? JSON.stringify(err.response.data) : err.message;
+      console.log("[Fast2SMS] Error:", errMsg);
       results.failed++;
       results.failures.push({
         mobile,
-        reason: err.message || "Request failed"
+        reason: errMsg
       });
     }
   }
