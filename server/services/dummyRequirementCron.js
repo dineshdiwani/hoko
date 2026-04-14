@@ -19,26 +19,32 @@ function randomItem(arr) {
 async function getCategories() {
   try {
     const settings = await PlatformSettings.findOne().lean();
+    console.log("[DummyReq] getCategories - settings:", settings?._id, "categories:", settings?.categories?.slice(0,3));
     const cats = settings?.categories;
     if (Array.isArray(cats) && cats.length > 0) {
+      console.log("[DummyReq] getCategories - found:", cats.length);
       return cats;
     }
   } catch (err) {
     console.log("[DummyReq] getCategories error:", err.message);
   }
+  console.log("[DummyReq] getCategories - using fallback");
   return ["Electronics", "Furniture", "Electrical", "Industrial", "Plumbing", "Household", "Logistics", "General"];
 }
 
 async function getCities() {
   try {
     const settings = await PlatformSettings.findOne().lean();
+    console.log("[DummyReq] getCities - settings:", settings?._id, "cities:", settings?.cities?.slice(0,3));
     const citiesFromDb = settings?.cities;
     if (Array.isArray(citiesFromDb) && citiesFromDb.length > 0) {
+      console.log("[DummyReq] getCities - found:", citiesFromDb.length);
       return citiesFromDb;
     }
   } catch (err) {
     console.log("[DummyReq] getCities error:", err.message);
   }
+  console.log("[DummyReq] getCities - using fallback");
   return ["Delhi", "Mumbai", "Bangalore", "Chennai", "Hyderabad", "Pune", "Kolkata", "Ahmedabad", "Surat", "Jaipur"];
 }
 
