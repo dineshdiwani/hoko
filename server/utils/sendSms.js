@@ -33,8 +33,9 @@ async function sendOtpSms({ mobile, otp }) {
   return true;
 }
 
-async function sendBulkSms({ numbers, message }) {
+async function sendBulkSms({ numbers, message, templateId }) {
   const apiKey = process.env.FAST2SMS_API_KEY;
+  const senderId = process.env.FAST2SMS_SENDER_ID;
   if (!apiKey) {
     throw new Error("FAST2SMS_API_KEY not set");
   }
@@ -79,11 +80,13 @@ async function sendBulkSms({ numbers, message }) {
     try {
       const mobileDigits = mobile.replace(/^\+/, "");
       const senderId = process.env.FAST2SMS_SENDER_ID;
+      const entityId = process.env.FAST2SMS_ENTITY_ID;
       const payload = {
         message: message.trim(),
         route: "quick",
         numbers: mobileDigits,
-        ...(senderId && { sender_id: senderId })
+        sender_id: senderId || "HOKO",
+        ...(entityId && { entity_id: entityId })
       };
 
       const res = await axios.post(
