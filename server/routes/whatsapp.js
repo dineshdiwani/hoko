@@ -562,6 +562,7 @@ router.get("/webhook", (req, res) => {
 });
 
 router.post("/webhook", async (req, res) => {
+  console.log("[WhatsApp Webhook] Raw body:", JSON.stringify(req.body).slice(0, 500));
   const deliveryEvents = extractDeliveryEvents(req.body);
   if (deliveryEvents.length) {
     for (const event of deliveryEvents) {
