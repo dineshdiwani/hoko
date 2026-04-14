@@ -33,4 +33,86 @@ async function sendOtpSms({ mobile, otp }) {
   return true;
 }
 
-module.exports = { sendOtpSms };
+async function sendBulkSms({ numbers, message }) {
+  const apiKey = process.env.FAST2SMS_API_KEY;
+  if (!apiKey) {
+    throw new Error("FAST2SMS_API_KEY not set");
+  }
+
+  if (!Array.isArray(numbers) || numbers.length === 0) {
+    throw new Error("At least one mobile number required");
+  }
+
+  if (!message || typeof message !== "string" || !message.trim()) {
+    throw new Error("Message is required");
+  }
+
+  const results = {
+    total: numbers.length,
+    sent: 0,
+    failed: 0,
+    failures: []
+  };
+
+  const validNumbers = numbers
+    .map((n) => {
+      const cleaned = String(n || "").replace(/[^\d+]/g, "");
+      if (cleaned.length >= 10) {
+        if (cleaned.startsWith("+")) {
+          return cleaned;
+        }
+        if (cleaned.startsWith("91") && cleaned.length > 10) {
+          return "+" + cleaned;
+        }
+        if (cleaned.length === 10) {
+          return "+91" + cleaned;
+        }
+        return "+91" + cleaned;
+      }
+      return null;
+    })
+    .filter(Boolean);
+
+  const uniqueNumbers = [...new Set(validNumbers)];
+
+  for (const mobile of uniqueNumbers) {
+    try {
+      const payload = {
+        message: message.trim(),
+        route: "quick",
+        numbers: mobile
+      };
+
+      const res = await axios.post(
+        "https://www.fast2sms.com/dev/bulkV2",
+        payload,
+        {
+          headers: {
+            authorization: apiKey
+          },
+          timeout: 15000
+        }
+      );
+
+      if (res.data && res.data.return === true) {
+        results.sent++;
+      } else {
+        results.failed++;
+        results.failures.push({
+          mobile,
+          reason: res.data?.message?.[0] || "Unknown error"
+        });
+      }
+    } catch (err) {
+      results.failed++;
+      results.failures.push({
+        mobile,
+        reason: err.message || "Request failed"
+      });
+    }
+  }
+
+  return results;
+}
+
+module.exports = { sendOtpSms, sendBulkSms };

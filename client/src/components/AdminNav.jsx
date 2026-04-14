@@ -8,6 +8,7 @@ export default function AdminNav() {
   const isAnalytics = location.pathname === "/admin/analytics";
   const isWhatsApp = location.pathname === "/admin/whatsapp";
   const isOperations = location.pathname === "/admin/operations";
+  const isBulkSms = location.pathname === "/admin/bulk-sms";
 
   function handleAdminLogout() {
     localStorage.removeItem("admin_token");
@@ -47,6 +48,14 @@ export default function AdminNav() {
         }`}
       >
         Operations
+      </button>
+      <button
+        onClick={() => navigate("/admin/bulk-sms")}
+        className={`ui-button-text px-3 py-2 rounded-lg ${
+          isBulkSms ? "ui-btn-primary" : "ui-btn-secondary"
+        }`}
+      >
+        Bulk SMS
       </button>
       <button
         onClick={handleAdminLogout}

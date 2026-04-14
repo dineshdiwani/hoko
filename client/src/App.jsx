@@ -33,6 +33,7 @@ const AdminDashboard = lazy(() => import("./pages/Admin/AdminDashboard"));
 const AdminAnalytics = lazy(() => import("./pages/Admin/AdminAnalytics"));
 const AdminWhatsApp = lazy(() => import("./pages/Admin/AdminWhatsApp"));
 const AdminOperations = lazy(() => import("./pages/Admin/AdminOperations"));
+const AdminBulkSms = lazy(() => import("./pages/Admin/AdminBulkSms"));
 
 import OfflineBanner from "./components/OfflineBanner";
 import AppDialog from "./components/AppDialog";
@@ -435,9 +436,14 @@ function AppShell() {
           element={requireAdmin() ? <AdminWhatsApp /> : <Navigate to="/admin/login" replace />}
         />
 
-        <Route
+<Route
           path="/admin/operations"
           element={requireAdmin() ? <AdminOperations /> : <Navigate to="/admin/login" replace />}
+        />
+
+        <Route
+          path="/admin/bulk-sms"
+          element={requireAdmin() ? <AdminBulkSms /> : <Navigate to="/admin/login" replace />}
         />
 
           {/* Fallback */}
