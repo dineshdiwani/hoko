@@ -43,22 +43,37 @@ async function getCities() {
 }
 
 function getRandomCategory(categories) {
+  if (!categories || !Array.isArray(categories) || categories.length === 0) {
+    return "Electronics";
+  }
   return categories[Math.floor(Math.random() * categories.length)];
 }
 
+function getRandomCity(cities) {
+  if (!cities || !Array.isArray(cities) || cities.length === 0) {
+    return "Delhi";
+  }
+  return cities[Math.floor(Math.random() * cities.length)];
+}
+
 async function generateDummyRequirements(count = 3, maxQty = 500) {
+  const citiesFallback = ["Delhi", "Mumbai", "Bangalore", "Chennai", "Hyderabad", "Pune", "Kolkata", "Ahmedabad", "Surat", "Jaipur"];
+  const categoriesFallback = ["Electronics", "Furniture", "Electrical", "Industrial", "Plumbing", "Household", "Logistics", "General"];
+  
   let cities = await getCities();
   let categories = await getCategories();
   
-  console.log("[DummyReq] Cities:", cities);
-  console.log("[DummyReq] Categories:", categories);
-  
   if (!Array.isArray(cities) || cities.length === 0) {
-    cities = ["Delhi", "Mumbai", "Bangalore", "Chennai", "Hyderabad", "Pune", "Kolkata"];
+    console.log("[DummyReq] Using fallback cities");
+    cities = citiesFallback;
   }
   if (!Array.isArray(categories) || categories.length === 0) {
-    categories = ["Electronics", "Furniture", "Electrical", "Industrial", "Plumbing"];
+    console.log("[DummyReq] Using fallback categories");
+    categories = categoriesFallback;
   }
+  
+  console.log("[DummyReq] Using cities:", cities);
+  console.log("[DummyReq] Using categories:", categories);
   
   const generated = [];
   
@@ -75,7 +90,7 @@ async function generateDummyRequirements(count = 3, maxQty = 500) {
   for (let i = 0; i < count; i++) {
     const category = getRandomCategory(categories);
     const product = category;
-    const city = randomItem(cities);
+    const city = getRandomCity(cities);
     const quantity = randomInt(10, maxQty);
     
     const dummy = await DummyRequirement.create({
