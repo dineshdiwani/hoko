@@ -42,7 +42,7 @@ async function getCities() {
   return Array.isArray(settings?.value) ? settings.value : ["Delhi", "Mumbai", "Bangalore", "Chennai", "Hyderabad", "Pune", "Kolkata"];
 }
 
-async function generateDummyRequirements(count = 3) {
+async function generateDummyRequirements(count = 3, maxQty = 500) {
   const cities = await getCities();
   const generated = [];
   
@@ -60,7 +60,7 @@ async function generateDummyRequirements(count = 3) {
     const category = getRandomCategory();
     const product = getRandomProduct(category);
     const city = randomItem(cities);
-    const quantity = randomInt(10, 500);
+    const quantity = randomInt(10, maxQty);
     
     const dummy = await DummyRequirement.create({
       product,
@@ -169,7 +169,7 @@ async function sendTemplateToSellers(sellers, dummies, city, provider) {
   }
 }
 
-async function sendToSellers(dummies, productsPerMsg = 3) {
+async function sendToSellers(dummies) {
   const provider = String(process.env.WHATSAPP_PROVIDER || "wapi").toLowerCase();
   const cityToDummies = {};
   
@@ -189,8 +189,7 @@ async function sendToSellers(dummies, productsPerMsg = 3) {
     
     if (!sellers.length) continue;
     
-    const selectedDummies = cityDummies.slice(0, productsPerMsg);
-    await sendTemplateToSellers(sellers, selectedDummies, city, provider);
+    await sendTemplateToSellers(sellers, cityDummies, city, provider);
     
     await DummyRequirement.updateMany(
       { _id: { $in: cityDummies.map(d => d._id) } },
@@ -222,17 +221,17 @@ async function sendToNewSeller(mobileE164, city) {
 }
 
 async function runCron() {
-  const settings = await PlatformSettings.findOne({ key: "dummyRequirementConfig" }).lean();
+  const settings = await Config.findOne({ key: "dummyRequirementConfig" }).lean();
   const quantity = settings?.value?.quantity || 3;
-  const productsPerMsg = settings?.value?.productsPerMessage || 3;
+  const maxQty = settings?.value?.maxQuantity || 500;
   
-  console.log(`[DummyReq Cron] Running... (qty: ${quantity}, perMsg: ${productsPerMsg})`);
+  console.log(`[DummyReq Cron] Running... (qty: ${quantity}, maxQty: ${maxQty})`);
   
-  await generateDummyRequirements(quantity);
+  await generateDummyRequirements(quantity, maxQty);
   
   const dummies = await DummyRequirement.find({ status: "new" }).limit(10);
   if (dummies.length > 0) {
-    await sendToSellers(dummies, productsPerMsg);
+    await sendToSellers(dummies);
   }
   
   console.log("[DummyReq Cron] Completed");

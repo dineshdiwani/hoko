@@ -10,7 +10,7 @@ export default function AdminDummyRequirements() {
   const [refreshing, setRefreshing] = useState(false);
   const [intervalHours, setIntervalHours] = useState(12);
   const [quantity, setQuantity] = useState(3);
-  const [productsPerMessage, setProductsPerMessage] = useState(3);
+  const [maxQuantity, setMaxQuantity] = useState(500);
 
   const loadStatus = useCallback(async () => {
     try {
@@ -18,7 +18,7 @@ export default function AdminDummyRequirements() {
       setStatus(res.data);
       setIntervalHours(res.data.intervalHours || 12);
       setQuantity(res.data.quantity || 3);
-      setProductsPerMessage(res.data.productsPerMessage || 3);
+      setMaxQuantity(res.data.maxQuantity || 500);
     } catch {}
   }, []);
 
@@ -60,7 +60,7 @@ export default function AdminDummyRequirements() {
       await api.post("/dummy-requirements/settings", {
         intervalHours: Number(intervalHours),
         quantity: Number(quantity),
-        productsPerMessage: Number(productsPerMessage)
+        maxQuantity: Number(maxQuantity)
       });
       await loadStatus();
       alert("Settings saved!");
@@ -138,14 +138,14 @@ export default function AdminDummyRequirements() {
                 />
               </div>
               <div>
-                <label className="text-sm text-gray-600">Products/Services per message</label>
+                <label className="text-sm text-gray-600">Max product qty</label>
                 <input
                   type="number"
-                  value={productsPerMessage}
-                  onChange={(e) => setProductsPerMessage(e.target.value)}
+                  value={maxQuantity}
+                  onChange={(e) => setMaxQuantity(e.target.value)}
                   className="w-full border rounded-lg px-3 py-2 text-sm mt-1"
                   min={1}
-                  max={10}
+                  max={10000}
                 />
               </div>
             </div>

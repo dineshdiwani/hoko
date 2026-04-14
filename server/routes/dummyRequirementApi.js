@@ -16,7 +16,7 @@ let lastRunAt = null;
 let cronIntervalMs = 12 * 60 * 60 * 1000;
 let cronIntervalId = null;
 let defaultQuantity = 3;
-let productsPerMessage = 3;
+let maxQuantity = 500;
 
 const activityLogs = [];
 
@@ -41,7 +41,7 @@ async function loadSettings() {
     if (settings?.value) {
       if (settings.value.intervalHours) cronIntervalMs = settings.value.intervalHours * 60 * 60 * 1000;
       if (settings.value.quantity) defaultQuantity = settings.value.quantity;
-      if (settings.value.productsPerMessage) productsPerMessage = settings.value.productsPerMessage;
+      if (settings.value.maxQuantity) maxQuantity = settings.value.maxQuantity;
       if (typeof settings.value.running === "boolean") cronRunning = settings.value.running;
     }
   } catch (err) {
@@ -58,7 +58,7 @@ router.get("/status", adminAuth, async (req, res) => {
     lastRunAt,
     intervalHours: cronIntervalMs / (60 * 60 * 1000),
     quantity: defaultQuantity,
-    productsPerMessage: productsPerMessage,
+    maxQuantity: maxQuantity,
     totalDummyRequirements: await DummyRequirement.countDocuments(),
     sentCount: await DummyRequirement.countDocuments({ status: "sent" }),
     newCount: await DummyRequirement.countDocuments({ status: "new" })
@@ -84,19 +84,19 @@ router.post("/toggle", adminAuth, async (req, res) => {
 
 router.post("/settings", adminAuth, async (req, res) => {
   try {
-    const { intervalHours, quantity, productsPerMessage } = req.body;
+    const { intervalHours, quantity, maxQuantity } = req.body;
     if (intervalHours) cronIntervalMs = Number(intervalHours) * 60 * 60 * 1000;
     if (quantity) defaultQuantity = Number(quantity);
-    if (productsPerMessage) productsPerMessage = Number(productsPerMessage);
+    if (maxQuantity) maxQuantity = Number(maxQuantity);
     
     await Config.findOneAndUpdate(
       { key: "dummyRequirementConfig" },
-      { key: "dummyRequirementConfig", value: { running: cronRunning, intervalHours: cronIntervalMs / 3600000, quantity: defaultQuantity, productsPerMessage } },
+      { key: "dummyRequirementConfig", value: { running: cronRunning, intervalHours: cronIntervalMs / 3600000, quantity: defaultQuantity, maxQuantity } },
       { upsert: true, new: true }
     );
     
     restartCron();
-    logActivity("settings", `Interval: ${intervalHours}h, Qty: ${quantity}, PerMsg: ${productsPerMessage}`);
+    logActivity("settings", `Interval: ${intervalHours}h, Qty: ${quantity}, Max: ${maxQuantity}`);
     res.json({ ok: true });
   } catch (err) {
     console.log("[DummyReq] Settings error:", err);
