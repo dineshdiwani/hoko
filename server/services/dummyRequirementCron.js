@@ -17,11 +17,16 @@ function randomItem(arr) {
 }
 
 async function getCategories() {
-  const settings = await PlatformSettings.findOne().lean();
-  const cats = settings?.categories;
-  return Array.isArray(cats) && cats.length > 0
-    ? cats
-    : ["electronics", "furniture", "electrical", "industrial", "plumbing", "household", "logistics", "general"];
+  try {
+    const settings = await PlatformSettings.findOne().lean();
+    const cats = settings?.categories;
+    if (Array.isArray(cats) && cats.length > 0) {
+      return cats;
+    }
+  } catch (err) {
+    console.log("[DummyReq] getCategories error:", err.message);
+  }
+  return ["Electronics", "Furniture", "Electrical", "Industrial", "Plumbing", "Household", "Logistics", "General"];
 }
 
 async function getCities() {
@@ -35,19 +40,6 @@ async function getCities() {
     console.log("[DummyReq] getCities error:", err.message);
   }
   return ["Delhi", "Mumbai", "Bangalore", "Chennai", "Hyderabad", "Pune", "Kolkata", "Ahmedabad", "Surat", "Jaipur"];
-}
-
-async function getCategories() {
-  try {
-    const settings = await PlatformSettings.findOne().lean();
-    const cats = settings?.categories;
-    if (Array.isArray(cats) && cats.length > 0) {
-      return cats;
-    }
-  } catch (err) {
-    console.log("[DummyReq] getCategories error:", err.message);
-  }
-  return ["electronics", "furniture", "electrical", "industrial", "plumbing", "household", "logistics", "general"];
 }
 
 function getRandomCategory(categories) {
@@ -65,7 +57,7 @@ async function generateDummyRequirements(count = 3, maxQty = 500) {
     cities = ["Delhi", "Mumbai", "Bangalore", "Chennai", "Hyderabad", "Pune", "Kolkata"];
   }
   if (!Array.isArray(categories) || categories.length === 0) {
-    categories = ["electronics", "furniture", "electrical", "industrial", "plumbing"];
+    categories = ["Electronics", "Furniture", "Electrical", "Industrial", "Plumbing"];
   }
   
   const generated = [];
