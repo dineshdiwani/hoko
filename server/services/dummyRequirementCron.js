@@ -33,8 +33,18 @@ async function getCategories() {
 }
 
 async function getCities() {
-  const fallback = ["Delhi", "Mumbai", "Bangalore", "Chennai", "Hyderabad", "Pune", "Kolkata"];
-  console.log("[DummyReq] getCities called, returning fallback");
+  const fallback = ["Delhi", "Mumbai", "Bangalore", "Chennai", "Hyderabad", "Pune", "Kolkata", "Ahmedabad", "Surat", "Jaipur"];
+  try {
+    const settings = await PlatformSettings.findOne().lean();
+    const cities = settings?.cities;
+    if (Array.isArray(cities) && cities.length > 0) {
+      console.log("[DummyReq] getCities - found:", cities.length);
+      return cities;
+    }
+  } catch (err) {
+    console.log("[DummyReq] getCities error:", err.message);
+  }
+  console.log("[DummyReq] getCities - using fallback");
   return fallback;
 }
 
