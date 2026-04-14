@@ -139,7 +139,7 @@ export default function AdminBulkWhatsApp() {
                   <option value="">Select template...</option>
                   {templates.map((t) => (
                     <option key={t.key} value={t.key}>
-                      {t.templateName} ({t.language})
+                      {t.templateName} ({t.language}) {t.templateId ? `ID:${t.templateId.slice(0,8)}` : "- NO ID"}
                     </option>
                   ))}
                 </select>
