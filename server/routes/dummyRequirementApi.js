@@ -1,11 +1,16 @@
 const express = require("express");
 const router = express.Router();
 const adminAuth = require("../middleware/adminAuth");
+const PlatformSettings = require("../models/PlatformSettings");
 const DummyRequirement = require("../models/DummyRequirement");
 const { generateDummyRequirements, sendToSellers, runCron } = require("../services/dummyRequirementCron");
 
 let cronRunning = true;
 let lastRunAt = null;
+let cronIntervalMs = 12 * 60 * 60 * 1000; // 12 hours default
+let cronIntervalId = null;
+let defaultQuantity = 3;
+
 const activityLogs = [];
 
 function logActivity(action, details) {
@@ -18,10 +23,33 @@ function logActivity(action, details) {
   if (activityLogs.length > 100) activityLogs.pop();
 }
 
+function restartCron() {
+  if (cronIntervalId) clearInterval(cronIntervalId);
+  if (cronRunning) {
+    cronIntervalId = setInterval(() => {
+      runCron().catch(err => console.error("[DummyReq Cron] Error:", err));
+    }, cronIntervalMs);
+  }
+}
+
+async function loadSettings() {
+  const settings = await PlatformSettings.findOne({ key: "dummyRequirementConfig" }).lean();
+  if (settings?.value) {
+    if (settings.value.intervalHours) cronIntervalMs = settings.value.intervalHours * 60 * 60 * 1000;
+    if (settings.value.quantity) defaultQuantity = settings.value.quantity;
+    if (typeof settings.value.running === "boolean") cronRunning = settings.value.running;
+  }
+  restartCron();
+}
+
+loadSettings();
+
 router.get("/status", adminAuth, async (req, res) => {
   res.json({
     cronRunning,
     lastRunAt,
+    intervalHours: cronIntervalMs / (60 * 60 * 1000),
+    quantity: defaultQuantity,
     totalDummyRequirements: await DummyRequirement.countDocuments(),
     sentCount: await DummyRequirement.countDocuments({ status: "sent" }),
     newCount: await DummyRequirement.countDocuments({ status: "new" })
@@ -30,8 +58,30 @@ router.get("/status", adminAuth, async (req, res) => {
 
 router.post("/toggle", adminAuth, async (req, res) => {
   cronRunning = !cronRunning;
+  await PlatformSettings.findOneAndUpdate(
+    { key: "dummyRequirementConfig" },
+    { key: "dummyRequirementConfig", value: { running: cronRunning, intervalHours: cronIntervalMs / 3600000, quantity: defaultQuantity } },
+    { upsert: true }
+  );
+  restartCron();
   logActivity("toggle", `Cron ${cronRunning ? "started" : "stopped"}`);
   res.json({ ok: true, cronRunning });
+});
+
+router.post("/settings", adminAuth, async (req, res) => {
+  const { intervalHours, quantity } = req.body;
+  if (intervalHours) cronIntervalMs = Number(intervalHours) * 60 * 60 * 1000;
+  if (quantity) defaultQuantity = Number(quantity);
+  
+  await PlatformSettings.findOneAndUpdate(
+    { key: "dummyRequirementConfig" },
+    { key: "dummyRequirementConfig", value: { running: cronRunning, intervalHours: cronIntervalMs / 3600000, quantity: defaultQuantity } },
+    { upsert: true }
+  );
+  
+  restartCron();
+  logActivity("settings", `Interval: ${intervalHours}h, Qty: ${quantity}`);
+  res.json({ ok: true });
 });
 
 router.post("/run-now", adminAuth, async (req, res) => {

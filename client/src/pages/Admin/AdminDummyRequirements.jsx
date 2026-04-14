@@ -8,11 +8,15 @@ export default function AdminDummyRequirements() {
   const [requirements, setRequirements] = useState([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [intervalHours, setIntervalHours] = useState(12);
+  const [quantity, setQuantity] = useState(3);
 
   const loadStatus = useCallback(async () => {
     try {
       const res = await api.get("/dummy-requirements/status");
       setStatus(res.data);
+      setIntervalHours(res.data.intervalHours || 12);
+      setQuantity(res.data.quantity || 3);
     } catch {}
   }, []);
 
@@ -49,6 +53,19 @@ export default function AdminDummyRequirements() {
     }
   };
 
+  const saveSettings = async () => {
+    try {
+      await api.post("/dummy-requirements/settings", {
+        intervalHours: Number(intervalHours),
+        quantity: Number(quantity)
+      });
+      await loadStatus();
+      alert("Settings saved!");
+    } catch (err) {
+      alert(err?.response?.data?.message || "Failed");
+    }
+  };
+
   const runNow = async () => {
     if (!confirm("Generate and send dummy requirements now?")) return;
     setRefreshing(true);
@@ -78,10 +95,10 @@ export default function AdminDummyRequirements() {
 
         <div className="space-y-4">
           <div className="bg-white border rounded-2xl p-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-4">
               <div>
-                <p className="font-semibold">Auto Cron</p>
-                <p className="text-sm text-gray-500">Runs every 12 hours</p>
+                <p className="font-semibold">Cron Settings</p>
+                <p className="text-sm text-gray-500">Frequency and quantity</p>
               </div>
               <button
                 onClick={toggleCron}
@@ -94,6 +111,36 @@ export default function AdminDummyRequirements() {
                 {status?.cronRunning ? "Running" : "Stopped"}
               </button>
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm text-gray-600">Frequency (hours)</label>
+                <input
+                  type="number"
+                  value={intervalHours}
+                  onChange={(e) => setIntervalHours(e.target.value)}
+                  className="w-full border rounded-lg px-3 py-2 text-sm mt-1"
+                  min={1}
+                  max={72}
+                />
+              </div>
+              <div>
+                <label className="text-sm text-gray-600">Quantity per run</label>
+                <input
+                  type="number"
+                  value={quantity}
+                  onChange={(e) => setQuantity(e.target.value)}
+                  className="w-full border rounded-lg px-3 py-2 text-sm mt-1"
+                  min={1}
+                  max={10}
+                />
+              </div>
+            </div>
+            <button
+              onClick={saveSettings}
+              className="mt-3 btn-primary px-4 py-2 rounded-lg text-sm"
+            >
+              Save Settings
+            </button>
           </div>
 
           <div className="bg-white border rounded-2xl p-4">

@@ -149,9 +149,12 @@ async function sendToNewSeller(mobileE164, city) {
 }
 
 async function runCron() {
-  console.log("[DummyReq Cron] Running...");
+  const settings = await PlatformSettings.findOne({ key: "dummyRequirementConfig" }).lean();
+  const quantity = settings?.value?.quantity || 3;
   
-  await generateDummyRequirements(randomInt(1, 3));
+  console.log(`[DummyReq Cron] Running... (qty: ${quantity})`);
+  
+  await generateDummyRequirements(quantity);
   
   const dummies = await DummyRequirement.find({ status: "new" }).limit(10);
   if (dummies.length > 0) {
