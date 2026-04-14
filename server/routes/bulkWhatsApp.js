@@ -25,6 +25,10 @@ router.post("/send", adminAuth, async (req, res) => {
       return res.status(400).json({ message: "Template not found. Provide templateKey or templateId" });
     }
     
+    if (!templateConfig.templateId) {
+      return res.status(400).json({ message: "Template missing templateId (UUID)" });
+    }
+    
     const providerType = provider || "gupshup";
     const results = { sent: [], failed: [], total: phones.length };
     
@@ -94,6 +98,10 @@ router.post("/send-city", adminAuth, async (req, res) => {
       return res.status(400).json({ message: "Template not found" });
     }
     
+    if (!templateConfig.templateId) {
+      return res.status(400).json({ message: "Template missing templateId" });
+    }
+    
     const query = {
       city: { $regex: new RegExp(city, "i") },
       optInStatus: "opted_in",
@@ -111,6 +119,12 @@ router.post("/send-city", adminAuth, async (req, res) => {
     
     const providerType = provider || "gupshup";
     const results = { sent: [], failed: [], total: sellers.length };
+    
+    console.log(`[Bulk WhatsApp City] Query: city=${city}, category=${category}, found=${sellers.length}`);
+    
+    if (sellers.length === 0) {
+      return res.json({ message: "No opted-in sellers found in this city", sent: [], failed: [], total: 0 });
+    }
     
     for (const seller of sellers) {
       try {
