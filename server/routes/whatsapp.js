@@ -626,7 +626,7 @@ router.post("/webhook", async (req, res) => {
         await applyConsentConfirmed(await WhatsAppBuyerContact.findOne({ mobileE164: event.mobileE164 }), "buyer", event);
         await sendWhatsAppMessage({
           to: event.mobileE164,
-          body: "Perfect! Share your city name to receive relevant requirements. 📍"
+          body: "Perfect!👍 Which city do you operate in? 📍"
         });
         continue;
       }
@@ -669,7 +669,7 @@ router.post("/webhook", async (req, res) => {
         consentState.set(consentKey, { step: CONSENT_STATES.AWAITING_SELLER_CITY, mobileE164: event.mobileE164 });
         await sendWhatsAppMessage({
           to: event.mobileE164,
-          body: "Perfect! Share your city name to receive relevant requirements. 📍"
+          body: "Perfect!👍 Which city do you operate in? 📍"
         });
         continue;
       }
@@ -718,7 +718,7 @@ router.post("/webhook", async (req, res) => {
       consentState.set(consentKey, { step: CONSENT_STATES.AWAITING_SELLER_CITY, mobileE164: event.mobileE164 });
       await sendWhatsAppMessage({
         to: event.mobileE164,
-        body: "Perfect! Share your city name to receive relevant requirements. 📍"
+        body: "Perfect!👍 Which city do you operate in? 📍"
       });
       continue;
     }
