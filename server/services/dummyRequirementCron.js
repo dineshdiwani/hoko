@@ -8,6 +8,12 @@ const WhatsAppTemplateRegistry = require("../models/WhatsAppTemplateRegistry");
 const { sendWhatsAppMessage, sendViaWapiTemplate, sendViaGupshupTemplate } = require("../utils/sendWhatsApp");
 const { resolvePublicAppUrl } = require("../utils/publicAppUrl");
 
+const configSchema = new mongoose.Schema({
+  key: { type: String, required: true, unique: true },
+  value: mongoose.Schema.Types.Mixed
+}, { timestamps: true });
+const Config = mongoose.model("Config", configSchema);
+
 const productsByCategory = {
   electronics: ["LED Lights", "AC", "Fan", "Refrigerator", "Washing Machine", "Microwave", "Geyser", "Air Cooler"],
   furniture: ["Chairs", "Tables", "Sofa", "Beds", "Almirah", "Mattress", "Pillows"],
