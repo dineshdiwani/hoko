@@ -25,8 +25,8 @@ export default function AdminBulkWhatsApp() {
         api.get("/bulk-whatsapp/templates"),
         api.get("/bulk-whatsapp/stats")
       ]);
-      setTemplates(templatesRes.data);
-      setStats(statsRes.data);
+      setTemplates(templatesRes.data || []);
+      setStats(statsRes.data || { total: 0, byCity: [], byCategory: [] });
     } catch (err) {
       console.log("Load error:", err.message);
     }
@@ -55,7 +55,6 @@ export default function AdminBulkWhatsApp() {
       });
       setResult(res.data);
     } catch (err) {
-      console.log("Error:", err.response?.data);
       alert(err?.response?.data?.message || err.message);
     } finally {
       setSending(false);
@@ -99,13 +98,13 @@ export default function AdminBulkWhatsApp() {
 
         <div className="space-y-4">
           <div className="bg-white border rounded-2xl p-4">
-            <p className="font-semibold mb-3">Opted-in Sellers: {stats.total}</p>
+            <p className="font-semibold mb-3">Stats: {stats.total} opted-in sellers</p>
             <div className="flex flex-wrap gap-2">
-              {stats.byCity.map((c) => (
+              {stats.byCity?.map((c) => (
                 <span key={c._id} className="bg-gray-100 px-2 py-1 rounded text-sm">
                   {c._id}: {c.count}
                 </span>
-              ))}
+              )) || <span className="text-gray-500">No data</span>}
             </div>
           </div>
 
@@ -140,7 +139,7 @@ export default function AdminBulkWhatsApp() {
                   <option value="">Select template...</option>
                   {templates.map((t) => (
                     <option key={t.key} value={t.key}>
-                      {t.templateName} ({t.language}) {t.templateId ? `ID:${t.templateId.slice(0,8)}` : "- NO ID"}
+                      {t.templateName} ({t.language})
                     </option>
                   ))}
                 </select>
@@ -150,34 +149,24 @@ export default function AdminBulkWhatsApp() {
                 <>
                   <div>
                     <label className="text-sm text-gray-600 block mb-1">City</label>
-                    <select
+                    <input
+                      type="text"
                       value={city}
                       onChange={(e) => setCity(e.target.value)}
+                      placeholder="Delhi, Mumbai..."
                       className="w-full border rounded-lg px-3 py-2"
-                    >
-                      <option value="">Select city...</option>
-                      {stats.byCity.map((c) => (
-                        <option key={c._id} value={c._id}>
-                          {c._id} ({c.count})
-                        </option>
-                      ))}
-                    </select>
+                    />
                   </div>
 
                   <div>
                     <label className="text-sm text-gray-600 block mb-1">Category (optional)</label>
-                    <select
+                    <input
+                      type="text"
                       value={category}
                       onChange={(e) => setCategory(e.target.value)}
+                      placeholder="Electronics, Furniture..."
                       className="w-full border rounded-lg px-3 py-2"
-                    >
-                      <option value="">All categories</option>
-                      {stats.byCategory.map((c) => (
-                        <option key={c._id} value={c._id}>
-                          {c._id} ({c.count})
-                        </option>
-                      ))}
-                    </select>
+                    />
                   </div>
                 </>
               )}
@@ -197,18 +186,18 @@ export default function AdminBulkWhatsApp() {
               )}
 
               <div>
-                <label className="text-sm text-gray-600 block mb-1">Parameters (comma separated)</label>
+                <label className="text-sm text-gray-600 block mb-1">Parameters</label>
                 <input
                   type="text"
                   value={parameters}
                   onChange={(e) => setParameters(e.target.value)}
-                  placeholder="param1, param2, param3"
+                  placeholder="param1, param2"
                   className="w-full border rounded-lg px-3 py-2"
                 />
               </div>
 
               <div>
-                <label className="text-sm text-gray-600 block mb-1">Button URL (optional)</label>
+                <label className="text-sm text-gray-600 block mb-1">Button URL</label>
                 <input
                   type="text"
                   value={buttonUrl}
@@ -233,15 +222,7 @@ export default function AdminBulkWhatsApp() {
               <p className="font-semibold mb-2">Result</p>
               <p className="text-green-600">Sent: {result.sent?.length || 0}</p>
               <p className="text-red-600">Failed: {result.failed?.length || 0}</p>
-              {result.total !== undefined && <p className="text-gray-600">Total matched: {result.total}</p>}
               {result.message && <p className="text-orange-600">{result.message}</p>}
-              {result.failed?.length > 0 && (
-                <div className="mt-2 text-sm text-gray-500">
-                  {result.failed.map((f, i) => (
-                    <div key={i}>{f.phone}: {f.error}</div>
-                  ))}
-                </div>
-              )}
             </div>
           )}
         </div>
