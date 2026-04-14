@@ -33,6 +33,12 @@ router.post("/send", adminAuth, async (req, res) => {
         const normalized = String(phone).replace(/[^\d+]/g, "");
         const mobileE164 = normalized.startsWith("+") ? normalized : `+${normalized}`;
         
+        console.log(`[Bulk WhatsApp] Sending to: ${mobileE164}, template: ${templateConfig.templateName}, templateId: ${templateConfig.templateId}`);
+        
+        if (!templateConfig.templateId) {
+          throw new Error("Template missing templateId (UUID)");
+        }
+        
         const params = [...parameters];
         
         if (providerType === "meta") {
