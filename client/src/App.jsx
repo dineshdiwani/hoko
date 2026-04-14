@@ -35,6 +35,7 @@ const AdminWhatsApp = lazy(() => import("./pages/Admin/AdminWhatsApp"));
 const AdminOperations = lazy(() => import("./pages/Admin/AdminOperations"));
 const AdminBulkSms = lazy(() => import("./pages/Admin/AdminBulkSms"));
 const AdminDummyRequirements = lazy(() => import("./pages/Admin/AdminDummyRequirements"));
+const AdminBulkWhatsApp = lazy(() => import("./pages/Admin/AdminBulkWhatsApp"));
 
 import OfflineBanner from "./components/OfflineBanner";
 import AppDialog from "./components/AppDialog";
@@ -447,9 +448,13 @@ function AppShell() {
           element={requireAdmin() ? <AdminBulkSms /> : <Navigate to="/admin/login" replace />}
         />
 
-        <Route
+<Route
           path="/admin/dummy-requirements"
           element={requireAdmin() ? <AdminDummyRequirements /> : <Navigate to="/admin/login" replace />}
+        />
+        <Route
+          path="/admin/bulk-whatsapp"
+          element={requireAdmin() ? <AdminBulkWhatsApp /> : <Navigate to="/admin/login" replace />}
         />
 
           {/* Fallback */}
