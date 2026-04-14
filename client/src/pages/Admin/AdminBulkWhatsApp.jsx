@@ -146,7 +146,7 @@ export default function AdminBulkWhatsApp() {
               </div>
 
               {mode === "city" ? (
-<div>
+                <div>
                 <label className="text-sm text-gray-600 block mb-1">City</label>
                 <select
                   value={city}
@@ -177,6 +177,7 @@ export default function AdminBulkWhatsApp() {
                   ))}
                 </select>
               </div>
+                </div>
               ) : (
                 <div>
                   <label className="text-sm text-gray-600 block mb-1">Phone Numbers</label>
