@@ -33,11 +33,15 @@ function restartCron() {
 }
 
 async function loadSettings() {
-  const settings = await PlatformSettings.findOne({ key: "dummyRequirementConfig" }).lean();
-  if (settings?.value) {
-    if (settings.value.intervalHours) cronIntervalMs = settings.value.intervalHours * 60 * 60 * 1000;
-    if (settings.value.quantity) defaultQuantity = settings.value.quantity;
-    if (typeof settings.value.running === "boolean") cronRunning = settings.value.running;
+  try {
+    const settings = await PlatformSettings.findOne({ key: "dummyRequirementConfig" }).lean();
+    if (settings?.value) {
+      if (settings.value.intervalHours) cronIntervalMs = settings.value.intervalHours * 60 * 60 * 1000;
+      if (settings.value.quantity) defaultQuantity = settings.value.quantity;
+      if (typeof settings.value.running === "boolean") cronRunning = settings.value.running;
+    }
+  } catch (err) {
+    console.log("[DummyReq] Failed to load settings:", err.message);
   }
   restartCron();
 }

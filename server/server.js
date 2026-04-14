@@ -760,14 +760,6 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: "Internal server error" });
 });
 
-/* -------------------- DUMMY REQUIREMENT CRON -------------------- */
-const { runCron } = require("./services/dummyRequirementCron");
-const DUMMY_REQ_CRON_INTERVAL_MS = 12 * 60 * 60 * 1000; // 12 hours
-setInterval(() => {
-  runCron().catch(err => console.error("[DummyReq Cron] Error:", err));
-}, DUMMY_REQ_CRON_INTERVAL_MS);
-runCron().catch(err => console.error("[DummyReq Cron] Initial run error:", err));
-
 /* -------------------- START SERVER -------------------- */
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
