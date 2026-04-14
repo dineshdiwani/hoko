@@ -67,7 +67,7 @@ function getRandomCity(cities) {
   return String(city || "Delhi");
 }
 
-async function generateDummyRequirements(count = 3, maxQty = 500) {
+async function generateDummyRequirements(count = 3, maxQty = 10) {
   const citiesFallback = ["Delhi", "Mumbai", "Bangalore", "Chennai", "Hyderabad", "Pune", "Kolkata", "Ahmedabad", "Surat", "Jaipur"];
   const categoriesFallback = ["Electronics", "Furniture", "Electrical", "Industrial", "Plumbing", "Household", "Logistics", "General"];
   
@@ -280,7 +280,7 @@ async function sendToNewSeller(mobileE164, city) {
 async function runCron() {
   const settings = await PlatformSettings.findOne().lean();
   const quantity = settings?.dummyRequirementSettings?.quantity || 3;
-  const maxQty = settings?.dummyRequirementSettings?.maxQuantity || 500;
+  const maxQty = settings?.dummyRequirementSettings?.maxQuantity || 10;
   
   console.log(`[DummyReq Cron] Running... (qty: ${quantity}, maxQty: ${maxQty})`);
   
