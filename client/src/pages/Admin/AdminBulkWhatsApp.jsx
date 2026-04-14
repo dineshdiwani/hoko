@@ -192,8 +192,6 @@ export default function AdminBulkWhatsApp() {
                     )}
                   </div>
                 </>
-              )}
-                </div>
               ) : (
                 <div>
                   <label className="text-sm text-gray-600 block mb-1">Phone Numbers</label>
