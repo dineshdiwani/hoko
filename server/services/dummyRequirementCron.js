@@ -52,24 +52,29 @@ function getRandomCategory(categories) {
   if (!categories || !Array.isArray(categories) || categories.length === 0) {
     return "Electronics";
   }
-  return categories[Math.floor(Math.random() * categories.length)];
+  const category = categories[Math.floor(Math.random() * categories.length)];
+  return category && typeof category === 'string' ? category : "Electronics";
 }
 
 function getRandomCity(cities) {
   if (!cities || !Array.isArray(cities) || cities.length === 0) {
     return "Delhi";
   }
-  return cities[Math.floor(Math.random() * cities.length)];
+  const city = cities[Math.floor(Math.random() * cities.length)];
+  return city && typeof city === 'string' ? city : "Delhi";
 }
 
 async function generateDummyRequirements(count = 3, maxQty = 500) {
   const citiesFallback = ["Delhi", "Mumbai", "Bangalore", "Chennai", "Hyderabad", "Pune", "Kolkata", "Ahmedabad", "Surat", "Jaipur"];
   const categoriesFallback = ["Electronics", "Furniture", "Electrical", "Industrial", "Plumbing", "Household", "Logistics", "General"];
   
-  let cities = await getCities();
-  let categories = await getCategories();
+  const cities = await getCities();
+  const categories = await getCategories();
   
-  if (!Array.isArray(cities) || cities.length === 0) {
+  console.log("[DummyReq] cities type:", typeof cities, "isArray:", Array.isArray(cities));
+  console.log("[DummyReq] categories type:", typeof categories, "isArray:", Array.isArray(categories));
+  
+  if (!Array.isArray(cities) || cities.length === 0 || !cities[0]) {
     console.log("[DummyReq] Using fallback cities");
     cities = citiesFallback;
   }
@@ -78,8 +83,9 @@ async function generateDummyRequirements(count = 3, maxQty = 500) {
     categories = categoriesFallback;
   }
   
-  console.log("[DummyReq] Using cities:", cities);
-  console.log("[DummyReq] Using categories:", categories);
+  console.log("[DummyReq] cities[0]:", cities[0], "type:", typeof cities[0]);
+  
+  const generated = [];
   
   const generated = [];
   
