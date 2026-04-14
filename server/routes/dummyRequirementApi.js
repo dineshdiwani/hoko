@@ -70,7 +70,7 @@ router.post("/toggle", adminAuth, async (req, res) => {
     cronRunning = !cronRunning;
     await Config.findOneAndUpdate(
       { key: "dummyRequirementConfig" },
-      { key: "dummyRequirementConfig", value: { running: cronRunning, intervalHours: cronIntervalMs / 3600000, quantity: defaultQuantity } },
+      { $set: { value: { running: cronRunning, intervalHours: cronIntervalMs / 3600000, quantity: defaultQuantity, maxQuantity } } },
       { upsert: true, new: true }
     );
     restartCron();
@@ -91,7 +91,7 @@ router.post("/settings", adminAuth, async (req, res) => {
     
     await Config.findOneAndUpdate(
       { key: "dummyRequirementConfig" },
-      { key: "dummyRequirementConfig", value: { running: cronRunning, intervalHours: cronIntervalMs / 3600000, quantity: defaultQuantity, maxQuantity } },
+      { $set: { value: { running: cronRunning, intervalHours: cronIntervalMs / 3600000, quantity: defaultQuantity, maxQuantity } } },
       { upsert: true, new: true }
     );
     
