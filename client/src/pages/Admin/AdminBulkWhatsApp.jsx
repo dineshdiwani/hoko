@@ -141,16 +141,21 @@ export default function AdminBulkWhatsApp() {
               </div>
 
               {mode === "city" ? (
-                <div>
-                  <label className="text-sm text-gray-600 block mb-1">City</label>
-                  <input
-                    type="text"
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    placeholder="e.g., Delhi, Mumbai, Chennai"
-                    className="w-full border rounded-lg px-3 py-2"
-                  />
-                </div>
+<div>
+                <label className="text-sm text-gray-600 block mb-1">City</label>
+                <select
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  className="w-full border rounded-lg px-3 py-2"
+                >
+                  <option value="">Select city...</option>
+                  {stats.byCity.map((c) => (
+                    <option key={c._id} value={c._id}>
+                      {c._id} ({c.count})
+                    </option>
+                  ))}
+                </select>
+              </div>
               ) : (
                 <div>
                   <label className="text-sm text-gray-600 block mb-1">Phone Numbers</label>
