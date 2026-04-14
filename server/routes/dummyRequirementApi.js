@@ -105,4 +105,19 @@ router.get("/requirements", adminAuth, async (req, res) => {
   res.json({ items, total, page: Number(page), pages: Math.ceil(total / limit) });
 });
 
+router.post("/reset", adminAuth, async (req, res) => {
+  try {
+    const { keepRealRequirement } = req.body;
+    if (keepRealRequirement) {
+      await DummyRequirement.deleteMany({ realRequirementId: { $exists: true } });
+    } else {
+      await DummyRequirement.deleteMany({});
+    }
+    logActivity("reset", keepRealRequirement ? "Deleted with real requirements" : "All deleted");
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 module.exports = router;

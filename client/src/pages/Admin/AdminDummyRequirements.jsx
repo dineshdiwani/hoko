@@ -103,6 +103,17 @@ export default function AdminDummyRequirements() {
     }
   };
 
+  const resetRequirements = async (keepReal) => {
+    if (!confirm(keepReal ? "Delete only with real requirements?" : "Delete ALL dummy requirements?")) return;
+    try {
+      await api.post("/dummy-requirements/reset", { keepRealRequirement: keepReal });
+      await loadAll();
+      alert("Deleted!");
+    } catch (err) {
+      alert(err?.response?.data?.message || "Failed");
+    }
+  };
+
   const formatDate = (date) => {
     if (!date) return "-";
     return new Date(date).toLocaleString("en-IN");
@@ -228,6 +239,20 @@ export default function AdminDummyRequirements() {
                   </div>
                 ))
               )}
+            </div>
+            <div className="mt-3 flex gap-2">
+              <button
+                onClick={() => resetRequirements(false)}
+                className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-sm"
+              >
+                Reset All
+              </button>
+              <button
+                onClick={() => resetRequirements(true)}
+                className="px-3 py-1.5 bg-orange-100 text-orange-700 rounded-lg text-sm"
+              >
+                Keep & Reset
+              </button>
             </div>
           </div>
         </div>
