@@ -187,43 +187,43 @@ const PRODUCT_TEMPLATES = {
 
 const DETAIL_TEMPLATES = {
   domestic: [
-    "Urgent requirement bhai, delivery chaheye {timeline}. Quality achhi honi chahiye, original brand ka. Pic bhejna zaroor.",
-    "Home use ke liye chahiye, budget {budget}. Jaldi delivery possible hai toh best hai, warna within a week bhi chalega.",
-    "Ghar pe installation hogi, electrician available hoga toh batao. Product ka catalog aur price list bhejna hai.",
-    "Shifting ke liye chahiye, 15 din ke andar chaheye. Original bill with warranty aana chahiye.",
-    "Gift ke liye dekh rahe hain, packaging achha hona chahiye. Dealer price mein mil sakta hai toh best hai.",
-    "Repair ke liye chahiye, photo aur specifications bhejo with price. Old unit bhi exchange mein de sakte hain.",
-    "Emergency hai bhai, same day delivery possible ho toh prefer karenge. WhatsApp pe pics aur price bhejo."
+    "Required for home use. Delivery needed by {timeline}. Looking for quality product with brand warranty. Please share photos.",
+    "Home requirement with budget of {budget}. Prompt delivery preferred, within a week acceptable. Share catalog and price list.",
+    "Installation required. Please confirm if installation service is available. Need product catalog with specifications.",
+    "Required for upcoming relocation. Needed within 15 days. Original invoice with warranty preferred.",
+    "Looking for gift packaging option. Dealer pricing appreciated. Quality packaging essential.",
+    "Required for repair/upgrade. Please share photos, specifications, and pricing. Old unit exchange considered.",
+    "Urgent home requirement. Same day delivery possible please share photos and quote."
   ],
   industrial: [
-    "Production requirement hai, quality guarantee chahiye. Technical specifications sheet with PDF bhejo.",
-    "Weekly basis pe lena hai, agar quality achhi rahi toh regular order milega. Bulk discount banao.",
-    "Plant maintenance ke liye chahiye, shutdown ke dauran lagana hai. Installation service include hai toh mention karo.",
-    "Trial order hai, agar satisfied hue toh monthly 500+ ka order dedo. Technical datasheet zaroor bhejo.",
-    "Government project ke liye chahiye, ISI mark ya relevant certification aana chahiye. GST invoice must hai.",
-    "Job work ke liye use karenge, delivery on priority hai. Per unit price along with MOQ banao.",
-    "Machinery upgrade ke liye dekh rahe hain, demo available hai toh schedule karo. Running video bhejo WhatsApp pe."
+    "Production requirement - quality guarantee essential. Please submit technical specifications sheet with detailed PDF.",
+    "Weekly recurring requirement. If quality is maintained, this can become a regular monthly order. Bulk pricing requested.",
+    "Required for plant maintenance during scheduled shutdown. Installation service available please specify.",
+    "Trial order to assess quality. If satisfied, expecting monthly orders of 500+ units. Technical datasheet required.",
+    "Required for government project. ISI certification or relevant quality certifications mandatory. GST invoice must.",
+    "Required for job work. Priority delivery needed. Please quote per unit price with minimum order quantity.",
+    "Considering machinery upgrade. Demo unit available please schedule. Running operation video can be shared on WhatsApp."
   ],
   bulk: [
-    "Manufacturing unit ke liye regular requirement hai. Monthly {qty} {unit} needed. Best rate pe long term supply possible hai toh contact karo.",
-    "Plant ke liye chahiye, daily consumption high hai. Supplier tie-up kar sakte hain yearly. Price per {unit} with delivery included banao.",
-    "Stock replenishment hai, within 3 days delivery chahiye. GST invoice and quality certificate dono chahiye.",
-    "Government tender ke liye requirement hai, all documentation proper honi chahiye. Test certificate bhejo with sample.",
-    "Export order ke liye chahiye, quality international standards ke according honi chahiye. COA aur test reports ready rakho.",
-    "Start-up production ke liye initial stock hai, budget tight hai but quality compromise nahi. Best rate pe bulk deal kar sakte ho.",
-    "Warehouse ke liye stock hai, space constraint hai toh delivery organized honi chahiye. Staggered delivery schedule banao."
+    "Regular requirement for manufacturing unit. Monthly need of approximately {qty} {unit}. Competitive rates for long-term supply partnership invited.",
+    "High daily consumption requirement. Interested in yearly supplier agreement. Price per {unit} with delivery included.",
+    "Stock replenishment needed. Delivery required within 3 days. GST invoice and quality certificate mandatory.",
+    "Required for government tender. All documentation must be complete. Test certificate required with sample.",
+    "Export order requirement. Quality must meet international standards. Certificate of Analysis and test reports ready.",
+    "Initial stock for start-up production. Budget conscious but quality non-negotiable. Competitive bulk pricing invited.",
+    "Warehouse requirement - organized delivery preferred due to space constraints. Staggered delivery schedule appreciated."
   ],
   service: [
-    "Service provider dhundh rahe hain, previous work ka portfolio bhejo. Quote with timeline important hai.",
-    "Urgent requirement hai, {timeline} ke andar service complete honi chahiye. Experienced team available ho toh prefer karenge.",
-    "AMC ke liye dhundh rahe hain, quarterly visits include honi chahiye. SLA terms with response time mention karo.",
-    "Project based kaam hai, timeline aur milestones clear hone chahiye. Previous project references zaroor bhejo.",
-    "Contract basis pe dhundh rahe hain, 6 months minimum commitment de sakte hain. Per visit or per month rate banao."
+    "Looking for experienced service provider. Please share portfolio of previous work. Quote with timeline required.",
+    "Urgent service requirement. Completion needed within {timeline}. Prefer experienced team with availability.",
+    "AMC (Annual Maintenance Contract) required. Quarterly visits included please specify SLA terms and response time.",
+    "Project-based work. Clear timeline and milestones required. Previous project references appreciated.",
+    "Contract basis engagement available. Minimum 6 months commitment expected. Per visit or per month rate required."
   ]
 };
 
-const TIMELINES = ["same day", "within 2 days", "within 3 days", "within a week", "within 10 days", "this month", "asap"];
-const BUDGETS = ["20-30k", "30-50k", "50-80k", "80k-1L", "1-2L", "2-3L", "within 15k", "within 25k", "within 40k", "competitive rate pe lo"];
+const TIMELINES = ["ASAP", "within 24 hours", "within 2 days", "within 3 days", "within a week", "within 10 days", "by month end"];
+const BUDGETS = ["Budget: INR 20,000-30,000", "Budget: INR 30,000-50,000", "Budget: INR 50,000-80,000", "Budget: INR 1-2 Lakhs", "Competitive pricing required", "Best available rate", "Negotiable for bulk order"];
 
 async function getCategories() {
   try {
@@ -356,17 +356,17 @@ function generateDetail(categoryType, quantity, unit) {
   detail = detail.replace("{qty}", quantity);
   detail = detail.replace("{unit}", unit);
   
-  if (randomBool(0.3)) {
-    detail += " Catalog aur PDF bhejo WhatsApp pe.";
-  }
-  if (randomBool(0.2)) {
-    detail += " Sample deneke layak hai toh best hai.";
+  if (randomBool(0.25)) {
+    detail += " Please share product catalog and technical details via WhatsApp.";
   }
   if (randomBool(0.15)) {
-    detail += " Dealer price mein mil sakta hai toh quote karo.";
+    detail += " Sample available for evaluation preferred.";
   }
   if (randomBool(0.1)) {
-    detail += " Old stock clearance bhi consider kar sakte hain.";
+    detail += " Dealer pricing and volume discounts welcome.";
+  }
+  if (randomBool(0.05)) {
+    detail += " Old stock clearance options considered.";
   }
   
   return detail;
