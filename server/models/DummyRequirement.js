@@ -32,6 +32,13 @@ const dummyRequirementSchema = new mongoose.Schema({
     type: String,
     enum: ["new", "sent", "expired"],
     default: "new"
+  },
+  details: {
+    type: String
+  },
+  realRequirementId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Requirement"
   }
 });
 

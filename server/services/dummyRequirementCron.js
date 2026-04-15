@@ -16,19 +16,166 @@ function randomItem(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
+function randomBool(probability = 0.5) {
+  return Math.random() < probability;
+}
+
+const CATEGORY_TYPES = {
+  domestic: ["Electronics", "Furniture", "Household", "Plumbing", "Electrical"],
+  industrial: ["Industrial", "Electrical", "Mechanical", "Plumbing", "Construction"],
+  bulk: ["Industrial", "Logistics", "Construction", "Raw Materials", "General"],
+  service: ["Logistics", "General", "Services"]
+};
+
+const PRODUCT_TEMPLATES = {
+  Electronics: [
+    "Samsung 55 inch LED Smart TV", "LG 260L Frost Free Refrigerator", "Voltas 1.5 Ton Split AC",
+    "Whirlpool 7kg Fully Automatic Washing Machine", "Godrej 8kg Semi Automatic Washing Machine",
+    "Sony Bravia 43 inch LED TV", "Mi 32 inch LED Smart TV", "Panasonic 1 Ton Split AC",
+    "IFB 6kg Fully Automatic Front Load", "Haier 195L Single Door Refrigerator",
+    "Dell Inspiron 15 Laptop", "HP 15s Laptop 12th Gen", "Lenovo IdeaPad 14 inch Laptop",
+    "Apple MacBook Air M2", "Samsung Galaxy Tab S8", "JBL Flip 6 Bluetooth Speaker",
+    "Sony WH-1000XM5 Headphones", "boAt Rockerz 450 Bluetooth Headphone",
+    "Canon EOS 1500D DSLR Camera", "GoPro Hero 11 Action Camera",
+    "ASUS ROG Strix G15 Gaming Laptop", "Acer Aspire 5 Laptop"
+  ],
+  Furniture: [
+    "Wooden King Size Bed with Storage", "L-Shaped Sofa Set 6 Seater", "Dining Table Set 6 Chairs",
+    "Office Executive Chair Set of 5", "Bookshelf 5 Layer Engineered Wood", "TV Unit Wall Mounted",
+    "Wardrobe 4 Door Sliding", "Coffee Table Set Marble Top", "Computer Desk Study Table",
+    "Recliner Chair Leather", "Folding Dining Table 4 Seater", "Mattress King Size 8 inch",
+    "Pocket Spring Single Bed Mattress", "Folding Steel Almirah", "Plastic Storage Cabinet",
+    "Metal Shoe Rack 5 Tier", "Garden Furniture Set 4 Pieces", "Bar Cabinet Wooden"
+  ],
+  Electrical: [
+    "Havells 1.5sqmm Copper Wire 90mtr", "Polycab 2.5sqmm Electric Wire 90mtr",
+    "Finolex 1sqmm Cable Wire 90mtr", "Syska LED Bulb 9W Pack of 10", "Philips 12W LED Panel Light Pack of 5",
+    "Crompton 1HP Water Pump", "Kirloskar 2HP Monoblock Pump", "Havells MCB 32A Pack of 6",
+    "Anchor Roma 6A Switch Board 8 Module", "Polycab PVC Conduit Pipe 25mm 3mtr",
+    "Copper Earthing Rod 8ft", "Junction Box 4x4 GI", "Cable Tie 200mm Pack of 100",
+    "DB Box 8 Way Surface Mount", "busbar 25A Copper", "Voltage Stabilizer 5kVA"
+  ],
+  Plumbing: [
+    "Astral Pipe 1 inch 1MPa 30mtr", "Finolex PVC Pipe 3/4 inch 30mtr",
+    "Ashirvad CPVC Pipe 1/2 inch 30mtr", "Jaquar Basin Mixer Chrome", "Parryware Wall Mounted Basin",
+    "Hindware Wall Hung EWC", "Cera 2 in 1 Wall Hung", "Kohler Artize Bathtub 1.7mtr",
+    "Toto One Piece Toilet", "Grohe Bauedge Basin Mixer", "PVC Ball Valve 1 inch",
+    "GI Tee 3/4 inch", "CPVC Elbow 90deg 1/2 inch Pack of 10", "Water Tank 1500L Sintex",
+    "Sump Tank 5000L RCC", "Submersible Pump 1HP", "Pressure Pump 0.5HP"
+  ],
+  Industrial: [
+    "Industrial Air Compressor 50HP", "CNC Lathe Machine 6ft", "Heavy Duty Workbench 8ft",
+    "Pallet Truck 3 Ton Capacity", "Overhead Crane 5 Ton", "Industrial Generator 25kVA",
+    "Welding Machine 400A", "Forklift 2.5 Ton Diesel", "Power Press 100 Ton",
+    "Shearing Machine 12mm", "Bending Machine 16mm", "Surface Grinder 6x12inch",
+    "Drilling Machine Radial 40mm", "Milling Machine 6 inch", "Band Saw Machine 14inch",
+    "Industrial Mixer 500L", "Conveyor Belt 10mtr", "Hydraulic Jack 50 Ton",
+    "Gear Box Reducer 10:1", "Electric Motor 5HP 3 Phase", "Air Dryer 100CFM"
+  ],
+  Mechanical: [
+    "Ball Bearing SKF 6205 Pack of 10", "V Belt B48 Industrial", "Timing Belt 5M450",
+    "Hydraulic Cylinder 100mm Bore", "Pneumatic Cylinder 50mm Bore", "Shaft Bearing Block UCP205",
+    "Coupling Spider GR28", "Sprocket 40B17 17 Teeth", "Chain Sprocket Set 40B",
+    "Shaft Sleeve 50mm Bore", "Lead Screw 25mm ACME", "Linear Guide Rail 20mm 1mtr",
+    "Solenoid Valve 24V DC", "Flow Control Valve 1/4inch", "Pressure Gauge 100PSI",
+    "Pneumatic FRL Unit 1/4inch", "Oil seals 35x52x7 Pack of 5"
+  ],
+  Construction: [
+    "TMT Bar 12mm Fe500 1000mtr", "Cement ACC 53 Grade 50 Bags", "River Sand 1000cft",
+    "Ready Mix Concrete M25 100sqft", "AAC Blocks 600x200x200mm 1000pcs", "Crushed Aggregate 40mm 1000cft",
+    "MS Structural Steel Angle 50x50x5", "H Beam 200x100 6mtr", "GI Pipe 2 inch Medium",
+    "PVC Water Tank 1000L", "Bitumen 60/70 Grade 50kg Drum", "Plaster of Paris 25kg Bag",
+    "Gypsum Board 12mm 8x4ft", "CPVC Pipe 1 inch 30mtr", "RCC Hume Pipe 600mm 3mtr"
+  ],
+  Household: [
+    "Non Stick Cookware Set 7pcs", "Vacuum Cleaner 1400W", "Air Purifier HEPA",
+    "Water Purifier RO+UV 8L", "Rice Cooker 1.8L Prestige", "Pressure Cooker 5L Hawkins",
+    "Mixer Grinder 750W 3 Jar", "Induction Cooktop 2000W", "OTG Oven 28L",
+    "Iron Box Steam 1200W", "Ceiling Fan 1200mm Pack of 3", "Wall Fan 16inch Pack of 2",
+    "Exhaust Fan 10inch", "Room Heater 2000W Oil Filled", "Air Cooler 50L Desert",
+    "Mop Set Spin Bucket", "Vacuum Cleaner Handheld", "Clothes Dryer 6kg"
+  ],
+  Logistics: [
+    "10 Feet Container Storage Service", "Warehouse Space 500sqft Monthly", "Local Pickup Delivery Service",
+    "Part Load Truck Booking Delhi-Mumbai", "Cold Storage Facility 100sqft", "Office Relocation Service",
+    "Car Transport Service Pan India", "Packers and Movers 2BHK", "Bulk Parcel Service COD",
+    "International Shipping Service", "Courier Service Same Day Delivery", "3PL Fulfillment Service",
+    "Last Mile Delivery Service", "Fleet Management Service", "GPS Tracking Device Monthly"
+  ],
+  "Raw Materials": [
+    "Aluminum Ingot 99.7% 1000kg", "Copper Wire Scrap 500kg", "MS Scrap 2000kg",
+    "HDPE Granules 25kg Bag 100bags", "LDPE Film Grade 50kg", "PVC Resin 50kg Bag",
+    "Polypropylene Granules 25kg", "Rubber Crumb 25kg Bag", "Steel Scrap 5mm 1000kg",
+    "Brass Sheet 1.5mm 100kg", "Aluminum Sheet 2mm 50kg", "Copper Rod 8mm 100kg",
+    "Iron Ore Fines 64% Fe 100MT", "Coal GCV 5500 50MT", "Limestone 40kg Bags 500bags",
+    "Gypsum Powder 40kg Bag 200bags", "Fly Ash 50kg Bag 500bags", "Silica Sand 50kg 200bags"
+  ],
+  Services: [
+    "Annual Maintenance Contract Electrical", "AMC for HVAC System 3Star", "Industrial Cleaning Service",
+    "Pest Control Service 2BHK", "Security Guard Service Monthly", "CCTV Installation 8 Camera",
+    "Fire Safety Audit Service", "Water Tank Cleaning Service", "Generator AMC Annual",
+    "PLC Programming Service", "Industrial Painting Service sqft", "Welding Fabrication Job Work",
+    "CNC Machining Job Work", "Heat Treatment Service", "NDT Testing Service"
+  ],
+  General: [
+    "Office Stationery Kit 50pcs", "Safety Helmet Pack of 10", "Safety Shoe Size 8 Pack of 5",
+    "Hand Sanitizer 5L Can", "Face Mask N95 Pack of 100", "Fire Extinguisher 5kg ABC",
+    "Safety Gloves Leather Pack of 10", " Caution Tape 100mtr Roll", "Road Barrier Plastic 1.5mtr",
+    "Reflective Jacket Pack of 5", "First Aid Kit Industrial", "Eye Wash Station",
+    "PPE Kit Complete Set", "Safety Harness Double Lanyard", "Ear Plug Pack of 50pairs"
+  ]
+};
+
+const DETAIL_TEMPLATES = {
+  domestic: [
+    "Urgent requirement bhai, delivery chaheye {timeline}. Quality achhi honi chahiye, original brand ka. Pic bhejna zaroor.",
+    "Home use ke liye chahiye, budget {budget}. Jaldi delivery possible hai toh best hai, warna within a week bhi chalega.",
+    "Ghar pe installation hogi, electrician available hoga toh batao. Product ka catalog aur price list bhejna hai.",
+    "Shifting ke liye chahiye, 15 din ke andar chaheye. Original bill with warranty aana chahiye.",
+    "Gift ke liye dekh rahe hain, packaging achha hona chahiye. Dealer price mein mil sakta hai toh best hai.",
+    "Repair ke liye chahiye, photo aur specifications bhejo with price. Old unit bhi exchange mein de sakte hain.",
+    "Emergency hai bhai, same day delivery possible ho toh prefer karenge. WhatsApp pe pics aur price bhejo."
+  ],
+  industrial: [
+    "Production requirement hai, quality guarantee chahiye. Technical specifications sheet with PDF bhejo.",
+    "Weekly basis pe lena hai, agar quality achhi rahi toh regular order milega. Bulk discount banao.",
+    "Plant maintenance ke liye chahiye, shutdown ke dauran lagana hai. Installation service include hai toh mention karo.",
+    "Trial order hai, agar satisfied hue toh monthly 500+ ka order dedo. Technical datasheet zaroor bhejo.",
+    "Government project ke liye chahiye, ISI mark ya relevant certification aana chahiye. GST invoice must hai.",
+    "Job work ke liye use karenge, delivery on priority hai. Per unit price along with MOQ banao.",
+    "Machinery upgrade ke liye dekh rahe hain, demo available hai toh schedule karo. Running video bhejo WhatsApp pe."
+  ],
+  bulk: [
+    "Manufacturing unit ke liye regular requirement hai. Monthly {qty} {unit} needed. Best rate pe long term supply possible hai toh contact karo.",
+    "Plant ke liye chahiye, daily consumption high hai. Supplier tie-up kar sakte hain yearly. Price per {unit} with delivery included banao.",
+    "Stock replenishment hai, within 3 days delivery chahiye. GST invoice and quality certificate dono chahiye.",
+    "Government tender ke liye requirement hai, all documentation proper honi chahiye. Test certificate bhejo with sample.",
+    "Export order ke liye chahiye, quality international standards ke according honi chahiye. COA aur test reports ready rakho.",
+    "Start-up production ke liye initial stock hai, budget tight hai but quality compromise nahi. Best rate pe bulk deal kar sakte ho.",
+    "Warehouse ke liye stock hai, space constraint hai toh delivery organized honi chahiye. Staggered delivery schedule banao."
+  ],
+  service: [
+    "Service provider dhundh rahe hain, previous work ka portfolio bhejo. Quote with timeline important hai.",
+    "Urgent requirement hai, {timeline} ke andar service complete honi chahiye. Experienced team available ho toh prefer karenge.",
+    "AMC ke liye dhundh rahe hain, quarterly visits include honi chahiye. SLA terms with response time mention karo.",
+    "Project based kaam hai, timeline aur milestones clear hone chahiye. Previous project references zaroor bhejo.",
+    "Contract basis pe dhundh rahe hain, 6 months minimum commitment de sakte hain. Per visit or per month rate banao."
+  ]
+};
+
+const TIMELINES = ["same day", "within 2 days", "within 3 days", "within a week", "within 10 days", "this month", "asap"];
+const BUDGETS = ["20-30k", "30-50k", "50-80k", "80k-1L", "1-2L", "2-3L", "within 15k", "within 25k", "within 40k", "competitive rate pe lo"];
+
 async function getCategories() {
   try {
     const settings = await PlatformSettings.findOne().lean();
-    console.log("[DummyReq] getCategories - settings:", settings?._id, "categories:", settings?.categories?.slice(0,3));
     const cats = settings?.categories;
     if (Array.isArray(cats) && cats.length > 0) {
-      console.log("[DummyReq] getCategories - found:", cats.length);
       return cats;
     }
   } catch (err) {
     console.log("[DummyReq] getCategories error:", err.message);
   }
-  console.log("[DummyReq] getCategories - using fallback");
   return ["Electronics", "Furniture", "Electrical", "Industrial", "Plumbing", "Household", "Logistics", "General"];
 }
 
@@ -38,23 +185,12 @@ async function getCities() {
     const settings = await PlatformSettings.findOne().lean();
     const cities = settings?.cities;
     if (Array.isArray(cities) && cities.length > 0) {
-      console.log("[DummyReq] getCities - found:", cities.length);
       return cities;
     }
   } catch (err) {
     console.log("[DummyReq] getCities error:", err.message);
   }
-  console.log("[DummyReq] getCities - using fallback");
   return fallback;
-}
-
-function getRandomCategory(categories) {
-  if (!categories || !Array.isArray(categories) || categories.length === 0) {
-    return "Electronics";
-  }
-  const idx = Math.floor(Math.random() * categories.length);
-  const category = categories[idx];
-  return String(category || "Electronics");
 }
 
 function getRandomCity(cities) {
@@ -62,31 +198,98 @@ function getRandomCity(cities) {
     return "Delhi";
   }
   const idx = Math.floor(Math.random() * cities.length);
-  const city = cities[idx];
-  // Ensure it's a string
-  return String(city || "Delhi");
+  return String(cities[idx] || "Delhi");
 }
 
-async function generateDummyRequirements(count = 3, maxQty = 10) {
+function getCategoryType(category) {
+  const cat = category?.toLowerCase() || "";
+  if (CATEGORY_TYPES.domestic.some(c => cat.includes(c.toLowerCase()))) return "domestic";
+  if (CATEGORY_TYPES.industrial.some(c => cat.includes(c.toLowerCase()))) return "industrial";
+  if (CATEGORY_TYPES.bulk.some(c => cat.includes(c.toLowerCase()))) return "bulk";
+  if (CATEGORY_TYPES.service.some(c => cat.includes(c.toLowerCase()))) return "service";
+  return randomItem(["domestic", "industrial", "bulk"]);
+}
+
+function getSmartQuantity(categoryType, category) {
+  switch (categoryType) {
+    case "domestic":
+      return randomInt(1, 2);
+    case "industrial":
+      return randomInt(10, 15);
+    case "bulk":
+      return randomInt(50, 100);
+    case "service":
+      return 1;
+    default:
+      return randomInt(1, 5);
+  }
+}
+
+function getSmartUnit(categoryType, category) {
+  if (categoryType === "bulk") {
+    return randomItem(["kg", "quintal", "ton", "liter", "sqft", "cubic meter"]);
+  }
+  if (categoryType === "service") {
+    return randomItem(["job", "service", "visit", "month", "sqft", "unit"]);
+  }
+  if (category?.toLowerCase().includes("raw material")) {
+    return randomItem(["kg", "ton", "quintal", "bags"]);
+  }
+  if (category?.toLowerCase().includes("electrical")) {
+    return randomItem(["roll", "mtr", "pcs", "units", "set", "box"]);
+  }
+  if (category?.toLowerCase().includes("plumbing")) {
+    return randomItem(["pcs", "roll", "mtr", "boxes", "set"]);
+  }
+  return randomItem(["pcs", "units", "set", "box", "nos"]);
+}
+
+function getProduct(category) {
+  const products = PRODUCT_TEMPLATES[category] || PRODUCT_TEMPLATES["General"];
+  if (!products || products.length === 0) {
+    return `${category} Equipment`;
+  }
+  return randomItem(products);
+}
+
+function generateDetail(categoryType, quantity, unit) {
+  const templates = DETAIL_TEMPLATES[categoryType] || DETAIL_TEMPLATES.domestic;
+  let detail = randomItem(templates);
+  
+  detail = detail.replace("{timeline}", randomItem(TIMELINES));
+  detail = detail.replace("{budget}", randomItem(BUDGETS));
+  detail = detail.replace("{qty}", quantity);
+  detail = detail.replace("{unit}", unit);
+  
+  if (randomBool(0.3)) {
+    detail += " Catalog aur PDF bhejo WhatsApp pe.";
+  }
+  if (randomBool(0.2)) {
+    detail += " Sample deneke layak hai toh best hai.";
+  }
+  if (randomBool(0.15)) {
+    detail += " Dealer price mein mil sakta hai toh quote karo.";
+  }
+  if (randomBool(0.1)) {
+    detail += " Old stock clearance bhi consider kar sakte hain.";
+  }
+  
+  return detail;
+}
+
+async function generateDummyRequirements(count = 3) {
   const citiesFallback = ["Delhi", "Mumbai", "Bangalore", "Chennai", "Hyderabad", "Pune", "Kolkata", "Ahmedabad", "Surat", "Jaipur"];
   const categoriesFallback = ["Electronics", "Furniture", "Electrical", "Industrial", "Plumbing", "Household", "Logistics", "General"];
   
   const cities = await getCities();
   const categories = await getCategories();
   
-  console.log("[DummyReq] cities type:", typeof cities, "isArray:", Array.isArray(cities));
-  console.log("[DummyReq] categories type:", typeof categories, "isArray:", Array.isArray(categories));
-  
-  if (!Array.isArray(cities) || cities.length === 0 || !cities[0]) {
-    console.log("[DummyReq] Using fallback cities");
+  if (!Array.isArray(cities) || cities.length === 0) {
     cities = citiesFallback;
   }
   if (!Array.isArray(categories) || categories.length === 0) {
-    console.log("[DummyReq] Using fallback categories");
     categories = categoriesFallback;
   }
-  
-  console.log("[DummyReq] cities[0]:", cities[0], "type:", typeof cities[0]);
   
   const generated = [];
   
@@ -103,38 +306,35 @@ async function generateDummyRequirements(count = 3, maxQty = 10) {
   }
   
   for (let i = 0; i < count; i++) {
-    const category = getRandomCategory(categories);
+    const category = randomItem(categories);
     const city = getRandomCity(cities);
-    const quantity = randomInt(1, maxQty);
-    
-    console.log(`[DummyReq] Loop ${i}: city="${city}" (${typeof city}), category="${category}" (${typeof category})`);
-    
-    if (!city || typeof city !== 'string' || city.length === 0) {
-      console.error("[DummyReq] Invalid city, using default");
-      continue;
-    }
+    const categoryType = getCategoryType(category);
+    const quantity = getSmartQuantity(categoryType, category);
+    const unit = getSmartUnit(categoryType, category);
+    const product = getProduct(category);
+    const details = generateDetail(categoryType, quantity, unit);
     
     try {
       const dummy = await DummyRequirement.create({
-        product: String(category),
+        product: product,
         quantity: quantity,
-        unit: randomItem(["pieces", "units", "pcs", "kg", "boxes"]),
+        unit: unit,
         city: String(city),
         category: String(category),
         isDummy: true,
-        status: "new"
+        status: "new",
+        details: details
       });
-      console.log("[DummyReq] Dummy created:", dummy._id);
-    
+      
       const requirement = await Requirement.create({
         buyerId: dummyBuyer._id,
         city: String(city),
         category: String(category),
-        productName: String(category),
-        product: String(category),
+        productName: product,
+        product: product,
         quantity: String(quantity),
-        type: randomItem(["new", "used"]),
-        details: `Demo requirement for ${category}`,
+        type: categoryType === "bulk" ? randomItem(["new", "used"]) : randomItem(["new", "used"]),
+        details: details,
         status: "open",
         isAutoGenerated: true
       });
@@ -143,6 +343,7 @@ async function generateDummyRequirements(count = 3, maxQty = 10) {
       await dummy.save();
       
       generated.push(dummy);
+      console.log(`[DummyReq] Generated: ${product} - ${quantity} ${unit} (${categoryType})`);
     } catch (err) {
       console.log("[DummyReq] Error creating dummy:", err.message);
     }
@@ -195,7 +396,7 @@ async function sendTemplateToSellers(sellers, dummies, city, provider) {
         const params = [
           String(dummy.product || ""),
           String(dummy.city || ""),
-          String(dummy.quantity || ""),
+          String(`${dummy.quantity} ${dummy.unit}` || ""),
           deeplink
         ];
 
@@ -280,11 +481,10 @@ async function sendToNewSeller(mobileE164, city) {
 async function runCron(params = {}) {
   const settings = await PlatformSettings.findOne().lean();
   const quantity = params?.quantity || settings?.dummyRequirementSettings?.quantity || 3;
-  const maxQty = params?.maxQuantity || settings?.dummyRequirementSettings?.maxQuantity || 10;
   
-  console.log(`[DummyReq Cron] Running... (qty: ${quantity}, maxQty: ${maxQty})`);
+  console.log(`[DummyReq Cron] Running... (qty: ${quantity})`);
   
-  await generateDummyRequirements(quantity, maxQty);
+  await generateDummyRequirements(quantity);
   
   const dummies = await DummyRequirement.find({ status: "new" }).limit(10);
   if (dummies.length > 0) {
