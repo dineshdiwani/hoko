@@ -298,9 +298,12 @@ function getProduct(category) {
   const cat = String(category || "").trim();
   const catLower = cat.toLowerCase();
   
-  const normalizedKey = Object.keys(PRODUCT_TEMPLATES).find(
-    key => key.toLowerCase() === catLower
-  );
+  const templateKeys = Object.keys(PRODUCT_TEMPLATES);
+  
+  const normalizedKey = templateKeys.find(key => {
+    const keyLower = key.toLowerCase();
+    return keyLower === catLower || catLower.includes(keyLower) || keyLower.includes(catLower);
+  });
   
   if (normalizedKey && PRODUCT_TEMPLATES[normalizedKey]?.length > 0) {
     return randomItem(PRODUCT_TEMPLATES[normalizedKey]);
@@ -316,29 +319,32 @@ function getProduct(category) {
     grocery: "Wholesale Grocery Supply", agriculture: "Agricultural Equipment",
     textile: "Industrial Sewing Machine", automotive: "Vehicle Spare Parts",
     medical: "Medical Equipment", printing: "Commercial Printing Service",
-    packaging: "Industrial Packaging Material", food: "Food Processing Equipment",
-    agriculture: "Farm Equipment Tractor"
+    packaging: "Industrial Packaging Material", food: "Food Processing Equipment"
   };
   
-  const prefix = productPrefixes[catLower] || null;
+  const matchedPrefix = Object.entries(productPrefixes).find(([key]) => {
+    return key === catLower || catLower.includes(key) || key.includes(catLower);
+  });
   
-  if (!prefix) {
-    const fallbackProducts = [
-      `Quality ${cat} Supplies`, `${cat} for Business Use`,
-      `Bulk ${cat} Items`, `Commercial ${cat}`,
-      `${cat} Equipment`, `Industrial ${cat}`,
-      `${cat} Stock`, `${cat} Materials`
+  if (matchedPrefix) {
+    const prefix = matchedPrefix[1];
+    const variants = [
+      `Standard Grade ${prefix}`, `Premium Quality ${prefix}`,
+      `Industrial ${prefix}`, `Commercial ${prefix}`,
+      `Bulk ${prefix}`, `${prefix} with Warranty`
     ];
-    return randomItem(fallbackProducts);
+    return randomItem(variants);
   }
   
-  const variants = [
-    `Standard Grade ${prefix}`, `Premium Quality ${prefix}`,
-    `Industrial ${prefix}`, `Commercial ${prefix}`,
-    `Bulk ${prefix}`, `${prefix} with Warranty`
+  const genericProducts = [
+    "Industrial Supplies Batch", "Commercial Lot Various Items",
+    "Business Stock Mix", "Bulk Order Assorted",
+    "Quality Materials Pack", "Professional Equipment Set",
+    "Mixed Inventory Batch", "Enterprise Supply Package",
+    "Multi-Item Lot", "General Merchandise Bundle",
+    "Trade Supplies Collection", "Operational Materials Set"
   ];
-  
-  return randomItem(variants);
+  return randomItem(genericProducts);
 }
 
 function generateDetail(categoryType, quantity, unit) {
