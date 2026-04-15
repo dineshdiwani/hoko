@@ -21,11 +21,22 @@ function randomBool(probability = 0.5) {
 }
 
 const CATEGORY_TYPES = {
-  domestic: ["Electronics", "Furniture", "Household", "Plumbing", "Electrical"],
-  industrial: ["Industrial", "Electrical", "Mechanical", "Plumbing", "Construction"],
-  bulk: ["Industrial", "Logistics", "Construction", "Raw Materials", "General"],
-  service: ["Logistics", "General", "Services"]
+  domestic: ["electronics", "furniture", "household", "plumbing", "electrical", "grocery", "automotive", "textile"],
+  industrial: ["industrial", "electrical", "mechanical", "plumbing", "construction", "printing", "packaging", "food"],
+  bulk: ["industrial", "logistics", "construction", "raw materials", "general", "grocery", "agriculture", "textile"],
+  service: ["logistics", "general", "services", "printing", "medical", "automotive"]
 };
+
+function getCategoryType(category) {
+  const cat = String(category || "").trim().toLowerCase();
+  
+  for (const [type, categories] of Object.entries(CATEGORY_TYPES)) {
+    if (categories.some(c => cat.includes(c) || c.includes(cat))) {
+      return type;
+    }
+  }
+  return randomItem(["domestic", "industrial", "bulk"]);
+}
 
 const PRODUCT_TEMPLATES = {
   Electronics: [
@@ -123,6 +134,54 @@ const PRODUCT_TEMPLATES = {
     "Safety Gloves Leather Pack of 10", " Caution Tape 100mtr Roll", "Road Barrier Plastic 1.5mtr",
     "Reflective Jacket Pack of 5", "First Aid Kit Industrial", "Eye Wash Station",
     "PPE Kit Complete Set", "Safety Harness Double Lanyard", "Ear Plug Pack of 50pairs"
+  ],
+  Grocery: [
+    "Basmati Rice 25kg Bag Premium", "Refined Sugar 50kg", "Tur Dal 25kg",
+    "Chana Dal 25kg Wholesale", "Mustard Oil 15L Tin", "Besan 25kg",
+    "Atta Whole Wheat 25kg", "Maida 25kg Fine Quality", "Sugar Free Sweetener 500g Pack 50",
+    "Edible Oil 15L Tin", "Ragi Flour 5kg Organic", "Moong Dal 10kg"
+  ],
+  Agriculture: [
+    "Tractor 45HP 4WD", "Agricultural Sprayer 16L", "HDPE Pipe 110mm 30mtr",
+    "Drip Irrigation Kit 1 Acre", "Power Weeder 5HP", "Seed Drill 9 Row",
+    "Harvesting Machine Combine", "Milking Machine 2 Lakh", "Solar Water Pump 2HP",
+    "Mulching Film 2mtr 100mtr", "Polyhouse Structure 1000sqft", "Grain Storage Silo 10 Ton"
+  ],
+  Textile: [
+    "Industrial Sewing Machine Heavy Duty", "Fabric Roll Cotton 50mtr", "Sewing Thread Cone 5kg",
+    "Button Making Machine", "Embroidery Machine Multi Head", "Fabric Dyeing Machine",
+    "Knitting Machine Circular", "Weaving Loom Automatic", "Garment Printing Machine",
+    "Lamination Machine A3", "Cutting Machine Industrial", "Packaging Machine Shrink"
+  ],
+  Automotive: [
+    "Car Battery 12V 75AH", "Motorcycle Tyre 90/90-17", "Brake Pad Set Universal",
+    "Engine Oil 15W40 4L", "Car Alternator 90A", "Shock Absorber Set 4pcs",
+    "Headlight Assembly LED", "Car Seat Cover Set", "GPS Tracker Device",
+    "Jump Starter 12V", "Car Stereo System", "Vehicle Jack 3 Ton"
+  ],
+  Medical: [
+    "Hospital Bed ICU Electric", "Oxygen Concentrator 5L", "Patient Monitor 12 inch",
+    "Pulse Oximeter Fingertip", "Blood Pressure Monitor Digital", "Nebulizer Machine",
+    "Wheelchair Foldable", "Steam Sterilizer 30L", "ECG Machine 12 Channel",
+    "Infusion Pump Volumetric", "Suction Machine 2 Jar", "OT Table Hydraulic"
+  ],
+  Printing: [
+    "Commercial Printing Service", "Flex Banner 10x20ft", "Visiting Card 500pcs",
+    "Brochure Printing A4 1000", "Label Sticker Roll 1000", "Packaging Box Corrugated",
+    "Business Cards Premium 500", "Magazine Printing 1000 copies", "Calendar Printing Custom",
+    "Vinyl Sticker Sheet A4", "Paper Roll 80gsm 10kg", "Ink Cartridge HP 45"
+  ],
+  Packaging: [
+    "Corrugated Box 12x12x12inch", "Stretch Film Roll 18inch", "Bubble Wrap Roll 24inch",
+    "Packing Tape 2inch 100mtr", "Cardboard Sheet 4x4ft", "Wooden Pallet Euro",
+    "Plastic Crate Stackable", "Air Pillow Bag 100pcs", "Foam Sheet 6mm 50mtr",
+    "Paper Packaging 50kg", "Metal Strapping Kit", "Carton Box Heavy Duty"
+  ],
+  Food: [
+    "Commercial Kitchen Equipment", "Rice Cooker Industrial 20L", "Deep Fryer 15L",
+    "Food Processor Industrial", "Cold Storage Unit 500L", "Baking Oven 4 Tray",
+    "Mixer Grinder Commercial", "Food Packaging Machine", "Water Dispenser Hot Cold",
+    "Chapati Machine Automatic", "Dough Kneader 25kg", "Vacuum Packaging Machine"
   ]
 };
 
@@ -201,15 +260,6 @@ function getRandomCity(cities) {
   return String(cities[idx] || "Delhi");
 }
 
-function getCategoryType(category) {
-  const cat = category?.toLowerCase() || "";
-  if (CATEGORY_TYPES.domestic.some(c => cat.includes(c.toLowerCase()))) return "domestic";
-  if (CATEGORY_TYPES.industrial.some(c => cat.includes(c.toLowerCase()))) return "industrial";
-  if (CATEGORY_TYPES.bulk.some(c => cat.includes(c.toLowerCase()))) return "bulk";
-  if (CATEGORY_TYPES.service.some(c => cat.includes(c.toLowerCase()))) return "service";
-  return randomItem(["domestic", "industrial", "bulk"]);
-}
-
 function getSmartQuantity(categoryType, category) {
   switch (categoryType) {
     case "domestic":
@@ -245,11 +295,39 @@ function getSmartUnit(categoryType, category) {
 }
 
 function getProduct(category) {
-  const products = PRODUCT_TEMPLATES[category] || PRODUCT_TEMPLATES["General"];
-  if (!products || products.length === 0) {
-    return `${category} Equipment`;
+  const cat = String(category || "").trim();
+  const catLower = cat.toLowerCase();
+  
+  const normalizedKey = Object.keys(PRODUCT_TEMPLATES).find(
+    key => key.toLowerCase() === catLower
+  );
+  
+  if (normalizedKey && PRODUCT_TEMPLATES[normalizedKey]?.length > 0) {
+    return randomItem(PRODUCT_TEMPLATES[normalizedKey]);
   }
-  return randomItem(products);
+  
+  const productPrefixes = {
+    electronics: "Smart LED TV 55 inch", furniture: "Executive Office Chair", 
+    electrical: "3 Phase Motor 5HP", plumbing: "CPVC Pipe 1 inch 30mtr",
+    industrial: "Heavy Duty Workbench", mechanical: "Industrial Ball Bearing",
+    construction: "TMT Bar 12mm Fe500", household: "Non Stick Cookware Set",
+    logistics: "Warehouse Storage Space", "raw materials": "Industrial Raw Material",
+    services: "AMC Service Contract", general: "Industrial Safety Equipment",
+    grocery: "Wholesale Grocery Supply", agriculture: "Agricultural Equipment",
+    textile: "Industrial Sewing Machine", automotive: "Vehicle Spare Parts",
+    medical: "Medical Equipment", printing: "Commercial Printing Service",
+    packaging: "Industrial Packaging Material", food: "Food Processing Equipment",
+    agriculture: "Farm Equipment Tractor"
+  };
+  
+  const prefix = productPrefixes[catLower] || `${cat} Product`;
+  const variants = [
+    `Standard Grade ${prefix}`, `Premium Quality ${prefix}`,
+    `Industrial ${prefix}`, `Commercial ${prefix}`,
+    `Bulk ${prefix}`, `${prefix} with Warranty`
+  ];
+  
+  return randomItem(variants);
 }
 
 function generateDetail(categoryType, quantity, unit) {
