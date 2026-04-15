@@ -42,7 +42,6 @@ const dummyRequirementSchema = new mongoose.Schema({
   },
   reqType: {
     type: String,
-    enum: ["domestic", "city_professional", "industrial", "bulk"],
     index: true
   }
 });
