@@ -374,6 +374,25 @@ function buildGenericHelpMessage() {
   ].join("\n");
 }
 
+function buildUnknownIntentGreetingMessage(receivedText) {
+  const truncated = receivedText.length > 50 
+    ? receivedText.substring(0, 47) + "..." 
+    : receivedText;
+  return [
+    "🔥 Welcome to Hoko",
+    "India's smart way to buy & sell 😎",
+    "",
+    `📩 We received: "${truncated}"`,
+    "",
+    "🛒 Want to BUY? → Get multiple offers from sellers",
+    "🏪 Want to SELL? → Get real buyer requirements",
+    "",
+    "👉 Reply with, If you are a",
+    "1️⃣ BUYER",
+    "2️⃣ SELLER"
+  ].join("\n");
+}
+
 function resolveWhatsAppProvider() {
   return String(process.env.WHATSAPP_PROVIDER || "mock").trim().toLowerCase();
 }
@@ -851,6 +870,13 @@ router.post("/webhook", async (req, res) => {
       await sendWhatsAppMessage({
         to: event.mobileE164,
         body: replyBody
+      });
+    }
+
+    if (!["link", "help", "register", "offer_intent"].includes(intent.kind)) {
+      await sendWhatsAppMessage({
+        to: event.mobileE164,
+        body: buildUnknownIntentGreetingMessage(event.text)
       });
     }
   }
