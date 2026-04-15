@@ -52,6 +52,7 @@ const {
   DEFAULT_PRIVACY_POLICY_CONTENT
 } = require("../config/platformDefaults");
 const { isFirebaseMessagingConfigured } = require("../utils/firebaseAdmin");
+const { notifySellerApproved } = require("../services/adminNotifications");
 const router = require("express").Router();
 const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
@@ -846,6 +847,10 @@ router.post("/seller/approve", adminAuth, requireAdminPermission("sellers.approv
   await logAdminAction(req.admin, "seller_approval", "user", sellerId, {
     approved
   });
+
+  if (approved) {
+    notifySellerApproved(seller.mobile || "", seller.city || "", seller.sellerProfile?.firmName || "");
+  }
 
   res.json({
     message: approved ? "Seller approved" : "Seller blocked"

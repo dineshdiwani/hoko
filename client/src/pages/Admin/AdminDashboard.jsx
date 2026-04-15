@@ -69,6 +69,26 @@ export default function AdminDashboard() {
     },
     privacyPolicy: {
       content: defaultPrivacyPolicyContent
+    },
+    adminNotifications: {
+      enabled: true,
+      mobileNumbers: [],
+      instantEnabled: true,
+      batchEnabled: true,
+      batchIntervalMinutes: 60,
+      minOfferValue: 10000,
+      events: {
+        newBuyer: true,
+        newSeller: true,
+        newRequirement: true,
+        newOffer: true,
+        highValueOffer: true,
+        reverseAuction: true,
+        whatsappInteraction: true,
+        userReport: true,
+        sellerApproved: false,
+        moderationAlert: true
+      }
     }
   });
   const [reports, setReports] = useState([]);
@@ -252,6 +272,10 @@ export default function AdminDashboard() {
         privacyPolicy: {
           ...prev.privacyPolicy,
           ...(data.privacyPolicy || {})
+        },
+        adminNotifications: {
+          ...prev.adminNotifications,
+          ...(data.adminNotifications || {})
         }
       }));
       setCitiesText(nextCities.join(", "));
@@ -1230,6 +1254,176 @@ export default function AdminDashboard() {
                 <p className="ui-label text-gray-500">
                   Chat emails remain disabled by design. Admin copy uses ADMIN_NOTIFICATION_EMAIL/ADMIN_ALERT_EMAIL/ADMIN_EMAIL.
                 </p>
+              </div>
+            </div>
+
+            <div className="dashboard-section">
+              <h2 className="ui-heading">Admin WhatsApp Notifications</h2>
+              <p className="ui-label text-gray-500 mb-3">
+                Receive real-time alerts on your WhatsApp for platform activities
+              </p>
+              
+              <div className="mt-2 space-y-2 rounded-lg border p-3">
+                <label className="flex items-center gap-2 ui-body text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={options.adminNotifications?.enabled !== false}
+                    onChange={(e) =>
+                      setOptions((prev) => ({
+                        ...prev,
+                        adminNotifications: {
+                          ...prev.adminNotifications,
+                          enabled: e.target.checked
+                        }
+                      }))
+                    }
+                  />
+                  Enable WhatsApp notifications to admin
+                </label>
+                
+                <div className="mt-3">
+                  <label className="ui-label text-gray-600">Admin Mobile Numbers (up to 5)</label>
+                  {[0, 1, 2, 3, 4].map((i) => (
+                    <input
+                      key={i}
+                      type="text"
+                      placeholder={`Mobile ${i + 1} (e.g., 9887482058)`}
+                      value={options.adminNotifications?.mobileNumbers?.[i] || ""}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, "").slice(-10);
+                        setOptions((prev) => {
+                          const mobiles = [...(prev.adminNotifications?.mobileNumbers || [])];
+                          mobiles[i] = val;
+                          return {
+                            ...prev,
+                            adminNotifications: {
+                              ...prev.adminNotifications,
+                              mobileNumbers: mobiles.filter(Boolean)
+                            }
+                          };
+                        });
+                      }}
+                      className="w-full border rounded-lg px-3 py-2 text-sm mt-1"
+                      maxLength={10}
+                    />
+                  ))}
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4 mt-3">
+                  <label className="flex items-center gap-2 ui-body text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={options.adminNotifications?.instantEnabled !== false}
+                      onChange={(e) =>
+                        setOptions((prev) => ({
+                          ...prev,
+                          adminNotifications: {
+                            ...prev.adminNotifications,
+                            instantEnabled: e.target.checked
+                          }
+                        }))
+                      }
+                    />
+                    Instant notifications
+                  </label>
+                  <label className="flex items-center gap-2 ui-body text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={options.adminNotifications?.batchEnabled !== false}
+                      onChange={(e) =>
+                        setOptions((prev) => ({
+                          ...prev,
+                          adminNotifications: {
+                            ...prev.adminNotifications,
+                            batchEnabled: e.target.checked
+                          }
+                        }))
+                      }
+                    />
+                    Batch summary
+                  </label>
+                </div>
+                
+                <div className="mt-3">
+                  <label className="ui-label text-gray-600">Batch interval (minutes)</label>
+                  <select
+                    value={options.adminNotifications?.batchIntervalMinutes || 60}
+                    onChange={(e) =>
+                      setOptions((prev) => ({
+                        ...prev,
+                        adminNotifications: {
+                          ...prev.adminNotifications,
+                          batchIntervalMinutes: Number(e.target.value)
+                        }
+                      }))
+                    }
+                    className="w-full border rounded-lg px-3 py-2 text-sm mt-1"
+                  >
+                    <option value={30}>Every 30 minutes</option>
+                    <option value={60}>Every 1 hour</option>
+                    <option value={120}>Every 2 hours</option>
+                    <option value={240}>Every 4 hours</option>
+                    <option value={480}>Every 8 hours</option>
+                  </select>
+                </div>
+                
+                <div className="mt-3">
+                  <label className="ui-label text-gray-600">High value offer threshold (Rs)</label>
+                  <input
+                    type="number"
+                    value={options.adminNotifications?.minOfferValue || 10000}
+                    onChange={(e) =>
+                      setOptions((prev) => ({
+                        ...prev,
+                        adminNotifications: {
+                          ...prev.adminNotifications,
+                          minOfferValue: Number(e.target.value)
+                        }
+                      }))
+                    }
+                    className="w-full border rounded-lg px-3 py-2 text-sm mt-1"
+                    min={1000}
+                    step={1000}
+                  />
+                </div>
+                
+                <div className="mt-3 pt-3 border-t">
+                  <p className="ui-label text-gray-600 mb-2">Notify for:</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { key: "newBuyer", label: "New Buyer" },
+                      { key: "newSeller", label: "New Seller" },
+                      { key: "newRequirement", label: "New Requirement" },
+                      { key: "newOffer", label: "New Offer" },
+                      { key: "highValueOffer", label: "High Value Offer" },
+                      { key: "reverseAuction", label: "Reverse Auction" },
+                      { key: "whatsappInteraction", label: "WA Interaction" },
+                      { key: "userReport", label: "User Report" },
+                      { key: "sellerApproved", label: "Seller Approved" },
+                      { key: "moderationAlert", label: "Moderation Alert" }
+                    ].map((item) => (
+                      <label key={item.key} className="flex items-center gap-2 ui-body text-gray-700">
+                        <input
+                          type="checkbox"
+                          checked={options.adminNotifications?.events?.[item.key] !== false}
+                          onChange={(e) =>
+                            setOptions((prev) => ({
+                              ...prev,
+                              adminNotifications: {
+                                ...prev.adminNotifications,
+                                events: {
+                                  ...(prev.adminNotifications?.events || {}),
+                                  [item.key]: e.target.checked
+                                }
+                              }
+                            }))
+                          }
+                        />
+                        {item.label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
 

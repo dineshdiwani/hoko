@@ -23,6 +23,7 @@ const {
 } = require("../utils/notifications");
 const { normalizeRequirementAttachmentsForResponse } = require("../utils/attachments");
 const { normalizeE164, sendViaGupshupTemplate, sendViaWapiTemplate } = require("../utils/sendWhatsApp");
+const { notifyNewOffer, notifyReverseAuction } = require("../services/adminNotifications");
 const WhatsAppTemplateRegistry = require("../models/WhatsAppTemplateRegistry");
 
 const offerUploadDir = path.join(__dirname, "../uploads/offers");
@@ -846,6 +847,15 @@ router.post("/offer", auth, sellerOnly, async (req, res) => {
       requirement.currentLowestPrice = nextLowest;
 
       await requirement.save();
+
+      notifyNewOffer(
+        price,
+        requirement.productName || requirement.product,
+        req.user?.businessName || req.user?.name || "Seller",
+        req.user?.mobile || "",
+        requirement.city,
+        requirement._id
+      );
 
       const sellerMobileE164 = normalizeE164(req.user?.mobile);
       if (sellerMobileE164) {

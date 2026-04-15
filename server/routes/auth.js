@@ -10,6 +10,7 @@ const {
   otpSendLimiter,
   otpVerifyLimiter
 } = require("../middleware/rateLimit");
+const { notifyNewBuyer, notifyNewSeller } = require("../services/adminNotifications");
 
 function normalizeEmail(email) {
   return String(email || "").trim().toLowerCase();
@@ -175,6 +176,11 @@ router.post("/login", otpSendLimiter, async (req, res) => {
       loginMethod: "otp",
       requestedRole: normalizedRole
     });
+    if (normalizedRole === "seller") {
+      notifyNewSeller(user.mobile || "", city, user.sellerProfile?.firmName || user.email, user.email);
+    } else {
+      notifyNewBuyer(user.mobile || "", city, user.email);
+    }
   } else {
     ensureRoles(user);
   }
@@ -386,6 +392,7 @@ router.post("/google", async (req, res) => {
         loginMethod: "google",
         requestedRole: normalizedRole
       });
+      notifyNewBuyer(user.mobile || "", city, user.email);
     } else {
       ensureRoles(user);
       if (!user.city && city) {

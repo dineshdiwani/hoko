@@ -21,6 +21,7 @@ const {
   parseRegisterPayload
 } = require("../services/whatsAppInbound");
 const { sendToNewSeller } = require("../services/dummyRequirementCron");
+const { notifyWhatsAppInteraction } = require("../services/adminNotifications");
 
 router.use(express.json({ limit: "1mb" }));
 router.use(express.urlencoded({ extended: false }));
@@ -633,6 +634,7 @@ router.post("/webhook", async (req, res) => {
 
     if (!sellerContact && !buyerContact) {
       await ensureBuyerProspect(event.mobileE164);
+      notifyWhatsAppInteraction(event.mobileE164, "", event.text || "");
       
       // New user - show greeting and handle BUYER/SELLER directly
       if (BUYER_WORDS.has(normalizedInbound) || normalizedInbound === "buy" || normalizedInbound === "1" || normalizedInbound === "buyer") {

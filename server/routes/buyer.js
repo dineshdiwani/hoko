@@ -31,6 +31,7 @@ const sendPush = require("../utils/sendPush");
 const { sendAdminEventEmail, sendEmailToRecipient } = require("../utils/sendEmail");
 const { triggerWhatsAppCampaignForRequirement } = require("../services/whatsAppCampaign");
 const { notifyMatchingSellers } = require("./whatsapp");
+const { notifyNewRequirement, notifyNewOffer } = require("../services/adminNotifications");
 const { sendViaGupshupTemplate, sendViaWapiTemplate } = require("../utils/sendWhatsApp");
 const { resolvePublicAppUrl } = require("../utils/publicAppUrl");
 const auth = require("../middleware/auth");
@@ -529,6 +530,15 @@ router.post("/requirement/public", async (req, res) => {
       console.warn("[WhatsApp Campaign] Trigger failed:", err?.message || err);
     }
   });
+
+  notifyNewRequirement(
+    requirement.productName || requirement.product,
+    requirement.city,
+    requirement.quantity,
+    requirement.unit || requirement.type,
+    softUser.mobile || "",
+    requirement._id
+  );
 
   return res.status(201).json({
     success: true,
@@ -1650,6 +1660,14 @@ router.post("/requirement/:id/reverse-auction/start", auth, buyerOnly, async (re
     typeof lowestPrice === "number" ? lowestPrice : null;
 
   await requirement.save();
+
+  notifyReverseAuction(
+    requirement.product || requirement.productName,
+    requirement.city,
+    lowestPrice,
+    req.user.mobile || "",
+    requirement._id
+  );
 
   const requirementName = requirement.product || requirement.productName || "Product";
   const currencyCode = String(req.user.preferredCurrency || "INR").toUpperCase();

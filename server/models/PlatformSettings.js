@@ -55,6 +55,26 @@ const platformSettingsSchema = new mongoose.Schema(
     },
     privacyPolicy: {
       content: { type: String, default: "" }
+    },
+    adminNotifications: {
+      enabled: { type: Boolean, default: true },
+      mobileNumbers: [{ type: String }],
+      instantEnabled: { type: Boolean, default: true },
+      batchEnabled: { type: Boolean, default: true },
+      batchIntervalMinutes: { type: Number, default: 60 },
+      minOfferValue: { type: Number, default: 10000 },
+      events: {
+        newBuyer: { type: Boolean, default: true },
+        newSeller: { type: Boolean, default: true },
+        newRequirement: { type: Boolean, default: true },
+        newOffer: { type: Boolean, default: true },
+        highValueOffer: { type: Boolean, default: true },
+        reverseAuction: { type: Boolean, default: true },
+        whatsappInteraction: { type: Boolean, default: true },
+        userReport: { type: Boolean, default: true },
+        sellerApproved: { type: Boolean, default: false },
+        moderationAlert: { type: Boolean, default: true }
+      }
     }
   },
   { timestamps: true }
