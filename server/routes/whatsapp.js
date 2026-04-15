@@ -132,7 +132,7 @@ function buildConsentConfirmedBuyerMessage(deepLink) {
   ].join("\n");
 }
 
-function buildConsentConfirmedSellerMessage(city, whatsappCategories, deepLink) {
+function buildConsentConfirmedSellerMessage(city, whatsappCategories, loginLink) {
   const catList = whatsappCategories.join(", ");
   return [
     "Perfect! You're set as seller on HOKO. 🏪",
@@ -141,7 +141,7 @@ function buildConsentConfirmedSellerMessage(city, whatsappCategories, deepLink) 
     `📦 ${catList}`,
     "",
     "🌐 To submit offers & manage your profile:",
-    `👉 https://hokoapp.in/seller/login`,
+    `👉 ${loginLink}`,
     "",
     "Our team will verify your profile shortly."
   ].join("\n");
@@ -174,17 +174,30 @@ async function sendBuyerRequirementInvite(mobileE164) {
   return await sendBuyerInviteTemplate(mobileE164, tempReq._id.toString());
 }
 
-async function sendSellerInviteLink(mobileE164, city) {
+async function sendSellerInviteLink(mobileE164, city, categories = []) {
   await OptedInSeller.findOneAndUpdate(
     { mobileE164 },
     {
-      $set: { mobileE164, city, source: "whatsapp_keyword", status: "active", optedInAt: new Date() }
+      $set: { 
+        mobileE164, 
+        city, 
+        source: "whatsapp_keyword", 
+        status: "active", 
+        optedInAt: new Date(),
+        whatsappCategories: categories
+      }
     },
     { upsert: true, new: true }
   );
   
   const appBase = resolvePublicAppUrl();
-  return `${appBase}/seller`;
+  const params = new URLSearchParams();
+  params.set("mobile", mobileE164.replace("+", ""));
+  if (city) params.set("city", city);
+  if (categories.length > 0) params.set("cats", categories.join(","));
+  params.set("ref", "wa");
+  
+  return `${appBase}/seller/login?${params.toString()}`;
 }
 
 function normalizeCityName(city) {
@@ -814,10 +827,10 @@ router.post("/webhook", async (req, res) => {
         continue;
       }
       
-      const deepLink = await sendSellerInviteLink(event.mobileE164, cityToSave);
+      const loginLink = await sendSellerInviteLink(event.mobileE164, cityToSave, parsed.platformCategories);
       await sendWhatsAppMessage({
         to: event.mobileE164,
-        body: buildConsentConfirmedSellerMessage(cityToSave, parsed.whatsappCategories, deepLink)
+        body: buildConsentConfirmedSellerMessage(cityToSave, parsed.whatsappCategories, loginLink)
       });
       
       // Schedule dummy requirements with 2-3 min delay

@@ -13,6 +13,9 @@ export default function UserLogin({ role = "buyer" }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const mobileFromUrl = searchParams.get("mobile") || "";
+  const cityFromUrl = searchParams.get("city") || "";
+  const catsFromUrl = searchParams.get("cats") || "";
+  const isFromUrl = searchParams.has("ref");
   const isFromRequirement = searchParams.has("redirect");
   const postLoginRedirect = String(
     localStorage.getItem("post_login_redirect") || ""
@@ -51,7 +54,7 @@ export default function UserLogin({ role = "buyer" }) {
   const [step, setStep] = useState("LOGIN");
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
-  const [city, setCity] = useState("");
+  const [city, setCity] = useState(cityFromUrl);
   const [otpLoading, setOtpLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
@@ -114,9 +117,22 @@ export default function UserLogin({ role = "buyer" }) {
     );
     if (profile) {
       setEmail(profile.email || "");
-      setCity(profile.city || "");
+      setCity(profile.city || cityFromUrl || "");
     }
-  }, [isSeller]);
+  }, [isSeller, cityFromUrl]);
+
+  useEffect(() => {
+    if (!isSeller || !isFromUrl) return;
+    if (catsFromUrl) {
+      localStorage.setItem("whatsapp_categories", catsFromUrl);
+    }
+    if (cityFromUrl) {
+      localStorage.setItem("whatsapp_city", cityFromUrl);
+    }
+    if (mobileFromUrl) {
+      localStorage.setItem("whatsapp_mobile", mobileFromUrl);
+    }
+  }, [isSeller, isFromUrl, catsFromUrl, cityFromUrl, mobileFromUrl]);
 
   function validEmail(value) {
     return /\S+@\S+\.\S+/.test(String(value || ""));

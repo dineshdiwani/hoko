@@ -67,10 +67,28 @@ export default function SellerRegister() {
       .then((data) => {
         if (Array.isArray(data.cities) && data.cities.length) {
           setCities(data.cities);
+          const whatsappCity = localStorage.getItem("whatsapp_city");
+          const whatsappCats = localStorage.getItem("whatsapp_categories");
+          const whatsappMobile = localStorage.getItem("whatsapp_mobile");
           setSeller((prev) => {
-            if (prev.city) return prev;
-            const nextCity = resolveCityValue(sessionCity, data.cities);
-            return nextCity ? { ...prev, city: nextCity } : prev;
+            let next = { ...prev };
+            if (whatsappCity) {
+              const cityMatch = resolveCityValue(whatsappCity, data.cities);
+              next.city = cityMatch || whatsappCity;
+            } else if (prev.city) {
+              const cityMatch = resolveCityValue(sessionCity, data.cities);
+              next.city = cityMatch || prev.city;
+            }
+            if (whatsappMobile && !prev.mobile) {
+              next.mobile = whatsappMobile;
+            }
+            if (whatsappCats && Array.isArray(data.categories)) {
+              const selectedCats = whatsappCats.split(",").filter(c => data.categories.includes(c));
+              if (selectedCats.length > 0) {
+                next.categories = selectedCats;
+              }
+            }
+            return next;
           });
         }
         if (Array.isArray(data.categories) && data.categories.length) {
