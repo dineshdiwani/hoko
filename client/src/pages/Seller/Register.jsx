@@ -99,6 +99,55 @@ export default function SellerRegister() {
   }, [sessionCity]);
 
   useEffect(() => {
+    const savedEmail = localStorage.getItem("seller_email");
+    const savedMobile = localStorage.getItem("whatsapp_mobile");
+    const savedCity = localStorage.getItem("whatsapp_city");
+    const savedCats = localStorage.getItem("whatsapp_categories");
+    
+    setSeller((prev) => {
+      const next = { ...prev };
+      
+      if (session?.email && !next.email) {
+        next.email = session.email;
+      } else if (savedEmail && !next.email) {
+        next.email = savedEmail;
+      }
+      
+      if (session?.mobile && !next.mobile) {
+        next.mobile = session.mobile;
+      } else if (savedMobile && !next.mobile) {
+        next.mobile = savedMobile;
+      }
+      
+      if (savedCity && !next.city) {
+        next.city = resolveCityValue(savedCity, cities) || savedCity;
+      } else if (prev.city || sessionCity) {
+        next.city = prev.city || resolveCityValue(sessionCity, cities);
+      }
+      
+      if (savedCats && savedCats.length > 0) {
+        next._savedCats = savedCats;
+      }
+      
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    if (seller._savedCats && Array.isArray(categories) && categories.length > 0) {
+      const savedCats = localStorage.getItem("whatsapp_categories") || "";
+      if (savedCats) {
+        const selectedCats = savedCats.split(",").filter(c => 
+          categories.some(cat => cat.toLowerCase() === c.toLowerCase())
+        );
+        if (selectedCats.length > 0) {
+          setSeller(prev => ({ ...prev, categories: selectedCats, _savedCats: null }));
+        }
+      }
+    }
+  }, [categories, seller._savedCats]);
+
+  useEffect(() => {
     setSeller((prev) => ({
       ...prev,
       city: prev.city || resolveCityValue(sessionCity, cities)
