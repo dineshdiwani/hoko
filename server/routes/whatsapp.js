@@ -20,7 +20,7 @@ const {
   extractInboundEvents,
   parseRegisterPayload
 } = require("../services/whatsAppInbound");
-const { sendToNewSeller } = require("../services/dummyRequirementCron");
+const { sendToNewSeller, sendToNewSellerWithCategories } = require("../services/dummyRequirementCron");
 const { notifyWhatsAppInteraction } = require("../services/adminNotifications");
 
 router.use(express.json({ limit: "1mb" }));
@@ -39,6 +39,60 @@ const CONSENT_STATES = {
   AWAITING_SELLER_CITY: "awaiting_seller_city",
   AWAITING_SELLER_CATEGORIES: "awaiting_seller_categories"
 };
+
+const WHATSAPP_CATEGORIES = [
+  { id: 1, name: "Electronics", mapsTo: ["Used & New Mobile/Laptop/Electronics"] },
+  { id: 2, name: "Home & Appliances", mapsTo: ["Used & New Households & Electrical Appliances", "Old & New Furniture & Home Furnishings", "AC Installation & Maintenance", "RO Installation & Maitenance"] },
+  { id: 3, name: "Vehicles", mapsTo: ["Used & New Bike/Car", "Automotive Parts & Vehicles"] },
+  { id: 4, name: "Furniture", mapsTo: ["Old & New Furniture & Home Furnishings"] },
+  { id: 5, name: "Industrial", mapsTo: ["Plant Machinery & Industrial Equipment", "Mechanical & Hydraulic Spares", "Manufacturing & Contract Production"] },
+  { id: 6, name: "Electrical", mapsTo: ["Electrical & Instrumentation Spares"] },
+  { id: 7, name: "Construction", mapsTo: ["Construction Materials ( Cement etc) & Tools", "Construction & Engineering Services", "Whitewash & Building Paint"] },
+  { id: 8, name: "Services", mapsTo: ["Installation Maintenance & Repair", "IT Software Services & Hardware", "Security & Facility Management", "Travel Hospitality & Event Management", "Manpower Suppliers & Contractors"] },
+  { id: 9, name: "Logistics", mapsTo: ["Movers & Packers", "Logistics Transportation & Warehousing"] },
+  { id: 10, name: "Business", mapsTo: ["Trading Import & Export Services", "Consulting & Business Advisory", "Human Resources & Recruitment", "Sales & Marketing for product/service", "Insurance Life Medical & Motor"] },
+  { id: 11, name: "Raw Materials", mapsTo: ["Raw Materials (metals minerals chemicals)", "Oil/Gas Products & Services", "Chemicals & Plastics", "Energy Power & Fuels", "Agriculture tools & Machines"] },
+  { id: 12, name: "Others", mapsTo: ["Rented Flat Rooms & PGs", "Pigeon Net Supply and Fixing", "Packaging Materials", "Office Supplies & Stationery", "Others"] }
+];
+
+const WHATSAPP_CATEGORY_OFFER_ANYWHERE = new Set([5, 6, 7, 11]);
+
+function buildCategorySelectionMessage() {
+  const lines = ["Great! Select categories you deal in (send numbers):", ""];
+  WHATSAPP_CATEGORIES.forEach(cat => {
+    lines.push(`[${cat.id}] ${cat.name}`);
+  });
+  lines.push("", "Example: Send '1,3,5' or '1' or '12'");
+  return lines.join("\n");
+}
+
+function parseCategorySelection(input) {
+  const nums = input.split(/[,;\s]+/).map(s => parseInt(s.trim())).filter(n => !isNaN(n) && n >= 0);
+  
+  const selectedCategories = [];
+  const platformCategories = new Set();
+  
+  for (const num of nums) {
+    if (num === 0) {
+      WHATSAPP_CATEGORIES.forEach(cat => {
+        selectedCategories.push(cat.name);
+        cat.mapsTo.forEach(pc => platformCategories.add(pc));
+      });
+    } else {
+      const cat = WHATSAPP_CATEGORIES.find(c => c.id === num);
+      if (cat) {
+        selectedCategories.push(cat.name);
+        cat.mapsTo.forEach(pc => platformCategories.add(pc));
+      }
+    }
+  }
+  
+  return {
+    whatsappCategories: selectedCategories,
+    platformCategories: Array.from(platformCategories),
+    hasOfferAnywhere: nums.some(n => WHATSAPP_CATEGORY_OFFER_ANYWHERE.has(n)) || nums.includes(0)
+  };
+}
 
 function getConsentStateKey(mobileE164) {
   return `consent:${mobileE164}`;
@@ -78,14 +132,18 @@ function buildConsentConfirmedBuyerMessage(deepLink) {
   ].join("\n");
 }
 
-function buildConsentConfirmedSellerMessage(city, deepLink) {
+function buildConsentConfirmedSellerMessage(city, whatsappCategories, deepLink) {
+  const catList = whatsappCategories.join(", ");
   return [
-    "Perfect! You're set as a SELLER 👍",
+    "Perfect! You're set as seller on HOKO. 🏪",
     "",
-    `📍 You'll receive requirements for ${city}`,
+    `You'll receive requirements from ${city} for:`,
+    `📦 ${catList}`,
     "",
-    "🏪 Click to join:",
-    deepLink
+    "🌐 To submit offers & manage your profile:",
+    `👉 https://hokoapp.in/seller/login`,
+    "",
+    "Our team will verify your profile shortly."
   ].join("\n");
 }
 
@@ -720,7 +778,7 @@ router.post("/webhook", async (req, res) => {
       const matchedCity = cities.find(c => normalizeCityName(c) === inputCity);
       const cityToSave = matchedCity || inboundText;
       
-      // Ask for products/services next
+      // Ask for category selection
       consentState.set(consentKey, { 
         step: CONSENT_STATES.AWAITING_SELLER_CATEGORIES, 
         mobileE164: event.mobileE164,
@@ -728,7 +786,7 @@ router.post("/webhook", async (req, res) => {
       });
       await sendWhatsAppMessage({
         to: event.mobileE164,
-        body: "What products/services do you supply? 📦"
+        body: buildCategorySelectionMessage()
       });
       continue;
     }
@@ -741,7 +799,17 @@ router.post("/webhook", async (req, res) => {
       if (!inboundText) {
         await sendWhatsAppMessage({
           to: event.mobileE164,
-          body: "Please share what you supply."
+          body: "Please select categories using numbers (e.g., 1,3,5)"
+        });
+        continue;
+      }
+      
+      const parsed = parseCategorySelection(inboundText);
+      
+      if (parsed.whatsappCategories.length === 0) {
+        await sendWhatsAppMessage({
+          to: event.mobileE164,
+          body: "Invalid selection. Please select from the numbers listed (e.g., 1,3,5 or 0 for all)"
         });
         continue;
       }
@@ -749,14 +817,21 @@ router.post("/webhook", async (req, res) => {
       const deepLink = await sendSellerInviteLink(event.mobileE164, cityToSave);
       await sendWhatsAppMessage({
         to: event.mobileE164,
-        body: buildConsentConfirmedSellerMessage(cityToSave, deepLink)
+        body: buildConsentConfirmedSellerMessage(cityToSave, parsed.whatsappCategories, deepLink)
       });
       
-      // Send dummy requirements to new seller
-      sendToNewSeller(event.mobileE164, cityToSave).catch(err => console.log("[DummyReq] Error:", err.message));
+      // Schedule dummy requirements with 2-3 min delay
+      setTimeout(async () => {
+        try {
+          await sendToNewSellerWithCategories(event.mobileE164, cityToSave, parsed);
+          console.log(`[Seller OptIn] Sent requirements to ${event.mobileE164} after delay`);
+        } catch (err) {
+          console.log("[DummyReq] Delayed error:", err.message);
+        }
+      }, 2 * 60 * 1000 + Math.random() * 60 * 1000);
       
       consentState.delete(consentKey);
-      console.log(`[Seller OptIn] ${event.mobileE164} - City: ${cityToSave}, Products: ${inboundText}`);
+      console.log(`[Seller OptIn] ${event.mobileE164} - City: ${cityToSave}, Categories: ${parsed.whatsappCategories.join(", ")}`);
       continue;
     }
 

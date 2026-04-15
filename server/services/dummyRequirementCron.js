@@ -506,6 +506,90 @@ async function sendToNewSeller(mobileE164, city) {
   console.log(`[DummyReq] Sent to new seller ${mobileE164} for city ${city}`);
 }
 
+async function sendToNewSellerWithCategories(mobileE164, city, categoryData) {
+  const { whatsappCategories, platformCategories, hasOfferAnywhere } = categoryData;
+  
+  let dummies = [];
+  
+  if (hasOfferAnywhere) {
+    dummies = await DummyRequirement.find({
+      status: "new",
+      category: { $in: platformCategories }
+    }).limit(2);
+    
+    if (dummies.length < 2) {
+      const extraNeeded = 2 - dummies.length;
+      const allDummies = await DummyRequirement.find({
+        status: "new",
+        category: { $nin: dummies.map(d => d.category) }
+      }).limit(extraNeeded);
+      dummies.push(...allDummies);
+    }
+  } else {
+    dummies = await DummyRequirement.find({
+      city: { $regex: new RegExp(city, "i") },
+      status: "new",
+      category: { $in: platformCategories }
+    }).limit(2);
+    
+    if (dummies.length < 2) {
+      const extraNeeded = 2 - dummies.length;
+      const extraDummies = await DummyRequirement.find({
+        city: { $regex: new RegExp(city, "i") },
+        status: "new",
+        category: { $nin: dummies.map(d => d.category) }
+      }).limit(extraNeeded);
+      dummies.push(...extraDummies);
+    }
+  }
+  
+  if (!dummies.length) {
+    console.log(`[DummyReq] No matching requirements for ${mobileE164}`);
+    return;
+  }
+  
+  const provider = "gupshup";
+  
+  for (const dummy of dummies) {
+    const requirementLink = `${process.env.CLIENT_URL || "https://hoko.app"}/seller/deeplink/${dummy.realRequirementId || "demo"}`;
+    
+    let message;
+    if (hasOfferAnywhere && dummy.category) {
+      message = [
+        "🆕 New Buyer Requirement (India):",
+        "",
+        `📦 Product: ${dummy.product}`,
+        `📍 Qty: ${dummy.quantity} ${dummy.unit || "pcs"}`,
+        `🏙️ Category: ${dummy.category}`,
+        "🌍 Offer invited from anywhere",
+        "",
+        "💰 Submit your best offer:",
+        `👉 https://hokoapp.in/seller/login`
+      ].join("\n");
+    } else {
+      message = [
+        "🆕 New Buyer Requirement in " + dummy.city + ":",
+        "",
+        `📦 Product: ${dummy.product}`,
+        `📍 Qty: ${dummy.quantity} ${dummy.unit || "pcs"}`,
+        "",
+        "💰 Submit your best offer:",
+        `👉 https://hokoapp.in/seller/login`
+      ].join("\n");
+    }
+    
+    try {
+      await sendWhatsAppMessage({ to: mobileE164, body: message });
+      await DummyRequirement.updateOne({ _id: dummy._id }, { $set: { status: "sent" } });
+      console.log(`[DummyReq] Sent requirement ${dummy.product} to ${mobileE164}`);
+    } catch (err) {
+      console.log(`[DummyReq] Failed to send to ${mobileE164}:`, err.message);
+    }
+  }
+  
+  console.log(`[DummyReq] Sent ${dummies.length} requirements to new seller ${mobileE164}`);
+}
+
 async function runCron(params = {}) {
   const settings = await PlatformSettings.findOne().lean();
   const quantity = params?.quantity || settings?.dummyRequirementSettings?.quantity || 3;
@@ -526,5 +610,6 @@ module.exports = {
   generateDummyRequirements,
   sendToSellers,
   sendToNewSeller,
+  sendToNewSellerWithCategories,
   runCron
 };
