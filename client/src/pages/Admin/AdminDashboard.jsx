@@ -1288,34 +1288,32 @@ export default function AdminDashboard() {
                 <div className="mt-3">
                   <label className="ui-label text-gray-600">Admin Mobile Numbers (up to 5)</label>
                   <p className="text-xs text-gray-400 mb-2">Enter 10-digit numbers without country code</p>
-                  {[0, 1, 2, 3, 4].map((i) => (
-                    <input
-                      key={i}
-                      type="text"
-                      inputMode="numeric"
-                      placeholder={`Mobile ${i + 1} (e.g., 9887482058)`}
-                      value={options.adminNotifications?.mobileNumbers?.[i] || ""}
-                      onChange={(e) => {
-                        const val = e.target.value.replace(/\D/g, "").slice(-10);
-                        setOptions((prev) => {
-                          const mobiles = Array(5).fill("");
-                          const existing = prev.adminNotifications?.mobileNumbers || [];
-                          for (let j = 0; j < 5; j++) {
-                            mobiles[j] = j === i ? val : (existing[j] || "");
-                          }
-                          return {
+                  {[0, 1, 2, 3, 4].map((i) => {
+                    const savedMobiles = options.adminNotifications?.mobileNumbers || [];
+                    const displayValue = savedMobiles[i] || "";
+                    return (
+                      <input
+                        key={i}
+                        type="tel"
+                        placeholder={`Mobile ${i + 1} (e.g., 9887482058)`}
+                        defaultValue={displayValue}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/[^\d]/g, "").slice(0, 10);
+                          const newMobiles = [...savedMobiles];
+                          newMobiles[i] = val;
+                          setOptions((prev) => ({
                             ...prev,
                             adminNotifications: {
                               ...prev.adminNotifications,
-                              mobileNumbers: mobiles.filter(v => v.length >= 10)
+                              mobileNumbers: newMobiles.filter(v => v.length >= 10)
                             }
-                          };
-                        });
-                      }}
-                      className="w-full border rounded-lg px-3 py-2 text-sm mt-1"
-                      maxLength={10}
-                    />
-                  ))}
+                          }));
+                        }}
+                        className="w-full border rounded-lg px-3 py-2 text-sm mt-1"
+                        maxLength={10}
+                      />
+                    );
+                  })}
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4 mt-3">
