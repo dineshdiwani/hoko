@@ -277,6 +277,23 @@ function generateDetail(categoryType, quantity, unit) {
   return detail;
 }
 
+function shuffleArray(arr) {
+  const shuffled = [...arr];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
+async function getRecentCityCategories(days = 30) {
+  const thirtyDaysAgo = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  const recent = await DummyRequirement.find({
+    createdAt: { $gte: thirtyDaysAgo }
+  }).select("city category").lean();
+  return new Set(recent.map(r => `${r.city}|${r.category}`));
+}
+
 async function generateDummyRequirements(count = 3) {
   const citiesFallback = ["Delhi", "Mumbai", "Bangalore", "Chennai", "Hyderabad", "Pune", "Kolkata", "Ahmedabad", "Surat", "Jaipur"];
   const categoriesFallback = ["Electronics", "Furniture", "Electrical", "Industrial", "Plumbing", "Household", "Logistics", "General"];
@@ -290,6 +307,26 @@ async function generateDummyRequirements(count = 3) {
   if (!Array.isArray(categories) || categories.length === 0) {
     categories = categoriesFallback;
   }
+  
+  const recentCombos = await getRecentCityCategories(30);
+  const allCombos = [];
+  for (const city of cities) {
+    for (const category of categories) {
+      allCombos.push({ city, category });
+    }
+  }
+  
+  const availableCombos = allCombos.filter(
+    combo => !recentCombos.has(`${combo.city}|${combo.category}`)
+  );
+  
+  const shuffledCombos = shuffleArray(
+    availableCombos.length >= count 
+      ? availableCombos 
+      : [...availableCombos, ...shuffleArray(allCombos)]
+  );
+  
+  const selectedCombos = shuffledCombos.slice(0, count);
   
   const generated = [];
   
@@ -305,9 +342,8 @@ async function generateDummyRequirements(count = 3) {
     });
   }
   
-  for (let i = 0; i < count; i++) {
-    const category = randomItem(categories);
-    const city = getRandomCity(cities);
+  for (let i = 0; i < selectedCombos.length; i++) {
+    const { city, category } = selectedCombos[i];
     const categoryType = getCategoryType(category);
     const quantity = getSmartQuantity(categoryType, category);
     const unit = getSmartUnit(categoryType, category);
@@ -346,7 +382,7 @@ async function generateDummyRequirements(count = 3) {
       await dummy.save();
       
       generated.push(dummy);
-      console.log(`[DummyReq] Generated: ${product} - ${quantity} ${unit} (${categoryType})`);
+      console.log(`[DummyReq] Generated: ${city} - ${category} | ${product} (${categoryType})`);
     } catch (err) {
       console.log("[DummyReq] Error creating dummy:", err.message);
     }
