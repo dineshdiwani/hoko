@@ -39,6 +39,11 @@ const dummyRequirementSchema = new mongoose.Schema({
   realRequirementId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Requirement"
+  },
+  reqType: {
+    type: String,
+    enum: ["domestic", "city_professional", "industrial", "bulk"],
+    index: true
   }
 });
 

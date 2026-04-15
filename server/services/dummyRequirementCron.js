@@ -20,210 +20,118 @@ function randomBool(probability = 0.5) {
   return Math.random() < probability;
 }
 
-const CATEGORY_TYPES = {
-  domestic: ["electronics", "furniture", "household", "plumbing", "electrical", "grocery", "automotive", "textile"],
-  industrial: ["industrial", "electrical", "mechanical", "plumbing", "construction", "printing", "packaging", "food"],
-  bulk: ["industrial", "logistics", "construction", "raw materials", "general", "grocery", "agriculture", "textile"],
-  service: ["logistics", "general", "services", "printing", "medical", "automotive"]
+const REQ_TYPE_WEIGHTS = {
+  domestic: 0.30,
+  city_professional: 0.30,
+  industrial: 0.30,
+  bulk: 0.10
 };
 
-function getCategoryType(category) {
-  const cat = String(category || "").trim().toLowerCase();
-  
-  for (const [type, categories] of Object.entries(CATEGORY_TYPES)) {
-    if (categories.some(c => cat.includes(c) || c.includes(cat))) {
-      return type;
-    }
-  }
-  return randomItem(["domestic", "industrial", "bulk"]);
-}
-
 const PRODUCT_TEMPLATES = {
-  Electronics: [
+  domestic: [
     "Samsung 55 inch LED Smart TV", "LG 260L Frost Free Refrigerator", "Voltas 1.5 Ton Split AC",
     "Whirlpool 7kg Fully Automatic Washing Machine", "Godrej 8kg Semi Automatic Washing Machine",
     "Sony Bravia 43 inch LED TV", "Mi 32 inch LED Smart TV", "Panasonic 1 Ton Split AC",
     "IFB 6kg Fully Automatic Front Load", "Haier 195L Single Door Refrigerator",
+    "iPhone 15 Pro 256GB", "Samsung Galaxy S24 Ultra", "OnePlus 12 256GB",
     "Dell Inspiron 15 Laptop", "HP 15s Laptop 12th Gen", "Lenovo IdeaPad 14 inch Laptop",
-    "Apple MacBook Air M2", "Samsung Galaxy Tab S8", "JBL Flip 6 Bluetooth Speaker",
-    "Sony WH-1000XM5 Headphones", "boAt Rockerz 450 Bluetooth Headphone",
+    "Apple MacBook Air M2", "Samsung Galaxy Tab S8", "ASUS ROG Strix G15 Gaming Laptop",
+    "Sony WH-1000XM5 Headphones", "JBL Flip 6 Bluetooth Speaker",
     "Canon EOS 1500D DSLR Camera", "GoPro Hero 11 Action Camera",
-    "ASUS ROG Strix G15 Gaming Laptop", "Acer Aspire 5 Laptop"
+    "Samsung Microwave 28L", "LG 7kg Dryer", "Bosch Dishwasher",
+    "Samsung 657L Side by Side Refrigerator", "Daikin 1.5 Ton Inverter AC",
+    "LG 8kg Front Load Washing Machine", "Sony PlayStation 5 Gaming Console"
   ],
-  Furniture: [
-    "Wooden King Size Bed with Storage", "L-Shaped Sofa Set 6 Seater", "Dining Table Set 6 Chairs",
-    "Office Executive Chair Set of 5", "Bookshelf 5 Layer Engineered Wood", "TV Unit Wall Mounted",
-    "Wardrobe 4 Door Sliding", "Coffee Table Set Marble Top", "Computer Desk Study Table",
-    "Recliner Chair Leather", "Folding Dining Table 4 Seater", "Mattress King Size 8 inch",
-    "Pocket Spring Single Bed Mattress", "Folding Steel Almirah", "Plastic Storage Cabinet",
-    "Metal Shoe Rack 5 Tier", "Garden Furniture Set 4 Pieces", "Bar Cabinet Wooden"
+  city_professional: [
+    "Wedding Catering Service for 500 Guests", "Corporate Event Management for 200 People",
+    "Birthday Party Decoration Service", "Engagement Ceremony Setup Complete",
+    "Pre-Owned Maruti Swift Dzire 2022", "Used Toyota Innova Crysta 2021 Top Model",
+    "Second Hand Honda City 2023 ZX", "Pre-Owned Kia Seltos 2022",
+    "Brand New Maruti Swift LXI", "New Tata Nexon XZ Plus Dark Edition",
+    "New Hyundai Creta SX Executive", "Brand New Mahindra XUV700 AX7",
+    "Interior Design Package for 3BHK", "Modular Kitchen Installation Complete",
+    "Living Room Renovation Service", "Office Interior Design 2000sqft",
+    "False Ceiling Work for Home", "Professional Painting Service 1500sqft",
+    "Professional Photography for Wedding", "Product Photography Studio Session",
+    "Candid Wedding Photography Package", "Corporate Headshot Photography",
+    "AC Repair Service for Split AC", "Plumbing Repair Service Home",
+    "Electrician Service for Rewiring", "Deep Cleaning Service 2BHK",
+    "Packer and Mover Service 2BHK Local", "Pest Control Treatment Service",
+    "Car Decoration for Wedding", "Stage Setup for Conference 50ft"
   ],
-  Electrical: [
+  industrial: [
+    "ABB 5HP Three Phase Induction Motor", "Siemens 7.5HP AC Motor",
+    "Crompton 3HP Single Phase Motor", "Bharat Bijlee 10HP Geared Motor",
     "Havells 1.5sqmm Copper Wire 90mtr", "Polycab 2.5sqmm Electric Wire 90mtr",
-    "Finolex 1sqmm Cable Wire 90mtr", "Syska LED Bulb 9W Pack of 10", "Philips 12W LED Panel Light Pack of 5",
-    "Crompton 1HP Water Pump", "Kirloskar 2HP Monoblock Pump", "Havells MCB 32A Pack of 6",
-    "Anchor Roma 6A Switch Board 8 Module", "Polycab PVC Conduit Pipe 25mm 3mtr",
-    "Copper Earthing Rod 8ft", "Junction Box 4x4 GI", "Cable Tie 200mm Pack of 100",
-    "DB Box 8 Way Surface Mount", "busbar 25A Copper", "Voltage Stabilizer 5kVA"
+    "Finolex 4sqmm Cable Wire 90mtr", "RR Kabel 6sqmm Armored Cable 90mtr",
+    "SKF 6205 Ball Bearing Pack of 10", "NSK 6305 Deep Groove Bearing Pack of 5",
+    "FAG 22212E Spherical Roller Bearing", "TIMKEN LM11949 Cone Bearing Set",
+    "ARIEL Butterfly Valve 4 inch 10kg", "Leader Ball Valve 2 inch Brass",
+    "Sunflow Control Valve 1 inch", "Honeywell Pressure Reducing Valve",
+    "TATA Tiscon 12mm Fe500D TMT Bar", "Jindal Panther 16mm TMT Steel Bar",
+    "SAIL MS Structural Channel 100x50", "APL Apollo Square Pipe 50x50",
+    "Kirloskar 25kVA Diesel Generator", "Caterpillar 50kVA Generator Set",
+    "Ebara 3HP Submersible Pump", "Grundfos 5HP Booster Pump",
+    "Miller 400A MIG Welding Machine", "ESAB 300A Stick Welding Machine",
+    "Lincoln Electric 350A TIG Welder", "Spot Welding Machine 25kVA",
+    "Allen Bradley PLC Module 1756", "Siemens PLC S7-1200 CPU",
+    "ABB VFD 10HP ACS550", "Danfoss FC102 Variable Frequency Drive",
+    "Endress Hauser Flow Meter", "Siemens Pressure Transmitter 7MF",
+    "ABB Low Voltage Switchgear", "Schneider MCB 63A 3 Pole"
   ],
-  Plumbing: [
-    "Astral Pipe 1 inch 1MPa 30mtr", "Finolex PVC Pipe 3/4 inch 30mtr",
-    "Ashirvad CPVC Pipe 1/2 inch 30mtr", "Jaquar Basin Mixer Chrome", "Parryware Wall Mounted Basin",
-    "Hindware Wall Hung EWC", "Cera 2 in 1 Wall Hung", "Kohler Artize Bathtub 1.7mtr",
-    "Toto One Piece Toilet", "Grohe Bauedge Basin Mixer", "PVC Ball Valve 1 inch",
-    "GI Tee 3/4 inch", "CPVC Elbow 90deg 1/2 inch Pack of 10", "Water Tank 1500L Sintex",
-    "Sump Tank 5000L RCC", "Submersible Pump 1HP", "Pressure Pump 0.5HP"
-  ],
-  Industrial: [
-    "Industrial Air Compressor 50HP", "CNC Lathe Machine 6ft", "Heavy Duty Workbench 8ft",
-    "Pallet Truck 3 Ton Capacity", "Overhead Crane 5 Ton", "Industrial Generator 25kVA",
-    "Welding Machine 400A", "Forklift 2.5 Ton Diesel", "Power Press 100 Ton",
-    "Shearing Machine 12mm", "Bending Machine 16mm", "Surface Grinder 6x12inch",
-    "Drilling Machine Radial 40mm", "Milling Machine 6 inch", "Band Saw Machine 14inch",
-    "Industrial Mixer 500L", "Conveyor Belt 10mtr", "Hydraulic Jack 50 Ton",
-    "Gear Box Reducer 10:1", "Electric Motor 5HP 3 Phase", "Air Dryer 100CFM"
-  ],
-  Mechanical: [
-    "Ball Bearing SKF 6205 Pack of 10", "V Belt B48 Industrial", "Timing Belt 5M450",
-    "Hydraulic Cylinder 100mm Bore", "Pneumatic Cylinder 50mm Bore", "Shaft Bearing Block UCP205",
-    "Coupling Spider GR28", "Sprocket 40B17 17 Teeth", "Chain Sprocket Set 40B",
-    "Shaft Sleeve 50mm Bore", "Lead Screw 25mm ACME", "Linear Guide Rail 20mm 1mtr",
-    "Solenoid Valve 24V DC", "Flow Control Valve 1/4inch", "Pressure Gauge 100PSI",
-    "Pneumatic FRL Unit 1/4inch", "Oil seals 35x52x7 Pack of 5"
-  ],
-  Construction: [
-    "TMT Bar 12mm Fe500 1000mtr", "Cement ACC 53 Grade 50 Bags", "River Sand 1000cft",
-    "Ready Mix Concrete M25 100sqft", "AAC Blocks 600x200x200mm 1000pcs", "Crushed Aggregate 40mm 1000cft",
-    "MS Structural Steel Angle 50x50x5", "H Beam 200x100 6mtr", "GI Pipe 2 inch Medium",
-    "PVC Water Tank 1000L", "Bitumen 60/70 Grade 50kg Drum", "Plaster of Paris 25kg Bag",
-    "Gypsum Board 12mm 8x4ft", "CPVC Pipe 1 inch 30mtr", "RCC Hume Pipe 600mm 3mtr"
-  ],
-  Household: [
-    "Non Stick Cookware Set 7pcs", "Vacuum Cleaner 1400W", "Air Purifier HEPA",
-    "Water Purifier RO+UV 8L", "Rice Cooker 1.8L Prestige", "Pressure Cooker 5L Hawkins",
-    "Mixer Grinder 750W 3 Jar", "Induction Cooktop 2000W", "OTG Oven 28L",
-    "Iron Box Steam 1200W", "Ceiling Fan 1200mm Pack of 3", "Wall Fan 16inch Pack of 2",
-    "Exhaust Fan 10inch", "Room Heater 2000W Oil Filled", "Air Cooler 50L Desert",
-    "Mop Set Spin Bucket", "Vacuum Cleaner Handheld", "Clothes Dryer 6kg"
-  ],
-  Logistics: [
-    "10 Feet Container Storage Service", "Warehouse Space 500sqft Monthly", "Local Pickup Delivery Service",
-    "Part Load Truck Booking Delhi-Mumbai", "Cold Storage Facility 100sqft", "Office Relocation Service",
-    "Car Transport Service Pan India", "Packers and Movers 2BHK", "Bulk Parcel Service COD",
-    "International Shipping Service", "Courier Service Same Day Delivery", "3PL Fulfillment Service",
-    "Last Mile Delivery Service", "Fleet Management Service", "GPS Tracking Device Monthly"
-  ],
-  "Raw Materials": [
+  bulk: [
     "Aluminum Ingot 99.7% 1000kg", "Copper Wire Scrap 500kg", "MS Scrap 2000kg",
-    "HDPE Granules 25kg Bag 100bags", "LDPE Film Grade 50kg", "PVC Resin 50kg Bag",
-    "Polypropylene Granules 25kg", "Rubber Crumb 25kg Bag", "Steel Scrap 5mm 1000kg",
-    "Brass Sheet 1.5mm 100kg", "Aluminum Sheet 2mm 50kg", "Copper Rod 8mm 100kg",
+    "HDPE Granules 25kg Bag 100bags", "PVC Resin 50kg Bag", "Polypropylene Granules 25kg",
+    "Steel Scrap 5mm 1000kg", "Brass Sheet 1.5mm 100kg", "Aluminum Sheet 2mm 50kg",
     "Iron Ore Fines 64% Fe 100MT", "Coal GCV 5500 50MT", "Limestone 40kg Bags 500bags",
-    "Gypsum Powder 40kg Bag 200bags", "Fly Ash 50kg Bag 500bags", "Silica Sand 50kg 200bags"
-  ],
-  Services: [
-    "Annual Maintenance Contract Electrical", "AMC for HVAC System 3Star", "Industrial Cleaning Service",
-    "Pest Control Service 2BHK", "Security Guard Service Monthly", "CCTV Installation 8 Camera",
-    "Fire Safety Audit Service", "Water Tank Cleaning Service", "Generator AMC Annual",
-    "PLC Programming Service", "Industrial Painting Service sqft", "Welding Fabrication Job Work",
-    "CNC Machining Job Work", "Heat Treatment Service", "NDT Testing Service"
-  ],
-  General: [
-    "Office Stationery Kit 50pcs", "Safety Helmet Pack of 10", "Safety Shoe Size 8 Pack of 5",
-    "Hand Sanitizer 5L Can", "Face Mask N95 Pack of 100", "Fire Extinguisher 5kg ABC",
-    "Safety Gloves Leather Pack of 10", " Caution Tape 100mtr Roll", "Road Barrier Plastic 1.5mtr",
-    "Reflective Jacket Pack of 5", "First Aid Kit Industrial", "Eye Wash Station",
-    "PPE Kit Complete Set", "Safety Harness Double Lanyard", "Ear Plug Pack of 50pairs"
-  ],
-  Grocery: [
-    "Basmati Rice 25kg Bag Premium", "Refined Sugar 50kg", "Tur Dal 25kg",
-    "Chana Dal 25kg Wholesale", "Mustard Oil 15L Tin", "Besan 25kg",
-    "Atta Whole Wheat 25kg", "Maida 25kg Fine Quality", "Sugar Free Sweetener 500g Pack 50",
-    "Edible Oil 15L Tin", "Ragi Flour 5kg Organic", "Moong Dal 10kg"
-  ],
-  Agriculture: [
-    "Tractor 45HP 4WD", "Agricultural Sprayer 16L", "HDPE Pipe 110mm 30mtr",
-    "Drip Irrigation Kit 1 Acre", "Power Weeder 5HP", "Seed Drill 9 Row",
-    "Harvesting Machine Combine", "Milking Machine 2 Lakh", "Solar Water Pump 2HP",
-    "Mulching Film 2mtr 100mtr", "Polyhouse Structure 1000sqft", "Grain Storage Silo 10 Ton"
-  ],
-  Textile: [
-    "Industrial Sewing Machine Heavy Duty", "Fabric Roll Cotton 50mtr", "Sewing Thread Cone 5kg",
-    "Button Making Machine", "Embroidery Machine Multi Head", "Fabric Dyeing Machine",
-    "Knitting Machine Circular", "Weaving Loom Automatic", "Garment Printing Machine",
-    "Lamination Machine A3", "Cutting Machine Industrial", "Packaging Machine Shrink"
-  ],
-  Automotive: [
-    "Car Battery 12V 75AH", "Motorcycle Tyre 90/90-17", "Brake Pad Set Universal",
-    "Engine Oil 15W40 4L", "Car Alternator 90A", "Shock Absorber Set 4pcs",
-    "Headlight Assembly LED", "Car Seat Cover Set", "GPS Tracker Device",
-    "Jump Starter 12V", "Car Stereo System", "Vehicle Jack 3 Ton"
-  ],
-  Medical: [
-    "Hospital Bed ICU Electric", "Oxygen Concentrator 5L", "Patient Monitor 12 inch",
-    "Pulse Oximeter Fingertip", "Blood Pressure Monitor Digital", "Nebulizer Machine",
-    "Wheelchair Foldable", "Steam Sterilizer 30L", "ECG Machine 12 Channel",
-    "Infusion Pump Volumetric", "Suction Machine 2 Jar", "OT Table Hydraulic"
-  ],
-  Printing: [
-    "Commercial Printing Service", "Flex Banner 10x20ft", "Visiting Card 500pcs",
-    "Brochure Printing A4 1000", "Label Sticker Roll 1000", "Packaging Box Corrugated",
-    "Business Cards Premium 500", "Magazine Printing 1000 copies", "Calendar Printing Custom",
-    "Vinyl Sticker Sheet A4", "Paper Roll 80gsm 10kg", "Ink Cartridge HP 45"
-  ],
-  Packaging: [
-    "Corrugated Box 12x12x12inch", "Stretch Film Roll 18inch", "Bubble Wrap Roll 24inch",
-    "Packing Tape 2inch 100mtr", "Cardboard Sheet 4x4ft", "Wooden Pallet Euro",
-    "Plastic Crate Stackable", "Air Pillow Bag 100pcs", "Foam Sheet 6mm 50mtr",
-    "Paper Packaging 50kg", "Metal Strapping Kit", "Carton Box Heavy Duty"
-  ],
-  Food: [
-    "Commercial Kitchen Equipment", "Rice Cooker Industrial 20L", "Deep Fryer 15L",
-    "Food Processor Industrial", "Cold Storage Unit 500L", "Baking Oven 4 Tray",
-    "Mixer Grinder Commercial", "Food Packaging Machine", "Water Dispenser Hot Cold",
-    "Chapati Machine Automatic", "Dough Kneader 25kg", "Vacuum Packaging Machine"
+    "TMT Bar 12mm Fe500 1000mtr", "Cement ACC 53 Grade 50 Bags", "River Sand 1000cft",
+    "Ready Mix Concrete M25 100sqft", "AAC Blocks 600x200x200mm 1000pcs",
+    "Havells MCB 32A Pack of 6", "Polycab PVC Conduit Pipe 25mm 3mtr",
+    "Astral Pipe 1 inch 1MPa 30mtr", "CPVC Pipe 1 inch 30mtr"
   ]
 };
 
 const DETAIL_TEMPLATES = {
   domestic: [
-    "Required for home use. Delivery needed by {timeline}. Looking for quality product with brand warranty. Please share photos.",
-    "Home requirement with budget of {budget}. Prompt delivery preferred, within a week acceptable. Share catalog and price list.",
-    "Installation required. Please confirm if installation service is available. Need product catalog with specifications.",
-    "Required for upcoming relocation. Needed within 15 days. Original invoice with warranty preferred.",
-    "Looking for gift packaging option. Dealer pricing appreciated. Quality packaging essential.",
-    "Required for repair/upgrade. Please share photos, specifications, and pricing. Old unit exchange considered.",
-    "Urgent home requirement. Same day delivery possible please share photos and quote."
+    "Required for home use. Delivery needed by {timeline}. Looking for brand new product with full warranty. Please share photos and best price.",
+    "Home requirement with budget of {budget}. Prompt delivery preferred. Need genuine product with official warranty card.",
+    "Looking for this product for new home setup. Installation service available please confirm. Share complete price with GST.",
+    "Required urgently for home. Same day or next day delivery needed. Please share available stock and price.",
+    "Replacement requirement for old unit. Exchange of old unit possible. Share dealer price with specifications.",
+    "Gift purchase requirement. Need branded product with premium packaging. Please share catalog and delivery options."
+  ],
+  city_professional: [
+    "Corporate event requirement. Service needed for {timeline}. Please share complete package details with pricing.",
+    "Wedding season requirement. Looking for reliable vendor with good reviews. Budget flexible for quality service.",
+    "Business expansion requirement. Need quotation for multiple units. Please share bulk pricing and availability.",
+    "Pre-owned vehicle requirement. Looking for well-maintained unit with service history. Budget: {budget}.",
+    "Interior project requirement. Need experienced team for execution. Timeline: {timeline}. Share portfolio and quote.",
+    "Professional service requirement for ongoing project. Looking for established vendor. Quality work essential.",
+    "Regular business requirement. If satisfied, can become recurring order. Competitive pricing invited.",
+    "Event management requirement. Need complete setup including staff. Guest capacity: mentioned quantity. Share package details."
   ],
   industrial: [
     "Production requirement - quality guarantee essential. Please submit technical specifications sheet with detailed PDF.",
     "Weekly recurring requirement. If quality is maintained, this can become a regular monthly order. Bulk pricing requested.",
     "Required for plant maintenance during scheduled shutdown. Installation service available please specify.",
-    "Trial order to assess quality. If satisfied, expecting monthly orders of 500+ units. Technical datasheet required.",
-    "Required for government project. ISI certification or relevant quality certifications mandatory. GST invoice must.",
-    "Required for job work. Priority delivery needed. Please quote per unit price with minimum order quantity.",
-    "Considering machinery upgrade. Demo unit available please schedule. Running operation video can be shared on WhatsApp."
+    "Trial order to assess quality. If satisfied, expecting monthly orders. Technical datasheet and test certificates required.",
+    "Required for project execution. ISI certification or relevant quality certifications mandatory. GST invoice must.",
+    "Priority delivery requirement. Please quote per unit price with minimum order quantity and delivery timeline.",
+    "Machinery upgrade consideration. Demo unit available please schedule. Running operation video can be shared on WhatsApp.",
+    "Maintenance stock replenishment. Looking for reliable supplier with consistent quality. Competitive rates required."
   ],
   bulk: [
-    "Regular requirement for manufacturing unit. Monthly need of approximately {qty} {unit}. Competitive rates for long-term supply partnership invited.",
-    "High daily consumption requirement. Interested in yearly supplier agreement. Price per {unit} with delivery included.",
-    "Stock replenishment needed. Delivery required within 3 days. GST invoice and quality certificate mandatory.",
-    "Required for government tender. All documentation must be complete. Test certificate required with sample.",
-    "Export order requirement. Quality must meet international standards. Certificate of Analysis and test reports ready.",
-    "Initial stock for start-up production. Budget conscious but quality non-negotiable. Competitive bulk pricing invited.",
-    "Warehouse requirement - organized delivery preferred due to space constraints. Staggered delivery schedule appreciated."
-  ],
-  service: [
-    "Looking for experienced service provider. Please share portfolio of previous work. Quote with timeline required.",
-    "Urgent service requirement. Completion needed within {timeline}. Prefer experienced team with availability.",
-    "AMC (Annual Maintenance Contract) required. Quarterly visits included please specify SLA terms and response time.",
-    "Project-based work. Clear timeline and milestones required. Previous project references appreciated.",
-    "Contract basis engagement available. Minimum 6 months commitment expected. Per visit or per month rate required."
+    "Regular manufacturing requirement. Monthly need of approximately {qty} {unit}. Competitive rates for long-term supply partnership invited.",
+    "High volume requirement. Interested in yearly supplier agreement. Price per {unit} with delivery included. GST invoice mandatory.",
+    "Stock replenishment needed urgently. Delivery required within 3 days. Quality certificate mandatory.",
+    "Required for production line. Consistent quality essential. Interested in annual rate contract with quarterly price revision.",
+    "Government or institutional requirement. All documentation must be complete. Test certificate required with sample.",
+    "Export order preparation. Quality must meet specifications. Certificate of Analysis and test reports ready. FOB pricing requested."
   ]
 };
 
 const TIMELINES = ["ASAP", "within 24 hours", "within 2 days", "within 3 days", "within a week", "within 10 days", "by month end"];
-const BUDGETS = ["Budget: INR 20,000-30,000", "Budget: INR 30,000-50,000", "Budget: INR 50,000-80,000", "Budget: INR 1-2 Lakhs", "Competitive pricing required", "Best available rate", "Negotiable for bulk order"];
+const BUDGETS = ["Budget: INR 20,000-30,000", "Budget: INR 30,000-50,000", "Budget: INR 50,000-80,000", "Budget: INR 1-2 Lakhs", "Budget: INR 2-5 Lakhs", "Budget: INR 5+ Lakhs", "Competitive pricing required"];
 
 async function getCategories() {
   try {
@@ -260,95 +168,86 @@ function getRandomCity(cities) {
   return String(cities[idx] || "Delhi");
 }
 
-function getSmartQuantity(categoryType, category) {
-  switch (categoryType) {
+function selectReqType() {
+  const rand = Math.random();
+  let cumulative = 0;
+  for (const [type, weight] of Object.entries(REQ_TYPE_WEIGHTS)) {
+    cumulative += weight;
+    if (rand < cumulative) return type;
+  }
+  return "industrial";
+}
+
+function getSmartQuantity(reqType) {
+  switch (reqType) {
     case "domestic":
-      return randomInt(1, 2);
+      return randomInt(1, 3);
+    case "city_professional":
+      return randomItem([1, 2, 3, 5, 10, 20, 50, 100, 500]);
     case "industrial":
-      return randomInt(10, 15);
+      return randomInt(5, 15);
     case "bulk":
-      return randomInt(50, 100);
-    case "service":
-      return 1;
+      return randomInt(100, 500);
     default:
-      return randomInt(1, 5);
+      return randomInt(1, 10);
   }
 }
 
-function getSmartUnit(categoryType, category) {
-  if (categoryType === "bulk") {
-    return randomItem(["kg", "quintal", "ton", "liter", "sqft", "cubic meter"]);
+function getSmartUnit(reqType, product) {
+  const productLower = String(product || "").toLowerCase();
+  
+  if (reqType === "bulk") {
+    return randomItem(["kg", "quintal", "ton", "liter", "sqft", "mtr", "bags", "units"]);
   }
-  if (categoryType === "service") {
-    return randomItem(["job", "service", "visit", "month", "sqft", "unit"]);
+  if (reqType === "city_professional") {
+    if (productLower.includes("catering") || productLower.includes("guest") || productLower.includes("people")) {
+      return randomItem(["people", "guests", "persons", "plates"]);
+    }
+    if (productLower.includes("vehicle") || productLower.includes("car") || productLower.includes("innova") || productLower.includes("swift") || productLower.includes("creta") || productLower.includes("nexon") || productLower.includes("kia") || productLower.includes("honda")) {
+      return randomItem(["units", "nos", "vehicles"]);
+    }
+    if (productLower.includes("sqft") || productLower.includes("interior") || productLower.includes("painting") || productLower.includes("ceiling")) {
+      return randomItem(["sqft", "sq.ft", "area"]);
+    }
+    return randomItem(["service", "job", "unit", "set", "package"]);
   }
-  if (category?.toLowerCase().includes("raw material")) {
-    return randomItem(["kg", "ton", "quintal", "bags"]);
+  if (productLower.includes("motor") || productLower.includes("pump")) {
+    return randomItem(["units", "nos", "pcs"]);
   }
-  if (category?.toLowerCase().includes("electrical")) {
-    return randomItem(["roll", "mtr", "pcs", "units", "set", "box"]);
+  if (productLower.includes("wire") || productLower.includes("cable")) {
+    return randomItem(["roll", "mtr", "coils", "units"]);
   }
-  if (category?.toLowerCase().includes("plumbing")) {
-    return randomItem(["pcs", "roll", "mtr", "boxes", "set"]);
+  if (productLower.includes("bearing")) {
+    return randomItem(["pcs", "nos", "packs", "sets"]);
   }
-  return randomItem(["pcs", "units", "set", "box", "nos"]);
+  if (productLower.includes("valve") || productLower.includes("meter")) {
+    return randomItem(["pcs", "nos", "units"]);
+  }
+  if (productLower.includes("bar") || productLower.includes("steel") || productLower.includes("pipe")) {
+    return randomItem(["pcs", "nos", "mtr", "lengths"]);
+  }
+  if (productLower.includes("generator") || productLower.includes("machine") || productLower.includes("welder") || productLower.includes("pump")) {
+    return randomItem(["units", "nos", "sets"]);
+  }
+  if (productLower.includes("PLC") || productLower.includes("VFD") || productLower.includes("drive") || productLower.includes("transmitter")) {
+    return randomItem(["units", "pcs", "nos", "modules"]);
+  }
+  if (productLower.includes("switchgear") || productLower.includes("MCB")) {
+    return randomItem(["sets", "units", "pcs"]);
+  }
+  return randomItem(["pcs", "units", "nos"]);
 }
 
-function getProduct(category) {
-  const cat = String(category || "").trim();
-  const catLower = cat.toLowerCase();
-  
-  const templateKeys = Object.keys(PRODUCT_TEMPLATES);
-  
-  const normalizedKey = templateKeys.find(key => {
-    const keyLower = key.toLowerCase();
-    return keyLower === catLower || catLower.includes(keyLower) || keyLower.includes(catLower);
-  });
-  
-  if (normalizedKey && PRODUCT_TEMPLATES[normalizedKey]?.length > 0) {
-    return randomItem(PRODUCT_TEMPLATES[normalizedKey]);
+function getProduct(reqType) {
+  const products = PRODUCT_TEMPLATES[reqType];
+  if (!products || products.length === 0) {
+    return `${reqType} Equipment`;
   }
-  
-  const productPrefixes = {
-    electronics: "Smart LED TV 55 inch", furniture: "Executive Office Chair", 
-    electrical: "3 Phase Motor 5HP", plumbing: "CPVC Pipe 1 inch 30mtr",
-    industrial: "Heavy Duty Workbench", mechanical: "Industrial Ball Bearing",
-    construction: "TMT Bar 12mm Fe500", household: "Non Stick Cookware Set",
-    logistics: "Warehouse Storage Space", "raw materials": "Industrial Raw Material",
-    services: "AMC Service Contract", general: "Industrial Safety Equipment",
-    grocery: "Wholesale Grocery Supply", agriculture: "Agricultural Equipment",
-    textile: "Industrial Sewing Machine", automotive: "Vehicle Spare Parts",
-    medical: "Medical Equipment", printing: "Commercial Printing Service",
-    packaging: "Industrial Packaging Material", food: "Food Processing Equipment"
-  };
-  
-  const matchedPrefix = Object.entries(productPrefixes).find(([key]) => {
-    return key === catLower || catLower.includes(key) || key.includes(catLower);
-  });
-  
-  if (matchedPrefix) {
-    const prefix = matchedPrefix[1];
-    const variants = [
-      `Standard Grade ${prefix}`, `Premium Quality ${prefix}`,
-      `Industrial ${prefix}`, `Commercial ${prefix}`,
-      `Bulk ${prefix}`, `${prefix} with Warranty`
-    ];
-    return randomItem(variants);
-  }
-  
-  const genericProducts = [
-    "Industrial Supplies Batch", "Commercial Lot Various Items",
-    "Business Stock Mix", "Bulk Order Assorted",
-    "Quality Materials Pack", "Professional Equipment Set",
-    "Mixed Inventory Batch", "Enterprise Supply Package",
-    "Multi-Item Lot", "General Merchandise Bundle",
-    "Trade Supplies Collection", "Operational Materials Set"
-  ];
-  return randomItem(genericProducts);
+  return randomItem(products);
 }
 
-function generateDetail(categoryType, quantity, unit) {
-  const templates = DETAIL_TEMPLATES[categoryType] || DETAIL_TEMPLATES.domestic;
+function generateDetail(reqType, quantity, unit) {
+  const templates = DETAIL_TEMPLATES[reqType] || DETAIL_TEMPLATES.domestic;
   let detail = randomItem(templates);
   
   detail = detail.replace("{timeline}", randomItem(TIMELINES));
@@ -356,17 +255,14 @@ function generateDetail(categoryType, quantity, unit) {
   detail = detail.replace("{qty}", quantity);
   detail = detail.replace("{unit}", unit);
   
-  if (randomBool(0.25)) {
-    detail += " Please share product catalog and technical details via WhatsApp.";
+  if (randomBool(0.2)) {
+    detail += " Please share product details and pricing via WhatsApp.";
   }
   if (randomBool(0.15)) {
-    detail += " Sample available for evaluation preferred.";
+    detail += " GST invoice and quality certificate required.";
   }
   if (randomBool(0.1)) {
-    detail += " Dealer pricing and volume discounts welcome.";
-  }
-  if (randomBool(0.05)) {
-    detail += " Old stock clearance options considered.";
+    detail += " Bulk discount pricing invited.";
   }
   
   return detail;
@@ -381,47 +277,31 @@ function shuffleArray(arr) {
   return shuffled;
 }
 
-async function getRecentCityCategories(days = 30) {
+async function getRecentCityReqTypes(days = 30) {
   const thirtyDaysAgo = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
   const recent = await DummyRequirement.find({
     createdAt: { $gte: thirtyDaysAgo }
-  }).select("city category").lean();
-  return new Set(recent.map(r => `${r.city}|${r.category}`));
+  }).select("city reqType").lean();
+  return new Set(recent.map(r => `${r.city}|${r.reqType}`));
 }
 
 async function generateDummyRequirements(count = 3) {
   const citiesFallback = ["Delhi", "Mumbai", "Bangalore", "Chennai", "Hyderabad", "Pune", "Kolkata", "Ahmedabad", "Surat", "Jaipur"];
-  const categoriesFallback = ["Electronics", "Furniture", "Electrical", "Industrial", "Plumbing", "Household", "Logistics", "General"];
   
   const cities = await getCities();
-  const categories = await getCategories();
-  
   if (!Array.isArray(cities) || cities.length === 0) {
     cities = citiesFallback;
   }
-  if (!Array.isArray(categories) || categories.length === 0) {
-    categories = categoriesFallback;
+  
+  const recentCombos = await getRecentCityReqTypes(30);
+  
+  const typeDistribution = {};
+  for (let i = 0; i < count; i++) {
+    const reqType = selectReqType();
+    typeDistribution[reqType] = (typeDistribution[reqType] || 0) + 1;
   }
   
-  const recentCombos = await getRecentCityCategories(30);
-  const allCombos = [];
-  for (const city of cities) {
-    for (const category of categories) {
-      allCombos.push({ city, category });
-    }
-  }
-  
-  const availableCombos = allCombos.filter(
-    combo => !recentCombos.has(`${combo.city}|${combo.category}`)
-  );
-  
-  const shuffledCombos = shuffleArray(
-    availableCombos.length >= count 
-      ? availableCombos 
-      : [...availableCombos, ...shuffleArray(allCombos)]
-  );
-  
-  const selectedCombos = shuffledCombos.slice(0, count);
+  console.log(`[DummyReq] Type distribution:`, typeDistribution);
   
   const generated = [];
   
@@ -437,50 +317,64 @@ async function generateDummyRequirements(count = 3) {
     });
   }
   
-  for (let i = 0; i < selectedCombos.length; i++) {
-    const { city, category } = selectedCombos[i];
-    const categoryType = getCategoryType(category);
-    const quantity = getSmartQuantity(categoryType, category);
-    const unit = getSmartUnit(categoryType, category);
-    const product = getProduct(category);
-    const details = generateDetail(categoryType, quantity, unit);
+  for (const [reqType, typeCount] of Object.entries(typeDistribution)) {
+    const shuffledCities = shuffleArray([...cities]);
     
-    try {
-      const dummy = await DummyRequirement.create({
-        product: product,
-        quantity: quantity,
-        unit: unit,
-        city: String(city),
-        category: String(category),
-        isDummy: true,
-        status: "new",
-        details: details
-      });
+    for (let i = 0; i < typeCount; i++) {
+      const city = shuffledCities[i % shuffledCities.length];
+      const comboKey = `${city}|${reqType}`;
       
-      const offerInvitedFrom = ["industrial", "bulk"].includes(categoryType) ? "anywhere" : "city";
+      if (recentCombos.has(comboKey) && generated.length < count * 2) {
+        continue;
+      }
       
-      const requirement = await Requirement.create({
-        buyerId: dummyBuyer._id,
-        city: String(city),
-        category: String(category),
-        productName: product,
-        product: product,
-        quantity: String(quantity),
-        type: categoryType === "bulk" ? randomItem(["new", "used"]) : randomItem(["new", "used"]),
-        details: details,
-        status: "open",
-        isAutoGenerated: true,
-        offerInvitedFrom: offerInvitedFrom
-      });
+      const product = getProduct(reqType);
+      const quantity = getSmartQuantity(reqType);
+      const unit = getSmartUnit(reqType, product);
+      const details = generateDetail(reqType, quantity, unit);
       
-      dummy.realRequirementId = requirement._id;
-      await dummy.save();
-      
-      generated.push(dummy);
-      console.log(`[DummyReq] Generated: ${city} - ${category} | ${product} (${categoryType})`);
-    } catch (err) {
-      console.log("[DummyReq] Error creating dummy:", err.message);
+      try {
+        const dummy = await DummyRequirement.create({
+          product: product,
+          quantity: quantity,
+          unit: unit,
+          city: String(city),
+          category: reqType,
+          isDummy: true,
+          status: "new",
+          details: details,
+          reqType: reqType
+        });
+        
+        const offerInvitedFrom = ["industrial", "bulk"].includes(reqType) ? "anywhere" : "city";
+        
+        const requirement = await Requirement.create({
+          buyerId: dummyBuyer._id,
+          city: String(city),
+          category: reqType,
+          productName: product,
+          product: product,
+          quantity: String(quantity),
+          type: randomItem(["new", "used"]),
+          details: details,
+          status: "open",
+          isAutoGenerated: true,
+          offerInvitedFrom: offerInvitedFrom
+        });
+        
+        dummy.realRequirementId = requirement._id;
+        await dummy.save();
+        
+        generated.push(dummy);
+        console.log(`[DummyReq] Generated: ${city} | ${reqType} | ${product}`);
+        
+        if (generated.length >= count) break;
+      } catch (err) {
+        console.log("[DummyReq] Error creating dummy:", err.message);
+      }
     }
+    
+    if (generated.length >= count) break;
   }
   
   console.log(`[DummyReq] Generated ${generated.length} dummy requirements`);
