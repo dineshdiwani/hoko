@@ -41,21 +41,24 @@ const CONSENT_STATES = {
 };
 
 const WHATSAPP_CATEGORIES = [
-  { id: 1, name: "Electronics", mapsTo: ["Used & New Mobile/Laptop/Electronics"] },
-  { id: 2, name: "Home & Appliances", mapsTo: ["Used & New Households & Electrical Appliances", "Old & New Furniture & Home Furnishings", "AC Installation & Maintenance", "RO Installation & Maitenance"] },
-  { id: 3, name: "Vehicles", mapsTo: ["Used & New Bike/Car", "Automotive Parts & Vehicles"] },
-  { id: 4, name: "Furniture", mapsTo: ["Old & New Furniture & Home Furnishings"] },
-  { id: 5, name: "Industrial", mapsTo: ["Plant Machinery & Industrial Equipment", "Mechanical & Hydraulic Spares", "Manufacturing & Contract Production"] },
-  { id: 6, name: "Electrical", mapsTo: ["Electrical & Instrumentation Spares"] },
-  { id: 7, name: "Construction", mapsTo: ["Construction Materials ( Cement etc) & Tools", "Construction & Engineering Services", "Whitewash & Building Paint"] },
-  { id: 8, name: "Services", mapsTo: ["Installation Maintenance & Repair", "IT Software Services & Hardware", "Security & Facility Management", "Travel Hospitality & Event Management", "Manpower Suppliers & Contractors"] },
-  { id: 9, name: "Logistics", mapsTo: ["Movers & Packers", "Logistics Transportation & Warehousing"] },
-  { id: 10, name: "Business", mapsTo: ["Trading Import & Export Services", "Consulting & Business Advisory", "Human Resources & Recruitment", "Sales & Marketing for product/service", "Insurance Life Medical & Motor"] },
-  { id: 11, name: "Raw Materials", mapsTo: ["Raw Materials (metals minerals chemicals)", "Oil/Gas Products & Services", "Chemicals & Plastics", "Energy Power & Fuels", "Agriculture tools & Machines"] },
-  { id: 12, name: "Others", mapsTo: ["Rented Flat Rooms & PGs", "Pigeon Net Supply and Fixing", "Packaging Materials", "Office Supplies & Stationery", "Others"] }
+  { id: 1, name: "Electronics & Appliances", mapsTo: ["Electronics & Appliances"] },
+  { id: 2, name: "Furniture & Home", mapsTo: ["Furniture & Home"] },
+  { id: 3, name: "Vehicles & Parts", mapsTo: ["Vehicles & Parts"] },
+  { id: 4, name: "Industrial Machinery", mapsTo: ["Industrial Machinery"] },
+  { id: 5, name: "Electrical Parts", mapsTo: ["Electrical Parts"] },
+  { id: 6, name: "Construction Materials", mapsTo: ["Construction Materials"] },
+  { id: 7, name: "Services & Maintenance", mapsTo: ["Services & Maintenance"] },
+  { id: 8, name: "Raw Materials", mapsTo: ["Raw Materials"] },
+  { id: 9, name: "Chemicals & Plastics", mapsTo: ["Chemicals & Plastics"] },
+  { id: 10, name: "Packaging", mapsTo: ["Packaging"] },
+  { id: 11, name: "Textiles & Apparel", mapsTo: ["Textiles & Apparel"] },
+  { id: 12, name: "Food & Agriculture", mapsTo: ["Food & Agriculture"] },
+  { id: 13, name: "Health & Safety", mapsTo: ["Health & Safety"] },
+  { id: 14, name: "Logistics & Transport", mapsTo: ["Logistics & Transport"] },
+  { id: 15, name: "Business Services", mapsTo: ["Business Services"] }
 ];
 
-const WHATSAPP_CATEGORY_OFFER_ANYWHERE = new Set([5, 6, 7, 11]);
+const WHATSAPP_CATEGORY_OFFER_ANYWHERE = new Set([4, 5, 6, 8, 9]);
 
 function buildCategorySelectionMessage() {
   const lines = ["Great! Select categories you deal in (send numbers):", ""];
