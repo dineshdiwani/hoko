@@ -320,7 +320,18 @@ function getProduct(category) {
     agriculture: "Farm Equipment Tractor"
   };
   
-  const prefix = productPrefixes[catLower] || `${cat} Product`;
+  const prefix = productPrefixes[catLower] || null;
+  
+  if (!prefix) {
+    const fallbackProducts = [
+      `Quality ${cat} Supplies`, `${cat} for Business Use`,
+      `Bulk ${cat} Items`, `Commercial ${cat}`,
+      `${cat} Equipment`, `Industrial ${cat}`,
+      `${cat} Stock`, `${cat} Materials`
+    ];
+    return randomItem(fallbackProducts);
+  }
+  
   const variants = [
     `Standard Grade ${prefix}`, `Premium Quality ${prefix}`,
     `Industrial ${prefix}`, `Commercial ${prefix}`,
