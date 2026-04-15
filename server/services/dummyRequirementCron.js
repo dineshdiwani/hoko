@@ -34,7 +34,6 @@ function normalizeMobileE164(mobile) {
   }
   return mobile;
 }
-}
 
 const REQ_TYPE_WEIGHTS = {
   domestic: 0.30,
