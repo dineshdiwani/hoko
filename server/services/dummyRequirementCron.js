@@ -20,6 +20,22 @@ function randomBool(probability = 0.5) {
   return Math.random() < probability;
 }
 
+function normalizeMobileE164(mobile) {
+  if (!mobile) return null;
+  let num = String(mobile).replace(/[^\d]/g, "");
+  if (num.startsWith("91") && num.length === 12) {
+    return `+${num}`;
+  }
+  if (num.length === 10) {
+    return `+91${num}`;
+  }
+  if (num.startsWith("+")) {
+    return num;
+  }
+  return mobile;
+}
+}
+
 const REQ_TYPE_WEIGHTS = {
   domestic: 0.30,
   city_professional: 0.30,
@@ -551,7 +567,8 @@ async function sendToNewSellerWithCategories(mobileE164, city, categoryData) {
   const provider = "gupshup";
   
   for (const dummy of dummies) {
-    const requirementLink = `${process.env.CLIENT_URL || "https://hoko.app"}/seller/deeplink/${dummy.realRequirementId || "demo"}`;
+    const requirementId = dummy.realRequirementId ? dummy.realRequirementId.toString() : dummy._id.toString();
+    const deepLink = `https://hokoapp.in/seller/deeplink/${requirementId}`;
     
     let message;
     if (hasOfferAnywhere && dummy.category) {
@@ -564,7 +581,7 @@ async function sendToNewSellerWithCategories(mobileE164, city, categoryData) {
         "🌍 Offer invited from anywhere",
         "",
         "💰 Submit your best offer:",
-        `👉 https://hokoapp.in/seller/login`
+        `👉 ${deepLink}`
       ].join("\n");
     } else {
       message = [
@@ -574,14 +591,16 @@ async function sendToNewSellerWithCategories(mobileE164, city, categoryData) {
         `📍 Qty: ${dummy.quantity} ${dummy.unit || "pcs"}`,
         "",
         "💰 Submit your best offer:",
-        `👉 https://hokoapp.in/seller/login`
+        `👉 ${deepLink}`
       ].join("\n");
     }
     
     try {
-      await sendWhatsAppMessage({ to: mobileE164, body: message });
+      const normalizedMobile = normalizeMobileE164(mobileE164);
+      console.log(`[DummyReq] Sending to ${normalizedMobile}: ${dummy.product}`);
+      await sendWhatsAppMessage({ to: normalizedMobile, body: message });
       await DummyRequirement.updateOne({ _id: dummy._id }, { $set: { status: "sent" } });
-      console.log(`[DummyReq] Sent requirement ${dummy.product} to ${mobileE164}`);
+      console.log(`[DummyReq] Sent requirement ${dummy.product} to ${normalizedMobile}`);
     } catch (err) {
       console.log(`[DummyReq] Failed to send to ${mobileE164}:`, err.message);
     }
