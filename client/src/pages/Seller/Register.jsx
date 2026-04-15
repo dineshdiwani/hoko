@@ -14,8 +14,8 @@ export default function SellerRegister() {
   const sessionCity = String(session?.city || "").trim();
 
   const [seller, setSeller] = useState({
-    email: session?.email || "",
-    mobile: session?.mobile || "",
+    email: session?.email || localStorage.getItem("seller_email") || "",
+    mobile: session?.mobile || localStorage.getItem("whatsapp_mobile") || "",
     firmName: "",
     managerName: "",
     businessName: "",
@@ -149,11 +149,12 @@ export default function SellerRegister() {
         const switchRes = await api.post("/auth/switch-role", {
           role: "seller"
         });
+        const userEmail = switchRes.data.user.email;
         setSession({
           _id: switchRes.data.user._id,
           role: switchRes.data.user.role,
           roles: switchRes.data.user.roles,
-          email: switchRes.data.user.email,
+          email: userEmail,
           city: switchRes.data.user.city,
           name:
             res.data?.sellerProfile?.businessName ||
@@ -163,7 +164,8 @@ export default function SellerRegister() {
             switchRes.data.user.preferredCurrency || "INR",
           token: switchRes.data.token
         });
-        alert("Seller registered successfully!");
+        
+        localStorage.setItem("seller_email", userEmail || "");
         localStorage.removeItem("login_intent_role");
         localStorage.removeItem("post_login_redirect");
         localStorage.removeItem("post_login_redirect_source");

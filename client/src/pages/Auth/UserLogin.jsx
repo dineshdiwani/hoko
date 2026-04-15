@@ -287,6 +287,8 @@ export default function UserLogin({ role = "buyer" }) {
           token: res.data.token
         });
 
+        localStorage.setItem("seller_email", user.email || email || "");
+
         if (!(currentRole === "buyer" && sellerIntent)) {
           localStorage.removeItem("post_login_redirect");
           localStorage.removeItem("post_login_redirect_source");
@@ -402,6 +404,8 @@ export default function UserLogin({ role = "buyer" }) {
           preferredCurrency: user.preferredCurrency || "INR",
           token: res.data.token
         });
+
+        localStorage.setItem("seller_email", user.email || email || "");
 
         if (!(currentRole === "buyer" && sellerIntent)) {
           localStorage.removeItem("post_login_redirect");
