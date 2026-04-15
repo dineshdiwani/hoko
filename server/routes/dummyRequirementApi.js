@@ -24,7 +24,10 @@ async function loadSettingsFromDB() {
       if (ds.maxQuantity) maxQuantity = Number(ds.maxQuantity);
       if (typeof ds.running === "boolean") cronRunning = ds.running;
       console.log(`[DummyReq] Loaded settings - interval: ${cronIntervalMs/3600000}h, qty: ${defaultQuantity}, maxQty: ${maxQuantity}, running: ${cronRunning}`);
+    } else {
+      console.log("[DummyReq] No DB settings, using defaults - cron will auto-start");
     }
+    restartCron();
   } catch (err) {
     console.log("[DummyReq] Failed to load settings from DB:", err.message);
   }
