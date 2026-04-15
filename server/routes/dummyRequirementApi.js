@@ -14,6 +14,24 @@ let maxQuantity = 10;
 
 const activityLogs = [];
 
+async function loadSettingsFromDB() {
+  try {
+    const settings = await PlatformSettings.findOne().lean();
+    if (settings?.dummyRequirementSettings) {
+      const ds = settings.dummyRequirementSettings;
+      if (ds.intervalHours) cronIntervalMs = Number(ds.intervalHours) * 60 * 60 * 1000;
+      if (ds.quantity) defaultQuantity = Number(ds.quantity);
+      if (ds.maxQuantity) maxQuantity = Number(ds.maxQuantity);
+      if (typeof ds.running === "boolean") cronRunning = ds.running;
+      console.log(`[DummyReq] Loaded settings - interval: ${cronIntervalMs/3600000}h, qty: ${defaultQuantity}, maxQty: ${maxQuantity}, running: ${cronRunning}`);
+    }
+  } catch (err) {
+    console.log("[DummyReq] Failed to load settings from DB:", err.message);
+  }
+}
+
+loadSettingsFromDB();
+
 function logActivity(action, details) {
   const entry = { action, details, at: new Date() };
   activityLogs.unshift(entry);
@@ -65,6 +83,18 @@ router.post("/settings", adminAuth, async (req, res) => {
     if (intervalHours) cronIntervalMs = Number(intervalHours) * 60 * 60 * 1000;
     if (quantity) defaultQuantity = Number(quantity);
     if (maxQty) maxQuantity = Number(maxQty);
+    
+    await PlatformSettings.findOneAndUpdate(
+      {},
+      {
+        $set: {
+          "dummyRequirementSettings.intervalHours": Number(intervalHours),
+          "dummyRequirementSettings.quantity": Number(quantity),
+          "dummyRequirementSettings.maxQuantity": Number(maxQty)
+        }
+      },
+      { upsert: true, setDefaultsOnInsert: true }
+    );
     
     restartCron();
     logActivity("settings", `Interval: ${intervalHours}h, Qty: ${quantity}, Max: ${maxQty}`);
