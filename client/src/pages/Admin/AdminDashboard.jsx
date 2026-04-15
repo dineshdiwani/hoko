@@ -275,7 +275,11 @@ export default function AdminDashboard() {
         },
         adminNotifications: {
           ...prev.adminNotifications,
-          ...(data.adminNotifications || {})
+          ...(data.adminNotifications || {}),
+          events: {
+            ...(prev.adminNotifications?.events || {}),
+            ...(data.adminNotifications?.events || {})
+          }
         }
       }));
       setCitiesText(nextCities.join(", "));
@@ -1283,22 +1287,27 @@ export default function AdminDashboard() {
                 
                 <div className="mt-3">
                   <label className="ui-label text-gray-600">Admin Mobile Numbers (up to 5)</label>
+                  <p className="text-xs text-gray-400 mb-2">Enter 10-digit numbers without country code</p>
                   {[0, 1, 2, 3, 4].map((i) => (
                     <input
                       key={i}
                       type="text"
+                      inputMode="numeric"
                       placeholder={`Mobile ${i + 1} (e.g., 9887482058)`}
                       value={options.adminNotifications?.mobileNumbers?.[i] || ""}
                       onChange={(e) => {
                         const val = e.target.value.replace(/\D/g, "").slice(-10);
                         setOptions((prev) => {
-                          const mobiles = [...(prev.adminNotifications?.mobileNumbers || [])];
-                          mobiles[i] = val;
+                          const mobiles = Array(5).fill("");
+                          const existing = prev.adminNotifications?.mobileNumbers || [];
+                          for (let j = 0; j < 5; j++) {
+                            mobiles[j] = j === i ? val : (existing[j] || "");
+                          }
                           return {
                             ...prev,
                             adminNotifications: {
                               ...prev.adminNotifications,
-                              mobileNumbers: mobiles.filter(Boolean)
+                              mobileNumbers: mobiles.filter(v => v.length >= 10)
                             }
                           };
                         });
