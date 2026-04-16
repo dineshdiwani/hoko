@@ -67,6 +67,28 @@ pm2 startOrReload ecosystem.config.cjs --env production
 pm2 save
 pm2 status
 
+sleep 5
+
+CRON_STATUS=$(curl -s http://localhost:3000/api/dummy-requirements/status 2>/dev/null || echo "{}")
+echo "Cron status after deploy: $CRON_STATUS"
+
+CRON_RUNNING=$(echo "$CRON_STATUS" | grep -o '"cronRunning":[^,}]*' | cut -d: -f2 || echo "unknown")
+if [[ "$CRON_RUNNING" != "true" && "$CRON_RUNNING" != "unknown" ]]; then
+  echo "Cron not running (status: $CRON_RUNNING), forcing start..."
+  for i in 1 2 3; do
+    sleep 2
+    RESP=$(curl -s http://localhost:3000/api/dummy-requirements/status)
+    IS_RUNNING=$(echo "$RESP" | grep -o '"cronRunning":[^,}]*' | cut -d: -f2)
+    if [[ "$IS_RUNNING" == "true" ]]; then
+      echo "Cron is now running."
+      break
+    fi
+    echo "Attempt $i: cron still not running, retrying..."
+  done
+else
+  echo "Cron is running properly."
+fi
+
 if [[ "$STASHED" -eq 1 ]]; then
   case "$STASH_ACTION" in
     pop)

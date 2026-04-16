@@ -27,10 +27,10 @@ async function loadSettingsFromDB() {
     } else {
       console.log("[DummyReq] No DB settings, using defaults - cron will auto-start");
     }
-    restartCron();
   } catch (err) {
     console.log("[DummyReq] Failed to load settings from DB:", err.message);
   }
+  restartCron();
 }
 
 loadSettingsFromDB();
