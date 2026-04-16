@@ -802,10 +802,13 @@ app.get("/seller/deeplink/:id", async (req, res, next) => {
       const baseUrl = process.env.APP_URL || "https://hokoapp.in";
       const productName = requirement.productName || requirement.name || "Product";
       const quantity = requirement.quantity || "";
+      const quantityType = requirement.type || requirement.unit || "pcs";
+      const makeBrand = requirement.makeBrand || requirement.brand || "";
+      const typeModel = requirement.typeModel || "";
       const category = requirement.category || "";
       const city = requirement.city || "";
-      const ogTitle = `URGENT: Need ${quantity} ${productName} in ${city}`;
-      const ogDescription = `Looking for: ${productName} | Qty: ${quantity} | City: ${city} | ${category}. Submit your best offer on HOKO!`;
+      const ogTitle = `URGENT: Need ${quantity} ${quantityType} ${productName} ${makeBrand} ${typeModel} in ${city}`;
+      const ogDescription = `Qty: ${quantity} ${quantityType} | Make/Brand: ${makeBrand} ${typeModel} | Category: ${category} | City: ${city}. Submit your BEST PRICE, Delivery Timeline & Availability NOW on HOKO!`;
       const ogUrl = `${baseUrl}/seller/deeplink/${reqId}`;
       const ogImage = `${baseUrl}/logo.jpg`;
 
