@@ -1590,12 +1590,11 @@ const manualCategoryOptions = useMemo(() => {
                         <div className="text-gray-500">{entry.city} | {entry.email || "-"} | Status: {entry.status}</div>
                       </div>
                       <div className="flex gap-2">
-                        <button
-                          onClick={() => openManualWhatsApp(entry)}
-                          disabled={entry.status === "sending"}
-                          className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-green-300 text-green-700 disabled:opacity-50"
+<button
+                          onClick={() => window.open(entry.whatsappLink, "_blank", "noopener,noreferrer")}
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-green-300 text-green-700"
                         >
-                          {entry.status === "sending" ? "Sending..." : "Send via WhatsApp API"}
+                          Open WhatsApp
                         </button>
                         <button
                           onClick={() => entry.emailLink && window.open(entry.emailLink, "_blank", "noopener,noreferrer")}
