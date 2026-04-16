@@ -13,7 +13,9 @@ let cronIntervalId = null;
 let defaultQuantity = 3;
 let maxQuantity = 10;
 let initAttempts = 0;
-const MAX_INIT_ATTEMPTS = 10;
+let cronInitialized = false;
+const MAX_INIT_ATTEMPTS = 20;
+const DB_RETRY_DELAY = 3000;
 
 const activityLogs = [];
 
@@ -22,8 +24,8 @@ async function loadSettingsFromDB() {
     if (mongoose.connection.readyState !== 1) {
       initAttempts++;
       if (initAttempts <= MAX_INIT_ATTEMPTS) {
-        console.log(`[DummyReq] DB not ready (attempt ${initAttempts}/${MAX_INIT_ATTEMPTS}), retrying in 2s...`);
-        setTimeout(loadSettingsFromDB, 2000);
+        console.log(`[DummyReq] DB not ready (attempt ${initAttempts}/${MAX_INIT_ATTEMPTS}), retrying in ${DB_RETRY_DELAY}ms...`);
+        setTimeout(loadSettingsFromDB, DB_RETRY_DELAY);
         return;
       } else {
         console.log("[DummyReq] Max init attempts reached, starting cron with defaults");
@@ -37,13 +39,17 @@ async function loadSettingsFromDB() {
       if (ds.quantity) defaultQuantity = Number(ds.quantity);
       if (ds.maxQuantity) maxQuantity = Number(ds.maxQuantity);
       if (typeof ds.running === "boolean") cronRunning = ds.running;
+      else cronRunning = true;
       console.log(`[DummyReq] Loaded settings - interval: ${cronIntervalMs/3600000}h, qty: ${defaultQuantity}, maxQty: ${maxQuantity}, running: ${cronRunning}`);
     } else {
+      cronRunning = true;
       console.log("[DummyReq] No DB settings, using defaults - cron will auto-start");
     }
   } catch (err) {
     console.log("[DummyReq] Failed to load settings from DB:", err.message);
+    cronRunning = true;
   }
+  cronInitialized = true;
   restartCron();
 }
 
@@ -88,11 +94,14 @@ function restartCron() {
 }
 
 setInterval(() => {
-  if (cronRunning && !cronIntervalId) {
+  if (!cronInitialized) {
+    console.log("[DummyReq] Watchdog: Cron not initialized yet, initializing...");
+    loadSettingsFromDB();
+  } else if (cronRunning && !cronIntervalId) {
     console.log("[DummyReq] Watchdog: Cron was stopped unexpectedly, restarting...");
     restartCron();
   }
-}, 60000);
+}, 30000);
 
 router.get("/status", adminAuth, async (req, res) => {
   res.json({
