@@ -820,6 +820,8 @@ app.get("/seller/deeplink/:id", async (req, res, next) => {
   <meta property="og:description" content="${ogDescription}">
   <meta property="og:url" content="${ogUrl}">
   <meta property="og:image" content="${ogImage}">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="${ogTitle}">
   <meta name="twitter:description" content="${ogDescription}">
