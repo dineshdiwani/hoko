@@ -790,7 +790,9 @@ app.get("/seller/deeplink/:id", async (req, res, next) => {
   const userAgent = String(req.headers["user-agent"] || "");
   const isSocialScraper = CRITERIA_QUERY.test(userAgent);
 
-  console.log(`[OG DEBUG] /seller/deeplink/${reqId} - UA: ${userAgent.substring(0, 50)} - IsScraper: ${isSocialScraper}`);
+  if (!isSocialScraper) {
+    return next();
+  }
 
   try {
     const Requirement = require("./models/Requirement");
@@ -825,25 +827,17 @@ app.get("/seller/deeplink/:id", async (req, res, next) => {
   <title>${ogTitle}</title>
 </head>
 <body>
-  <p>Loading HOKO...</p>
-  <script>
-    if (!/bot|crawl|spider|slurp|facebookexternalhit/i.test(navigator.userAgent)) {
-      window.location.href = "${ogUrl}";
-    }
-  </script>
+  <p>Redirecting...</p>
 </body>
 </html>`;
 
-      console.log(`[OG DEBUG] Returning HTML with OG tags for requirement ${reqId}`);
       return res.set("Content-Type", "text/html").send(html);
     }
-
-    console.log(`[OG DEBUG] Requirement not found: ${reqId}`);
   } catch (err) {
     console.error("[OG ERROR]", err.message);
   }
 
-  return res.sendFile(path.join(clientDistPath, "index.html"));
+  return next();
 });
 
 /* -------------------- CLIENT STATIC (SPA/PWA) -------------------- */
