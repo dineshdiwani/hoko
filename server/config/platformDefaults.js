@@ -227,7 +227,7 @@ function buildOptionsResponse(doc) {
   const raw = doc ? (typeof doc.toObject === "function" ? doc.toObject() : doc) : null;
   const merged = {
     cities: listOrDefault(raw?.cities, DEFAULT_CITIES),
-    categories: listOrDefault(raw?.categories, DEFAULT_CATEGORIES),
+    categories: DEFAULT_CATEGORIES,
     units: listOrDefault(raw?.units, DEFAULT_UNITS),
     currencies: listOrDefault(raw?.currencies, DEFAULT_CURRENCIES)
   };

@@ -1141,16 +1141,6 @@ router.get("/options", adminAuth, requireAdminPermission("options.read"), async 
   res.json(buildOptionsResponse(doc));
 });
 
-router.post("/options/reset-categories", adminAuth, requireAdminPermission("options.manage"), async (req, res) => {
-  const updated = await PlatformSettings.findOneAndUpdate(
-    {},
-    { $set: { categories: DEFAULT_CATEGORIES } },
-    { upsert: true, new: true }
-  );
-  await logAdminAction(req.admin, "reset_categories", "platform_settings", updated._id, {});
-  res.json({ categories: DEFAULT_CATEGORIES });
-});
-
 /**
  * Update platform dropdown options
  */

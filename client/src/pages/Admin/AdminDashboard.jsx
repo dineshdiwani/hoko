@@ -428,13 +428,6 @@ export default function AdminDashboard() {
     await loadDashboardData();
   };
 
-  const resetCategories = async () => {
-    if (!confirm("Reset categories to platform defaults?")) return;
-    const res = await api.post("/admin/options/reset-categories");
-    setCategoriesText(res.data.categories.join(", "));
-    alert("Categories reset to defaults");
-  };
-
   const updateDefaultSelection = (key, value) => {
     setOptions((prev) => ({
       ...prev,
@@ -1441,12 +1434,6 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            <button
-              onClick={resetCategories}
-              className="ui-btn-secondary ui-button-text w-auto px-3 py-2 rounded-lg mr-2"
-            >
-              Reset Categories
-            </button>
             <button
               onClick={saveOptions}
               className="ui-btn-primary ui-button-text w-auto px-3 py-2 rounded-lg"
