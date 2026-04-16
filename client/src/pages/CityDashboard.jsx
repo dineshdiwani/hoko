@@ -199,7 +199,6 @@ export default function CityDashboard({
     const encodedTitle = encodeURIComponent("URGENT BUYER REQUIREMENT");
     const encodedSummary = encodeURIComponent(socialShareText.slice(0, 256));
     const linkedinShareUrl = `https://www.linkedin.com/shareArticle?mini=true&url=${encodedUrl}&title=${encodedTitle}&summary=${encodedSummary}`;
-    const linkedinAppLink = `linkedin://shareArticle?mini=true&url=${encodedUrl}&title=${encodedTitle}&summary=${encodedSummary}`;
     const facebookAppId = String(import.meta.env.VITE_FACEBOOK_APP_ID || "").trim();
     const facebookLink = facebookAppId
       ? `https://www.facebook.com/dialog/share?app_id=${encodeURIComponent(
@@ -210,24 +209,13 @@ export default function CityDashboard({
       whatsapp: `https://wa.me/?text=${encodedWhatsAppText}`,
       facebook: facebookLink,
       mail: `mailto:?subject=${encodeURIComponent("URGENT BUYER REQUIREMENT")}&body=${encodedSocialText}`,
-      linkedin: linkedinShareUrl,
-      linkedinApp: linkedinAppLink
+      linkedin: linkedinShareUrl
     };
   }
 
-  function openShareLink(url, fallbackUrl = "") {
+  function openShareLink(url) {
     const target = String(url || "").trim();
-    const fallback = String(fallbackUrl || "").trim();
     if (!target) return;
-    if (isNativeAppRuntime()) {
-      window.location.href = target;
-      if (target.startsWith("linkedin://") && fallback) {
-        window.setTimeout(() => {
-          window.location.href = fallback;
-        }, 1200);
-      }
-      return;
-    }
     window.open(target, "_blank", "noopener,noreferrer");
   }
 
@@ -677,12 +665,7 @@ export default function CityDashboard({
                   </button>
                   <button
                     type="button"
-                    onClick={() =>
-                      openShareLink(
-                        shareLinks.linkedinApp || shareLinks.linkedin,
-                        shareLinks.linkedin
-                      )
-                    }
+                    onClick={() => openShareLink(shareLinks.linkedin)}
                     aria-label="Share on LinkedIn"
                     className="w-9 h-9 inline-flex items-center justify-center rounded-full border border-sky-200 text-sky-700 hover:bg-sky-50"
                   >
