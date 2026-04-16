@@ -79,12 +79,12 @@ async function sendBulkSms({ numbers, message, templateId }) {
   for (const mobile of uniqueNumbers) {
     try {
       const mobileDigits = mobile.replace(/^\+/, "");
-      const templateId = process.env.FAST2SMS_TEMPLATE_ID;
+      const senderId = process.env.FAST2SMS_SENDER_ID;
       const payload = {
         message: message.trim(),
-        route: "dlt",
+        route: "quick",
         numbers: mobileDigits,
-        template_id: templateId || "1007503173490976095"
+        sender_id: senderId || "HOKOAP"
       };
 
       const res = await axios.post(
