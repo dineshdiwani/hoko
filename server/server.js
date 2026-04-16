@@ -786,28 +786,28 @@ app.get("/uploads/buyer-documents/:filename", auth, async (req, res) => {
 const CRITERIA_QUERY = /^(facebookexternalhit|facebookcatalog|LinkedInBot|Twitterbot|WhatsApp|GoogleBot|bingbot|Slackbot|Discordbot|TelegramBot)/i;
 
 app.get("/seller/deeplink/:id", async (req, res, next) => {
-  const requestPath = String(req.path || "");
+  const reqId = String(req.params.id || "").trim();
   const userAgent = String(req.headers["user-agent"] || "");
   const isSocialScraper = CRITERIA_QUERY.test(userAgent);
 
-  if (isSocialScraper) {
-    try {
-      const RequirementModel = require("./models/Requirement");
-      const reqId = String(req.params.id || "").trim();
-      const requirement = await RequirementModel.findById(reqId).lean();
+  console.log(`[OG DEBUG] /seller/deeplink/${reqId} - UA: ${userAgent.substring(0, 50)} - IsScraper: ${isSocialScraper}`);
 
-      if (requirement) {
-        const baseUrl = process.env.APP_URL || "https://hokoapp.in";
-        const productName = requirement.productName || requirement.name || "Product";
-        const quantity = requirement.quantity || "";
-        const category = requirement.category || "";
-        const city = requirement.city || "";
-        const ogTitle = `URGENT: Need ${quantity} ${productName} in ${city}`;
-        const ogDescription = `Looking for: ${productName} | Qty: ${quantity} | City: ${city} | ${category}. Submit your best offer on HOKO!`;
-        const ogUrl = `${baseUrl}/seller/deeplink/${reqId}`;
-        const ogImage = `${baseUrl}/logo.jpg`;
+  try {
+    const Requirement = require("./models/Requirement");
+    const requirement = await Requirement.findById(reqId).lean();
 
-        const html = `<!DOCTYPE html>
+    if (requirement) {
+      const baseUrl = process.env.APP_URL || "https://hokoapp.in";
+      const productName = requirement.productName || requirement.name || "Product";
+      const quantity = requirement.quantity || "";
+      const category = requirement.category || "";
+      const city = requirement.city || "";
+      const ogTitle = `URGENT: Need ${quantity} ${productName} in ${city}`;
+      const ogDescription = `Looking for: ${productName} | Qty: ${quantity} | City: ${city} | ${category}. Submit your best offer on HOKO!`;
+      const ogUrl = `${baseUrl}/seller/deeplink/${reqId}`;
+      const ogImage = `${baseUrl}/logo.jpg`;
+
+      const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -825,22 +825,24 @@ app.get("/seller/deeplink/:id", async (req, res, next) => {
   <title>${ogTitle}</title>
 </head>
 <body>
-  <p>Redirecting to HOKO...</p>
-  <script>window.location.href="${ogUrl}";</script>
+  <p>Loading HOKO...</p>
+  <script>
+    if (!/bot|crawl|spider|slurp|facebookexternalhit/i.test(navigator.userAgent)) {
+      window.location.href = "${ogUrl}";
+    }
+  </script>
 </body>
 </html>`;
 
-        return res.set("Content-Type", "text/html").send(html);
-      }
-    } catch (err) {
-      console.error("OG tags error:", err.message);
+      console.log(`[OG DEBUG] Returning HTML with OG tags for requirement ${reqId}`);
+      return res.set("Content-Type", "text/html").send(html);
     }
+
+    console.log(`[OG DEBUG] Requirement not found: ${reqId}`);
+  } catch (err) {
+    console.error("[OG ERROR]", err.message);
   }
 
-  const requestPath2 = String(req.path || "");
-  if (requestPath2.startsWith("/api/") || requestPath2.startsWith("/uploads/")) {
-    return next();
-  }
   return res.sendFile(path.join(clientDistPath, "index.html"));
 });
 
