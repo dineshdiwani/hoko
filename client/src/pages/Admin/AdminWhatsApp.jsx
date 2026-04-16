@@ -237,27 +237,29 @@ export default function AdminWhatsApp() {
     return `${manualSelectedCities.length} cities selected`;
   }, [manualUseAllCities, manualSelectedCities]);
 
-const MANUAL_CATEGORIES = [
-  "Electronics & Appliances",
-  "Furniture & Home",
-  "Vehicles & Parts",
-  "Industrial Machinery",
-  "Electrical Parts",
-  "Construction Materials",
-  "Services & Maintenance",
-  "Raw Materials",
-  "Chemicals & Plastics",
-  "Packaging",
-  "Textiles & Apparel",
-  "Food & Agriculture",
-  "Health & Safety",
-  "Logistics & Transport",
-  "Business Services"
-];
-
-  const manualCategoryOptions = useMemo(() => {
-    return MANUAL_CATEGORIES;
-  }, []);
+const manualCategoryOptions = useMemo(() => {
+  const cats = Array.isArray(options.categories) ? options.categories : [];
+  if (cats.length === 0) {
+    return [
+      "Electronics & Appliances",
+      "Furniture & Home",
+      "Vehicles & Parts",
+      "Industrial Machinery",
+      "Electrical Parts",
+      "Construction Materials",
+      "Services & Maintenance",
+      "Raw Materials",
+      "Chemicals & Plastics",
+      "Packaging",
+      "Textiles & Apparel",
+      "Food & Agriculture",
+      "Health & Safety",
+      "Logistics & Transport",
+      "Business Services"
+    ];
+  }
+  return cats;
+}, [options.categories]);
 
   const templateRecipientPool = useMemo(
     () => (templateRecipientType === "buyer_contacts" ? buyerContacts : contacts),
