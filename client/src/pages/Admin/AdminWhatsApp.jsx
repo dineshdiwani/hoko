@@ -218,8 +218,11 @@ export default function AdminWhatsApp() {
     const fromOptions = Array.isArray(options.categories)
       ? options.categories.map((category) => String(category || "").trim()).filter(Boolean)
       : [];
-    return uniqueByNormalized([...fromContacts, ...fromRequirements, ...fromOptions])
-      .sort((a, b) => a.localeCompare(b));
+    const combined = uniqueByNormalized([...fromContacts, ...fromRequirements, ...fromOptions]);
+    if (combined.length === 0) {
+      return NEW_CATEGORIES;
+    }
+    return combined.sort((a, b) => a.localeCompare(b));
   }, [contacts, requirements, options.categories]);
 
   useEffect(() => {
@@ -234,15 +237,34 @@ export default function AdminWhatsApp() {
     return `${manualSelectedCities.length} cities selected`;
   }, [manualUseAllCities, manualSelectedCities]);
 
+const NEW_CATEGORIES = [
+    "Electronics & Appliances",
+    "Furniture & Home",
+    "Vehicles & Parts",
+    "Industrial Machinery",
+    "Electrical Parts",
+    "Construction Materials",
+    "Services & Maintenance",
+    "Raw Materials",
+    "Chemicals & Plastics",
+    "Packaging",
+    "Textiles & Apparel",
+    "Food & Agriculture",
+    "Health & Safety",
+    "Logistics & Transport",
+    "Business Services"
+  ];
+
   const manualCategoryOptions = useMemo(() => {
     const selected = String(manualCategory || "").trim();
-    const selectedExists = availableManualCategories.some(
+    const base = availableManualCategories.length > 0 ? availableManualCategories : NEW_CATEGORIES;
+    const selectedExists = base.some(
       (item) => normalizeText(item) === normalizeText(selected)
     );
     if (!selected || selectedExists) {
-      return availableManualCategories;
+      return base;
     }
-    return [selected, ...availableManualCategories];
+    return [selected, ...base];
   }, [availableManualCategories, manualCategory]);
 
   const templateRecipientPool = useMemo(
