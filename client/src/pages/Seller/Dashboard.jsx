@@ -648,9 +648,10 @@ export default function SellerDashboard() {
     const socialTextRaw = getSocialShareText(req);
     const facebookQuote = encodeURIComponent(getFacebookQuoteText(req).slice(0, 450));
     const url = encodeURIComponent(deepLink);
-    const linkedinAppLink = `linkedin://shareArticle?mini=true&url=${url}&title=${encodeURIComponent(
-      "URGENT BUYER REQUIREMENT"
-    )}&summary=${encodeURIComponent(socialTextRaw.slice(0, 256))}`;
+    const encodedTitle = encodeURIComponent("URGENT BUYER REQUIREMENT");
+    const encodedSummary = encodeURIComponent(socialTextRaw.slice(0, 256));
+    const linkedinShareUrl = `https://www.linkedin.com/feed/?shareArticle?mini=true&url=${url}&title=${encodedTitle}&summary=${encodedSummary}`;
+    const linkedinAppLink = `linkedin://shareArticle?mini=true&url=${url}&title=${encodedTitle}&summary=${encodedSummary}`;
     const facebookAppId = String(import.meta.env.VITE_FACEBOOK_APP_ID || "").trim();
     const facebookLink = facebookAppId
       ? `https://www.facebook.com/dialog/share?app_id=${encodeURIComponent(
@@ -661,7 +662,7 @@ export default function SellerDashboard() {
       whatsapp: `https://wa.me/?text=${whatsappText}`,
       facebook: facebookLink,
       mail: `mailto:?subject=${encodeURIComponent("URGENT BUYER REQUIREMENT")}&body=${socialText}`,
-      linkedin: `https://www.linkedin.com/feed/?shareActive=true&text=${socialText}`,
+      linkedin: linkedinShareUrl,
       linkedinApp: linkedinAppLink
     };
   }

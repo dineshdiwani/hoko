@@ -196,9 +196,10 @@ export default function CityDashboard({
     const encodedWhatsAppText = encodeURIComponent(getWhatsAppShareText(req));
     const encodedFacebookQuote = encodeURIComponent(getFacebookQuoteText(req).slice(0, 450));
     const encodedUrl = encodeURIComponent(shareUrl);
-    const linkedinAppLink = `linkedin://shareArticle?mini=true&url=${encodedUrl}&title=${encodeURIComponent(
-      "URGENT BUYER REQUIREMENT"
-    )}&summary=${encodeURIComponent(socialShareText.slice(0, 256))}`;
+    const encodedTitle = encodeURIComponent("URGENT BUYER REQUIREMENT");
+    const encodedSummary = encodeURIComponent(socialShareText.slice(0, 256));
+    const linkedinShareUrl = `https://www.linkedin.com/feed/?shareArticle?mini=true&url=${encodedUrl}&title=${encodedTitle}&summary=${encodedSummary}`;
+    const linkedinAppLink = `linkedin://shareArticle?mini=true&url=${encodedUrl}&title=${encodedTitle}&summary=${encodedSummary}`;
     const facebookAppId = String(import.meta.env.VITE_FACEBOOK_APP_ID || "").trim();
     const facebookLink = facebookAppId
       ? `https://www.facebook.com/dialog/share?app_id=${encodeURIComponent(
@@ -209,7 +210,7 @@ export default function CityDashboard({
       whatsapp: `https://wa.me/?text=${encodedWhatsAppText}`,
       facebook: facebookLink,
       mail: `mailto:?subject=${encodeURIComponent("URGENT BUYER REQUIREMENT")}&body=${encodedSocialText}`,
-      linkedin: `https://www.linkedin.com/feed/?shareActive=true&text=${encodedSocialText}`,
+      linkedin: linkedinShareUrl,
       linkedinApp: linkedinAppLink
     };
   }
