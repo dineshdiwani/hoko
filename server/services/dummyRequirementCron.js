@@ -104,6 +104,57 @@ const PLATFORM_CATEGORY_TEMPLATES = {
   ]
 };
 
+const DETAIL_STYLES = {
+  short: [
+    "Price please?",
+    "Needed urgently. WhatsApp me the best price.",
+    "Share your lowest price",
+    "Looking for best deal. Contact me.",
+    "Your price?",
+    "Interested. Quote me your best price.",
+    "Quick quote needed",
+    "Available? Share price",
+    "Need this. Best price?",
+    "Urgent requirement. Price?"
+  ],
+  casual: [
+    "Hi, we need {qty} {unit}. Can you send your best price?",
+    "Hey, looking for this. What's your rate for {qty} {unit}?",
+    "Do you have this in stock? Need about {qty} {unit}.",
+    "Hi, interested in your product. Pls share price for {qty} {unit}.",
+    "We need this urgently. Can you supply {qty} {unit}?",
+    "Looking for supplier. Your best price for {qty} {unit}?",
+    "Hi, can you arrange {qty} {unit}? What's the cost?",
+    "Need this for our factory. {qty} {unit}. WhatsApp price?",
+    "Requirement for our plant. Can you supply? Share price.",
+    "We are interested. {qty} {unit} needed. Your rate?"
+  ],
+  detailed: [
+    "Required for our {industry}. Need {qty} {unit}. Please share:\n- Best unit price\n- Delivery timeline\n- Payment terms\n- GST extra?",
+    "We have a requirement for {qty} {unit}. Please quote your best price including:\n- Product specifications\n- Delivery schedule\n- Warranty details\n- GST invoice available?",
+    "Business requirement - need {qty} {unit}. Please provide:\n- Complete pricing breakdown\n- Availability status\n- Expected delivery date\n- Payment options",
+    "Procurement requirement for {qty} {unit}. Kindly share:\n- Per unit price\n- Bulk discount if applicable\n- Delivery timeline\n- Tax invoice mandatory"
+  ],
+  formal: [
+    "We have a requirement for {qty} {unit}. Please submit your quotation with complete product details, pricing, and delivery timeline.",
+    "Our organization requires {qty} {unit} for ongoing operations. Kindly provide your best offer with technical specifications.",
+    "Please quote for {qty} {unit} with details on pricing, availability, and delivery schedule.",
+    "We require {qty} {unit} for our upcoming project. Please share your competitive rates along with product specifications."
+  ],
+  urgent: [
+    "URGENT - Need {qty} {unit} within {timeline}. Please confirm availability and best price immediately.",
+    "Urgent requirement! Need {qty} {unit} ASAP. Please whatsapp your best price right away.",
+    "Time-sensitive order. {qty} {unit} needed by {timeline}. Share your lowest price immediately.",
+    "Urgent procurement - {qty} {unit} required by {timeline}. Please confirm if you can supply and your best rate."
+  ],
+  negotiation: [
+    "Looking for best price on {qty} {unit}. We are serious buyers. Share your lowest quote.",
+    "Ready to place order if price is competitive. {qty} {unit} needed. Your best price?",
+    "Multiple suppliers being contacted. {qty} {unit}. Lowest price wins. What can you offer?",
+    "Comparing quotes for {qty} {unit}. Share your best price to get our business."
+  ]
+};
+
 const CATEGORY_DETAIL_TEMPLATES = {
   "Electronics & Appliances": [
     "Required for home use. Delivery needed by {timeline}. Looking for brand new product with full warranty.",
@@ -369,22 +420,31 @@ function getProduct(platformCategory) {
 }
 
 function generateDetail(platformCategory, quantity, unit) {
-  const templates = CATEGORY_DETAIL_TEMPLATES[platformCategory] || CATEGORY_DETAIL_TEMPLATES["Used & New Mobile/Laptop/Electronics"];
-  let detail = randomItem(templates);
+  const styleRoll = Math.random();
+  let detail;
+  
+  if (styleRoll < 0.15) {
+    detail = randomItem(DETAIL_STYLES.short);
+  } else if (styleRoll < 0.35) {
+    detail = randomItem(DETAIL_STYLES.casual);
+  } else if (styleRoll < 0.55) {
+    detail = randomItem(DETAIL_STYLES.detailed);
+  } else if (styleRoll < 0.70) {
+    detail = randomItem(DETAIL_STYLES.formal);
+  } else if (styleRoll < 0.85) {
+    detail = randomItem(DETAIL_STYLES.urgent);
+  } else {
+    detail = randomItem(DETAIL_STYLES.negotiation);
+  }
   
   detail = detail.replace("{timeline}", randomItem(TIMELINES));
   detail = detail.replace("{budget}", randomItem(BUDGETS));
   detail = detail.replace("{qty}", quantity);
   detail = detail.replace("{unit}", unit);
+  detail = detail.replace("{industry}", randomItem(["factory", "warehouse", "office", "plant", "manufacturing unit", "warehouse"]));
   
-  if (randomBool(0.2)) {
-    detail += " Please share product details and pricing via WhatsApp.";
-  }
-  if (randomBool(0.15)) {
-    detail += " GST invoice and quality certificate required.";
-  }
-  if (randomBool(0.1)) {
-    detail += " Bulk discount pricing invited.";
+  if (randomBool(0.1) && !detail.includes("WhatsApp") && !detail.includes("whatsapp")) {
+    detail += " WhatsApp preferred.";
   }
   
   return detail;

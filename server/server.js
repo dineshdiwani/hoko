@@ -28,6 +28,33 @@ const {
 
 dotenv.config();
 
+process.on("uncaughtException", (err) => {
+  console.error("UNCAUGHT EXCEPTION:", err);
+  console.error("Stack:", err.stack);
+});
+
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("UNHANDLED REJECTION at:", promise, "reason:", reason);
+});
+
+function gracefulShutdown(signal) {
+  console.log(`\n[${signal}] Received shutdown signal. Closing server gracefully...`);
+  server.close(() => {
+    console.log("HTTP server closed.");
+    mongoose.connection.close(false, () => {
+      console.log("MongoDB connection closed.");
+      process.exit(0);
+    });
+  });
+  setTimeout(() => {
+    console.error("Forced shutdown after timeout");
+    process.exit(1);
+  }, 10000);
+}
+
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+
 const app = express();
 const server = http.createServer(app);
 const isProduction = process.env.NODE_ENV === "production";
@@ -577,12 +604,14 @@ io.on("connection", (socket) => {
 /* -------------------- DATABASE -------------------- */
 mongoose
   .connect(process.env.MONGO_URI, {
-    serverSelectionTimeoutMS: 5000,
-    family: 4, // Prefer IPv4 (helps on some networks)
+    serverSelectionTimeoutMS: 10000,
+    socketTimeoutMS: 45000,
+    family: 4,
+    maxPoolSize: 10,
+    minPoolSize: 2,
   })
   .then(async () => {
     console.log("MongoDB connected");
-    // Drop legacy unique index on mobile to avoid duplicate-null signup failures.
     try {
       const indexes = await mongoose.connection
         .db
@@ -600,7 +629,19 @@ mongoose
       console.warn("Legacy index cleanup skipped:", err.message);
     }
   })
-  .catch((err) => console.error("MongoDB error:", err));
+  .catch((err) => console.error("MongoDB connection error:", err));
+
+mongoose.connection.on("error", (err) => {
+  console.error("MongoDB connection error:", err);
+});
+
+mongoose.connection.on("disconnected", () => {
+  console.warn("MongoDB disconnected. Will attempt to reconnect...");
+});
+
+mongoose.connection.on("reconnected", () => {
+  console.log("MongoDB reconnected");
+});
 
 /* -------------------- ROUTES -------------------- */
 app.use("/api/auth", require("./routes/auth"));
@@ -763,6 +804,17 @@ app.use((err, req, res, next) => {
 
 /* -------------------- START SERVER -------------------- */
 const PORT = process.env.PORT || 5000;
+
+server.on("error", (err) => {
+  if (err.code === "EADDRINUSE") {
+    console.error(`ERROR: Port ${PORT} is already in use!`);
+    console.error("Run: fuser -k " + PORT + "/tcp");
+    process.exit(1);
+  }
+  console.error("Server error:", err);
+  process.exit(1);
+});
+
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   
