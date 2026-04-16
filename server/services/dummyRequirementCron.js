@@ -401,13 +401,13 @@ function getSmartQuantity(platformCategory) {
     return randomItem([1, 2, 3, 5, 10]);
   }
   if (platformCategory.includes("Services") || platformCategory.includes("Logistics") || platformCategory.includes("Business")) {
-    return randomItem([1, 2, 3, 5, 10, 20, 50, 100, 500]);
+    return randomItem([1, 2, 3, 5, 10, 20]);
   }
   if (platformCategory.includes("Industrial") || platformCategory.includes("Electrical") || platformCategory.includes("Construction") || platformCategory.includes("Textiles") || platformCategory.includes("Health") || platformCategory.includes("Packaging")) {
-    return randomInt(2, 50);
+    return randomInt(2, 25);
   }
   if (platformCategory.includes("Raw Materials") || platformCategory.includes("Chemicals") || platformCategory.includes("Food")) {
-    return randomInt(100, 500);
+    return randomItem([5, 10, 20, 25, 50, 100]);
   }
   return randomInt(1, 10);
 }
