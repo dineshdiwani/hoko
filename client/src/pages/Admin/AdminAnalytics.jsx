@@ -1,11 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense, lazy } from "react";
 import api from "../../utils/adminApi";
 import AdminNav from "../../components/AdminNav";
 
-/* Charts */
-import KPIBarChart from "../../components/Charts/KPIBarChart";
-import CityChart from "../../components/Charts/CityChart";
-import CategoryPie from "../../components/Charts/CategoryPie";
+const KPIBarChart = lazy(() => import("../../components/Charts/KPIBarChart"));
+const CityChart = lazy(() => import("../../components/Charts/CityChart"));
+const CategoryPie = lazy(() => import("../../components/Charts/CategoryPie"));
+
+function ChartLoader() {
+  return <div className="h-48 flex items-center justify-center text-gray-400">Loading chart...</div>;
+}
 
 export default function AdminAnalytics() {
   const [overview, setOverview] = useState(null);
@@ -57,19 +60,19 @@ export default function AdminAnalytics() {
         {/* KPI BAR CHART */}
         <div className="border rounded-2xl p-3 bg-white mb-6 shadow-sm">
           <h2 className="font-semibold text-sm mb-2">Platform KPIs</h2>
-          <KPIBarChart data={kpiData} />
+          <Suspense fallback={<ChartLoader />}><KPIBarChart data={kpiData} /></Suspense>
         </div>
 
         {/* CITY + CATEGORY */}
         <div className="grid md:grid-cols-2 gap-4">
           <div className="border rounded-2xl p-3 bg-white shadow-sm">
             <h2 className="font-semibold text-sm mb-2">City-wise Demand</h2>
-            <CityChart data={cities} />
+            <Suspense fallback={<ChartLoader />}><CityChart data={cities} /></Suspense>
           </div>
 
           <div className="border rounded-2xl p-3 bg-white shadow-sm">
             <h2 className="font-semibold text-sm mb-2">Category-wise Demand</h2>
-            <CategoryPie data={categories} />
+            <Suspense fallback={<ChartLoader />}><CategoryPie data={categories} /></Suspense>
           </div>
         </div>
       </div>

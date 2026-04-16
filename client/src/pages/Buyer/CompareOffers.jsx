@@ -1,10 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
-import * as XLSX from "xlsx";
 import api from "../../services/api";
-import { getAttachmentDisplayName } from "../../utils/attachments";
 
 function formatValue(value) {
   if (value === null || value === undefined) return "-";
@@ -150,35 +146,50 @@ export default function CompareOffers() {
     return { headers, body };
   }
 
-  function downloadXlsx() {
+  async function downloadXlsx() {
     if (!rows.length || !columns.length) {
       alert("At least 2 offers are required for comparison export.");
       return;
     }
-    const { headers, body } = buildTableData();
-    const sheet = XLSX.utils.aoa_to_sheet([headers, ...body]);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, sheet, "Offer Comparison");
-    XLSX.writeFile(workbook, `offer-comparison-${id}.xlsx`);
+    try {
+      const XLSX = await import("xlsx");
+      const { headers, body } = buildTableData();
+      const sheet = XLSX.utils.aoa_to_sheet([headers, ...body]);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, sheet, "Offer Comparison");
+      XLSX.writeFile(workbook, `offer-comparison-${id}.xlsx`);
+    } catch (err) {
+      console.error("XLSX download failed:", err);
+      alert("Failed to download XLSX. Please try again.");
+    }
   }
 
-  function downloadPdf() {
+  async function downloadPdf() {
     if (!rows.length || !columns.length) {
       alert("At least 2 offers are required for comparison export.");
       return;
     }
-    const { headers, body } = buildTableData();
-    const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
-    doc.setFontSize(12);
-    doc.text("Offer Comparison", 40, 30);
-    autoTable(doc, {
-      head: [headers],
-      body,
-      startY: 50,
-      styles: { fontSize: 8, cellPadding: 4, overflow: "linebreak" },
-      headStyles: { fillColor: [31, 41, 55] }
-    });
-    doc.save(`offer-comparison-${id}.pdf`);
+    try {
+      const [{ jsPDF }, { default: autoTable }] = await Promise.all([
+        import("jspdf"),
+        import("jspdf-autotable")
+      ]);
+      const { headers, body } = buildTableData();
+      const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+      doc.setFontSize(12);
+      doc.text("Offer Comparison", 40, 30);
+      autoTable(doc, {
+        head: [headers],
+        body,
+        startY: 50,
+        styles: { fontSize: 8, cellPadding: 4, overflow: "linebreak" },
+        headStyles: { fillColor: [31, 41, 55] }
+      });
+      doc.save(`offer-comparison-${id}.pdf`);
+    } catch (err) {
+      console.error("PDF download failed:", err);
+      alert("Failed to download PDF. Please try again.");
+    }
   }
 
   if (loading) {
