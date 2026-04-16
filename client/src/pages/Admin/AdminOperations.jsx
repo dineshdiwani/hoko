@@ -574,7 +574,7 @@ export default function AdminOperations() {
                 <div key={user._id} className="bg-white border rounded-xl p-3 flex flex-col md:flex-row md:justify-between md:items-center gap-3">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <p className="font-semibold text-sm">{user.email || "No email"}</p>
+                      <p className="font-semibold text-sm">{user.phone || user.email || "No identifier"}</p>
                       {user.roles?.admin && <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded">Admin</span>}
                       {user.roles?.seller && <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded">Seller</span>}
                       {user.roles?.buyer && <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded">Buyer</span>}
