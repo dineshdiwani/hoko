@@ -198,7 +198,7 @@ export default function CityDashboard({
     const encodedUrl = encodeURIComponent(shareUrl);
     const encodedTitle = encodeURIComponent("URGENT BUYER REQUIREMENT");
     const encodedSummary = encodeURIComponent(socialShareText.slice(0, 256));
-    const linkedinShareUrl = `https://www.linkedin.com/feed/?shareArticle?mini=true&url=${encodedUrl}&title=${encodedTitle}&summary=${encodedSummary}`;
+    const linkedinShareUrl = `https://www.linkedin.com/shareArticle?mini=true&url=${encodedUrl}&title=${encodedTitle}&summary=${encodedSummary}`;
     const linkedinAppLink = `linkedin://shareArticle?mini=true&url=${encodedUrl}&title=${encodedTitle}&summary=${encodedSummary}`;
     const facebookAppId = String(import.meta.env.VITE_FACEBOOK_APP_ID || "").trim();
     const facebookLink = facebookAppId

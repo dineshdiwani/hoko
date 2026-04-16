@@ -650,7 +650,7 @@ export default function SellerDashboard() {
     const url = encodeURIComponent(deepLink);
     const encodedTitle = encodeURIComponent("URGENT BUYER REQUIREMENT");
     const encodedSummary = encodeURIComponent(socialTextRaw.slice(0, 256));
-    const linkedinShareUrl = `https://www.linkedin.com/feed/?shareArticle?mini=true&url=${url}&title=${encodedTitle}&summary=${encodedSummary}`;
+    const linkedinShareUrl = `https://www.linkedin.com/shareArticle?mini=true&url=${url}&title=${encodedTitle}&summary=${encodedSummary}`;
     const linkedinAppLink = `linkedin://shareArticle?mini=true&url=${url}&title=${encodedTitle}&summary=${encodedSummary}`;
     const facebookAppId = String(import.meta.env.VITE_FACEBOOK_APP_ID || "").trim();
     const facebookLink = facebookAppId
