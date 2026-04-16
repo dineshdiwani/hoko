@@ -215,12 +215,9 @@ export default function AdminWhatsApp() {
     const fromRequirements = requirements
       .map((req) => String(req?.category || "").trim())
       .filter(Boolean);
-    const fromOptions = Array.isArray(options.categories)
-      ? options.categories.map((category) => String(category || "").trim()).filter(Boolean)
-      : [];
-    return uniqueByNormalized([...fromContacts, ...fromRequirements, ...fromOptions])
+    return uniqueByNormalized([...fromContacts, ...fromRequirements])
       .sort((a, b) => a.localeCompare(b));
-  }, [contacts, requirements, options.categories]);
+  }, [contacts, requirements]);
 
   useEffect(() => {
     if (!manualUseAllCities) return;
