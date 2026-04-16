@@ -3,6 +3,7 @@ const router = express.Router();
 const adminAuth = require("../middleware/adminAuth");
 const PlatformSettings = require("../models/PlatformSettings");
 const DummyRequirement = require("../models/DummyRequirement");
+const mongoose = require("mongoose");
 const { generateDummyRequirements, sendToSellers, runCron } = require("../services/dummyRequirementCron");
 
 let cronRunning = true;
@@ -11,11 +12,24 @@ let cronIntervalMs = 12 * 60 * 60 * 1000;
 let cronIntervalId = null;
 let defaultQuantity = 3;
 let maxQuantity = 10;
+let initAttempts = 0;
+const MAX_INIT_ATTEMPTS = 10;
 
 const activityLogs = [];
 
 async function loadSettingsFromDB() {
   try {
+    if (mongoose.connection.readyState !== 1) {
+      initAttempts++;
+      if (initAttempts <= MAX_INIT_ATTEMPTS) {
+        console.log(`[DummyReq] DB not ready (attempt ${initAttempts}/${MAX_INIT_ATTEMPTS}), retrying in 2s...`);
+        setTimeout(loadSettingsFromDB, 2000);
+        return;
+      } else {
+        console.log("[DummyReq] Max init attempts reached, starting cron with defaults");
+      }
+    }
+    
     const settings = await PlatformSettings.findOne().lean();
     if (settings?.dummyRequirementSettings) {
       const ds = settings.dummyRequirementSettings;
@@ -33,7 +47,24 @@ async function loadSettingsFromDB() {
   restartCron();
 }
 
-loadSettingsFromDB();
+mongoose.connection.on("connected", () => {
+  console.log("[DummyReq] MongoDB connected, reinitializing cron...");
+  initAttempts = 0;
+  loadSettingsFromDB();
+});
+
+mongoose.connection.on("reconnected", () => {
+  console.log("[DummyReq] MongoDB reconnected, reinitializing cron...");
+  initAttempts = 0;
+  loadSettingsFromDB();
+});
+
+if (mongoose.connection.readyState === 1) {
+  loadSettingsFromDB();
+} else {
+  console.log("[DummyReq] DB not ready yet, will retry when connected...");
+  setTimeout(loadSettingsFromDB, 2000);
+}
 
 function logActivity(action, details) {
   const entry = { action, details, at: new Date() };
@@ -50,9 +81,18 @@ function restartCron() {
     cronIntervalId = setInterval(() => {
       runCron({ quantity: defaultQuantity, maxQuantity: maxQuantity }).catch(err => console.error("[DummyReq Cron] Error:", err));
     }, cronIntervalMs);
+    console.log(`[DummyReq] Cron started - interval: ${cronIntervalMs/3600000}h`);
+  } else {
+    console.log(`[DummyReq] Cron stopped (running=false)`);
   }
-  console.log(`[DummyReq] Cron restarted - interval: ${cronIntervalMs/3600000}h, running: ${cronRunning}`);
 }
+
+setInterval(() => {
+  if (cronRunning && !cronIntervalId) {
+    console.log("[DummyReq] Watchdog: Cron was stopped unexpectedly, restarting...");
+    restartCron();
+  }
+}, 60000);
 
 router.get("/status", adminAuth, async (req, res) => {
   res.json({
