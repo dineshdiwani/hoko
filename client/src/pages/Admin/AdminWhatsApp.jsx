@@ -3,7 +3,10 @@ import api from "../../utils/adminApi";
 import AdminNav from "../../components/AdminNav";
 import { getPublicAppUrl } from "../../utils/runtime";
 
+console.log("AdminWhatsApp loaded");
+
 export default function AdminWhatsApp() {
+  console.log("AdminWhatsApp render");
   const [options, setOptions] = useState({
     cities: [],
     categories: [],
