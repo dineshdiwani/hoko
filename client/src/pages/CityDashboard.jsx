@@ -200,11 +200,16 @@ export default function CityDashboard({
     const encodedSummary = encodeURIComponent(socialShareText.slice(0, 256));
     const linkedinShareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`;
     const facebookAppId = String(import.meta.env.VITE_FACEBOOK_APP_ID || "").trim();
+    const shareTitle = "URGENT BUYER REQUIREMENT";
     const facebookLink = facebookAppId
       ? `https://www.facebook.com/dialog/share?app_id=${encodeURIComponent(
           facebookAppId
-        )}&display=popup&href=${encodedUrl}&quote=${encodedFacebookQuote}`
-      : `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedFacebookQuote}`;
+        )}&display=popup&href=${encodedUrl}&quote=${encodeURIComponent(
+          `${shareTitle}\n\nLooking for: ${req?.productName || req?.product || "Product"}\nQty: ${req?.quantity || ""} ${req?.type || req?.unit || ""}\nMake/Model: ${req?.makeBrand || req?.brand || ""} ${req?.typeModel || ""}\nCity: ${req?.city || city || ""}\n\nBest Price | Delivery Timeline | Availability Status\n\nReply now: ${shareUrl}`
+        )}`
+      : `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodeURIComponent(
+          `${shareTitle}\n\nLooking for: ${req?.productName || req?.product || "Product"}\nQty: ${req?.quantity || ""} ${req?.type || req?.unit || ""}\nMake/Model: ${req?.makeBrand || req?.brand || ""} ${req?.typeModel || ""}\nCity: ${req?.city || city || ""}\n\nBest Price | Delivery Timeline | Availability Status\n\nReply now: ${shareUrl}`
+        )}`;
     return {
       whatsapp: `https://wa.me/?text=${encodedWhatsAppText}`,
       facebook: facebookLink,
