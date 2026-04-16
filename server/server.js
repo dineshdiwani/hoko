@@ -782,6 +782,68 @@ app.get("/uploads/buyer-documents/:filename", auth, async (req, res) => {
   return res.sendFile(filePath);
 });
 
+/* -------------------- DYNAMIC OG TAGS FOR SOCIAL SCRAPERS -------------------- */
+const CRITERIA_QUERY = /^(facebookexternalhit|facebookcatalog|LinkedInBot|Twitterbot|WhatsApp|GoogleBot|bingbot|Slackbot|Discordbot|TelegramBot)/i;
+
+app.get("/seller/deeplink/:id", async (req, res, next) => {
+  const requestPath = String(req.path || "");
+  const userAgent = String(req.headers["user-agent"] || "");
+  const isSocialScraper = CRITERIA_QUERY.test(userAgent);
+
+  if (isSocialScraper) {
+    try {
+      const RequirementModel = require("./models/Requirement");
+      const reqId = String(req.params.id || "").trim();
+      const requirement = await RequirementModel.findById(reqId).lean();
+
+      if (requirement) {
+        const baseUrl = process.env.APP_URL || "https://hokoapp.in";
+        const productName = requirement.productName || requirement.name || "Product";
+        const quantity = requirement.quantity || "";
+        const category = requirement.category || "";
+        const city = requirement.city || "";
+        const ogTitle = `URGENT: Need ${quantity} ${productName} in ${city}`;
+        const ogDescription = `Looking for: ${productName} | Qty: ${quantity} | City: ${city} | ${category}. Submit your best offer on HOKO!`;
+        const ogUrl = `${baseUrl}/seller/deeplink/${reqId}`;
+        const ogImage = `${baseUrl}/logo.jpg`;
+
+        const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="HOKO">
+  <meta property="og:title" content="${ogTitle}">
+  <meta property="og:description" content="${ogDescription}">
+  <meta property="og:url" content="${ogUrl}">
+  <meta property="og:image" content="${ogImage}">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="${ogTitle}">
+  <meta name="twitter:description" content="${ogDescription}">
+  <meta name="twitter:image" content="${ogImage}">
+  <title>${ogTitle}</title>
+</head>
+<body>
+  <p>Redirecting to HOKO...</p>
+  <script>window.location.href="${ogUrl}";</script>
+</body>
+</html>`;
+
+        return res.set("Content-Type", "text/html").send(html);
+      }
+    } catch (err) {
+      console.error("OG tags error:", err.message);
+    }
+  }
+
+  const requestPath2 = String(req.path || "");
+  if (requestPath2.startsWith("/api/") || requestPath2.startsWith("/uploads/")) {
+    return next();
+  }
+  return res.sendFile(path.join(clientDistPath, "index.html"));
+});
+
 /* -------------------- CLIENT STATIC (SPA/PWA) -------------------- */
 const clientDistPath = path.resolve(__dirname, "..", "client", "dist");
 if (fs.existsSync(clientDistPath)) {
