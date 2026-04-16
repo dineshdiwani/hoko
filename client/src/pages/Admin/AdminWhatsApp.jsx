@@ -255,6 +255,8 @@ const MANUAL_CATEGORIES = [
   "Business Services"
 ];
 
+console.log('MANUAL_CATEGORIES:', MANUAL_CATEGORIES);
+
   const manualCategoryOptions = useMemo(() => {
     return MANUAL_CATEGORIES;
   }, []);
