@@ -3,10 +3,7 @@ import api from "../../utils/adminApi";
 import AdminNav from "../../components/AdminNav";
 import { getPublicAppUrl } from "../../utils/runtime";
 
-console.log("AdminWhatsApp loaded");
-
 export default function AdminWhatsApp() {
-  console.log("AdminWhatsApp render");
   const [options, setOptions] = useState({
     cities: [],
     categories: [],
@@ -223,7 +220,23 @@ export default function AdminWhatsApp() {
       : [];
     const combined = uniqueByNormalized([...fromContacts, ...fromRequirements, ...fromOptions]);
     if (combined.length === 0) {
-      return MANUAL_CATEGORIES;
+      return [
+        "Electronics & Appliances",
+        "Furniture & Home",
+        "Vehicles & Parts",
+        "Industrial Machinery",
+        "Electrical Parts",
+        "Construction Materials",
+        "Services & Maintenance",
+        "Raw Materials",
+        "Chemicals & Plastics",
+        "Packaging",
+        "Textiles & Apparel",
+        "Food & Agriculture",
+        "Health & Safety",
+        "Logistics & Transport",
+        "Business Services"
+      ];
     }
     return combined.sort((a, b) => a.localeCompare(b));
   }, [contacts, requirements, options.categories]);
