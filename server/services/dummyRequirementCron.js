@@ -37,72 +37,156 @@ function normalizeMobileE164(mobile) {
 
 const PLATFORM_CATEGORY_TEMPLATES = {
   "Electronics & Appliances": [
-    "Samsung 55 inch LED Smart TV", "LG 260L Frost Free Refrigerator", "Voltas 1.5 Ton Split AC",
-    "Whirlpool 7kg Fully Automatic Washing Machine", "iPhone 15 Pro 256GB", "Samsung Galaxy S24 Ultra",
-    "Dell Inspiron 15 Laptop", "HP 15s Laptop 12th Gen", "Lenovo IdeaPad 14 inch Laptop",
-    "Apple MacBook Air M2", "Sony WH-1000XM5 Headphones", "Canon EOS 1500D DSLR Camera",
-    "Sony PlayStation 5 Gaming Console", "LG 8kg Front Load Washing Machine"
+    "LED Smart TV", "Frost Free Refrigerator", "Split AC",
+    "Fully Automatic Washing Machine", "Smartphone", "Laptop",
+    "Headphones", "DSLR Camera", "Gaming Console"
   ],
   "Furniture & Home": [
     "King Size Bed with Storage", "L-Shaped Sofa Set 6 Seater", "Dining Table Set 6 Chairs",
     "Office Executive Chair Set", "Modular Kitchen Complete", "TV Unit Wall Mounted"
   ],
   "Vehicles & Parts": [
-    "Pre-Owned Maruti Swift Dzire 2022", "Used Toyota Innova Crysta 2021",
-    "Second Hand Honda City 2023 ZX", "Pre-Owned Kia Seltos 2022",
-    "Brand New Maruti Swift LXI", "New Tata Nexon XZ Plus"
+    "Pre-Owned Sedan Car", "Used SUV Vehicle",
+    "Second Hand Hatchback Car", "Pre-Owned Compact SUV",
+    "Brand New Hatchback Car", "New Compact SUV"
   ],
   "Industrial Machinery": [
-    "ABB 5HP Three Phase Induction Motor", "Siemens 7.5HP AC Motor",
-    "Kirloskar 25kVA Diesel Generator", "Miller 400A MIG Welding Machine",
-    "Allen Bradley PLC Module 1756", "CNC Lathe Machine"
+    "Three Phase Induction Motor", "AC Motor",
+    "Diesel Generator", "MIG Welding Machine",
+    "PLC Module", "CNC Lathe Machine"
   ],
   "Electrical Parts": [
-    "Havells 1.5sqmm Copper Wire 90mtr", "Polycab 2.5sqmm Electric Wire 90mtr",
-    "SKF 6205 Ball Bearing Pack of 10", "ABB VFD 10HP ACS550",
-    "Schneider MCB 63A 3 Pole", "ABB Low Voltage Switchgear"
+    "Copper Wire", "Electric Wire",
+    "Ball Bearing", "Variable Frequency Drive",
+    "MCB Circuit Breaker", "Low Voltage Switchgear"
   ],
   "Construction Materials": [
-    "TMT Bar 12mm Fe500 1000mtr", "Cement ACC 53 Grade 50 Bags",
+    "TMT Bar", "Cement Bags",
     "Steel Structural Beams", "Aluminum Composite Panels"
   ],
   "Services & Maintenance": [
-    "Wedding Catering Service for 500 Guests", "Corporate Event Management for 200 People",
-    "Birthday Party Decoration Service", "Interior Design Package for 3BHK"
+    "Wedding Catering Service", "Corporate Event Management",
+    "Birthday Party Decoration Service", "Interior Design Package"
   ],
   "Raw Materials": [
-    "Aluminum Ingot 99.7% 1000kg", "Copper Wire Scrap 500kg", "MS Scrap 2000kg",
-    "Steel Scrap 5mm 1000kg", "Iron Ore Fines 64% Fe 100MT"
+    "Aluminum Ingot", "Copper Wire Scrap", "MS Scrap",
+    "Steel Scrap", "Iron Ore Fines"
   ],
   "Chemicals & Plastics": [
-    "HDPE Granules 25kg Bag", "PVC Resin 50kg Bag", "Polypropylene Granules 25kg",
-    "Polyethylene Film Roll", "ABS Granules 25kg"
+    "HDPE Granules", "PVC Resin", "Polypropylene Granules",
+    "Polyethylene Film Roll", "ABS Granules"
   ],
   "Packaging": [
-    "Corrugated Box 12x12x12 inch", "Stretch Film Roll 18 inch",
-    "Bubble Wrap Roll 24 inch", "Packing Tape 2 inch"
+    "Corrugated Box", "Stretch Film Roll",
+    "Bubble Wrap Roll", "Packing Tape"
   ],
   "Textiles & Apparel": [
-    "Cotton Fabric Roll 60 inch", "Polyester Blend Fabric", "Readymade Shirts 500 pcs",
+    "Cotton Fabric Roll", "Polyester Blend Fabric", "Readymade Shirts",
     "Industrial Workwear Set"
   ],
   "Food & Agriculture": [
-    "Basmati Rice 5kg Bag", "Wheat Grain 50kg", "Organic Fertilizer 25kg Bag",
+    "Basmati Rice", "Wheat Grain", "Organic Fertilizer",
     "Agricultural Sprayer Pump"
   ],
   "Health & Safety": [
-    "N95 Mask Box 100 pcs", "Safety Helmet ISI Marked", "Industrial Gloves Box",
+    "N95 Mask Box", "Safety Helmet", "Industrial Gloves Box",
     "First Aid Kit Complete"
   ],
   "Logistics & Transport": [
-    "Packer and Mover Service 2BHK", "Open Truck 10 Ton Capacity",
-    "Container Storage 20ft", "Warehouse Rental 5000 sqft"
+    "Packer and Mover Service", "Open Truck",
+    "Container Storage", "Warehouse Rental"
   ],
   "Business Services": [
-    "Consulting Service 10 Hours", "Digital Marketing Package Monthly",
-    "Website Development Basic", "Legal Documentation Service"
+    "Consulting Service", "Digital Marketing Package",
+    "Website Development", "Legal Documentation Service"
   ]
 };
+
+const BRAND_MODEL_TEMPLATES = {
+  "Electronics & Appliances": [
+    { brand: "Samsung", model: "55 inch LED Smart TV", type: "LED TV" },
+    { brand: "LG", model: "260L Frost Free Refrigerator", type: "Refrigerator" },
+    { brand: "Voltas", model: "1.5 Ton Split AC", type: "Split AC" },
+    { brand: "Whirlpool", model: "7kg Fully Automatic", type: "Washing Machine" },
+    { brand: "Samsung", model: "Galaxy S24 Ultra 256GB", type: "Smartphone" },
+    { brand: "Apple", model: "iPhone 15 Pro 256GB", type: "Smartphone" },
+    { brand: "Dell", model: "Inspiron 15 12th Gen", type: "Laptop" },
+    { brand: "HP", model: "15s Laptop 12th Gen", type: "Laptop" },
+    { brand: "Lenovo", model: "IdeaPad 14 inch", type: "Laptop" },
+    { brand: "Apple", model: "MacBook Air M2", type: "Laptop" },
+    { brand: "Sony", model: "WH-1000XM5", type: "Headphones" },
+    { brand: "Canon", model: "EOS 1500D DSLR", type: "Camera" },
+    { brand: "Sony", model: "PlayStation 5", type: "Gaming Console" },
+    { brand: "LG", model: "8kg Front Load", type: "Washing Machine" }
+  ],
+  "Vehicles & Parts": [
+    { brand: "Maruti", model: "Swift Dzire 2022", type: "Sedan", condition: "Pre-Owned" },
+    { brand: "Toyota", model: "Innova Crysta 2021", type: "SUV", condition: "Used" },
+    { brand: "Honda", model: "City 2023 ZX", type: "Sedan", condition: "Second Hand" },
+    { brand: "Kia", model: "Seltos 2022", type: "Compact SUV", condition: "Pre-Owned" },
+    { brand: "Maruti", model: "Swift LXI", type: "Hatchback", condition: "Brand New" },
+    { brand: "Tata", model: "Nexon XZ Plus", type: "Compact SUV", condition: "New" },
+    { brand: "Hyundai", model: "Creta 2023", type: "SUV", condition: "Pre-Owned" },
+    { brand: "Mahindra", model: "XUV500 2022", type: "SUV", condition: "Used" }
+  ],
+  "Industrial Machinery": [
+    { brand: "ABB", model: "5HP Three Phase Motor", type: "Induction Motor" },
+    { brand: "Siemens", model: "7.5HP AC Motor", type: "AC Motor" },
+    { brand: "Kirloskar", model: "25kVA Silent", type: "Diesel Generator" },
+    { brand: "Miller", model: "400A MIG", type: "Welding Machine" },
+    { brand: "Allen Bradley", model: "1756 PLC Module", type: "PLC Controller" },
+    { brand: "ACE", model: "CNC 200", type: "CNC Lathe" },
+    { brand: "Larsen & Toubro", model: "10HP Industrial", type: "Motor" }
+  ],
+  "Electrical Parts": [
+    { brand: "Havells", model: "1.5sqmm 90mtr", type: "Copper Wire" },
+    { brand: "Polycab", model: "2.5sqmm 90mtr", type: "Electric Wire" },
+    { brand: "SKF", model: "6205 Pack of 10", type: "Ball Bearing" },
+    { brand: "ABB", model: "VFD ACS550 10HP", type: "Variable Frequency Drive" },
+    { brand: "Schneider", model: "MCB 63A 3 Pole", type: "Circuit Breaker" },
+    { brand: "ABB", model: "Low Voltage", type: "Switchgear" },
+    { brand: "Siemens", model: "32A MCB", type: "Circuit Breaker" }
+  ],
+  "Construction Materials": [
+    { brand: "Tata", model: "12mm Fe500", type: "TMT Bar" },
+    { brand: "ACC", model: "53 Grade", type: "Cement" },
+    { brand: "JSW", model: "Structural Beams", type: "Steel Beam" },
+    { brand: "Alstrong", model: "4mm ACP Sheet", type: "Aluminum Panel" }
+  ],
+  "Chemicals & Plastics": [
+    { brand: "Reliance", model: "HDPE Injection Grade", type: "Granules" },
+    { brand: "Finolex", model: "PVC SG5", type: "Resin" },
+    { brand: "Borouge", model: "PP H110MA", type: "Granules" },
+    { brand: "Standard", model: "LDPE Film Grade", type: "Film Roll" },
+    { brand: "LG Chem", model: "HF-6560", type: "ABS Granules" }
+  ],
+  "Textiles & Apparel": [
+    { brand: "Raymond", model: "Cotton Blend 60 inch", type: "Fabric" },
+    { brand: "Arvind", model: "Polyester 58 inch", type: "Fabric" },
+    { brand: "Lifestyle", model: "Formal Shirts", type: "Readymade" },
+    { brand: "达姆", model: "Industrial Grade", type: "Workwear" }
+  ],
+  "Food & Agriculture": [
+    { brand: "India Gate", model: "Basmati 5kg", type: "Rice" },
+    { brand: "Aashirvaad", model: "Sharbati Wheat", type: "Wheat" },
+    { brand: "Godrej", model: "Pro-Gard 25kg", type: "Fertilizer" },
+    { brand: "MAP", model: "16L Sprayer", type: "Sprayer Pump" }
+  ],
+  "Health & Safety": [
+    { brand: "3M", model: "N95 VFM 100pcs", type: "Mask" },
+    { brand: "Ultimate", model: "ISI Marked", type: "Safety Helmet" },
+    { brand: "Midas", model: "Heavy Duty Box", type: "Gloves" },
+    { brand: "Dukal", model: "OSHA Compliant", type: "First Aid Kit" }
+  ]
+};
+
+function getBrandModel(platformCategory) {
+  const templates = BRAND_MODEL_TEMPLATES[platformCategory];
+  if (!templates || templates.length === 0) {
+    return { brand: null, model: null, type: null, condition: null };
+  }
+  return randomItem(templates);
+}
 
 const DETAIL_STYLES = {
   short: [
@@ -115,43 +199,44 @@ const DETAIL_STYLES = {
     "Quick quote needed",
     "Available? Share price",
     "Need this. Best price?",
-    "Urgent requirement. Price?"
+    "Urgent requirement. Price?",
+    "Looking for {product}. Best price?"
   ],
   casual: [
     "Hi, we need {qty} {unit}. Can you send your best price?",
-    "Hey, looking for this. What's your rate for {qty} {unit}?",
-    "Do you have this in stock? Need about {qty} {unit}.",
-    "Hi, interested in your product. Pls share price for {qty} {unit}.",
+    "Hey, looking for {product}. What's your rate for {qty} {unit}?",
+    "Do you have {product} in stock? Need about {qty} {unit}.",
+    "Hi, interested in {product}. Pls share price for {qty} {unit}.",
     "We need this urgently. Can you supply {qty} {unit}?",
     "Looking for supplier. Your best price for {qty} {unit}?",
     "Hi, can you arrange {qty} {unit}? What's the cost?",
-    "Need this for our factory. {qty} {unit}. WhatsApp price?",
-    "Requirement for our plant. Can you supply? Share price.",
-    "We are interested. {qty} {unit} needed. Your rate?"
+    "Need {product} for our factory. {qty} {unit}. WhatsApp price?",
+    "Requirement for our plant. Can you supply {product}? Share price.",
+    "We are interested in {product}. {qty} {unit} needed. Your rate?"
   ],
   detailed: [
     "Required for our {industry}. Need {qty} {unit}. Please share:\n- Best unit price\n- Delivery timeline\n- Payment terms\n- GST extra?",
-    "We have a requirement for {qty} {unit}. Please quote your best price including:\n- Product specifications\n- Delivery schedule\n- Warranty details\n- GST invoice available?",
+    "We have a requirement for {product} ({qty} {unit}). Please quote your best price including:\n- Product specifications\n- Delivery schedule\n- Warranty details\n- GST invoice available?",
     "Business requirement - need {qty} {unit}. Please provide:\n- Complete pricing breakdown\n- Availability status\n- Expected delivery date\n- Payment options",
-    "Procurement requirement for {qty} {unit}. Kindly share:\n- Per unit price\n- Bulk discount if applicable\n- Delivery timeline\n- Tax invoice mandatory"
+    "Procurement requirement for {product}. Qty: {qty} {unit}. Kindly share:\n- Per unit price\n- Bulk discount if applicable\n- Delivery timeline\n- Tax invoice mandatory"
   ],
   formal: [
-    "We have a requirement for {qty} {unit}. Please submit your quotation with complete product details, pricing, and delivery timeline.",
-    "Our organization requires {qty} {unit} for ongoing operations. Kindly provide your best offer with technical specifications.",
-    "Please quote for {qty} {unit} with details on pricing, availability, and delivery schedule.",
-    "We require {qty} {unit} for our upcoming project. Please share your competitive rates along with product specifications."
+    "We have a requirement for {product}. Quantity: {qty} {unit}. Please submit your quotation with complete product details, pricing, and delivery timeline.",
+    "Our organization requires {qty} {unit} of {product} for ongoing operations. Kindly provide your best offer with technical specifications.",
+    "Please quote for {product} ({qty} {unit}) with details on pricing, availability, and delivery schedule.",
+    "We require {product} for our upcoming project. Quantity: {qty} {unit}. Please share your competitive rates along with product specifications."
   ],
   urgent: [
-    "URGENT - Need {qty} {unit} within {timeline}. Please confirm availability and best price immediately.",
-    "Urgent requirement! Need {qty} {unit} ASAP. Please whatsapp your best price right away.",
-    "Time-sensitive order. {qty} {unit} needed by {timeline}. Share your lowest price immediately.",
-    "Urgent procurement - {qty} {unit} required by {timeline}. Please confirm if you can supply and your best rate."
+    "URGENT - Need {product} ({qty} {unit}) within {timeline}. Please confirm availability and best price immediately.",
+    "Urgent requirement! Need {product} ASAP. Qty: {qty} {unit}. Please whatsapp your best price right away.",
+    "Time-sensitive order. {product} ({qty} {unit}) needed by {timeline}. Share your lowest price immediately.",
+    "Urgent procurement - {product} ({qty} {unit}) required by {timeline}. Please confirm if you can supply and your best rate."
   ],
   negotiation: [
-    "Looking for best price on {qty} {unit}. We are serious buyers. Share your lowest quote.",
-    "Ready to place order if price is competitive. {qty} {unit} needed. Your best price?",
-    "Multiple suppliers being contacted. {qty} {unit}. Lowest price wins. What can you offer?",
-    "Comparing quotes for {qty} {unit}. Share your best price to get our business."
+    "Looking for best price on {product}. We are serious buyers. Share your lowest quote for {qty} {unit}.",
+    "Ready to place order if price is competitive. Need {qty} {unit} of {product}. Your best price?",
+    "Multiple suppliers being contacted for {product}. Qty: {qty} {unit}. Lowest price wins. What can you offer?",
+    "Comparing quotes for {product}. Need {qty} {unit}. Share your best price to get our business."
   ]
 };
 
@@ -419,9 +504,10 @@ function getProduct(platformCategory) {
   return randomItem(products);
 }
 
-function generateDetail(platformCategory, quantity, unit) {
+function generateDetail(platformCategory, quantity, unit, brandData = {}) {
   const styleRoll = Math.random();
   let detail;
+  const hasBrand = brandData && brandData.brand;
   
   if (styleRoll < 0.15) {
     detail = randomItem(DETAIL_STYLES.short);
@@ -437,11 +523,21 @@ function generateDetail(platformCategory, quantity, unit) {
     detail = randomItem(DETAIL_STYLES.negotiation);
   }
   
+  if (hasBrand) {
+    detail = detail.replace("{product}", `${brandData.brand} ${brandData.model}`);
+  } else {
+    detail = detail.replace("{product}", randomItem(PLATFORM_CATEGORY_TEMPLATES[platformCategory]) || "this item");
+  }
+  
   detail = detail.replace("{timeline}", randomItem(TIMELINES));
   detail = detail.replace("{budget}", randomItem(BUDGETS));
   detail = detail.replace("{qty}", quantity);
   detail = detail.replace("{unit}", unit);
   detail = detail.replace("{industry}", randomItem(["factory", "warehouse", "office", "plant", "manufacturing unit", "warehouse"]));
+  
+  if (hasBrand && randomBool(0.3) && !detail.includes("brand") && !detail.includes("Brand")) {
+    detail = `Looking for ${brandData.brand} ${brandData.model}. ` + detail;
+  }
   
   if (randomBool(0.1) && !detail.includes("WhatsApp") && !detail.includes("whatsapp")) {
     detail += " WhatsApp preferred.";
@@ -513,7 +609,9 @@ async function generateDummyRequirements(count = 3) {
       const product = getProduct(platformCategory);
       const quantity = getSmartQuantity(platformCategory);
       const unit = getSmartUnit(platformCategory, product);
-      const details = generateDetail(platformCategory, quantity, unit);
+      const brandData = getBrandModel(platformCategory);
+      const condition = brandData.condition || randomItem(["new", "used"]);
+      const details = generateDetail(platformCategory, quantity, unit, brandData);
       
       try {
         const offerInvitedFrom = platformCategory.includes("Raw Materials") || platformCategory.includes("Chemicals") || platformCategory.includes("Industrial") || platformCategory.includes("Electrical") ? "anywhere" : "city";
@@ -534,10 +632,14 @@ async function generateDummyRequirements(count = 3) {
           buyerId: dummyBuyer._id,
           city: String(city),
           category: platformCategory,
-          productName: product,
+          productName: brandData.model ? `${brandData.brand} ${brandData.model}` : product,
           product: product,
+          brand: brandData.brand || null,
+          make: brandData.brand || null,
+          typeModel: brandData.model || null,
+          type: brandData.type || condition,
+          condition: condition,
           quantity: String(quantity),
-          type: randomItem(["new", "used"]),
           details: details,
           status: "open",
           isAutoGenerated: true,
