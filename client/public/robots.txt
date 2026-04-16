@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+
+User-agent: Facebookexternalhit
+Allow: /
+
+User-agent: LinkedInBot
+Allow: /
+
+User-agent: Twitterbot
+Allow: /
+
+Sitemap: https://hokoapp.in/sitemap.xml
