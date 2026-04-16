@@ -395,21 +395,21 @@ function selectPlatformCategory() {
 
 function getSmartQuantity(platformCategory) {
   if (platformCategory.includes("Electronics") || platformCategory.includes("Furniture")) {
-    return randomInt(1, 5);
+    return randomInt(1, 3);
   }
   if (platformCategory.includes("Vehicles")) {
-    return randomItem([1, 2, 3, 5, 10]);
+    return randomItem([1, 2, 3, 5]);
   }
   if (platformCategory.includes("Services") || platformCategory.includes("Logistics") || platformCategory.includes("Business")) {
-    return randomItem([1, 2, 3, 5, 10, 20]);
+    return randomItem([1, 2, 3, 5, 10]);
   }
   if (platformCategory.includes("Industrial") || platformCategory.includes("Electrical") || platformCategory.includes("Construction") || platformCategory.includes("Textiles") || platformCategory.includes("Health") || platformCategory.includes("Packaging")) {
-    return randomInt(2, 25);
+    return randomInt(2, 15);
   }
   if (platformCategory.includes("Raw Materials") || platformCategory.includes("Chemicals") || platformCategory.includes("Food")) {
-    return randomItem([5, 10, 20, 25, 50, 100]);
+    return randomItem([5, 10, 20, 25, 50]);
   }
-  return randomInt(1, 10);
+  return randomInt(1, 5);
 }
 
 function getSmartUnit(platformCategory, product) {
