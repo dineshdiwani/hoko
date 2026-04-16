@@ -807,8 +807,9 @@ app.get("/seller/deeplink/:id", async (req, res, next) => {
       const typeModel = requirement.typeModel || "";
       const category = requirement.category || "";
       const city = requirement.city || "";
-      const ogTitle = `URGENT: Need ${quantity} ${quantityType} ${productName} ${makeBrand} ${typeModel} in ${city}`;
-      const ogDescription = `Qty: ${quantity} ${quantityType} | Make/Brand: ${makeBrand} ${typeModel} | Category: ${category} | City: ${city}. Submit your BEST PRICE, Delivery Timeline & Availability NOW on HOKO!`;
+      const requirementType = requirement.requirementType || requirement.postType || "";
+      const ogTitle = `URGENT: ${quantity} ${quantityType} ${productName} | ${makeBrand} ${typeModel} | ${city}`;
+      const ogDescription = `Looking for: ${productName}\nQty: ${quantity} ${quantityType}\nMake/Brand: ${makeBrand} ${typeModel}\nCategory: ${category}\nBuyer City: ${city}\n\nSuppliers: Share Best Price | Delivery Timeline | Availability\n\nReply Now: ${baseUrl}/seller/deeplink/${reqId}`;
       const ogUrl = `${baseUrl}/seller/deeplink/${reqId}`;
       const ogImage = `${baseUrl}/logo.jpg`;
 
