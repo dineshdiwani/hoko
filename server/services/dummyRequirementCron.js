@@ -602,323 +602,323 @@ const DETAIL_STYLES = {
 const CATEGORY_DETAIL_TEMPLATES = {
   english: {
     "Electronics & Appliances": [
-      "Setting up new home - need this for living room. Please share best price with installation.",
-      "Office requirement - need this ASAP. Share your lowest price for bulk if available.",
-      "Gift for family member. Brand new with warranty please. Share complete price details.",
-      "Renovating my house. Need this urgently. Share your best dealer price.",
-      "My old {product} stopped working. Need urgent replacement. Share price with home delivery."
+      "{product} needed for new home setup. Living room installation. Share best price with installation on HOKO.",
+      "{product} needed for office. Urgent delivery required. Share your lowest price on HOKO.",
+      "{product} needed for new home. Premium quality with warranty. Share complete price with GST on HOKO.",
+      "{product} needed urgently. Old one stopped working. Replacement with home delivery. Share price on HOKO.",
+      "{product} needed for child's studies. Brand new with warranty. Best price on HOKO please."
     ],
     "Furniture & Home": [
-      "Moving to new house next month. Need quality furniture. Budget flexible for good product.",
-      "Home renovation project. Looking for durable furniture at reasonable price. Share your best deal.",
-      "Wanted for my new bedroom. Premium quality needed. Please share photos and price.",
-      "Furnishing my rental apartment. Need affordable yet quality furniture. Share options.",
-      "Replacing old furniture. Exchange my old items possible? Share best dealer price."
+      "{product} needed for new house. Moving in next month. Quality furniture with delivery. Share price on HOKO.",
+      "{product} needed for home decoration. Premium quality. Share photos and price on HOKO.",
+      "{product} needed for new bedroom. Storage included preferred. Best dealer price on HOKO.",
+      "{product} needed for rental apartment. Affordable options. Share options on HOKO.",
+      "{product} needed. Old furniture exchange possible? New furniture with delivery. Share price on HOKO."
     ],
     "Vehicles & Parts": [
-      "Looking for well-maintained pre-owned car for daily commute. Budget flexible for good condition.",
-      "Need vehicle for family use. Service history and insurance mandatory. Share your best price.",
-      "Replacing my old car. Looking for reliable vehicle with clean background. Share price.",
-      "Business use vehicle needed. Well-maintained pre-owned preferred. Share complete details.",
-      "First car for my son. Budget around {budget}. Need safe and reliable vehicle."
+      "{product} needed for daily commute. Well maintained pre-owned. Best price on HOKO.",
+      "{product} needed for family use. Service history mandatory. Share price on HOKO.",
+      "{product} needed. Replacing old car. Reliable vehicle with clean background. Best price on HOKO.",
+      "{product} needed for business use. Good loading capacity. Share price on HOKO.",
+      "{product} needed for first car. Safe and reliable. Budget flexible. Share price on HOKO."
     ],
     "Industrial Machinery": [
-      "Factory expansion - need reliable machinery. Quality guarantee essential. Share technical specs.",
-      "Production line upgrade needed. Installation and training must. Share your best quote.",
-      "Plant maintenance requirement. Need quality equipment. Test run before purchase mandatory.",
-      "Setting up new unit. Looking for efficient machinery with warranty. Share complete pricing.",
-      "Industrial requirement for manufacturing. Technical specifications and test certificates mandatory."
+      "{product} needed for factory expansion. Reliable machinery with warranty. Share technical specs on HOKO.",
+      "{product} needed for production line upgrade. Installation and training included. Share quote on HOKO.",
+      "{product} needed for plant maintenance. Quality guarantee essential. Test run mandatory. Share price on HOKO.",
+      "{product} needed for new unit setup. Efficient machinery with warranty. Complete pricing on HOKO.",
+      "{product} needed for industrial requirement. Technical specifications and test certificates mandatory."
     ],
     "Electrical Parts": [
-      "Electrical project requirement. ISI marked products mandatory. Share competitive price.",
-      "Factory maintenance stock needed. Consistent quality essential. Monthly orders possible if satisfied.",
-      "Construction site electrical work. Need reliable parts supplier. Share bulk pricing.",
-      "Trial order to check quality. Monthly orders for good product. Share technical datasheet.",
-      "Electrical work for new building. GST invoice must. Share per unit price."
+      "{product} needed for electrical project. ISI marked products. Competitive price on HOKO.",
+      "{product} needed for factory maintenance. Consistent quality essential. Monthly orders possible. Share price on HOKO.",
+      "{product} needed for construction site. Reliable supplier. Bulk pricing on HOKO.",
+      "{product} needed for trial order. Quality check purpose. Technical datasheet. Share price on HOKO.",
+      "{product} needed for new building. GST invoice must. Per unit price on HOKO."
     ],
     "Construction Materials": [
-      "Building new house. Need quality materials with delivery. Quality certificate mandatory.",
-      "Ongoing construction project. Bulk requirement for cement, steel etc. Yearly supplier agreement interested.",
-      "Home construction - need TMT bars and cement. Delivery to site needed. Share price.",
-      "Commercial building project. Need reliable material supplier. GST invoice mandatory.",
-      "Looking for construction material supplier. Consistent quality and timely delivery essential."
+      "{product} needed for new house construction. Quality with delivery. Certificate mandatory. Share price on HOKO.",
+      "{product} needed for ongoing construction. Bulk requirement. Yearly supplier agreement interested. Share price on HOKO.",
+      "{product} needed for home construction. Site delivery required. Best price on HOKO.",
+      "{product} needed for commercial building. Reliable supplier with GST invoice. Share price on HOKO.",
+      "{product} needed. Consistent quality and timely delivery essential. Supplier agreement interested."
     ],
     "Services & Maintenance": [
-      "Wedding planning - need experienced caterer. Budget flexible for quality service. Share packages.",
-      "Corporate event next week. Professional service required. Share complete event management quote.",
-      "Home interior project. Looking for creative team. 2BHK modular kitchen needed. Share portfolio.",
-      "Office AC not working. Need urgent repair service. Share your service charges.",
-      "Birthday party planning. Looking for reliable event manager. Budget: {budget}. Share options."
+      "{product} needed for wedding event. Experienced caterer with quality service. Share packages on HOKO.",
+      "{product} needed for corporate event. Professional service. Complete event management quote on HOKO.",
+      "{product} needed for home interior. Creative team with experience. 2BHK modular kitchen. Portfolio on HOKO.",
+      "{product} needed for office AC repair. Urgent service. Service charges on HOKO.",
+      "{product} needed for birthday party. Reliable event manager. Budget flexible. Share options on HOKO."
     ],
     "Raw Materials": [
-      "Manufacturing unit requirement. Monthly need of {qty} {unit}. Long-term supplier agreement interested.",
-      "Factory raw material supply. High volume requirement. Competitive rates for bulk orders.",
-      "Production requirement - need consistent quality material. Test sample required before bulk order.",
-      "Looking for raw material supplier. Quality and timely delivery essential. GST invoice mandatory.",
-      "Regular manufacturing need. Monthly orders of {qty} {unit}. Share your competitive rates."
+      "{product} needed for manufacturing unit. Monthly {qty} {unit}. Long-term supplier agreement interested. Share price on HOKO.",
+      "{product} needed for factory raw material. High volume. Competitive rates on HOKO.",
+      "{product} needed for production. Consistent quality essential. Test sample required before bulk order.",
+      "{product} needed. Quality and timely delivery essential. GST invoice mandatory. Share price on HOKO.",
+      "{product} needed for regular manufacturing. Monthly {qty} {unit} orders. Competitive rates on HOKO."
     ],
     "Chemicals & Plastics": [
-      "Plastic manufacturing requirement. Consistent quality essential. Interested in annual rate contract.",
-      "Factory raw material supply. Test sample required. Share price per {unit} with delivery.",
-      "Looking for established chemical supplier. Safety data sheet mandatory. Share competitive pricing.",
-      "Production line requirement. Monthly orders of {qty} {unit}. Quality consistency mandatory.",
-      "Industrial chemical requirement. Supplier reliability important. Share your best rates."
+      "{product} needed for plastic manufacturing. Consistent quality essential. Annual rate contract interested. Share price on HOKO.",
+      "{product} needed for factory raw material. Test sample required. Delivery included price on HOKO.",
+      "{product} needed. Established supplier. Safety data sheet mandatory. Competitive pricing on HOKO.",
+      "{product} needed for production line. Monthly {qty} {unit} orders. Quality consistency mandatory. Share price on HOKO.",
+      "{product} needed for industrial requirement. Supplier reliability important. Best rates on HOKO."
     ],
     "Packaging": [
-      "Product packaging requirement. Monthly need of {qty} {unit}. Quality and timely delivery essential.",
-      "Urgent packaging need for orders. Delivery by {timeline}. Share best price per {unit}.",
-      "Looking for packaging material supplier. Consistent quality needed for monthly orders.",
-      "Manufacturing packaging requirement. Custom printing available? Share price and samples.",
-      "Food product packaging needed. Food-grade material mandatory. Share your rates."
+      "{product} needed for product packaging. Monthly {qty} {unit}. Quality and timely delivery essential. Share price on HOKO.",
+      "{product} needed urgently. Delivery by {timeline}. Per {unit} price on HOKO.",
+      "{product} needed for regular supplier. Monthly orders. Consistent quality. Competitive pricing on HOKO.",
+      "{product} needed for manufacturing packaging. Custom printing available? Samples and price on HOKO.",
+      "{product} needed for food product. Food-grade material mandatory. Share rates on HOKO."
     ],
     "Textiles & Apparel": [
-      "Clothing business requirement. Need quality fabric supplier. Share fabric samples and pricing.",
-      "Bulk apparel order for retail. Budget: {budget}. Delivery by {timeline}. Share catalog.",
-      "Uniform requirement for office staff. {qty} pieces. Share price and available colors.",
-      "Textile manufacturing need. Regular monthly orders of {qty} {unit}. Share competitive rates.",
-      "Looking for fabric supplier. Quality consistency important. Share samples and pricing."
+      "{product} needed for clothing business. Quality supplier. Samples and pricing on HOKO.",
+      "{product} needed for bulk apparel order. Retail purpose. Delivery by {timeline}. Catalog on HOKO.",
+      "{product} needed for office staff uniform. {qty} pieces. Price and available colors on HOKO.",
+      "{product} needed for textile manufacturing. Regular monthly {qty} {unit} orders. Competitive rates on HOKO.",
+      "{product} needed. Quality consistency important. Long-term supplier. Samples and pricing on HOKO."
     ],
     "Food & Agriculture": [
-      "Rice requirement for restaurant. Need consistent quality. Monthly orders of {qty} {unit}.",
-      "Agricultural equipment for farm. Budget flexible for good quality. Share specifications.",
-      "Foodgrains distribution business. FSSAI certified products needed. Share wholesale pricing.",
-      "Wedding season rice requirement. Premium quality basmati. Share your best price.",
-      "Organic produce for health store. Regular monthly orders. Share product samples and rates."
+      "{product} needed for restaurant. Consistent quality. Monthly {qty} {unit} orders. Share price on HOKO.",
+      "{product} needed for farm. Agricultural equipment. Good quality. Specs on HOKO.",
+      "{product} needed for foodgrains distribution. FSSAI certified mandatory. Wholesale pricing on HOKO.",
+      "{product} needed for wedding season. Premium quality basmati. Best price on HOKO.",
+      "{product} needed for health store. Organic produce. Regular monthly orders. Samples and rates on HOKO."
     ],
     "Health & Safety": [
-      "Factory safety equipment requirement. ISI marked products mandatory. Share bulk pricing.",
-      "Workplace PPE requirement. Monthly orders for employees. Competitive pricing needed.",
-      "Hospital safety supplies. Quality medical-grade products needed. Share catalog and pricing.",
-      "Construction site safety requirement. Helmet, gloves, boots etc. Share complete quote.",
-      "Office first aid supplies. OSHA compliant kit needed. Share price and contents list."
+      "{product} needed for factory safety. ISI marked mandatory. Bulk pricing on HOKO.",
+      "{product} needed for workplace PPE. Monthly orders for employees. Competitive pricing on HOKO.",
+      "{product} needed for hospital safety. Quality medical-grade products. Catalog and pricing on HOKO.",
+      "{product} needed for construction site safety. Helmet, gloves, boots etc. Complete quote on HOKO.",
+      "{product} needed for office first aid. OSHA compliant kit. Price and contents list on HOKO."
     ],
     "Logistics & Transport": [
-      "Factory shift requirement. Need reliable transport service. Share all-inclusive monthly quote.",
-      "Warehouse storage needed for inventory. {qty} sqft space required. Share rental terms.",
-      "Moving office to new location. Need professional packers and movers. Share estimate.",
-      "Goods transportation requirement. Monthly contract. Share truck rental rates.",
-      "Cold storage needed for perishables. {qty} sqft required. Share rental and facilities."
+      "{product} needed for factory shift. Reliable service. Monthly contract. Quote on HOKO.",
+      "{product} needed for warehouse storage. {qty} sqft space. Rental terms on HOKO.",
+      "{product} needed for office shift. New location. Professional packers movers. Estimate on HOKO.",
+      "{product} needed for goods transportation. Monthly contract. Truck rental rates on HOKO.",
+      "{product} needed for cold storage. Perishables. {qty} sqft. Rental and facilities on HOKO."
     ],
     "Business Services": [
-      "Startup business consulting needed. Looking for experienced consultant. Budget: {budget}. Share approach.",
-      "Digital marketing for new business. Monthly retainer preferred. Share your service packages.",
-      "Website development for e-commerce. Custom design needed. Share portfolio and quote.",
-      "Legal documentation for company registration. Need CA/CS services. Share professional fees.",
-      "IT services requirement for office. Regular maintenance needed. Share annual contract pricing."
+      "{product} needed for startup business. Experienced consultant. Budget flexible. Approach on HOKO.",
+      "{product} needed for digital marketing. New business. Monthly retainer preferred. Service packages on HOKO.",
+      "{product} needed for e-commerce website. Custom design. Portfolio and quote on HOKO.",
+      "{product} needed for company registration. CA/CS services. Professional fees on HOKO.",
+      "{product} needed for office IT services. Regular maintenance. Annual contract pricing on HOKO."
     ]
   },
   hinglish: {
     "Electronics & Appliances": [
-      "Ghar ke liye chahiye ye product. Living room mein lagana hai. Installation ke saath price do.",
-      "Office ke liye AC TV chahiye. Jaldi delivery chahiye. Share your best price.",
-      "Pura naya home setup kar raha hoon. Quality product with warranty chahiye. Price with GST batao.",
-      "Purana TV kharab ho gaya. Urgent replacement chahiye. Home delivery available?",
-      "Beta ke liye laptop chahiye. Studies ke liye. Best price do HOKO pe."
+      "{product} chahiye ghar ke liye. Living room mein lagana hai. Installation ke saath price do HOKO pe.",
+      "{product} chahiye office ke liye. Jaldi delivery honi chahiye. Best price do HOKO pe.",
+      "{product} chahiye new home setup ke liye. Quality product with warranty chahiye. Price with GST batao.",
+      "{product} chahiye urgent replacement ke liye. Purana kharab ho gaya. Home delivery available?",
+      "{product} chahiye beta/beta ki padhai ke liye. Best price do HOKO pe."
     ],
     "Furniture & Home": [
-      "Naya house le rahe hain next month. Quality furniture chahiye. Budget flexible hai.",
-      "Home decoration ke liye sofa chahiye. Premium quality ka. Photos aur price share karo.",
-      "Rental apartment furnish karna hai. Affordable furniture needed. Options batao.",
-      "Bedroom ke liye bed chahiye. Storage wala. Best dealer price do.",
-      "Purani furniture exchange kar sakte ho? New furniture chahiye."
+      "{product} chahiye new house ke liye. Next month move-in hai. Quality furniture with delivery chahiye.",
+      "{product} chahiye home decoration ke liye. Premium quality ka. Photos aur price share karo HOKO pe.",
+      "{product} chahiye rental apartment ke liye. Affordable options batao HOKO pe.",
+      "{product} chahiye bedroom ke liye. Storage wala. Best dealer price do HOKO pe.",
+      "{product} chahiye. Purani furniture exchange possible hai? New furniture with delivery chahiye."
     ],
     "Vehicles & Parts": [
-      "Daily commute ke liye car chahiye. Well maintained pre-owned. Budget flexible.",
-      "Family ke liye SUV chahiye. Service history mandatory. Price share karo.",
-      "Apni old car replace karna hai. Reliable vehicle chahiye. Best price do.",
-      "Business ke liye van chahiye. Loading capacity good honi chahiye. Share price.",
-      "Pahli car meri beti ke liye. Budget mein safe car chahiye."
+      "{product} chahiye daily commute ke liye. Well maintained pre-owned. Best price do HOKO pe.",
+      "{product} chahiye family use ke liye. Service history mandatory. Price share karo HOKO pe.",
+      "{product} chahiye. Old car replace karni hai. Reliable vehicle with clean background. Best price do.",
+      "{product} chahiye business ke liye. Loading capacity good honi chahiye. Share price on HOKO.",
+      "{product} chahiye first car ke liye. Safe and reliable. Budget flexible. HOKO pe price do."
     ],
     "Industrial Machinery": [
-      "Factory expansion ho raha hai. Reliable machinery chahiye. Technical specs share karo.",
-      "Production line upgrade karna hai. Installation aur training included hona chahiye. Quote do.",
-      "Plant maintenance ke liye equipment chahiye. Quality guarantee essential. Test run mandatory.",
-      "New unit setup kar rahe hain. Efficient machinery with warranty. Complete pricing share karo.",
-      "Industrial requirement hai. Technical specifications aur test certificates mandatory."
+      "{product} chahiye factory expansion ke liye. Reliable machinery with warranty. Technical specs share karo.",
+      "{product} chahiye production line upgrade ke liye. Installation aur training included hona chahiye. Quote do.",
+      "{product} chahiye plant maintenance ke liye. Quality guarantee essential. Test run mandatory. HOKO pe price do.",
+      "{product} chahiye new unit setup ke liye. Efficient machinery with warranty. Complete pricing share karo.",
+      "{product} chahiye industrial requirement ke liye. Technical specifications aur test certificates mandatory."
     ],
     "Electrical Parts": [
-      "Electrical project hai. ISI marked products chahiye. Competitive price do.",
-      "Factory maintenance stock chahiye. Monthly orders denge agar quality acchi rahi toh.",
-      "Construction site electrical work hai. Reliable parts supplier chahiye. Bulk pricing do.",
-      "Trial order hai quality check ke liye. Technical datasheet share karo.",
-      "New building ke liye electrical work hai. GST invoice must hai. Per unit price do."
+      "{product} chahiye electrical project ke liye. ISI marked products. Competitive price do HOKO pe.",
+      "{product} chahiye factory maintenance stock ke liye. Consistent quality essential. Monthly orders possible.",
+      "{product} chahiye construction site electrical work ke liye. Reliable parts supplier. Bulk pricing do.",
+      "{product} chahiye trial order ke liye. Quality check karna hai. Technical datasheet share karo.",
+      "{product} chahiye new building ke liye. GST invoice must hai. Per unit price do HOKO pe."
     ],
     "Construction Materials": [
-      "Naya house build kar raha hoon. Quality materials with delivery chahiye. Certificate mandatory.",
-      "Ongoing construction project hai. Cement, steel etc. bulk mein chahiye. Yearly agreement interested.",
-      "Home construction ke liye TMT bars aur cement chahiye. Site tak delivery needed. Price do.",
-      "Commercial building project hai. Reliable supplier chahiye. GST invoice mandatory.",
-      "Construction material supplier dhundh rahe hain. Consistent quality aur timely delivery essential."
+      "{product} chahiye naya house build karne ke liye. Quality materials with delivery. Certificate mandatory.",
+      "{product} chahiye ongoing construction project ke liye. Bulk requirement. Yearly supplier agreement interested.",
+      "{product} chahiye home construction ke liye. Site tak delivery needed. Best price do HOKO pe.",
+      "{product} chahiye commercial building project ke liye. Reliable supplier with GST invoice mandatory.",
+      "{product} chahiye. Consistent quality aur timely delivery essential. Supplier agreement interested."
     ],
     "Services & Maintenance": [
-      "Shadi ki tyohaar planning hai. Experienced caterer chahiye. Budget flexible hai. Packages batao.",
-      "Corporate event hai next week. Professional service chahiye. Complete event management quote do.",
-      "Home interior project hai. Creative team dhundh rahe hain. 2BHK modular kitchen. Portfolio share karo.",
-      "Office AC kharab ho gaya. Urgent repair service chahiye. Service charges batao.",
-      "Birthday party planning hai. Reliable event manager chahiye. Budget: {budget}. Options batao."
+      "{product} chahiye shadi ki tyohaar ke liye. Experienced caterer with quality service. Packages batao HOKO pe.",
+      "{product} chahiye corporate event ke liye. Professional service. Complete event management quote do HOKO pe.",
+      "{product} chahiye home interior project ke liye. Creative team with experience. 2BHK modular kitchen. Portfolio share karo.",
+      "{product} chahiye office AC repair ke liye. Urgent service needed. Service charges batao HOKO pe.",
+      "{product} chahiye birthday party ke liye. Reliable event manager. Budget flexible. Options batao."
     ],
     "Raw Materials": [
-      "Manufacturing unit requirement hai. Monthly {qty} {unit} chahiye. Long-term agreement interested.",
-      "Factory raw material supply chahiye. High volume requirement hai. Competitive rates do.",
-      "Production requirement - consistent quality chahiye. Bulk order se pehle test sample required.",
-      "Raw material supplier dhundh rahe hain. Quality aur timely delivery essential. GST invoice mandatory.",
-      "Regular manufacturing need hai. Monthly {qty} {unit} orders denge. Competitive rates share karo."
+      "{product} chahiye manufacturing unit ke liye. Monthly {qty} {unit}. Long-term supplier agreement interested.",
+      "{product} chahiye factory raw material ke liye. High volume requirement. Competitive rates do HOKO pe.",
+      "{product} chahiye production ke liye. Consistent quality essential. Test sample required before bulk order.",
+      "{product} chahiye. Quality aur timely delivery essential. GST invoice mandatory. HOKO pe price do.",
+      "{product} chahiye regular manufacturing ke liye. Monthly {qty} {unit} orders. Competitive rates share karo."
     ],
     "Chemicals & Plastics": [
-      "Plastic manufacturing requirement hai. Consistent quality essential. Annual rate contract interested.",
-      "Factory raw material supply chahiye. Test sample required. Delivery ke saath price do.",
-      "Established chemical supplier dhundh rahe hain. Safety data sheet mandatory. Competitive pricing do.",
-      "Production line requirement hai. Monthly {qty} {unit} orders. Quality consistency mandatory.",
-      "Industrial chemical requirement hai. Supplier reliability important. Best rates share karo."
+      "{product} chahiye plastic manufacturing ke liye. Consistent quality essential. Annual rate contract interested.",
+      "{product} chahiye factory raw material ke liye. Test sample required. Delivery ke saath price do HOKO pe.",
+      "{product} chahiye. Safety data sheet mandatory. Established supplier dhundh rahe hain. Competitive pricing do.",
+      "{product} chahiye production line ke liye. Monthly {qty} {unit} orders. Quality consistency mandatory.",
+      "{product} chahiye industrial requirement ke liye. Supplier reliability important. Best rates share karo."
     ],
     "Packaging": [
-      "Product packaging chahiye. Monthly {qty} {unit} need hai. Quality aur timely delivery essential.",
-      "Urgent packaging need hai orders ke liye. {timeline} tak delivery chahiye. Per {unit} price do.",
-      "Packaging material supplier dhundh rahe hain. Consistent quality monthly orders ke liye.",
-      "Manufacturing packaging requirement hai. Custom printing available? Samples aur price share karo.",
-      "Food product packaging chahiye. Food-grade material mandatory. Rates batao."
+      "{product} chahiye product packaging ke liye. Monthly {qty} {unit} need. Quality aur timely delivery essential.",
+      "{product} chahiye urgent packaging ke liye. {timeline} tak delivery required. Per {unit} price do HOKO pe.",
+      "{product} chahiye regular supplier ke liye. Monthly orders. Consistent quality. Competitive pricing do.",
+      "{product} chahiye manufacturing packaging ke liye. Custom printing available? Samples aur price share karo.",
+      "{product} chahiye food product ke liye. Food-grade material mandatory. Rates batao HOKO pe."
     ],
     "Textiles & Apparel": [
-      "Clothing business ke liye fabric chahiye. Quality supplier dhundh rahe hain. Samples aur pricing share karo.",
-      "Bulk apparel order hai retail ke liye. Budget: {budget}. {timeline} tak delivery. Catalog do.",
-      "Office staff ke liye uniform chahiye. {qty} pieces. Price aur colors batao.",
-      "Textile manufacturing need hai. Regular monthly {qty} {unit} orders. Competitive rates do.",
-      "Fabric supplier dhundh rahe hain. Quality consistency important. Samples aur pricing share karo."
+      "{product} chahiye clothing business ke liye. Quality fabric supplier. Samples aur pricing share karo.",
+      "{product} chahiye bulk apparel order ke liye. Retail ke liye. {timeline} tak delivery. Catalog do HOKO pe.",
+      "{product} chahiye office staff uniform ke liye. {qty} pieces. Price aur available colors batao HOKO pe.",
+      "{product} chahiye textile manufacturing ke liye. Regular monthly {qty} {unit} orders. Competitive rates do.",
+      "{product} chahiye. Quality consistency important. Long-term supplier interested. Samples aur pricing share karo."
     ],
     "Food & Agriculture": [
-      "Restaurant ke liye rice chahiye. Consistent quality important. Monthly {qty} {unit} orders.",
-      "Farm ke liye agricultural equipment chahiye. Budget flexible good quality ke liye. Specs share karo.",
-      "Foodgrains distribution business hai. FSSAI certified products chahiye. Wholesale pricing do.",
-      "Wedding season ke liye rice requirement hai. Premium quality basmati. Best price do.",
-      "Health store ke liye organic produce chahiye. Regular monthly orders. Samples aur rates share karo."
+      "{product} chahiye restaurant ke liye. Consistent quality important. Monthly {qty} {unit} orders. HOKO pe price do.",
+      "{product} chahiye farm ke liye. Agricultural equipment with good quality. Specs share karo HOKO pe.",
+      "{product} chahiye foodgrains distribution ke liye. FSSAI certified products mandatory. Wholesale pricing do.",
+      "{product} chahiye wedding season ke liye. Premium quality basmati. Best price do HOKO pe.",
+      "{product} chahiye health store ke liye. Organic produce. Regular monthly orders. Samples aur rates share karo."
     ],
     "Health & Safety": [
-      "Factory safety equipment chahiye. ISI marked products mandatory. Bulk pricing share karo.",
-      "Workplace PPE requirement hai employees ke liye. Monthly orders. Competitive pricing needed.",
-      "Hospital safety supplies chahiye. Quality medical-grade products. Catalog aur pricing do.",
-      "Construction site safety requirement hai. Helmet, gloves, boots etc. Complete quote do.",
-      "Office first aid supplies chahiye. OSHA compliant kit. Price aur contents list share karo."
+      "{product} chahiye factory safety ke liye. ISI marked products mandatory. Bulk pricing share karo HOKO pe.",
+      "{product} chahiye workplace PPE ke liye. Monthly orders for employees. Competitive pricing needed.",
+      "{product} chahiye hospital safety ke liye. Quality medical-grade products. Catalog aur pricing do HOKO pe.",
+      "{product} chahiye construction site safety ke liye. Helmet, gloves, boots etc. Complete quote do.",
+      "{product} chahiye office first aid ke liye. OSHA compliant kit. Price aur contents list share karo."
     ],
     "Logistics & Transport": [
-      "Factory shift ke liye transport service chahiye. Reliable service provider. Monthly quote do.",
-      "Warehouse storage chahiye inventory ke liye. {qty} sqft space required. Rental terms batao.",
-      "Office naya location mein shift ho raha hai. Professional packers movers chahiye. Estimate do.",
-      "Goods transportation requirement hai. Monthly contract. Truck rental rates share karo.",
-      "Perishables ke liye cold storage chahiye. {qty} sqft required. Rental aur facilities batao."
+      "{product} chahiye factory shift ke liye. Reliable transport service. Monthly contract. Quote do HOKO pe.",
+      "{product} chahiye warehouse storage ke liye. {qty} sqft space. Rental terms batao HOKO pe.",
+      "{product} chahiye office shift ke liye. New location mein move kar rahe hain. Professional packers movers. Estimate do.",
+      "{product} chahiye goods transportation ke liye. Monthly contract. Truck rental rates share karo HOKO pe.",
+      "{product} chahiye cold storage ke liye. Perishables ke liye. {qty} sqft required. Rental aur facilities batao."
     ],
     "Business Services": [
-      "Startup business consulting chahiye. Experienced consultant dhundh rahe hain. Budget: {budget}. Approach batao.",
-      "New business ke liye digital marketing chahiye. Monthly retainer preferred. Service packages do.",
-      "E-commerce website development chahiye. Custom design needed. Portfolio aur quote share karo.",
-      "Company registration ke liye legal documentation chahiye. CA/CS services needed. Professional fees batao.",
-      "Office ke liye IT services requirement hai. Regular maintenance. Annual contract pricing share karo."
+      "{product} chahiye startup business ke liye. Experienced consultant. Budget flexible. Approach batao HOKO pe.",
+      "{product} chahiye digital marketing ke liye. New business. Monthly retainer preferred. Service packages do.",
+      "{product} chahiye e-commerce website ke liye. Custom design. Portfolio aur quote share karo HOKO pe.",
+      "{product} chahiye company registration ke liye. CA/CS services needed. Professional fees batao.",
+      "{product} chahiye office IT services ke liye. Regular maintenance. Annual contract pricing share karo."
     ]
   },
   hindi: {
     "Electronics & Appliances": [
-      "घर के लिए यह प्रोडक्ट चाहिए। जल्दी डिलीवरी चाहिए। installation के साथ price बताओ।",
-      "ऑफिस के लिए AC/TV चाहिए। तुरंत delivery चाहिए। Best price do.",
-      "नया home setup कर रहा हूं। Quality product with warranty चाहिए। GST के साथ price बताओ।",
-      "पुराना TV खराब हो गया। तुरंत replacement चाहिए। Home delivery available?",
-      "बेटे के लिए laptop चाहिए। पढ़ाई के लिए। Best price do HOKO pe."
+      "{product} चाहिए new home setup के लिए। Living room में installation के साथ। HOKO पर price do.",
+      "{product} चाहिए office के लिए। जल्दी delivery चाहिए। HOKO पर best price do.",
+      "{product} चाहिए new home के लिए। Premium quality with warranty। GST के साथ price HOKO पर do.",
+      "{product} चाहिए urgently। Old one काम करना बंद कर दिया। Replacement with home delivery। HOKO पर price do.",
+      "{product} चाहिए बच्चे की पढ़ाई के लिए। Brand new with warranty। HOKO पर best price do."
     ],
     "Furniture & Home": [
-      "अगले month नया house ले रहे हैं। Quality furniture चाहिए। Budget flexible है।",
-      "घर की सजावट के लिए sofa चाहिए। Premium quality का। Photos और price share करो।",
-      "Rental apartment furnish करना है। Affordable furniture needed। Options बताओ।",
-      "Bedroom के लिए bed चाहिए। Storage वाला। Best dealer price do.",
-      "पुरानी furniture exchange कर सकते हो? New furniture चाहिए।"
+      "{product} चाहिए new house के लिए। Next month move-in है। Quality furniture with delivery। HOKO पर price do.",
+      "{product} चाहिए home decoration के लिए। Premium quality। Photos aur price HOKO पर share karo.",
+      "{product} चाहिए new bedroom के लिए। Storage wala preferred। HOKO पर best dealer price do.",
+      "{product} चाहिए rental apartment के लिए। Affordable options। HOKO पर options batao.",
+      "{product} चाहिए। Old furniture exchange possible? New furniture with delivery। HOKO पर price do."
     ],
     "Vehicles & Parts": [
-      "रोज़ाना commute के लिए car चाहिए। Well maintained pre-owned। Budget flexible।",
-      "परिवार के लिए SUV चाहिए। Service history mandatory। Price share करो।",
-      "अपनी पुरानी car replace करनी है। Reliable vehicle चाहिए। Best price do।",
-      "Business के लिए van चाहिए। Loading capacity अच्छी होनी चाहिए। Share price।",
-      "बेटी के लिए पहली car। Budget में safe car चाहिए।"
+      "{product} चाहिए daily commute के लिए। Well maintained pre-owned। HOKO पर best price do.",
+      "{product} चाहिए family use के लिए। Service history mandatory। HOKO पर price share karo.",
+      "{product} चाहिए। Old car replace करनी है। Reliable vehicle with clean background। HOKO पर best price do.",
+      "{product} चाहिए business use के लिए। Good loading capacity। HOKO पर price share karo.",
+      "{product} चाहिए first car के लिए। Safe and reliable। Budget flexible। HOKO पर price do."
     ],
     "Industrial Machinery": [
-      "Factory expansion हो रहा है। Reliable machinery चाहिए। Technical specs share करो।",
-      "Production line upgrade करना है। Installation और training included होना चाहिए। Quote do।",
-      "Plant maintenance के लिए equipment चाहिए। Quality guarantee essential। Test run mandatory।",
-      "New unit setup कर रहे हैं। Efficient machinery with warranty। Complete pricing share करो।",
-      "Industrial requirement है। Technical specifications और test certificates mandatory।"
+      "{product} चाहिए factory expansion के लिए। Reliable machinery with warranty। HOKO पर technical specs share karo.",
+      "{product} चाहिए production line upgrade के लिए। Installation aur training included। HOKO पर quote do.",
+      "{product} चाहिए plant maintenance के लिए। Quality guarantee essential। Test run mandatory। HOKO पर price do.",
+      "{product} चाहिए new unit setup के लिए। Efficient machinery with warranty। HOKO पर complete pricing do.",
+      "{product} चाहिए industrial requirement के लिए। Technical specifications aur test certificates mandatory।"
     ],
     "Electrical Parts": [
-      "Electrical project है। ISI marked products चाहिए। Competitive price do।",
-      "Factory maintenance stock चाहिए। Monthly orders देंगे अगर quality अच्छी रही तो।",
-      "Construction site electrical work है। Reliable parts supplier चाहिए। Bulk pricing do।",
-      "Trial order है quality check के लिए। Technical datasheet share करो।",
-      "New building के लिए electrical work है। GST invoice must है। Per unit price do।"
+      "{product} चाहिए electrical project के लिए। ISI marked products। HOKO पर competitive price do.",
+      "{product} चाहिए factory maintenance के लिए। Consistent quality essential। Monthly orders possible। HOKO पर price do.",
+      "{product} चाहिए construction site के लिए। Reliable supplier। HOKO पर bulk pricing do.",
+      "{product} चाहिए trial order के लिए। Quality check purpose। Technical datasheet। HOKO पर price do.",
+      "{product} चाहिए new building के लिए। GST invoice must। HOKO पर per unit price do।"
     ],
     "Construction Materials": [
-      "नया house build कर रहे हैं। Quality materials with delivery चाहिए। Certificate mandatory।",
-      "Ongoing construction project है। Cement, steel etc. bulk में चाहिए। Yearly agreement interested।",
-      "Home construction के लिए TMT bars और cement चाहिए। Site तक delivery needed। Price do।",
-      "Commercial building project है। Reliable supplier चाहिए। GST invoice mandatory।",
-      "Construction material supplier खोज रहे हैं। Consistent quality और timely delivery essential।"
+      "{product} चाहिए new house construction के लिए। Quality with delivery। Certificate mandatory। HOKO पर price do.",
+      "{product} चाहिए ongoing construction के लिए। Bulk requirement। Yearly supplier agreement interested। HOKO पर price do.",
+      "{product} चाहिए home construction के लिए। Site delivery required। HOKO पर best price do.",
+      "{product} चाहिए commercial building के लिए। Reliable supplier with GST invoice। HOKO पर price do.",
+      "{product} चाहिए। Consistent quality aur timely delivery essential। Supplier agreement interested।"
     ],
     "Services & Maintenance": [
-      "शादी की त्योहार planning है। Experienced caterer चाहिए। Budget flexible है। Packages बताओ।",
-      "Corporate event है next week। Professional service चाहिए। Complete event management quote do।",
-      "Home interior project है। Creative team खोज रहे हैं। 2BHK modular kitchen। Portfolio share करो।",
-      "Office AC खराब हो गया। Urgent repair service चाहिए। Service charges बताओ।",
-      "Birthday party planning है। Reliable event manager चाहिए। Budget: {budget}। Options बताओ।"
+      "{product} चाहिए wedding event के लिए। Experienced caterer with quality service। HOKO पर packages batao.",
+      "{product} चाहिए corporate event के लिए। Professional service। HOKO पर complete event management quote do.",
+      "{product} चाहिए home interior के लिए। Creative team with experience। 2BHK modular kitchen। HOKO पर portfolio do.",
+      "{product} चाहिए office AC repair के लिए। Urgent service। HOKO पर service charges batao.",
+      "{product} चाहिए birthday party के लिए। Reliable event manager। Budget flexible। HOKO पर options batao."
     ],
     "Raw Materials": [
-      "Manufacturing unit requirement है। Monthly {qty} {unit} चाहिए। Long-term agreement interested।",
-      "Factory raw material supply चाहिए। High volume requirement है। Competitive rates do।",
-      "Production requirement - consistent quality चाहिए। Bulk order से पहले test sample required।",
-      "Raw material supplier खोज रहे हैं। Quality और timely delivery essential। GST invoice mandatory।",
-      "Regular manufacturing need है। Monthly {qty} {unit} orders देंगे। Competitive rates share करो।"
+      "{product} चाहिए manufacturing unit के लिए। Monthly {qty} {unit}। Long-term supplier agreement interested। HOKO पर price do.",
+      "{product} चाहिए factory raw material के लिए। High volume। HOKO पर competitive rates do.",
+      "{product} चाहिए production के लिए। Consistent quality essential। Bulk order से पहले test sample required।",
+      "{product} चाहिए। Quality aur timely delivery essential। GST invoice mandatory। HOKO पर price do.",
+      "{product} चाहिए regular manufacturing के लिए। Monthly {qty} {unit} orders। HOKO पर competitive rates do।"
     ],
     "Chemicals & Plastics": [
-      "Plastic manufacturing requirement है। Consistent quality essential। Annual rate contract interested।",
-      "Factory raw material supply चाहिए। Test sample required। Delivery के साथ price do।",
-      "Established chemical supplier खोज रहे हैं। Safety data sheet mandatory। Competitive pricing do।",
-      "Production line requirement है। Monthly {qty} {unit} orders। Quality consistency mandatory।",
-      "Industrial chemical requirement है। Supplier reliability important। Best rates share करो।"
+      "{product} चाहिए plastic manufacturing के लिए। Consistent quality essential। Annual rate contract interested। HOKO पर price do.",
+      "{product} चाहिए factory raw material के लिए। Test sample required। Delivery included price HOKO पर do.",
+      "{product} चाहिए। Established supplier। Safety data sheet mandatory। HOKO पर competitive pricing do.",
+      "{product} चाहिए production line के लिए। Monthly {qty} {unit} orders। Quality consistency mandatory। HOKO पर price do.",
+      "{product} चाहिए industrial requirement के लिए। Supplier reliability important। HOKO पर best rates do।"
     ],
     "Packaging": [
-      "Product packaging चाहिए। Monthly {qty} {unit} need है। Quality और timely delivery essential।",
-      "Urgent packaging need है orders के लिए। {timeline} तक delivery चाहिए। Per {unit} price do।",
-      "Packaging material supplier खोज रहे हैं। Consistent quality monthly orders के लिए।",
-      "Manufacturing packaging requirement है। Custom printing available? Samples और price share करो।",
-      "Food product packaging चाहिए। Food-grade material mandatory। Rates बताओ।"
+      "{product} चाहिए product packaging के लिए। Monthly {qty} {unit}। Quality aur timely delivery essential। HOKO पर price do.",
+      "{product} चाहिए urgently। Delivery by {timeline}। HOKO पर per {unit} price do.",
+      "{product} चाहिए regular supplier के लिए। Monthly orders। Consistent quality। HOKO पर competitive pricing do.",
+      "{product} चाहिए manufacturing packaging के लिए। Custom printing available? HOKO पर samples aur price do.",
+      "{product} चाहिए food product के लिए। Food-grade material mandatory। HOKO पर rates batao।"
     ],
     "Textiles & Apparel": [
-      "Clothing business के लिए fabric चाहिए। Quality supplier खोज रहे हैं। Samples और pricing share करो।",
-      "Bulk apparel order है retail के लिए। Budget: {budget}। {timeline} तक delivery। Catalog do।",
-      "Office staff के लिए uniform चाहिए। {qty} pieces। Price और colors बताओ।",
-      "Textile manufacturing need है। Regular monthly {qty} {unit} orders। Competitive rates do।",
-      "Fabric supplier खोज रहे हैं। Quality consistency important। Samples और pricing share करो।"
+      "{product} चाहिए clothing business के लिए। Quality supplier। HOKO पर samples aur pricing do.",
+      "{product} चाहिए bulk apparel order के लिए। Retail purpose। Delivery by {timeline}। HOKO पर catalog do.",
+      "{product} चाहिए office staff uniform के लिए। {qty} pieces। HOKO पर price aur colors batao.",
+      "{product} चाहिए textile manufacturing के लिए। Regular monthly {qty} {unit} orders। HOKO पर competitive rates do.",
+      "{product} चाहिए। Quality consistency important। Long-term supplier। HOKO पर samples aur pricing do।"
     ],
     "Food & Agriculture": [
-      "Restaurant के लिए rice चाहिए। Consistent quality important। Monthly {qty} {unit} orders।",
-      "Farm के लिए agricultural equipment चाहिए। Budget flexible good quality के लिए। Specs share करो।",
-      "Foodgrains distribution business है। FSSAI certified products चाहिए। Wholesale pricing do।",
-      "Wedding season के लिए rice requirement है। Premium quality basmati। Best price do।",
-      "Health store के लिए organic produce चाहिए। Regular monthly orders। Samples और rates share करो।"
+      "{product} चाहिए restaurant के लिए। Consistent quality। Monthly {qty} {unit} orders। HOKO पर price do.",
+      "{product} चाहिए farm के लिए। Agricultural equipment। Good quality। HOKO पर specs do.",
+      "{product} चाहिए foodgrains distribution के लिए। FSSAI certified mandatory। HOKO पर wholesale pricing do.",
+      "{product} चाहिए wedding season के लिए। Premium quality basmati। HOKO पर best price do.",
+      "{product} चाहिए health store के लिए। Organic produce। Regular monthly orders। HOKO पर samples aur rates do।"
     ],
     "Health & Safety": [
-      "Factory safety equipment चाहिए। ISI marked products mandatory। Bulk pricing share करो।",
-      "Workplace PPE requirement है employees के लिए। Monthly orders। Competitive pricing needed।",
-      "Hospital safety supplies चाहिए। Quality medical-grade products। Catalog और pricing do।",
-      "Construction site safety requirement है। Helmet, gloves, boots etc। Complete quote do।",
-      "Office first aid supplies चाहिए। OSHA compliant kit। Price और contents list share करो।"
+      "{product} चाहिए factory safety के लिए। ISI marked mandatory। HOKO पर bulk pricing do.",
+      "{product} चाहिए workplace PPE के लिए। Monthly orders for employees। HOKO पर competitive pricing do.",
+      "{product} चाहिए hospital safety के लिए। Quality medical-grade products। HOKO पर catalog aur pricing do.",
+      "{product} चाहिए construction site safety के लिए। Helmet, gloves, boots etc। HOKO पर complete quote do.",
+      "{product} चाहिए office first aid के लिए। OSHA compliant kit। HOKO पर price aur contents list do।"
     ],
     "Logistics & Transport": [
-      "Factory shift के लिए transport service चाहिए। Reliable service provider। Monthly quote do।",
-      "Warehouse storage चाहिए inventory के लिए। {qty} sqft space required। Rental terms बताओ।",
-      "Office नए location में shift हो रहा है। Professional packers movers चाहिए। Estimate do।",
-      "Goods transportation requirement है। Monthly contract। Truck rental rates share करो।",
-      "Perishables के लिए cold storage चाहिए। {qty} sqft required। Rental और facilities बताओ।"
+      "{product} चाहिए factory shift के लिए। Reliable service। Monthly contract। HOKO पर quote do.",
+      "{product} चाहिए warehouse storage के लिए। {qty} sqft space। HOKO पर rental terms batao.",
+      "{product} चाहिए office shift के लिए। New location। Professional packers movers। HOKO पर estimate do.",
+      "{product} चाहिए goods transportation के लिए। Monthly contract। HOKO पर truck rental rates do.",
+      "{product} चाहिए cold storage के लिए। Perishables। {qty} sqft। HOKO पर rental aur facilities batao।"
     ],
     "Business Services": [
-      "Startup business consulting चाहिए। Experienced consultant खोज रहे हैं। Budget: {budget}। Approach बताओ।",
-      "New business के लिए digital marketing चाहिए। Monthly retainer preferred। Service packages do।",
-      "E-commerce website development चाहिए। Custom design needed। Portfolio और quote share करो।",
-      "Company registration के लिए legal documentation चाहिए। CA/CS services needed। Professional fees बताओ।",
-      "Office के लिए IT services requirement है। Regular maintenance। Annual contract pricing share करो।"
+      "{product} चाहिए startup business के लिए। Experienced consultant। Budget flexible। HOKO पर approach batao.",
+      "{product} चाहिए digital marketing के लिए। New business। Monthly retainer preferred। HOKO पर service packages do.",
+      "{product} चाहिए e-commerce website के लिए। Custom design। HOKO पर portfolio aur quote do.",
+      "{product} चाहिए company registration के लिए। CA/CS services। HOKO पर professional fees batao.",
+      "{product} चाहिए office IT services के लिए। Regular maintenance। HOKO पर annual contract pricing do।"
     ]
   }
 };
