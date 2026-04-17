@@ -1208,6 +1208,7 @@ async function generateDummyRequirements(count = 3) {
       }
       
       const productData = getRandomProduct(platformCategory);
+      const effectiveCategory = productData.category;
       const quantity = getQuantityForProduct(productData);
       const unit = productData.unit;
       const condition = productData.condition || randomItem(["new", "used"]);
@@ -1229,27 +1230,27 @@ async function generateDummyRequirements(count = 3) {
       ];
       const titlePrefix = randomItem(TITLE_PREFIXES);
       const productName = `${titlePrefix} ${baseProductName}`;
-      const details = generateDetail(baseProductName, quantity, unit, productData.specs, platformCategory);
+      const details = generateDetail(baseProductName, quantity, unit, productData.specs, effectiveCategory);
       
       try {
-        const offerInvitedFrom = platformCategory.includes("Raw Materials") || platformCategory.includes("Chemicals") || platformCategory.includes("Industrial") || platformCategory.includes("Electrical") ? "anywhere" : "city";
+        const offerInvitedFrom = effectiveCategory.includes("Raw Materials") || effectiveCategory.includes("Chemicals") || effectiveCategory.includes("Industrial") || effectiveCategory.includes("Electrical") ? "anywhere" : "city";
         
         const dummy = await DummyRequirement.create({
           product: productName,
           quantity: quantity,
           unit: unit,
           city: String(city),
-          category: platformCategory,
+          category: effectiveCategory,
           isDummy: true,
           status: "new",
           details: details,
-          reqType: platformCategory
+          reqType: effectiveCategory
         });
         
         const requirement = await Requirement.create({
           buyerId: dummyBuyer._id,
           city: String(city),
-          category: platformCategory,
+          category: effectiveCategory,
           productName: productName,
           product: productData.product,
           brand: productData.brand || null,
@@ -1269,7 +1270,7 @@ async function generateDummyRequirements(count = 3) {
         await dummy.save();
         
         generated.push(dummy);
-        console.log(`[DummyReq] Generated: ${city} | ${platformCategory} | ${productName} | Qty: ${quantity} ${unit}`);
+        console.log(`[DummyReq] Generated: ${city} | ${effectiveCategory} | ${productName} | Qty: ${quantity} ${unit}`);
         
         if (generated.length >= count) break;
       } catch (err) {
