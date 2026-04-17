@@ -99,7 +99,9 @@ export default function WhatsAppLogin() {
         
         const dashParams = new URLSearchParams();
         if (cityFromUrl) dashParams.set("city", cityFromUrl);
-        navigate(`/seller/dashboard?${dashParams.toString()}`, { replace: true });
+        const redirectUrl = `/seller/dashboard?${dashParams.toString()}`;
+        console.log("[WhatsAppLogin] Redirecting to:", redirectUrl);
+        navigate(redirectUrl, { replace: true });
       } else {
         throw new Error(res.data?.message || "Verification failed");
       }

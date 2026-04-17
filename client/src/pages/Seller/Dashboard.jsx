@@ -208,8 +208,12 @@ export default function SellerDashboard() {
   };
 
   useEffect(() => {
+    console.log("[Dashboard] Checking session:", session);
     if (!session?.token) {
+      console.log("[Dashboard] No token, redirecting to login");
       navigate("/seller/login");
+    } else {
+      console.log("[Dashboard] Token found, staying on dashboard");
     }
   }, [session, navigate]);
 
