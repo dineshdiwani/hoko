@@ -358,13 +358,28 @@ export default function SellerDeepLink() {
 
   useEffect(() => {
     const session = getSession();
+    
+    // If user came from WhatsApp with mobile param, redirect to dashboard with OTP popup
+    if (mobileFromUrl && !session?.token) {
+      // Store WhatsApp params for dashboard to use
+      localStorage.setItem("whatsapp_seller_mobile", mobileFromUrl);
+      localStorage.setItem("whatsapp_seller_city", cityFromUrl);
+      localStorage.setItem("whatsapp_seller_cats", catsFromUrl);
+      localStorage.setItem("whatsapp_seller_ref", requirementIdValue || "");
+      
+      // Redirect to dashboard - it will show OTP popup
+      const dashParams = new URLSearchParams();
+      if (cityFromUrl) dashParams.set("city", cityFromUrl);
+      if (requirementIdValue) dashParams.set("offerRequirement", requirementIdValue);
+      
+      navigate(`/seller/dashboard?${dashParams.toString()}`, { replace: true });
+      return;
+    }
+    
     if (session?.token && session?.roles?.seller) {
       if (session?.city && !form.sellerCity) {
         setForm((prev) => ({ ...prev, sellerCity: session.city }));
       }
-    } else if (mobileFromUrl && !session?.token) {
-      // Auto-request OTP for WhatsApp deep link users
-      requestOtp();
     }
   }, []);
 
