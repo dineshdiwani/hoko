@@ -923,131 +923,119 @@ async function getSmartUnit(platformCategory, product) {
   const adminUnits = await getUnits();
   const availableUnits = Array.isArray(adminUnits) && adminUnits.length > 0 ? adminUnits : ["pcs", "units", "nos"];
   
+  const hasUnit = (unit) => availableUnits.some(u => u.toLowerCase() === unit.toLowerCase());
+  const filterUnits = (units) => units.filter(hasUnit);
+  
   let unitCandidates = [];
   
   if (platformCategory.includes("Raw Materials") || platformCategory.includes("Chemicals") || platformCategory.includes("Food")) {
-    if (productLower.includes("granule") || productLower.includes("resin") || productLower.includes("ore") || productLower.includes("scrap") || productLower.includes("powder")) {
-      unitCandidates = availableUnits.filter(u => ["kg", "ton", "quintal", "metric ton"].includes(u.toLowerCase()));
-    } else if (productLower.includes("liquid") || productLower.includes("oil") || productLower.includes("chemical") || productLower.includes("solvent")) {
-      unitCandidates = availableUnits.filter(u => ["liter", "litre", "ltr", "ml", "gallon"].includes(u.toLowerCase()));
-    } else if (productLower.includes("bag") || productLower.includes("cement") || productLower.includes("fertilizer")) {
-      unitCandidates = availableUnits.filter(u => ["bags", "bag", "units", "pcs"].includes(u.toLowerCase()));
+    if (productLower.includes("granule") || productLower.includes("resin") || productLower.includes("ore") || productLower.includes("scrap") || productLower.includes("powder") || productLower.includes("poly") || productLower.includes("hdpe") || productLower.includes("pvc") || productLower.includes("abs")) {
+      unitCandidates = filterUnits(["kg", "ton", "quintal"]);
+    } else if (productLower.includes("liquid") || productLower.includes("oil") || productLower.includes("solvent") || productLower.includes("chemical")) {
+      unitCandidates = filterUnits(["liter", "ltr", "gallon"]);
+    } else if (productLower.includes("cement") || productLower.includes("fertilizer") || productLower.includes("bag")) {
+      unitCandidates = filterUnits(["bags", "units"]);
     } else if (productLower.includes("grain") || productLower.includes("rice") || productLower.includes("wheat") || productLower.includes("seed")) {
-      unitCandidates = availableUnits.filter(u => ["kg", "quintal", "ton", "metric ton", "bags"].includes(u.toLowerCase()));
+      unitCandidates = filterUnits(["kg", "quintal", "ton", "bags"]);
     }
-    if (!unitCandidates.length) unitCandidates = availableUnits.filter(u => ["kg", "ton", "quintal", "liter", "bags", "units"].includes(u.toLowerCase()));
+    if (!unitCandidates.length) unitCandidates = filterUnits(["kg", "quintal", "ton", "bags"]);
   }
   
-  if (platformCategory.includes("Vehicles") || productLower.includes("car") || productLower.includes("vehicle") || productLower.includes("suv") || productLower.includes("sedan") || productLower.includes("hatchback")) {
-    unitCandidates = availableUnits.filter(u => ["units", "nos", "pcs", "vehicles"].includes(u.toLowerCase()));
+  if (platformCategory.includes("Vehicles") || productLower.includes("car") || productLower.includes("vehicle") || productLower.includes("suv") || productLower.includes("sedan") || productLower.includes("hatchback") || productLower.includes("compact")) {
+    unitCandidates = filterUnits(["units", "nos", "pcs"]);
   }
   
-  if (platformCategory.includes("Electronics & Appliances") || platformCategory.includes("Furniture")) {
-    if (productLower.includes("tv") || productLower.includes("refrigerator") || productLower.includes("ac") || productLower.includes("laptop") || productLower.includes("computer") || productLower.includes("phone") || productLower.includes("camera") || productLower.includes("console")) {
-      unitCandidates = availableUnits.filter(u => ["pcs", "units", "nos"].includes(u.toLowerCase()));
+  if (platformCategory.includes("Electronics & Appliances")) {
+    if (productLower.includes("tv") || productLower.includes("led") || productLower.includes("refrigerator") || productLower.includes("fridge") || productLower.includes("ac") || productLower.includes("laptop") || productLower.includes("computer") || productLower.includes("phone") || productLower.includes("mobile") || productLower.includes("camera") || productLower.includes("console") || productLower.includes("headphone") || productLower.includes("washing")) {
+      unitCandidates = filterUnits(["pcs", "units", "nos"]);
     }
-    if (productLower.includes("bed") || productLower.includes("sofa") || productLower.includes("table") || productLower.includes("chair") || productLower.includes("furniture")) {
-      unitCandidates = availableUnits.filter(u => ["pcs", "units", "nos", "sets"].includes(u.toLowerCase()));
+    if (!unitCandidates.length) unitCandidates = filterUnits(["pcs", "units", "nos"]);
+  }
+  
+  if (platformCategory.includes("Furniture & Home") || platformCategory.includes("Furniture")) {
+    if (productLower.includes("bed") || productLower.includes("sofa") || productLower.includes("table") || productLower.includes("chair") || productLower.includes("kitchen") || productLower.includes("cabinet")) {
+      unitCandidates = filterUnits(["pcs", "units", "nos", "sets"]);
     }
-    if (!unitCandidates.length) unitCandidates = availableUnits.filter(u => ["pcs", "units", "nos"].includes(u.toLowerCase()));
+    if (!unitCandidates.length) unitCandidates = filterUnits(["pcs", "units", "nos"]);
   }
   
   if (platformCategory.includes("Industrial") || platformCategory.includes("Electrical")) {
     if (productLower.includes("motor") || productLower.includes("generator") || productLower.includes("machine") || productLower.includes("lathe") || productLower.includes("cnc") || productLower.includes("welder") || productLower.includes("pump") || productLower.includes("compressor")) {
-      unitCandidates = availableUnits.filter(u => ["pcs", "units", "nos", "sets"].includes(u.toLowerCase()));
+      unitCandidates = filterUnits(["pcs", "units", "nos", "sets"]);
+    } else if (productLower.includes("wire") || productLower.includes("cable")) {
+      unitCandidates = filterUnits(["roll", "mtr", "meter", "coils"]);
+    } else if (productLower.includes("bearing") || productLower.includes("valve") || productLower.includes("gear") || productLower.includes("bolt") || productLower.includes("nut") || productLower.includes("mcb") || productLower.includes("switchgear") || productLower.includes("plc") || productLower.includes("vfd") || productLower.includes("breaker")) {
+      unitCandidates = filterUnits(["pcs", "nos", "packs", "sets"]);
     }
-    if (productLower.includes("wire") || productLower.includes("cable")) {
-      unitCandidates = availableUnits.filter(u => ["roll", "rolls", "mtr", "meter", "meters", "coils", "km"].includes(u.toLowerCase()));
-    }
-    if (productLower.includes("bearing") || productLower.includes("valve") || productLower.includes("gear") || productLower.includes("bolt") || productLower.includes("nut")) {
-      unitCandidates = availableUnits.filter(u => ["pcs", "units", "nos", "packs", "sets"].includes(u.toLowerCase()));
-    }
-    if (productLower.includes("pipe") || productLower.includes("tube") || productLower.includes("rod")) {
-      unitCandidates = availableUnits.filter(u => ["pcs", "units", "nos", "mtr", "meter", "lengths"].includes(u.toLowerCase()));
-    }
-    if (!unitCandidates.length) unitCandidates = availableUnits.filter(u => ["pcs", "units", "nos"].includes(u.toLowerCase()));
+    if (!unitCandidates.length) unitCandidates = filterUnits(["pcs", "units", "nos", "sets"]);
   }
   
   if (platformCategory.includes("Construction")) {
-    if (productLower.includes("bar") || productLower.includes("steel") || productLower.includes("beam") || productLower.includes("rod")) {
-      unitCandidates = availableUnits.filter(u => ["pcs", "nos", "mtr", "meter", "tons", "quintal", "kg"].includes(u.toLowerCase()));
+    if (productLower.includes("bar") || productLower.includes("steel") || productLower.includes("beam") || productLower.includes("rod") || productLower.includes("tmt")) {
+      unitCandidates = filterUnits(["pcs", "mtr", "ton", "quintal"]);
+    } else if (productLower.includes("cement") || productLower.includes("bag")) {
+      unitCandidates = filterUnits(["bags", "ton", "quintal"]);
+    } else if (productLower.includes("sand") || productLower.includes("aggregate") || productLower.includes("gravel") || productLower.includes("crusher")) {
+      unitCandidates = filterUnits(["ton", "cubic feet"]);
+    } else if (productLower.includes("brick") || productLower.includes("block") || productLower.includes("tile")) {
+      unitCandidates = filterUnits(["pcs", "thousand"]);
     }
-    if (productLower.includes("cement") || productLower.includes("bag") || productLower.includes("mortar")) {
-      unitCandidates = availableUnits.filter(u => ["bags", "bag", "units", "pcs", "tons", "quintal"].includes(u.toLowerCase()));
-    }
-    if (productLower.includes("sand") || productLower.includes("aggregate") || productLower.includes("gravel") || productLower.includes("crusher")) {
-      unitCandidates = availableUnits.filter(u => ["tons", "cu ft", "cubic feet", "quintal", "kg"].includes(u.toLowerCase()));
-    }
-    if (productLower.includes("brick") || productLower.includes("block") || productLower.includes("tile")) {
-      unitCandidates = availableUnits.filter(u => ["pcs", "nos", "units", "thousand"].includes(u.toLowerCase()));
-    }
-    if (!unitCandidates.length) unitCandidates = availableUnits.filter(u => ["pcs", "units", "bags", "tons", "quintal"].includes(u.toLowerCase()));
+    if (!unitCandidates.length) unitCandidates = filterUnits(["pcs", "bags", "ton", "quintal"]);
   }
   
   if (platformCategory.includes("Packaging")) {
     if (productLower.includes("box") || productLower.includes("carton")) {
-      unitCandidates = availableUnits.filter(u => ["pcs", "nos", "units", "boxes"].includes(u.toLowerCase()));
+      unitCandidates = filterUnits(["pcs", "units"]);
+    } else if (productLower.includes("roll") || productLower.includes("film") || productLower.includes("wrap") || productLower.includes("sheet")) {
+      unitCandidates = filterUnits(["roll", "pcs"]);
+    } else if (productLower.includes("tape")) {
+      unitCandidates = filterUnits(["pcs", "rolls"]);
     }
-    if (productLower.includes("roll") || productLower.includes("film") || productLower.includes("wrap") || productLower.includes("sheet")) {
-      unitCandidates = availableUnits.filter(u => ["roll", "rolls", "pcs", "kg"].includes(u.toLowerCase()));
-    }
-    if (productLower.includes("tape")) {
-      unitCandidates = availableUnits.filter(u => ["pcs", "nos", "units", "rolls", "boxes"].includes(u.toLowerCase()));
-    }
-    if (!unitCandidates.length) unitCandidates = availableUnits.filter(u => ["pcs", "units", "rolls", "boxes"].includes(u.toLowerCase()));
+    if (!unitCandidates.length) unitCandidates = filterUnits(["pcs", "units", "rolls"]);
   }
   
   if (platformCategory.includes("Textiles") || platformCategory.includes("Apparel")) {
-    if (productLower.includes("fabric") || productLower.includes("cloth") || productLower.includes("denim") || productLower.includes("linen")) {
-      unitCandidates = availableUnits.filter(u => ["meter", "mtr", "meters", "roll", "rolls", "kg"].includes(u.toLowerCase()));
+    if (productLower.includes("fabric") || productLower.includes("cloth") || productLower.includes("denim") || productLower.includes("linen") || productLower.includes("cotton") || productLower.includes("polyester")) {
+      unitCandidates = filterUnits(["meter", "mtr", "roll", "kg"]);
+    } else if (productLower.includes("shirt") || productLower.includes("pant") || productLower.includes("dress") || productLower.includes("wear") || productLower.includes("garment") || productLower.includes("suit") || productLower.includes("workwear") || productLower.includes("readymade")) {
+      unitCandidates = filterUnits(["pcs", "dozens", "sets"]);
     }
-    if (productLower.includes("shirt") || productLower.includes("pant") || productLower.includes("dress") || productLower.includes("wear") || productLower.includes("garment") || productLower.includes("suit")) {
-      unitCandidates = availableUnits.filter(u => ["pcs", "nos", "units", "dozens", "sets"].includes(u.toLowerCase()));
-    }
-    if (!unitCandidates.length) unitCandidates = availableUnits.filter(u => ["pcs", "meter", "mtr", "rolls", "units"].includes(u.toLowerCase()));
+    if (!unitCandidates.length) unitCandidates = filterUnits(["pcs", "meter", "mtr", "rolls"]);
   }
   
   if (platformCategory.includes("Health") || platformCategory.includes("Safety")) {
     if (productLower.includes("mask") || productLower.includes("glove") || productLower.includes("cap") || productLower.includes("shoe")) {
-      unitCandidates = availableUnits.filter(u => ["pcs", "nos", "units", "boxes", "packs", "pairs"].includes(u.toLowerCase()));
+      unitCandidates = filterUnits(["pcs", "boxes", "packs", "pairs"]);
+    } else if (productLower.includes("kit") || productLower.includes("set") || productLower.includes("helmet")) {
+      unitCandidates = filterUnits(["pcs", "boxes", "packs"]);
     }
-    if (productLower.includes("kit") || productLower.includes("set")) {
-      unitCandidates = availableUnits.filter(u => ["pcs", "units", "sets", "boxes"].includes(u.toLowerCase()));
-    }
-    if (productLower.includes("helmet")) {
-      unitCandidates = availableUnits.filter(u => ["pcs", "nos", "units"].includes(u.toLowerCase()));
-    }
-    if (!unitCandidates.length) unitCandidates = availableUnits.filter(u => ["pcs", "units", "boxes", "packs"].includes(u.toLowerCase()));
+    if (!unitCandidates.length) unitCandidates = filterUnits(["pcs", "boxes", "packs"]);
   }
   
   if (platformCategory.includes("Services") || platformCategory.includes("Business")) {
     if (productLower.includes("catering") || productLower.includes("food") || productLower.includes("lunch") || productLower.includes("dinner")) {
-      unitCandidates = availableUnits.filter(u => ["plates", "persons", "people", "guests", "boxes"].includes(u.toLowerCase()));
+      unitCandidates = filterUnits(["plates", "persons", "guests"]);
+    } else if (productLower.includes("consulting") || productLower.includes("advisory") || productLower.includes("marketing") || productLower.includes("legal")) {
+      unitCandidates = filterUnits(["hours", "sessions", "month", "project", "package"]);
+    } else if (productLower.includes("event") || productLower.includes("wedding") || productLower.includes("decoration") || productLower.includes("interior")) {
+      unitCandidates = filterUnits(["hours", "days", "event", "package"]);
+    } else if (productLower.includes("packer") || productLower.includes("mover")) {
+      unitCandidates = filterUnits(["service", "job"]);
     }
-    if (productLower.includes("consulting") || productLower.includes("advisory")) {
-      unitCandidates = availableUnits.filter(u => ["hours", "sessions", "month", "project", "package"].includes(u.toLowerCase()));
-    }
-    if (productLower.includes("event") || productLower.includes("wedding") || productLower.includes("decoration")) {
-      unitCandidates = availableUnits.filter(u => ["hours", "days", "event", "package", "service"].includes(u.toLowerCase()));
-    }
-    if (!unitCandidates.length) unitCandidates = availableUnits.filter(u => ["service", "job", "package", "units", "hours"].includes(u.toLowerCase()));
+    if (!unitCandidates.length) unitCandidates = filterUnits(["service", "job", "package"]);
   }
   
   if (platformCategory.includes("Logistics") || platformCategory.includes("Transport")) {
     if (productLower.includes("truck") || productLower.includes("vehicle") || productLower.includes("container")) {
-      unitCandidates = availableUnits.filter(u => ["trips", "units", "pcs", "loads"].includes(u.toLowerCase()));
+      unitCandidates = filterUnits(["trips", "units", "loads"]);
+    } else if (productLower.includes("warehouse") || productLower.includes("storage")) {
+      unitCandidates = filterUnits(["sqft", "sqm", "month"]);
     }
-    if (productLower.includes("packer") || productLower.includes("mover")) {
-      unitCandidates = availableUnits.filter(u => ["service", "job", "house", "units"].includes(u.toLowerCase()));
-    }
-    if (productLower.includes("warehouse") || productLower.includes("storage")) {
-      unitCandidates = availableUnits.filter(u => ["sqft", "sq.ft", "sqm", "month", "area"].includes(u.toLowerCase()));
-    }
-    if (!unitCandidates.length) unitCandidates = availableUnits.filter(u => ["trips", "service", "units", "loads"].includes(u.toLowerCase()));
+    if (!unitCandidates.length) unitCandidates = filterUnits(["trips", "units", "loads"]);
   }
   
   if (!unitCandidates.length) {
-    unitCandidates = availableUnits.filter(u => ["pcs", "units", "nos"].includes(u.toLowerCase()));
+    unitCandidates = filterUnits(["pcs", "units", "nos"]);
   }
   
   const selectedUnit = randomItem(unitCandidates);
