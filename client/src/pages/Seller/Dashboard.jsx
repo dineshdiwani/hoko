@@ -84,14 +84,6 @@ export default function SellerDashboard() {
   const [showingSampleData, setShowingSampleData] = useState(false);
   const [refreshToken, setRefreshToken] = useState(0);
   
-  // OTP verification state
-  const [otpModalOpen, setOtpModalOpen] = useState(false);
-  const [otpValue, setOtpValue] = useState("");
-  const [otpError, setOtpError] = useState("");
-  const [otpLoading, setOtpLoading] = useState(false);
-  const [resendTimer, setResendTimer] = useState(0);
-  const [whatsappMobile, setWhatsappMobile] = useState("");
-  
   const allowSellerSamplePosts =
     import.meta.env.DEV;
 
@@ -216,15 +208,6 @@ export default function SellerDashboard() {
   };
 
   useEffect(() => {
-    const waMobile = localStorage.getItem("whatsapp_seller_mobile");
-    
-    // If WhatsApp user with mobile but no session, don't redirect to login
-    if (!session?.token && waMobile) {
-      setWhatsappMobile(waMobile);
-      setOtpModalOpen(true);
-      return;
-    }
-    
     if (!session?.token) {
       navigate("/seller/login");
     }
@@ -234,87 +217,6 @@ export default function SellerDashboard() {
     const stored = getSellerDashboardCategories();
     setDashboardCategories(stored);
   }, []);
-
-  const requestSellerOtp = async () => {
-    if (!whatsappMobile) return;
-    setOtpLoading(true);
-    try {
-      await api.post("/api/seller/otp/request", {
-        mobile: "+" + whatsappMobile
-      });
-      setResendTimer(60);
-      const interval = setInterval(() => {
-        setResendTimer((prev) => {
-          if (prev <= 1) {
-            clearInterval(interval);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    } catch (err) {
-      alert(err?.response?.data?.message || "Failed to send OTP");
-    } finally {
-      setOtpLoading(false);
-    }
-  };
-
-  const verifySellerOtp = async () => {
-    if (otpValue.length !== 4) {
-      setOtpError("Please enter 4-digit OTP");
-      return;
-    }
-    setOtpError("");
-    setOtpLoading(true);
-    try {
-      const res = await api.post("/api/seller/otp/verify", {
-        mobile: "+" + whatsappMobile,
-        otp: otpValue
-      });
-      if (res.data?.success && res.data?.token && res.data?.user) {
-        const user = res.data.user;
-        const cityFromLink = localStorage.getItem("whatsapp_seller_city") || "";
-        setSession({
-          _id: user._id,
-          role: user.role || "seller",
-          roles: user.roles || { seller: true },
-          email: user.email || "",
-          city: cityFromLink || user.city || "",
-          name: user.name || "Seller",
-          preferredCurrency: user.preferredCurrency || "INR",
-          mobile: user.mobile || whatsappMobile,
-          token: res.data.token
-        });
-        
-        if (cityFromLink) {
-          setSelectedCity(cityFromLink);
-        }
-        
-        // Clear WhatsApp params
-        localStorage.removeItem("whatsapp_seller_mobile");
-        localStorage.removeItem("whatsapp_seller_city");
-        localStorage.removeItem("whatsapp_seller_cats");
-        
-        setOtpModalOpen(false);
-        setOtpValue("");
-        setOtpError("");
-        
-        // Check if there's an offer requirement to open
-        const params = new URLSearchParams(location.search);
-        const offerReq = params.get("offerRequirement");
-        if (offerReq) {
-          // Redirect to deep link to submit offer
-          navigate(`/seller/deeplink/${offerReq}`, { replace: true });
-        }
-      } else {
-        throw new Error(res.data?.message || "Verification failed");
-      }
-    } catch (err) {
-      setOtpError(err?.response?.data?.message || err?.message || "Invalid OTP");
-    } finally {
-      setOtpLoading(false);
-    }
-  };
 
   useEffect(() => {
     try {

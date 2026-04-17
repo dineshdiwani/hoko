@@ -24,9 +24,6 @@ export default function WhatsAppLogin() {
     }
   }, []);
 
-  // Debug: show OTP in dev mode
-  const [debugOtp, setDebugOtp] = useState(null);
-
   const requestOtp = async () => {
     if (!mobile) return;
     setLoading(true);
@@ -38,11 +35,6 @@ export default function WhatsAppLogin() {
         mobile: "+" + mobile.replace(/\D/g, "")
       });
       console.log("[WhatsAppLogin] OTP request success, response:", res?.data);
-      
-      // Show OTP in dev mode for testing
-      if (res?.data?.otp) {
-        setDebugOtp(res.data.otp);
-      }
       
       setResendTimer(60);
       const interval = setInterval(() => {
@@ -166,14 +158,6 @@ export default function WhatsAppLogin() {
                 />
                 {otpError && (
                   <p className="text-red-500 text-sm mt-2 text-center">{otpError}</p>
-                )}
-                {/* Debug OTP display */}
-                {debugOtp && (
-                  <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <p className="text-xs text-yellow-700 font-medium mb-1">🔐 Test Mode - Your OTP:</p>
-                    <p className="text-xl font-bold text-center text-yellow-800">{debugOtp}</p>
-                    <p className="text-xs text-yellow-600 mt-1">Check console for more logs</p>
-                  </div>
                 )}
               </div>
 
