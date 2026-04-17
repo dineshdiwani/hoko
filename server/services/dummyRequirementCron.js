@@ -420,89 +420,154 @@ async function selectPlatformCategory() {
 function getSmartQuantity(platformCategory, product) {
   const productLower = String(product || "").toLowerCase();
   
-  if (platformCategory.includes("Vehicles") || productLower.includes("car") || productLower.includes("vehicle") || productLower.includes("suv") || productLower.includes("sedan") || productLower.includes("hatchback")) {
+  if (platformCategory.includes("Electronics & Appliances")) {
+    if (productLower.includes("tv") || productLower.includes("led") || productLower.includes("smart tv")) {
+      return randomItem([1, 2, 3]);
+    }
+    if (productLower.includes("refrigerator") || productLower.includes("fridge")) {
+      return randomItem([1, 2, 3]);
+    }
+    if (productLower.includes("ac") || productLower.includes("air conditioner")) {
+      return randomItem([1, 2, 3, 5]);
+    }
+    if (productLower.includes("washing machine") || productLower.includes("washer")) {
+      return randomItem([1, 2, 3]);
+    }
+    if (productLower.includes("laptop") || productLower.includes("macbook") || productLower.includes("notebook") || productLower.includes("computer")) {
+      return randomItem([1, 2, 5]);
+    }
+    if (productLower.includes("smartphone") || productLower.includes("iphone") || productLower.includes("phone") || productLower.includes("mobile")) {
+      return randomItem([1, 2, 5, 10]);
+    }
+    if (productLower.includes("headphone") || productLower.includes("earphone") || productLower.includes("earbud") || productLower.includes("audio")) {
+      return randomItem([1, 2, 5, 10]);
+    }
+    if (productLower.includes("camera") || productLower.includes("dslr") || productLower.includes("mirrorless")) {
+      return randomItem([1, 2, 3]);
+    }
+    if (productLower.includes("console") || productLower.includes("playstation") || productLower.includes("xbox")) {
+      return randomItem([1, 2, 3]);
+    }
+    return randomItem([1, 2, 3, 5]);
+  }
+  
+  if (platformCategory.includes("Furniture & Home")) {
+    if (productLower.includes("bed") || productLower.includes("mattress")) {
+      return randomItem([1, 2, 5]);
+    }
+    if (productLower.includes("sofa") || productLower.includes("couch")) {
+      return randomItem([1, 2, 3]);
+    }
+    if (productLower.includes("chair") && !productLower.includes("office")) {
+      return randomItem([2, 4, 6, 10]);
+    }
+    if (productLower.includes("office chair")) {
+      return randomItem([1, 2, 5, 10]);
+    }
+    if (productLower.includes("table") || productLower.includes("dining")) {
+      return randomItem([1, 2, 5]);
+    }
+    if (productLower.includes("kitchen") || productLower.includes("modular")) {
+      return randomItem([1, 2, 3]);
+    }
+    if (productLower.includes("tv unit") || productLower.includes("cabinet")) {
+      return randomItem([1, 2, 3]);
+    }
+    return randomItem([1, 2, 5]);
+  }
+  
+  if (platformCategory.includes("Vehicles") || productLower.includes("car") || productLower.includes("vehicle") || productLower.includes("suv") || productLower.includes("sedan") || productLower.includes("hatchback") || productLower.includes("compact")) {
     return randomItem([1, 2, 3, 5]);
   }
   
   if (platformCategory.includes("Services") || platformCategory.includes("Logistics") || platformCategory.includes("Business")) {
-    if (productLower.includes("catering") || productLower.includes("event") || productLower.includes("decoration")) {
+    if (productLower.includes("catering") || productLower.includes("event") || productLower.includes("decoration") || productLower.includes("wedding")) {
+      return randomItem([1, 2, 3]);
+    }
+    if (productLower.includes("truck") || productLower.includes("container")) {
+      return randomItem([1, 2, 5, 10]);
+    }
+    if (productLower.includes("packer") || productLower.includes("mover") || productLower.includes("2bhk") || productLower.includes("3bhk")) {
+      return randomItem([1, 2, 3]);
+    }
+    if (productLower.includes("warehouse") || productLower.includes("storage") || productLower.includes("rental")) {
       return randomItem([1, 2, 3, 5]);
     }
-    if (productLower.includes("truck") || productLower.includes("container") || productLower.includes("trip")) {
-      return randomItem([1, 2, 3, 5, 10]);
+    if (productLower.includes("consulting") || productLower.includes("marketing") || productLower.includes("development") || productLower.includes("legal")) {
+      return randomItem([1, 2, 3]);
     }
     return 1;
   }
   
-  if (productLower.includes("tv") || productLower.includes("refrigerator") || productLower.includes("ac") || productLower.includes("laptop") || productLower.includes("computer") || productLower.includes("laptop") || productLower.includes("smartphone") || productLower.includes("phone") || productLower.includes("camera") || productLower.includes("console")) {
+  if (productLower.includes("motor") || productLower.includes("generator") || productLower.includes("lathe") || productLower.includes("cnc") || productLower.includes("welder") || productLower.includes("pump")) {
     return randomItem([1, 2, 3, 5]);
   }
   
-  if (productLower.includes("bed") || productLower.includes("sofa") || productLower.includes("chair") || productLower.includes("table") || productLower.includes("furniture") || productLower.includes("kitchen")) {
-    return randomItem([1, 2, 3, 5, 10]);
-  }
-  
-  if (productLower.includes("motor") || productLower.includes("generator") || productLower.includes("machine") || productLower.includes("lathe") || productLower.includes("cnc") || productLower.includes("welder") || productLower.includes("pump")) {
-    return randomItem([1, 2, 3, 5]);
-  }
-  
-  if (productLower.includes("wire") || productLower.includes("cable") || productLower.includes("roll") || productLower.includes("film")) {
-    return randomItem([5, 10, 20, 25, 50]);
+  if (productLower.includes("wire") || productLower.includes("cable")) {
+    return randomItem([5, 10, 20, 50, 100]);
   }
   
   if (productLower.includes("bearing")) {
-    return randomItem([10, 20, 50, 100]);
+    return randomItem([10, 20, 50, 100, 200]);
   }
   
-  if (productLower.includes("bar") || productLower.includes("steel") || productLower.includes("beam") || productLower.includes("cement") || productLower.includes("bag") || productLower.includes("panel") || productLower.includes("tmt")) {
+  if (productLower.includes("bar") || productLower.includes("steel") || productLower.includes("beam") || productLower.includes("cement") || productLower.includes("panel") || productLower.includes("tmt")) {
     return randomItem([50, 100, 200, 500]);
   }
   
-  if (productLower.includes("scrap") || productLower.includes("ore") || productLower.includes("ingot") || productLower.includes("grain") || productLower.includes("rice") || productLower.includes("wheat")) {
+  if (productLower.includes("scrap") || productLower.includes("ore") || productLower.includes("ingot")) {
     return randomItem([1, 5, 10, 20, 50]);
   }
   
-  if (productLower.includes("granule") || productLower.includes("resin") || productLower.includes("chemical") || productLower.includes("poly")) {
+  if (productLower.includes("grain") || productLower.includes("rice") || productLower.includes("wheat")) {
+    return randomItem([5, 10, 20, 50, 100]);
+  }
+  
+  if (productLower.includes("granule") || productLower.includes("resin") || productLower.includes("poly") || productLower.includes("hdpe") || productLower.includes("pvc") || productLower.includes("abs")) {
     return randomItem([500, 1000, 2000, 5000]);
   }
   
-  if (productLower.includes("mask") || productLower.includes("glove") || productLower.includes("helmet") || productLower.includes("kit") || productLower.includes("safety")) {
+  if (productLower.includes("mask") || productLower.includes("glove") || productLower.includes("helmet") || productLower.includes("first aid")) {
+    return randomItem([10, 25, 50, 100, 200]);
+  }
+  
+  if (productLower.includes("fabric") || productLower.includes("cloth") || productLower.includes("cotton") || productLower.includes("polyester")) {
     return randomItem([10, 25, 50, 100]);
   }
   
-  if (productLower.includes("fabric") || productLower.includes("roll") || productLower.includes("cloth")) {
-    return randomItem([10, 25, 50, 100]);
-  }
-  
-  if (productLower.includes("shirt") || productLower.includes("wear") || productLower.includes("garment") || productLower.includes("workwear")) {
+  if (productLower.includes("shirt") || productLower.includes("wear") || productLower.includes("garment") || productLower.includes("workwear") || productLower.includes("readymade")) {
     return randomItem([25, 50, 100, 250]);
   }
   
-  if (productLower.includes("box") || productLower.includes("tape") || productLower.includes("wrap") || productLower.includes("corrugated")) {
-    return randomItem([50, 100, 250, 500]);
+  if (productLower.includes("box") || productLower.includes("corrugated")) {
+    return randomItem([50, 100, 250, 500, 1000]);
   }
   
-  if (productLower.includes("fertilizer") || productLower.includes("sprayer")) {
+  if (productLower.includes("tape") || productLower.includes("wrap") || productLower.includes("film") || productLower.includes("bubble")) {
     return randomItem([10, 25, 50, 100]);
   }
   
-  if (productLower.includes("mc") || productLower.includes("mcb") || productLower.includes("switchgear") || productLower.includes("vfd") || productLower.includes("plc") || productLower.includes("breaker") || productLower.includes("valve") || productLower.includes("meter")) {
+  if (productLower.includes("fertilizer") || productLower.includes("sprayer") || productLower.includes("agricultural")) {
+    return randomItem([10, 25, 50, 100]);
+  }
+  
+  if (productLower.includes("mcb") || productLower.includes("switchgear") || productLower.includes("vfd") || productLower.includes("plc") || productLower.includes("breaker") || productLower.includes("valve") || productLower.includes("transmitter")) {
     return randomItem([5, 10, 20, 50]);
   }
   
-  if (platformCategory.includes("Electronics") || platformCategory.includes("Furniture")) {
-    return randomItem([1, 2, 3, 5]);
+  if (platformCategory.includes("Industrial") || platformCategory.includes("Electrical")) {
+    return randomItem([1, 2, 5, 10]);
   }
   
   if (platformCategory.includes("Raw Materials") || platformCategory.includes("Chemicals") || platformCategory.includes("Food") || platformCategory.includes("Construction")) {
     return randomItem([10, 25, 50, 100]);
   }
   
-  if (platformCategory.includes("Industrial") || platformCategory.includes("Electrical") || platformCategory.includes("Packaging") || platformCategory.includes("Textiles") || platformCategory.includes("Health")) {
-    return randomItem([5, 10, 25, 50]);
+  if (platformCategory.includes("Packaging") || platformCategory.includes("Textiles") || platformCategory.includes("Health")) {
+    return randomItem([10, 25, 50, 100]);
   }
   
-  return randomItem([1, 2, 3, 5, 10]);
+  return randomItem([1, 2, 5, 10]);
 }
 
 async function getSmartUnit(platformCategory, product) {
