@@ -1296,24 +1296,35 @@ router.post("/otp/request", async (req, res) => {
 
 router.post("/otp/verify", async (req, res) => {
   const { mobile, otp } = req.body;
-  console.log(`[OTP Verify] Request - mobile: ${mobile}, otp: ${otp}`);
+  console.log(`[OTP Verify] Request - mobile: ${mobile}, otp: '${otp}'`);
   
   if (!mobile || !otp) {
     return res.status(400).json({ success: false, message: "Mobile and OTP are required" });
   }
   
   const mobileE164 = normalizeE164(mobile);
-  console.log(`[OTP Verify] Normalized mobile: ${mobileE164}`);
+  const otpTrimmed = String(otp).trim();
+  console.log(`[OTP Verify] Normalized mobile: ${mobileE164}, trimmed OTP: '${otpTrimmed}'`);
+  
+  // Find all recent OTPs for this mobile for debugging
+  const allOtps = await WhatsAppOTP.find({ mobileE164 }).sort({ createdAt: -1 }).limit(3).lean();
+  console.log(`[OTP Verify] Recent OTPs in DB:`, allOtps.map(o => ({ otp: o.otp, status: o.status })));
   
   const otpRecord = await WhatsAppOTP.findOne({
     mobileE164,
-    otp: otp.trim(),
     status: "pending"
   }).sort({ createdAt: -1 });
   
-  console.log(`[OTP Verify] Found record:`, otpRecord ? `yes, OTP=${otpRecord.otp}` : 'no');
+  console.log(`[OTP Verify] Latest pending OTP record:`, otpRecord ? { otp: otpRecord.otp, status: otpRecord.status } : 'none');
   
-  if (!otpRecord) {
+  // Compare OTPs
+  if (otpRecord && String(otpRecord.otp).trim() === otpTrimmed) {
+    console.log(`[OTP Verify] OTP MATCH!`);
+  } else if (otpRecord) {
+    console.log(`[OTP Verify] OTP MISMATCH - DB: '${otpRecord.otp}', Input: '${otpTrimmed}'`);
+  }
+  
+  if (!otpRecord || String(otpRecord.otp).trim() !== otpTrimmed) {
     return res.status(400).json({ success: false, message: "Invalid or expired OTP" });
   }
   
