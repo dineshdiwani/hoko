@@ -74,8 +74,10 @@ export default function WhatsAppLogin() {
     setOtpError("");
     setLoading(true);
     try {
+      const mobileNum = "+" + mobile.replace(/\D/g, "");
+      console.log(`[WhatsAppLogin] Verify OTP: ${otp} for mobile: ${mobileNum}`);
       const res = await api.post("/seller/otp/verify", {
-        mobile: "+" + mobile.replace(/\D/g, ""),
+        mobile: mobileNum,
         otp: otp
       });
       console.log("[WhatsAppLogin] Verify response:", res.data);

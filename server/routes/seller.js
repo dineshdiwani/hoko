@@ -1296,17 +1296,22 @@ router.post("/otp/request", async (req, res) => {
 
 router.post("/otp/verify", async (req, res) => {
   const { mobile, otp } = req.body;
+  console.log(`[OTP Verify] Request - mobile: ${mobile}, otp: ${otp}`);
+  
   if (!mobile || !otp) {
     return res.status(400).json({ success: false, message: "Mobile and OTP are required" });
   }
   
   const mobileE164 = normalizeE164(mobile);
+  console.log(`[OTP Verify] Normalized mobile: ${mobileE164}`);
   
   const otpRecord = await WhatsAppOTP.findOne({
     mobileE164,
     otp: otp.trim(),
     status: "pending"
   }).sort({ createdAt: -1 });
+  
+  console.log(`[OTP Verify] Found record:`, otpRecord ? `yes, OTP=${otpRecord.otp}` : 'no');
   
   if (!otpRecord) {
     return res.status(400).json({ success: false, message: "Invalid or expired OTP" });
