@@ -1528,7 +1528,21 @@ router.post("/profile", auth, buyerOnly, async (req, res) => {
     req.user.buyerSettings = next;
   }
 
-  await req.user.save();
+  if (typeof email === "string" && email.trim()) {
+    const existingUser = await User.findOne({ email: email.trim(), _id: { $ne: req.user._id } });
+    if (existingUser) {
+      return res.status(400).json({ message: "This email is already registered. Please use a different email." });
+    }
+  }
+
+  try {
+    await req.user.save();
+  } catch (err) {
+    if (err.code === 11000 && err.keyPattern?.email) {
+      return res.status(400).json({ message: "This email is already registered. Please use a different email." });
+    }
+    throw err;
+  }
 
   const afterSettings = getFreshBuyerSettings(req.user);
   afterSettings.hideEmail = Boolean(afterSettings.hideProfileUntilApproved);
