@@ -28,13 +28,10 @@ export default function WhatsAppLogin() {
     if (!mobile) return;
     setLoading(true);
     setOtpError("");
-    setDebugOtp(null);
     try {
-      console.log("[WhatsAppLogin] Sending OTP request to +" + mobile.replace(/\D/g, ""));
       const res = await api.post("/seller/otp/request", {
         mobile: "+" + mobile.replace(/\D/g, "")
-      });
-      console.log("[WhatsAppLogin] OTP request success, response:", res?.data);
+      }, { timeout: 10000 });
       
       setResendTimer(60);
       const interval = setInterval(() => {
@@ -48,11 +45,11 @@ export default function WhatsAppLogin() {
       }, 1000);
       setStep("ENTER_OTP");
     } catch (err) {
-      console.error("[WhatsAppLogin] OTP request error:", err);
-      console.error("[WhatsAppLogin] Error status:", err?.response?.status);
-      console.error("[WhatsAppLogin] Error data:", err?.response?.data);
-      const msg = err?.response?.data?.message || err?.message || "Failed to send OTP";
-      setOtpError(msg);
+      if (err.code === 'ECONNABORTED') {
+        setOtpError("Request timed out. Please try again.");
+      } else {
+        setOtpError(err?.response?.data?.message || err?.message || "Failed to send OTP");
+      }
     } finally {
       setLoading(false);
     }
@@ -67,17 +64,14 @@ export default function WhatsAppLogin() {
     setLoading(true);
     try {
       const mobileNum = "+" + mobile.replace(/\D/g, "");
-      console.log(`[WhatsAppLogin] Verify OTP: ${otp} for mobile: ${mobileNum}`);
       const res = await api.post("/seller/otp/verify", {
         mobile: mobileNum,
         otp: otp
-      });
-      console.log("[WhatsAppLogin] Verify response:", res.data);
+      }, { timeout: 10000 });
       
       if (res.data?.success) {
         const user = res.data.user || {};
         
-        // Store WhatsApp params
         if (catsFromUrl) {
           localStorage.setItem("whatsapp_seller_cats", catsFromUrl);
         }
@@ -99,10 +93,8 @@ export default function WhatsAppLogin() {
           });
         }
         
-        // Clear WhatsApp temp storage
         localStorage.removeItem("whatsapp_seller_mobile");
         
-        // Redirect to dashboard
         const dashParams = new URLSearchParams();
         if (cityFromUrl) dashParams.set("city", cityFromUrl);
         navigate(`/seller/dashboard?${dashParams.toString()}`, { replace: true });
@@ -110,7 +102,11 @@ export default function WhatsAppLogin() {
         throw new Error(res.data?.message || "Verification failed");
       }
     } catch (err) {
-      setOtpError(err?.response?.data?.message || err?.message || "Invalid OTP");
+      if (err.code === 'ECONNABORTED') {
+        setOtpError("Request timed out. Please try again.");
+      } else {
+        setOtpError(err?.response?.data?.message || err?.message || "Invalid OTP");
+      }
     } finally {
       setLoading(false);
     }
