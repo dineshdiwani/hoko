@@ -270,9 +270,9 @@ export default function SellerDeepLink() {
       alert(
         isAuto
           ? "Offer submitted now. Thank you."
-          : "Offer submitted successfully."
+          : "Offer submitted successfully. You will be notified via WhatsApp or app."
       );
-      navigate("/seller/login", { replace: true });
+      navigate("/seller/dashboard", { replace: true });
     } catch (err) {
       console.log("[SellerDeepLink] Submit error:", err);
       console.log("[SellerDeepLink] Error response:", err?.response?.data);
