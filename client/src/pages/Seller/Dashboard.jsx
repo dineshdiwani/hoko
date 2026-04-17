@@ -17,6 +17,8 @@ import ReportModal from "../../components/ReportModal";
 import ChatModal from "../../components/ChatModal";
 import { confirmDialog } from "../../utils/dialogs";
 
+console.log("[SellerDashboard] Module loaded");
+
 const SELLER_DASHBOARD_STATE_KEY = "seller_dashboard_state";
 
 function readSellerDashboardState() {

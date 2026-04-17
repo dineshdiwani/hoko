@@ -73,6 +73,7 @@ export default function WhatsAppLogin() {
       
       if (res.data?.success) {
         const user = res.data.user || {};
+        console.log("OTP verified, user:", user, "token:", res.data.token ? "yes" : "no");
         
         if (catsFromUrl) {
           localStorage.setItem("whatsapp_seller_cats", catsFromUrl);
@@ -98,6 +99,7 @@ export default function WhatsAppLogin() {
             mobile: user.mobile || mobile,
             token: res.data.token
           });
+          console.log("Session set, redirecting to /seller/dashboard?city=" + cityFromUrl);
           window.location.href = `/seller/dashboard?${dashParams.toString()}`;
           return;
         }
