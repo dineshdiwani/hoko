@@ -180,12 +180,26 @@ const BRAND_MODEL_TEMPLATES = {
   ]
 };
 
-function getBrandModel(platformCategory) {
-  const templates = BRAND_MODEL_TEMPLATES[platformCategory];
-  if (!templates || templates.length === 0) {
-    return { brand: null, model: null, type: null, condition: null };
+function findMatchingTemplateKey(category, templateObj) {
+  if (templateObj[category]) return category;
+  const categoryLower = category.toLowerCase();
+  for (const key of Object.keys(templateObj)) {
+    if (categoryLower.includes(key.toLowerCase()) || key.toLowerCase().includes(categoryLower)) {
+      return key;
+    }
   }
-  return randomItem(templates);
+  return null;
+}
+
+function getBrandModel(platformCategory) {
+  const matchKey = findMatchingTemplateKey(platformCategory, BRAND_MODEL_TEMPLATES);
+  if (matchKey) {
+    const templates = BRAND_MODEL_TEMPLATES[matchKey];
+    if (templates && templates.length > 0) {
+      return randomItem(templates);
+    }
+  }
+  return { brand: null, model: null, type: null, condition: null };
 }
 
 const DETAIL_STYLES = {
@@ -350,7 +364,20 @@ async function getCategories() {
   } catch (err) {
     console.log("[DummyReq] getCategories error:", err.message);
   }
-  return ["Electronics", "Furniture", "Electrical", "Industrial", "Plumbing", "Household", "Logistics", "General"];
+  return Object.keys(PLATFORM_CATEGORY_WEIGHTS);
+}
+
+async function getUnits() {
+  try {
+    const settings = await PlatformSettings.findOne().lean();
+    const units = settings?.units;
+    if (Array.isArray(units) && units.length > 0) {
+      return units;
+    }
+  } catch (err) {
+    console.log("[DummyReq] getUnits error:", err.message);
+  }
+  return ["pcs", "kg", "liter", "units", "bags"];
 }
 
 async function getCities() {
@@ -375,22 +402,12 @@ function getRandomCity(cities) {
   return String(cities[idx] || "Delhi");
 }
 
-function selectPlatformCategory() {
-  const categories = Object.keys(PLATFORM_CATEGORY_WEIGHTS);
-  const weights = Object.values(PLATFORM_CATEGORY_WEIGHTS);
-  
-  const totalWeight = weights.reduce((sum, w) => sum + w, 0);
-  const rand = Math.random() * totalWeight;
-  
-  let cumulative = 0;
-  for (let i = 0; i < categories.length; i++) {
-    cumulative += weights[i];
-    if (rand < cumulative) {
-      return categories[i];
-    }
+async function selectPlatformCategory() {
+  const categories = await getCategories();
+  if (!Array.isArray(categories) || categories.length === 0) {
+    return Object.keys(PLATFORM_CATEGORY_WEIGHTS)[0];
   }
-  
-  return categories[0];
+  return randomItem(categories);
 }
 
 function getSmartQuantity(platformCategory) {
@@ -412,96 +429,87 @@ function getSmartQuantity(platformCategory) {
   return randomInt(1, 5);
 }
 
-function getSmartUnit(platformCategory, product) {
+async function getSmartUnit(platformCategory, product) {
   const productLower = String(product || "").toLowerCase();
+  const adminUnits = await getUnits();
+  const baseUnits = Array.isArray(adminUnits) && adminUnits.length > 0 ? adminUnits : ["pcs", "units", "nos"];
+  
+  let categoryUnits = [...baseUnits];
   
   if (platformCategory.includes("Raw Materials") || platformCategory.includes("Chemicals") || platformCategory.includes("Food")) {
-    return randomItem(["kg", "quintal", "ton", "liter", "bags", "units"]);
+    categoryUnits = [...baseUnits, "kg", "quintal", "ton", "liter", "bags"];
   }
   if (platformCategory.includes("Services") || platformCategory.includes("Business")) {
     if (productLower.includes("catering") || productLower.includes("guest") || productLower.includes("people")) {
-      return randomItem(["people", "guests", "persons", "plates"]);
+      categoryUnits = [...baseUnits, "people", "guests", "persons", "plates"];
+    } else if (productLower.includes("consulting") || productLower.includes("service") || productLower.includes("hour")) {
+      categoryUnits = [...baseUnits, "hours", "sessions", "package"];
+    } else {
+      categoryUnits = [...baseUnits, "service", "job", "set"];
     }
-    if (productLower.includes("consulting") || productLower.includes("service") || productLower.includes("hour")) {
-      return randomItem(["hours", "sessions", "package"]);
-    }
-    return randomItem(["service", "job", "unit", "set", "package"]);
   }
   if (platformCategory.includes("Logistics")) {
     if (productLower.includes("packer") || productLower.includes("mover") || productLower.includes("2bhk") || productLower.includes("3bhk")) {
-      return randomItem(["service", "job", "house"]);
+      categoryUnits = [...baseUnits, "service", "job", "house"];
+    } else if (productLower.includes("truck") || productLower.includes("container") || productLower.includes("ton")) {
+      categoryUnits = [...baseUnits, "trips", "capacity"];
+    } else if (productLower.includes("sqft") || productLower.includes("warehouse")) {
+      categoryUnits = [...baseUnits, "sqft", "sq.ft", "area"];
+    } else {
+      categoryUnits = [...baseUnits, "service"];
     }
-    if (productLower.includes("truck") || productLower.includes("container") || productLower.includes("ton")) {
-      return randomItem(["trips", "units", "capacity"]);
-    }
-    if (productLower.includes("sqft") || productLower.includes("warehouse")) {
-      return randomItem(["sqft", "sq.ft", "area"]);
-    }
-    return randomItem(["service", "units"]);
   }
   if (platformCategory.includes("Vehicles")) {
-    return randomItem(["units", "nos", "vehicles"]);
+    categoryUnits = [...baseUnits, "vehicles", "nos"];
   }
   if (platformCategory.includes("Industrial") || platformCategory.includes("Electrical")) {
     if (productLower.includes("motor") || productLower.includes("generator") || productLower.includes("machine") || productLower.includes("welder") || productLower.includes("lathe") || productLower.includes("cnc") || productLower.includes("pump")) {
-      return randomItem(["units", "nos", "sets"]);
+      categoryUnits = [...baseUnits, "sets"];
+    } else if (productLower.includes("wire") || productLower.includes("cable")) {
+      categoryUnits = [...baseUnits, "roll", "mtr", "coils"];
+    } else if (productLower.includes("bearing")) {
+      categoryUnits = [...baseUnits, "packs", "sets"];
+    } else if (productLower.includes("valve") || productLower.includes("meter") || productLower.includes("switchgear") || productLower.includes("MCB") || productLower.includes("VFD") || productLower.includes("PLC") || productLower.includes("drive") || productLower.includes("transmitter")) {
+      categoryUnits = [...baseUnits, "modules"];
     }
-    if (productLower.includes("wire") || productLower.includes("cable")) {
-      return randomItem(["roll", "mtr", "coils", "units"]);
-    }
-    if (productLower.includes("bearing")) {
-      return randomItem(["pcs", "nos", "packs", "sets"]);
-    }
-    if (productLower.includes("valve") || productLower.includes("meter") || productLower.includes("switchgear") || productLower.includes("MCB") || productLower.includes("VFD") || productLower.includes("PLC") || productLower.includes("drive") || productLower.includes("transmitter")) {
-      return randomItem(["pcs", "nos", "units", "modules"]);
-    }
-    return randomItem(["pcs", "units", "nos"]);
   }
   if (platformCategory.includes("Construction")) {
     if (productLower.includes("bar") || productLower.includes("steel") || productLower.includes("beam") || productLower.includes("panel")) {
-      return randomItem(["pcs", "nos", "mtr", "lengths"]);
+      categoryUnits = [...baseUnits, "mtr", "lengths"];
+    } else if (productLower.includes("cement") || productLower.includes("bag")) {
+      categoryUnits = [...baseUnits, "tons"];
     }
-    if (productLower.includes("cement") || productLower.includes("bag")) {
-      return randomItem(["bags", "units", "tons"]);
-    }
-    return randomItem(["pcs", "units", "nos"]);
   }
   if (platformCategory.includes("Packaging")) {
     if (productLower.includes("box") || productLower.includes("roll") || productLower.includes("film") || productLower.includes("wrap")) {
-      return randomItem(["pcs", "rolls", "units"]);
+      categoryUnits = [...baseUnits, "rolls", "boxes"];
     }
-    return randomItem(["pcs", "units", "boxes"]);
   }
   if (platformCategory.includes("Textiles")) {
     if (productLower.includes("fabric") || productLower.includes("roll")) {
-      return randomItem(["meters", "rolls", "pcs"]);
+      categoryUnits = [...baseUnits, "meters", "rolls"];
+    } else if (productLower.includes("shirt") || productLower.includes("wear") || productLower.includes("garment")) {
+      categoryUnits = [...baseUnits, "dozens"];
     }
-    if (productLower.includes("shirt") || productLower.includes("wear") || productLower.includes("garment")) {
-      return randomItem(["pcs", "units", "dozens"]);
-    }
-    return randomItem(["pcs", "units"]);
   }
   if (platformCategory.includes("Health")) {
     if (productLower.includes("mask") || productLower.includes("glove") || productLower.includes("kit")) {
-      return randomItem(["pcs", "boxes", "units"]);
+      categoryUnits = [...baseUnits, "boxes"];
     }
-    if (productLower.includes("helmet")) {
-      return randomItem(["pcs", "units"]);
-    }
-    return randomItem(["pcs", "units"]);
   }
-  if (platformCategory.includes("Electronics") || platformCategory.includes("Furniture")) {
-    return randomItem(["pcs", "units", "nos"]);
-  }
-  return randomItem(["pcs", "units", "nos"]);
+  
+  return randomItem(categoryUnits);
 }
 
 function getProduct(platformCategory) {
-  const products = PLATFORM_CATEGORY_TEMPLATES[platformCategory];
-  if (!products || products.length === 0) {
-    return `${platformCategory} Product`;
+  const matchKey = findMatchingTemplateKey(platformCategory, PLATFORM_CATEGORY_TEMPLATES);
+  if (matchKey) {
+    const products = PLATFORM_CATEGORY_TEMPLATES[matchKey];
+    if (products && products.length > 0) {
+      return randomItem(products);
+    }
   }
-  return randomItem(products);
+  return `${platformCategory} Product`;
 }
 
 function generateDetail(platformCategory, quantity, unit, brandData = {}) {
@@ -571,11 +579,12 @@ async function generateDummyRequirements(count = 3) {
     cities = citiesFallback;
   }
   
+  const adminCategories = await getCategories();
   const recentCombos = await getRecentCityCategories(30);
   
   const categoryDistribution = {};
   for (let i = 0; i < count; i++) {
-    const category = selectPlatformCategory();
+    const category = await selectPlatformCategory();
     categoryDistribution[category] = (categoryDistribution[category] || 0) + 1;
   }
   
@@ -606,10 +615,10 @@ async function generateDummyRequirements(count = 3) {
         continue;
       }
       
-      const product = getProduct(platformCategory);
+      const product = getProduct(platformCategory, adminCategories);
       const quantity = getSmartQuantity(platformCategory);
-      const unit = getSmartUnit(platformCategory, product);
-      const brandData = getBrandModel(platformCategory);
+      const unit = await getSmartUnit(platformCategory, product);
+      const brandData = getBrandModel(platformCategory, adminCategories);
       const condition = brandData.condition || randomItem(["new", "used"]);
       const details = generateDetail(platformCategory, quantity, unit, brandData);
       
@@ -640,6 +649,7 @@ async function generateDummyRequirements(count = 3) {
           type: brandData.type || condition,
           condition: condition,
           quantity: String(quantity),
+          unit: unit,
           details: details,
           status: "open",
           isAutoGenerated: true,

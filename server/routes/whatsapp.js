@@ -40,36 +40,43 @@ const CONSENT_STATES = {
   AWAITING_SELLER_CATEGORIES: "awaiting_seller_categories"
 };
 
-const WHATSAPP_CATEGORIES = [
-  { id: 1, name: "Electronics & Appliances", mapsTo: ["Electronics & Appliances"] },
-  { id: 2, name: "Furniture & Home", mapsTo: ["Furniture & Home"] },
-  { id: 3, name: "Vehicles & Parts", mapsTo: ["Vehicles & Parts"] },
-  { id: 4, name: "Industrial Machinery", mapsTo: ["Industrial Machinery"] },
-  { id: 5, name: "Electrical Parts", mapsTo: ["Electrical Parts"] },
-  { id: 6, name: "Construction Materials", mapsTo: ["Construction Materials"] },
-  { id: 7, name: "Services & Maintenance", mapsTo: ["Services & Maintenance"] },
-  { id: 8, name: "Raw Materials", mapsTo: ["Raw Materials"] },
-  { id: 9, name: "Chemicals & Plastics", mapsTo: ["Chemicals & Plastics"] },
-  { id: 10, name: "Packaging", mapsTo: ["Packaging"] },
-  { id: 11, name: "Textiles & Apparel", mapsTo: ["Textiles & Apparel"] },
-  { id: 12, name: "Food & Agriculture", mapsTo: ["Food & Agriculture"] },
-  { id: 13, name: "Health & Safety", mapsTo: ["Health & Safety"] },
-  { id: 14, name: "Logistics & Transport", mapsTo: ["Logistics & Transport"] },
-  { id: 15, name: "Business Services", mapsTo: ["Business Services"] }
-];
-
-const WHATSAPP_CATEGORY_OFFER_ANYWHERE = new Set([4, 5, 6, 8, 9]);
-
-function buildCategorySelectionMessage() {
+async function buildCategorySelectionMessage() {
+  let adminCategories = [];
+  try {
+    const settings = await PlatformSettings.findOne().lean();
+    adminCategories = settings?.categories || [];
+  } catch (err) {
+    console.log("[WhatsApp] Error fetching categories:", err.message);
+  }
+  
+  if (!adminCategories.length) {
+    adminCategories = [
+      "Electronics & Appliances", "Furniture & Home", "Vehicles & Parts",
+      "Industrial Machinery", "Electrical Parts", "Construction Materials",
+      "Services & Maintenance", "Raw Materials", "Chemicals & Plastics",
+      "Packaging", "Textiles & Apparel", "Food & Agriculture",
+      "Health & Safety", "Logistics & Transport", "Business Services"
+    ];
+  }
+  
   const lines = ["Great! Select categories you deal in (send numbers):", ""];
-  WHATSAPP_CATEGORIES.forEach(cat => {
-    lines.push(`[${cat.id}] ${cat.name}`);
+  adminCategories.forEach((cat, idx) => {
+    lines.push(`[${idx + 1}] ${cat}`);
   });
-  lines.push("", "Example: Send '1,3,5' or '1' or '12'");
+  lines.push("", "Example: Send '1,3,5' or '1' or '0' for all");
   return lines.join("\n");
 }
 
-function parseCategorySelection(input) {
+function parseCategorySelection(input, adminCategories = []) {
+  const defaultCategories = [
+    "Electronics & Appliances", "Furniture & Home", "Vehicles & Parts",
+    "Industrial Machinery", "Electrical Parts", "Construction Materials",
+    "Services & Maintenance", "Raw Materials", "Chemicals & Plastics",
+    "Packaging", "Textiles & Apparel", "Food & Agriculture",
+    "Health & Safety", "Logistics & Transport", "Business Services"
+  ];
+  
+  const categories = adminCategories.length > 0 ? adminCategories : defaultCategories;
   const nums = input.split(/[,;\s]+/).map(s => parseInt(s.trim())).filter(n => !isNaN(n) && n >= 0);
   
   const selectedCategories = [];
@@ -77,15 +84,16 @@ function parseCategorySelection(input) {
   
   for (const num of nums) {
     if (num === 0) {
-      WHATSAPP_CATEGORIES.forEach(cat => {
-        selectedCategories.push(cat.name);
-        cat.mapsTo.forEach(pc => platformCategories.add(pc));
+      categories.forEach(cat => {
+        selectedCategories.push(cat);
+        platformCategories.add(cat);
       });
     } else {
-      const cat = WHATSAPP_CATEGORIES.find(c => c.id === num);
-      if (cat) {
-        selectedCategories.push(cat.name);
-        cat.mapsTo.forEach(pc => platformCategories.add(pc));
+      const idx = num - 1;
+      if (idx >= 0 && idx < categories.length) {
+        const cat = categories[idx];
+        selectedCategories.push(cat);
+        platformCategories.add(cat);
       }
     }
   }
@@ -93,7 +101,7 @@ function parseCategorySelection(input) {
   return {
     whatsappCategories: selectedCategories,
     platformCategories: Array.from(platformCategories),
-    hasOfferAnywhere: nums.some(n => WHATSAPP_CATEGORY_OFFER_ANYWHERE.has(n)) || nums.includes(0)
+    hasOfferAnywhere: false
   };
 }
 
@@ -800,9 +808,10 @@ router.post("/webhook", async (req, res) => {
         mobileE164: event.mobileE164,
         city: cityToSave 
       });
+      const categoryMessage = await buildCategorySelectionMessage();
       await sendWhatsAppMessage({
         to: event.mobileE164,
-        body: buildCategorySelectionMessage()
+        body: categoryMessage
       });
       continue;
     }
@@ -820,7 +829,15 @@ router.post("/webhook", async (req, res) => {
         continue;
       }
       
-      const parsed = parseCategorySelection(inboundText);
+      let adminCategories = [];
+      try {
+        const settings = await PlatformSettings.findOne().lean();
+        adminCategories = settings?.categories || [];
+      } catch (err) {
+        console.log("[WhatsApp] Error fetching categories:", err.message);
+      }
+      
+      const parsed = parseCategorySelection(inboundText, adminCategories);
       
       if (parsed.whatsappCategories.length === 0) {
         await sendWhatsAppMessage({

@@ -42,6 +42,10 @@ const requirementSchema = new mongoose.Schema(
       type: String
     },
 
+    unit: {
+      type: String
+    },
+
     type: {
       type: String
     },
