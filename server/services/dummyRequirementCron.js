@@ -1211,10 +1211,25 @@ async function generateDummyRequirements(count = 3) {
       const quantity = getQuantityForProduct(productData);
       const unit = productData.unit;
       const condition = productData.condition || randomItem(["new", "used"]);
-      const productName = productData.brand 
+      const baseProductName = productData.brand 
         ? `${productData.brand} ${productData.model} ${productData.product}` 
         : `${productData.model} ${productData.product}`;
-      const details = generateDetail(productName, quantity, unit, productData.specs, platformCategory);
+      
+      const TITLE_PREFIXES = [
+        "Looking for",
+        "We need",
+        "In need of",
+        "Want",
+        "Urgent - Need",
+        "Need immediately",
+        "Wanted",
+        "Wanted urgently",
+        "Buyer looking for",
+        "Requirement for"
+      ];
+      const titlePrefix = randomItem(TITLE_PREFIXES);
+      const productName = `${titlePrefix} ${baseProductName}`;
+      const details = generateDetail(baseProductName, quantity, unit, productData.specs, platformCategory);
       
       try {
         const offerInvitedFrom = platformCategory.includes("Raw Materials") || platformCategory.includes("Chemicals") || platformCategory.includes("Industrial") || platformCategory.includes("Electrical") ? "anywhere" : "city";
