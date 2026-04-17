@@ -53,10 +53,17 @@ import {
 } from "../../utils/notifications";
 
 export default function SellerDashboard() {
-  console.log("[SellerDashboard] Component rendering");
+  console.log("[SellerDashboard] Component rendering, session:", session ? "exists" : "null", "token:", session?.token ? "yes" : "no");
   const navigate = useNavigate();
   const location = useLocation();
   const session = getSession();
+  
+  // Debug - show session info on screen
+  const [debugInfo, setDebugInfo] = useState("");
+  useEffect(() => {
+    setDebugInfo(`Session: ${session ? "exists" : "null"}, token: ${session?.token ? "yes" : "no"}, role: ${session?.role}`);
+  }, [session]);
+  
   const menuRef = useRef(null);
 
   const [requirements, setRequirements] = useState([]);
@@ -811,69 +818,10 @@ export default function SellerDashboard() {
 
   return (
     <div className="page dashboard-layout">
-      {/* WhatsApp OTP Verification Modal */}
-      {otpModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
-            <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <h2 className="text-xl font-bold mb-2">Verify Your WhatsApp</h2>
-              <p className="text-gray-600 text-sm">
-                We've sent a 4-digit code to<br />
-                <strong>+{whatsappMobile}</strong>
-              </p>
-            </div>
-            
-            <div className="space-y-4">
-              <input
-                type="text"
-                value={otpValue}
-                onChange={(e) => setOtpValue(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                placeholder="Enter 4-digit OTP"
-                className="w-full px-4 py-3 border rounded-xl text-center text-2xl tracking-widest"
-                maxLength={4}
-              />
-              {otpError && (
-                <p className="text-red-600 text-sm text-center">{otpError}</p>
-              )}
-              <button
-                onClick={verifySellerOtp}
-                disabled={otpLoading || otpValue.length !== 4}
-                className="btn-primary w-full py-3"
-              >
-                {otpLoading ? "Verifying..." : "Verify OTP"}
-              </button>
-              <div className="text-center">
-                {resendTimer > 0 ? (
-                  <p className="text-gray-500 text-sm">Resend OTP in {resendTimer}s</p>
-                ) : (
-                  <button
-                    onClick={requestSellerOtp}
-                    disabled={otpLoading}
-                    className="text-amber-700 text-sm hover:underline"
-                  >
-                    Resend OTP
-                  </button>
-                )}
-              </div>
-              <button
-                onClick={() => {
-                  setOtpModalOpen(false);
-                  localStorage.removeItem("whatsapp_seller_mobile");
-                  localStorage.removeItem("whatsapp_seller_city");
-                  localStorage.removeItem("whatsapp_seller_cats");
-                  navigate("/seller/login");
-                }}
-                className="text-gray-500 text-sm hover:underline w-full text-center"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
+      {/* Debug info */}
+      {debugInfo && (
+        <div className="fixed top-0 left-0 bg-red-500 text-white px-2 py-1 text-xs z-50">
+          {debugInfo}
         </div>
       )}
 
