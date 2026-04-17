@@ -19,18 +19,22 @@ export default function WhatsAppLogin() {
   const [mobile, setMobile] = useState(mobileFromUrl);
 
   useEffect(() => {
-    if (mobileFromUrl) {
+    if (mobileFromUrl && mobile) {
       requestOtp();
     }
-  }, []);
+  }, [mobileFromUrl]);
 
   const requestOtp = async () => {
-    if (!mobile) return;
+    const mobileNum = mobile || mobileFromUrl;
+    if (!mobileNum) return;
     setLoading(true);
     setOtpError("");
+    const mobileNum = mobile || mobileFromUrl;
+    if (!mobileNum) return;
+    
     try {
       const res = await api.post("/seller/otp/request", {
-        mobile: "+" + mobile.replace(/\D/g, "")
+        mobile: "+" + mobileNum.replace(/\D/g, "")
       }, { timeout: 10000 });
       
       setResendTimer(60);
