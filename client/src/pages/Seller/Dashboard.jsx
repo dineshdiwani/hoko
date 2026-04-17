@@ -71,6 +71,7 @@ export default function SellerDashboard() {
   useEffect(() => {
     console.log("[SellerDashboard] useEffect cityFromUrl:", cityFromUrl, "session?.token:", session?.token);
     if (cityFromUrl && session?.token) {
+      setSelectedCity(cityFromUrl); // Update local state immediately
       api.post("/seller/profile", { city: cityFromUrl }).then(() => {
         console.log("[SellerDashboard] City updated to:", cityFromUrl);
       }).catch((e) => {
