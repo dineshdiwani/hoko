@@ -1259,11 +1259,15 @@ function generateOTP() {
 
 router.post("/otp/request", async (req, res) => {
   const { mobile } = req.body;
+  console.log(`[OTP Request] body:`, req.body);
+  
   if (!mobile) {
     return res.status(400).json({ message: "Mobile number is required" });
   }
   
   const mobileE164 = normalizeE164(mobile);
+  console.log(`[OTP Request] mobileE164: ${mobileE164}`);
+  
   const otp = generateOTP();
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
   
@@ -1276,7 +1280,6 @@ router.post("/otp/request", async (req, res) => {
     source: "seller_deeplink"
   });
   
-  // Log OTP for testing
   console.log(`\n\n🔐 [OTP TEST] For ${mobileE164}: ${otp}\n\n`);
   
   let whatsappOk = false;
@@ -1296,7 +1299,8 @@ router.post("/otp/request", async (req, res) => {
 
 router.post("/otp/verify", async (req, res) => {
   const { mobile, otp } = req.body;
-  console.log(`[OTP Verify] Request - mobile: ${mobile}, otp: '${otp}'`);
+  console.log(`[OTP Verify] Request body:`, req.body);
+  console.log(`[OTP Verify] mobile type: ${typeof mobile}, otp type: ${typeof otp}`);
   
   if (!mobile || !otp) {
     return res.status(400).json({ success: false, message: "Mobile and OTP are required" });
