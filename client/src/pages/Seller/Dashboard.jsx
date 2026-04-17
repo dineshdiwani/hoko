@@ -216,6 +216,15 @@ export default function SellerDashboard() {
   };
 
   useEffect(() => {
+    const waMobile = localStorage.getItem("whatsapp_seller_mobile");
+    
+    // If WhatsApp user with mobile but no session, don't redirect to login
+    if (!session?.token && waMobile) {
+      setWhatsappMobile(waMobile);
+      setOtpModalOpen(true);
+      return;
+    }
+    
     if (!session?.token) {
       navigate("/seller/login");
     }
@@ -225,59 +234,6 @@ export default function SellerDashboard() {
     const stored = getSellerDashboardCategories();
     setDashboardCategories(stored);
   }, []);
-
-  useEffect(() => {
-    const triggerRefresh = () => setRefreshToken((prev) => prev + 1);
-    const onVisible = () => {
-      if (document.visibilityState === "visible") {
-        triggerRefresh();
-      }
-    };
-    const onFocus = () => triggerRefresh();
-    const onPageShow = (event) => {
-      if (event.persisted) {
-        triggerRefresh();
-      }
-    };
-
-    document.addEventListener("visibilitychange", onVisible);
-    window.addEventListener("focus", onFocus);
-    window.addEventListener("pageshow", onPageShow);
-
-    return () => {
-      document.removeEventListener("visibilitychange", onVisible);
-      window.removeEventListener("focus", onFocus);
-      window.removeEventListener("pageshow", onPageShow);
-    };
-  }, []);
-
-  useEffect(() => {
-    fetchOptions()
-      .then((data) => {
-        setCities(Array.isArray(data?.cities) ? data.cities : []);
-        setCategories(Array.isArray(data?.categories) ? data.categories : []);
-      })
-      .catch(() => {});
-  }, [refreshToken]);
-
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const cityFromLink = String(params.get("city") || "").trim();
-    if (cityFromLink) {
-      setSelectedCity((prev) => resolveCityValue(cityFromLink, cities, prev));
-    }
-  }, [location.search, cities]);
-
-  // Check for WhatsApp OTP params on mount
-  useEffect(() => {
-    if (session?.token && session?.roles?.seller) return;
-    
-    const waMobile = localStorage.getItem("whatsapp_seller_mobile");
-    if (waMobile && !session?.token) {
-      setWhatsappMobile(waMobile);
-      setOtpModalOpen(true);
-    }
-  }, [session]);
 
   const requestSellerOtp = async () => {
     if (!whatsappMobile) return;
