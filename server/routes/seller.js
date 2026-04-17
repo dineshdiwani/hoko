@@ -1276,18 +1276,22 @@ router.post("/otp/request", async (req, res) => {
     source: "seller_deeplink"
   });
   
-  const sendResult = await sendWhatsAppMessage({
-    to: mobileE164,
-    body: `Your HOKO Seller verification code is: *${otp}*\n\nThis code expires in 10 minutes.`
-  });
+  // Log OTP for testing
+  console.log(`\n\n🔐 [OTP TEST] For ${mobileE164}: ${otp}\n\n`);
   
-  console.log(`[OTP Request] Sent to ${mobileE164}, result:`, sendResult);
-  
-  if (!sendResult?.ok) {
-    console.warn(`[OTP Request] WhatsApp send failed for ${mobileE164}:`, sendResult?.error || sendResult?.reason);
+  let whatsappOk = false;
+  try {
+    const sendResult = await sendWhatsAppMessage({
+      to: mobileE164,
+      body: `Your HOKO Seller verification code is: *${otp}*\n\nThis code expires in 10 minutes.`
+    });
+    whatsappOk = sendResult?.ok || false;
+    console.log(`[OTP Request] WhatsApp result for ${mobileE164}:`, sendResult);
+  } catch (err) {
+    console.error(`[OTP Request] WhatsApp error for ${mobileE164}:`, err.message);
   }
   
-  res.json({ success: true, message: "OTP sent to WhatsApp" });
+  res.json({ success: true, message: "OTP sent", otp: otp }); // Include OTP in response for testing
 });
 
 router.post("/otp/verify", async (req, res) => {
