@@ -1276,10 +1276,16 @@ router.post("/otp/request", async (req, res) => {
     source: "seller_deeplink"
   });
   
-  await sendWhatsAppMessage({
+  const sendResult = await sendWhatsAppMessage({
     to: mobileE164,
     body: `Your HOKO Seller verification code is: *${otp}*\n\nThis code expires in 10 minutes.`
   });
+  
+  console.log(`[OTP Request] Sent to ${mobileE164}, result:`, sendResult);
+  
+  if (!sendResult?.ok) {
+    console.warn(`[OTP Request] WhatsApp send failed for ${mobileE164}:`, sendResult?.error || sendResult?.reason);
+  }
   
   res.json({ success: true, message: "OTP sent to WhatsApp" });
 });
