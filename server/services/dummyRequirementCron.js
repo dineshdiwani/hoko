@@ -39,160 +39,240 @@ function normalizeMobileE164(mobile) {
 }
 
 const PRODUCT_MASTER = [
-  // ELECTRONICS & APPLIANCES
+  // ELECTRONICS & APPLIANCES (20 products)
   { category: "Electronics & Appliances", product: "LED Smart TV", brand: "Samsung", model: "55 inch 4K", type: "LED TV", unit: "pcs", qtyMin: 1, qtyMax: 5, specs: "Smart LED, WiFi, 4K Ultra HD, HDR, 2 Year Warranty, GST Invoice" },
   { category: "Electronics & Appliances", product: "LED Smart TV", brand: "LG", model: "43 inch Full HD", type: "LED TV", unit: "pcs", qtyMin: 1, qtyMax: 5, specs: "Full HD, WebOS, HDR, WiFi, 1 Year Warranty, GST Invoice" },
+  { category: "Electronics & Appliances", product: "LED Smart TV", brand: "Sony", model: "65 inch 4K", type: "LED TV", unit: "pcs", qtyMin: 1, qtyMax: 3, specs: "4K HDR, Android TV, Acoustic Multi-Audio, 120Hz, 3 Year Warranty, GST Invoice" },
   { category: "Electronics & Appliances", product: "Frost Free Refrigerator", brand: "Samsung", model: "253L", type: "Refrigerator", unit: "pcs", qtyMin: 1, qtyMax: 3, specs: "Frost Free, 5 Star Rating, Digital Inverter, 10 Year Compressor Warranty, GST Invoice" },
   { category: "Electronics & Appliances", product: "Frost Free Refrigerator", brand: "LG", model: "260L", type: "Refrigerator", unit: "pcs", qtyMin: 1, qtyMax: 3, specs: "Frost Free, Linear Compressor, 5 Star, Smart Diagnosis, 10 Year Warranty, GST Invoice" },
+  { category: "Electronics & Appliances", product: "Frost Free Refrigerator", brand: "Whirlpool", model: "280L", type: "Refrigerator", unit: "pcs", qtyMin: 1, qtyMax: 3, specs: "Frost Free, Intellisense, 6th Sense, 5 Star, Inverter Compressor, 10 Year Warranty, GST Invoice" },
   { category: "Electronics & Appliances", product: "Split AC", brand: "Daikin", model: "1.5 Ton", type: "Split AC", unit: "pcs", qtyMin: 1, qtyMax: 10, specs: "Inverter, 5 Star Rating, PM2.5 Filter, Copper Coil, 5 Year Warranty on Compressor, GST Invoice" },
   { category: "Electronics & Appliances", product: "Split AC", brand: "Voltas", model: "1.5 Ton", type: "Split AC", unit: "pcs", qtyMin: 1, qtyMax: 10, specs: "Inverter, 3 Star Rating, High Ambient Cooling, Copper Coil, 5 Year Warranty, GST Invoice" },
+  { category: "Electronics & Appliances", product: "Split AC", brand: "LG", model: "2 Ton", type: "Split AC", unit: "pcs", qtyMin: 1, qtyMax: 5, specs: "Inverter, 5 Star, Visi Cool, Dual Inverter, Ocean Black Protection, 10 Year Compressor Warranty, GST Invoice" },
+  { category: "Electronics & Appliances", product: "Window AC", brand: "Samsung", model: "1.5 Ton", type: "Window AC", unit: "pcs", qtyMin: 1, qtyMax: 10, specs: "Easy Fix Installation, 3 Star, Quick Cooling, Digital Display, 1 Year Warranty, GST Invoice" },
   { category: "Electronics & Appliances", product: "Fully Automatic Washing Machine", brand: "LG", model: "7kg", type: "Washing Machine", unit: "pcs", qtyMin: 1, qtyMax: 5, specs: "Front Load, 1400 RPM, 6 Motion DD, Steam Care, 10 Year Motor Warranty, GST Invoice" },
   { category: "Electronics & Appliances", product: "Fully Automatic Washing Machine", brand: "Samsung", model: "6.5kg", type: "Washing Machine", unit: "pcs", qtyMin: 1, qtyMax: 5, specs: "Top Load, 680 RPM, Diamond Drum, Digital Inverter, 5 Year Warranty, GST Invoice" },
+  { category: "Electronics & Appliances", product: "Fully Automatic Washing Machine", brand: "Whirlpool", model: "7kg", type: "Washing Machine", unit: "pcs", qtyMin: 1, qtyMax: 5, specs: "Top Load, 740 RPM, 6th Sense Technology, Hard Water Wash, 2 Year Warranty, GST Invoice" },
+  { category: "Electronics & Appliances", product: "Semi Automatic Washing Machine", brand: "Samsung", model: "7kg", type: "Washing Machine", unit: "pcs", qtyMin: 1, qtyMax: 10, specs: "Two Tub, 1300 RPM, Rust Proof Body, Collar Scrubber, 2 Year Warranty, GST Invoice" },
   { category: "Electronics & Appliances", product: "Laptop", brand: "Dell", model: "Inspiron 15", type: "Laptop", unit: "pcs", qtyMin: 1, qtyMax: 10, specs: "Intel i5 12th Gen, 8GB RAM, 512GB SSD, Windows 11, 2 Year On-site Warranty, GST Invoice" },
   { category: "Electronics & Appliances", product: "Laptop", brand: "HP", model: "15s", type: "Laptop", unit: "pcs", qtyMin: 1, qtyMax: 10, specs: "AMD Ryzen 5, 16GB RAM, 512GB SSD, Windows 11, 1 Year Warranty, GST Invoice" },
   { category: "Electronics & Appliances", product: "Laptop", brand: "Lenovo", model: "IdeaPad 14", type: "Laptop", unit: "pcs", qtyMin: 1, qtyMax: 10, specs: "Intel i3 11th Gen, 8GB RAM, 256GB SSD, Windows 11, 2 Year Warranty, GST Invoice" },
+  { category: "Electronics & Appliances", product: "Desktop Computer", brand: "HP", model: "Pavilion", type: "Desktop", unit: "pcs", qtyMin: 1, qtyMax: 10, specs: "Intel i5, 8GB RAM, 1TB HDD, Windows 11, LED Monitor 21.5 inch, GST Invoice" },
+  { category: "Electronics & Appliances", product: "All in One PC", brand: "Lenovo", model: "IdeaCentre", type: "AIO PC", unit: "pcs", qtyMin: 1, qtyMax: 5, specs: "Intel i5, 8GB RAM, 512GB SSD, 23.8 inch FHD, Windows 11, GST Invoice" },
   { category: "Electronics & Appliances", product: "Smartphone", brand: "Samsung", model: "Galaxy S24", type: "Smartphone", unit: "pcs", qtyMin: 2, qtyMax: 20, specs: "8GB RAM, 256GB Storage, 5G, AI Camera, 1 Year Manufacturer Warranty, GST Invoice" },
   { category: "Electronics & Appliances", product: "Smartphone", brand: "Apple", model: "iPhone 15", type: "Smartphone", unit: "pcs", qtyMin: 2, qtyMax: 20, specs: "A16 Bionic, 128GB, 5G, USB-C, 1 Year Warranty, GST Invoice" },
+  { category: "Electronics & Appliances", product: "Smartphone", brand: "OnePlus", model: "Nord CE 3", type: "Smartphone", unit: "pcs", qtyMin: 2, qtyMax: 15, specs: "8GB RAM, 128GB, 5G, 50MP Camera, OxygenOS, 1 Year Warranty, GST Invoice" },
+  { category: "Electronics & Appliances", product: "Tablet", brand: "Samsung", model: "Galaxy Tab S9", type: "Tablet", unit: "pcs", qtyMin: 1, qtyMax: 10, specs: "11 inch AMOLED, 8GB RAM, 128GB, S Pen Included, 5G, 1 Year Warranty, GST Invoice" },
   { category: "Electronics & Appliances", product: "Headphones", brand: "Sony", model: "WH-1000XM5", type: "Headphones", unit: "pcs", qtyMin: 1, qtyMax: 10, specs: "Wireless NC, 30hr Battery, Hi-Res Audio, Multipoint Connection, 1 Year Warranty, GST Invoice" },
+  { category: "Electronics & Appliances", product: "Earbuds", brand: "Apple", model: "AirPods Pro 2", type: "Earbuds", unit: "pcs", qtyMin: 1, qtyMax: 20, specs: "Active Noise Cancellation, Transparency Mode, MagSafe Charging, 1 Year Warranty, GST Invoice" },
+  { category: "Electronics & Appliances", product: "Bluetooth Speaker", brand: "JBL", model: "Flip 6", type: "Speaker", unit: "pcs", qtyMin: 2, qtyMax: 15, specs: "12hr Battery, IPX7 Waterproof, PartyBoost, Portable, GST Invoice" },
   { category: "Electronics & Appliances", product: "DSLR Camera", brand: "Canon", model: "EOS 1500D", type: "Camera", unit: "pcs", qtyMin: 1, qtyMax: 5, specs: "24.1MP, WiFi, Full HD, EF-S 18-55mm Lens, 2 Year Warranty, GST Invoice" },
   { category: "Electronics & Appliances", product: "Gaming Console", brand: "Sony", model: "PlayStation 5", type: "Gaming Console", unit: "pcs", qtyMin: 1, qtyMax: 3, specs: "825GB SSD, 4K Gaming, Ray Tracing, DualSense Controller, 1 Year Warranty, GST Invoice" },
+  { category: "Electronics & Appliances", product: "Projector", brand: "Epson", model: "EH-TW740", type: "Projector", unit: "pcs", qtyMin: 1, qtyMax: 5, specs: "Full HD, 3300 Lumens, 3LCD, HDMI, 15000hr Lamp Life, GST Invoice" },
+  { category: "Electronics & Appliances", product: "Power Bank", brand: "Mi", model: "20000mAh", type: "Power Bank", unit: "pcs", qtyMin: 5, qtyMax: 50, specs: "Fast Charging, 18W, Dual USB, Lithium Polymer, GST Invoice" },
 
-  // FURNITURE & HOME
+  // FURNITURE & HOME (20 products)
   { category: "Furniture & Home", product: "King Size Bed", brand: "UrbanLadder", model: "6x6 feet", type: "Bed", unit: "pcs", qtyMin: 1, qtyMax: 5, specs: "Sheesham Wood, Hydraulic Storage, Mattress Included, 5 Year Warranty, Delivery + Installation" },
+  { category: "Furniture & Home", product: "Queen Size Bed", brand: "Wakefit", model: "5x6 feet", type: "Bed", unit: "pcs", qtyMin: 1, qtyMax: 5, specs: "Sheesham Wood, Storage Option, Mattress Included, 5 Year Warranty, Delivery + Installation" },
+  { category: "Furniture & Home", product: "Single Bed", brand: "Pepperfry", model: "3.5x6 feet", type: "Bed", unit: "pcs", qtyMin: 2, qtyMax: 10, specs: "Engineered Wood, PB Frame, 1 Year Warranty, Delivery + Installation" },
   { category: "Furniture & Home", product: "L-Shaped Sofa", brand: "Fabindia", model: "6 Seater", type: "Sofa", unit: "pcs", qtyMin: 1, qtyMax: 3, specs: "Velvet Fabric, Solid Wood Frame, Cushion Included, 3 Year Warranty, Delivery + Installation" },
+  { category: "Furniture & Home", product: "3 Seater Sofa", brand: "UrbanLadder", model: "Fabric", type: "Sofa", unit: "pcs", qtyMin: 1, qtyMax: 5, specs: "Chenille Fabric, Wooden Legs, Cushion Included, 3 Year Warranty, Delivery + Installation" },
+  { category: "Furniture & Home", product: "Recliner Sofa", brand: "Lazyboy", model: "3 Seater", type: "Recliner", unit: "pcs", qtyMin: 1, qtyMax: 3, specs: "Genuine Leather, Power Recline, USB Port, 3 Year Warranty, Delivery + Installation" },
   { category: "Furniture & Home", product: "Dining Table Set", brand: null, model: "6 Chairs", type: "Dining Table", unit: "sets", qtyMin: 1, qtyMax: 3, specs: "Solid Wood, 6 Cushioned Chairs, Glass Top, 5 Year Warranty, Delivery + Installation" },
-  { category: "Furniture & Home", product: "Office Executive Chair", brand: "Godrej", model: "Ergo", type: "Chair", unit: "pcs", qtyMin: 2, qtyMax: 20, specs: "Ergonomic, Mesh Back, Adjustable Armrest, lumbar Support, 3 Year Warranty, GST Invoice" },
+  { category: "Furniture & Home", product: "Dining Table Set", brand: null, model: "4 Chairs", type: "Dining Table", unit: "sets", qtyMin: 1, qtyMax: 5, specs: "Sheesham Wood, 4 Chairs, Marble Top, 5 Year Warranty, Delivery + Installation" },
+  { category: "Furniture & Home", product: "Folding Dining Table", brand: null, model: "4 Seater", type: "Dining Table", unit: "pcs", qtyMin: 1, qtyMax: 10, specs: "Engineered Wood, Space Saving, Foldable, 2 Year Warranty, Delivery + Installation" },
+  { category: "Furniture & Home", product: "Office Executive Chair", brand: "Godrej", model: "Ergo", type: "Chair", unit: "pcs", qtyMin: 2, qtyMax: 20, specs: "Ergonomic, Mesh Back, Adjustable Armrest, Lumbar Support, 3 Year Warranty, GST Invoice" },
+  { category: "Furniture & Home", product: "Office Workstation", brand: "EBAO", model: "6 Seater", type: "Workstation", unit: "sets", qtyMin: 1, qtyMax: 10, specs: "L Shape, Engineered Wood, Cable Management, 3 Year Warranty, GST Invoice" },
+  { category: "Furniture & Home", product: "Conference Table", brand: null, model: "8 Seater", type: "Table", unit: "pcs", qtyMin: 1, qtyMax: 5, specs: "Sheesham Wood, 8 Seater, GSQ Certified, 3 Year Warranty, Delivery + Installation" },
   { category: "Furniture & Home", product: "Modular Kitchen", brand: null, model: "L-Shape", type: "Kitchen", unit: "sets", qtyMin: 1, qtyMax: 2, specs: "BWP Plywood, Soft Close, Hettich Hardware, Counter Top Included, Delivery + Installation, GST Invoice" },
+  { category: "Furniture & Home", product: "Modular Kitchen", brand: null, model: "Straight", type: "Kitchen", unit: "sets", qtyMin: 1, qtyMax: 3, specs: "BWP Plywood, Soft Close, SS Hardware, Granite Counter, Delivery + Installation, GST Invoice" },
   { category: "Furniture & Home", product: "TV Unit", brand: null, model: "Wall Mounted", type: "TV Unit", unit: "pcs", qtyMin: 1, qtyMax: 3, specs: "Engineered Wood, Gloss Finish, Cable Management, 3 Year Warranty, Delivery + Installation" },
+  { category: "Furniture & Home", product: "Wardrobe", brand: "Godrej", model: "3 Door", type: "Wardrobe", unit: "pcs", qtyMin: 1, qtyMax: 5, specs: "Engineered Wood, Mirror Included, Steel Channel, 5 Year Warranty, Delivery + Installation" },
+  { category: "Furniture & Home", product: "Bookshelf", brand: "Flipkart", model: "5 Tier", type: "Shelf", unit: "pcs", qtyMin: 1, qtyMax: 10, specs: "Engineered Wood, 5 Shelves, Easy Assembly, 2 Year Warranty, GST Invoice" },
+  { category: "Furniture & Home", product: "Office Desk", brand: "IKEA", model: "HEMNES", type: "Desk", unit: "pcs", qtyMin: 1, qtyMax: 10, specs: "Solid Wood, 2 Drawers, Cable Management, 2 Year Warranty, GST Invoice" },
+  { category: "Furniture & Home", product: "Computer Desk", brand: null, model: "Compact", type: "Desk", unit: "pcs", qtyMin: 1, qtyMax: 15, specs: "Engineered Wood, Monitor Shelf, Keyboard Tray, 2 Year Warranty, GST Invoice" },
+  { category: "Furniture & Home", product: "Storage Cabinet", brand: "Nilkamal", model: "6 Drawer", type: "Cabinet", unit: "pcs", qtyMin: 1, qtyMax: 10, specs: "Plastic, 6 Drawers, Stackable, Wheels Included, 1 Year Warranty, GST Invoice" },
 
-  // VEHICLES & PARTS
+  // VEHICLES & PARTS (20 products)
   { category: "Vehicles & Parts", product: "Sedan Car", brand: "Maruti", model: "Swift Dzire", type: "Sedan", unit: "pcs", qtyMin: 1, qtyMax: 5, condition: "used", specs: "2022 Model, Petrol, 15000km Driven, Insurance Valid, Service Records, Transfer Included" },
   { category: "Vehicles & Parts", product: "SUV Vehicle", brand: "Toyota", model: "Innova Crysta", type: "SUV", unit: "pcs", qtyMin: 1, qtyMax: 3, condition: "used", specs: "2021 Model, Diesel, 45000km Driven, Top Model, Insurance Valid, Full Service History, Transfer Included" },
   { category: "Vehicles & Parts", product: "SUV Vehicle", brand: "Tata", model: "Nexon", type: "SUV", unit: "pcs", qtyMin: 1, qtyMax: 5, condition: "new", specs: "2024 Model, Petrol/Diesel, BS6, 5 Star Safety, Warranty 3 Years/100000km, Immediate Delivery, GST Invoice" },
   { category: "Vehicles & Parts", product: "Hatchback Car", brand: "Maruti", model: "Swift", type: "Hatchback", unit: "pcs", qtyMin: 1, qtyMax: 5, condition: "new", specs: "2024 Model, Petrol, BS6, 5 Star Safety, CNG Option, Warranty 2 Years/100000km, Immediate Delivery, GST Invoice" },
   { category: "Vehicles & Parts", product: "Compact SUV", brand: "Hyundai", model: "Creta", type: "SUV", unit: "pcs", qtyMin: 1, qtyMax: 3, condition: "used", specs: "2022 Model, Petrol, 25000km Driven, Top Model, Sunroof, Insurance Valid, Transfer Included" },
   { category: "Vehicles & Parts", product: "Two Wheeler", brand: "Honda", model: "Activa", type: "Scooter", unit: "pcs", qtyMin: 1, qtyMax: 10, specs: "2024 Model, Petrol, LED Headlamp, CBS/ABS, 5 Year Warranty, EMI Available, GST Invoice" },
+  { category: "Vehicles & Parts", product: "Two Wheeler", brand: "TVS", model: "Apache", type: "Motorcycle", unit: "pcs", qtyMin: 1, qtyMax: 5, specs: "160cc, ABS, Bluetooth, Navigation, 5 Year Warranty, EMI Available, GST Invoice" },
+  { category: "Vehicles & Parts", product: "Two Wheeler", brand: "Bajaj", model: "Pulsar", type: "Motorcycle", unit: "pcs", qtyMin: 1, qtyMax: 5, specs: "150cc, DTs-i Engine, LED Tail Lamp, 5 Year Warranty, EMI Available, GST Invoice" },
+  { category: "Vehicles & Parts", product: "Electric Scooter", brand: "Ather", model: "450X", type: "Electric Scooter", unit: "pcs", qtyMin: 1, qtyMax: 5, specs: "3.7kWh Battery, 105km Range, Fast Charging, Connected Features, 3 Year Warranty, GST Invoice" },
+  { category: "Vehicles & Parts", product: "Electric Scooter", brand: "Ola", model: "S1 Pro", type: "Electric Scooter", unit: "pcs", qtyMin: 1, qtyMax: 5, specs: "4kWh Battery, 181km Range, Hill Hold, 3 Year Warranty, GST Invoice" },
+  { category: "Vehicles & Parts", product: "Tempo Traveller", brand: "Force", model: "12 Seater", type: "Tempo", unit: "pcs", qtyMin: 1, qtyMax: 3, specs: "2023 Model, Diesel, AC, Pushback Seats, Music System, GST Invoice" },
+  { category: "Vehicles & Parts", product: "Mini Bus", brand: "Tata", model: "26 Seater", type: "Bus", unit: "pcs", qtyMin: 1, qtyMax: 3, specs: "2023 Model, Diesel, AC, Pushback Seats, Entertainment, GST Invoice" },
+  { category: "Vehicles & Parts", product: "Car Battery", brand: "Exide", model: "55Ah", type: "Battery", unit: "pcs", qtyMin: 2, qtyMax: 20, specs: "12V, 55Ah, Maintenance Free, 3 Year Warranty, GST Invoice" },
+  { category: "Vehicles & Parts", product: "Car Tyre", brand: "MRF", model: "185/65R15", type: "Tyre", unit: "pcs", qtyMin: 4, qtyMax: 20, specs: "All Season, 5mm Tread, Tubeless, 5 Year Warranty, GST Invoice" },
+  { category: "Vehicles & Parts", product: "Motorcycle Helmet", brand: "Studds", model: "Champs Dualsport", type: "Helmet", unit: "pcs", qtyMin: 5, qtyMax: 50, specs: "DOT Certified, Visor Included, Anti Microbial, ISI Marked, GST Invoice" },
+  { category: "Vehicles & Parts", product: "Car Seat Cover", brand: null, model: "Leatherette", type: "Seat Cover", unit: "sets", qtyMin: 1, qtyMax: 10, specs: "Premium Leatherette, Universal Fit, 7 Seater, Cushioning, GST Invoice" },
+  { category: "Vehicles & Parts", product: "Car Music System", brand: "Sony", model: "XAV-AX5500", type: "Music System", unit: "pcs", qtyMin: 1, qtyMax: 10, specs: "Apple CarPlay, Android Auto, Bluetooth, 6.95 inch, GST Invoice" },
+  { category: "Vehicles & Parts", product: "Car GPS Tracker", brand: null, model: "4G", type: "Tracker", unit: "pcs", qtyMin: 2, qtyMax: 20, specs: "Real Time Tracking, Geo Fencing, Mobile App, 1 Year Subscription, GST Invoice" },
+  { category: "Vehicles & Parts", product: "Vehicle Spare Parts Kit", brand: null, model: "Universal", type: "Spares", unit: "kits", qtyMin: 5, qtyMax: 50, specs: "Essential Spares, Engine Oil, Filters, Wipers, GST Invoice" },
+  { category: "Vehicles & Parts", product: "Car Vacuum Cleaner", brand: "Xiaomi", model: "Jimmy JV51", type: "Vacuum", unit: "pcs", qtyMin: 2, qtyMax: 15, specs: "Cordless, 10000Pa, HEPA Filter, Multiple Attachments, GST Invoice" },
 
-  // INDUSTRIAL MACHINERY
+  // INDUSTRIAL MACHINERY (15 products)
   { category: "Industrial Machinery", product: "Three Phase Motor", brand: "ABB", model: "5HP", type: "Motor", unit: "pcs", qtyMin: 1, qtyMax: 10, specs: "3 Phase, 1440 RPM, F Class Insulation, IE3 Efficiency, Test Certificate, GST Invoice" },
   { category: "Industrial Machinery", product: "AC Motor", brand: "Siemens", model: "7.5HP", type: "Motor", unit: "pcs", qtyMin: 1, qtyMax: 5, specs: "3 Phase, 1450 RPM, TEFC, IE3 Premium, Warranty 2 Years, Test Certificate, GST Invoice" },
   { category: "Industrial Machinery", product: "Diesel Generator", brand: "Kirloskar", model: "25kVA", type: "Generator", unit: "pcs", qtyMin: 1, qtyMax: 3, specs: "Silent Canopy, Sound Proof, ATS Panel, 250 Hours Runtime, Warranty 2 Years, GST Invoice" },
+  { category: "Industrial Machinery", product: "Diesel Generator", brand: "Caterpillar", model: "50kVA", type: "Generator", unit: "pcs", qtyMin: 1, qtyMax: 2, specs: "Silent Canopy, Prime Power, ATS Compatible, Fuel Efficient, Warranty 2 Years, GST Invoice" },
   { category: "Industrial Machinery", product: "MIG Welding Machine", brand: "Miller", model: "400A", type: "Welder", unit: "pcs", qtyMin: 1, qtyMax: 5, specs: "400A Output, IGBT Based, Water Cooled Torch, Digital Display, 1 Year Warranty, GST Invoice" },
+  { category: "Industrial Machinery", product: "ARC Welding Machine", brand: "Ador", model: "400A", type: "Welder", unit: "pcs", qtyMin: 1, qtyMax: 10, specs: "400A Output, Robust Design, Hot Start, Anti Stick, 1 Year Warranty, GST Invoice" },
   { category: "Industrial Machinery", product: "CNC Lathe", brand: "ACE", model: "CNC 200", type: "CNC Lathe", unit: "pcs", qtyMin: 1, qtyMax: 2, specs: "200mm Chuck, 8 Station Turret, Spindle Speed 50-3000 RPM, Siemens/Fanuc Controller, Training Included, GST Invoice" },
+  { category: "Industrial Machinery", product: "CNC Milling Machine", brand: "Bfw", model: "VMC 850", type: "CNC Milling", unit: "pcs", qtyMin: 1, qtyMax: 2, specs: "800x500 Table, 12000 RPM, 4 Axis, Fanuc Controller, GST Invoice" },
   { category: "Industrial Machinery", product: "Industrial Pump", brand: "Kirloskar", model: "5HP", type: "Pump", unit: "pcs", qtyMin: 1, qtyMax: 10, specs: "Centrifugal, Cast Iron, 2880 RPM, 50mm Outlet, 2 Year Warranty, GST Invoice" },
+  { category: "Industrial Machinery", product: "Submersible Pump", brand: "CRI", model: "5HP", type: "Submersible", unit: "pcs", qtyMin: 1, qtyMax: 10, specs: "Deep Well, Stainless Steel, 5HP, 2 Year Warranty, GST Invoice" },
+  { category: "Industrial Machinery", product: "Air Compressor", brand: "Ingersoll Rand", model: "10HP", type: "Compressor", unit: "pcs", qtyMin: 1, qtyMax: 5, specs: "Rotary Screw, Oil Free, 10 Bar, 500L Tank, Sound Proof, GST Invoice" },
+  { category: "Industrial Machinery", product: "Pneumatic Drill", brand: "Bosch", model: "GSB 500", type: "Drill", unit: "pcs", qtyMin: 2, qtyMax: 10, specs: "500W, Keyless Chuck, Forward/Reverse, Variable Speed, GST Invoice" },
+  { category: "Industrial Machinery", product: "Hydraulic Jack", brand: "Raja", model: "50 Ton", type: "Jack", unit: "pcs", qtyMin: 1, qtyMax: 5, specs: "Bottle Type, 50 Ton Capacity, Steel Construction, 1 Year Warranty, GST Invoice" },
+  { category: "Industrial Machinery", product: "Forklift", brand: "Godrej", model: "3 Ton", type: "Forklift", unit: "pcs", qtyMin: 1, qtyMax: 3, specs: "Diesel, 3 Ton Capacity, Side Shift, 4 Way Valve, GST Invoice" },
+  { category: "Industrial Machinery", product: "Conveyor Belt", brand: null, model: "1200mm Width", type: "Conveyor", unit: "meter", qtyMin: 10, qtyMax: 100, specs: "PVC Belt, Steel Frame, Adjustable Speed, GST Invoice" },
 
-  // ELECTRICAL PARTS
+  // ELECTRICAL PARTS (15 products)
   { category: "Electrical Parts", product: "Copper Wire", brand: "Havells", model: "1.5sqmm 90mtr", type: "Wire", unit: "roll", qtyMin: 5, qtyMax: 50, specs: "FR Grade, HRFR, 1100V, ISI Marked, Copper 99.97% Pure, GST Invoice" },
   { category: "Electrical Parts", product: "Electric Wire", brand: "Polycab", model: "2.5sqmm 90mtr", type: "Wire", unit: "roll", qtyMin: 5, qtyMax: 50, specs: "FR Grade, HRFR, 1100V, ISI Marked, 100m Length, GST Invoice" },
+  { category: "Electrical Parts", product: "Cable Wire", brand: "Finolex", model: "4sqmm 90mtr", type: "Wire", unit: "roll", qtyMin: 5, qtyMax: 30, specs: "FR Grade, 1100V, ISI Marked, 100m Length, GST Invoice" },
+  { category: "Electrical Parts", product: "Armoured Cable", brand: "Havells", model: "3 Core 4sqmm", type: "Cable", unit: "meter", qtyMin: 50, qtyMax: 500, specs: "XLPE Insulated, SWA Armoured, 1100V, GST Invoice" },
   { category: "Electrical Parts", product: "Ball Bearing", brand: "SKF", model: "6205", type: "Bearing", unit: "pcs", qtyMin: 10, qtyMax: 100, specs: "Deep Groove, 25x52x15mm, Steel Shield, C3 Clearance, OEM Quality, GST Invoice" },
+  { category: "Electrical Parts", product: "Ball Bearing", brand: "NTN", model: "6305", type: "Bearing", unit: "pcs", qtyMin: 10, qtyMax: 100, specs: "Deep Groove, 25x62x17mm, Open Type, High Speed, OEM Quality, GST Invoice" },
   { category: "Electrical Parts", product: "MCB Circuit Breaker", brand: "Havells", model: "32A", type: "MCB", unit: "pcs", qtyMin: 5, qtyMax: 50, specs: "Single Pole, C Curve, 10kA Breaking Capacity, ISI Marked, 2 Year Warranty, GST Invoice" },
+  { category: "Electrical Parts", product: "MCB Distribution Board", brand: "Legrand", model: "12 Way", type: "DB", unit: "pcs", qtyMin: 2, qtyMax: 20, specs: "Metal Enclosure, 12 Modules, RCB Included, ISI Marked, GST Invoice" },
   { category: "Electrical Parts", product: "VFD Drive", brand: "ABB", model: "ACS550 10HP", type: "VFD", unit: "pcs", qtyMin: 1, qtyMax: 10, specs: "7.5kW, 3 Phase, 380-480V, Built-in EMC Filter, 2 Year Warranty, GST Invoice" },
   { category: "Electrical Parts", product: "PLC Controller", brand: "Allen Bradley", model: "1756", type: "PLC", unit: "pcs", qtyMin: 1, qtyMax: 10, specs: "ControlLogix, 16 I/O, Ethernet/IP, 2MB Memory, Original OEM, GST Invoice" },
+  { category: "Electrical Parts", product: "PLC Controller", brand: "Siemens", model: "S7-1200", type: "PLC", unit: "pcs", qtyMin: 1, qtyMax: 10, specs: "CPU 1214C, 14 I/O, PROFINET, TIA Portal Compatible, GST Invoice" },
+  { category: "Electrical Parts", product: "Contactor", brand: "ABB", model: "25A 3 Pole", type: "Contactor", unit: "pcs", qtyMin: 5, qtyMax: 30, specs: "25A, 3 Pole, AC3 Duty, Auxiliary Contact, 2 Year Warranty, GST Invoice" },
+  { category: "Electrical Parts", product: "Relay", brand: "Omron", model: "MY2N", type: "Relay", unit: "pcs", qtyMin: 10, qtyMax: 100, specs: "24VDC Coil, DPDT, 5A Contact, LED Indicator, GST Invoice" },
+  { category: "Electrical Parts", product: "Servo Motor", brand: "Delta", model: "ASDA-B2", type: "Servo", unit: "pcs", qtyMin: 1, qtyMax: 10, specs: "1.5kW, 3000 RPM, CANopen, Low Cogging, 2 Year Warranty, GST Invoice" },
+  { category: "Electrical Parts", product: "Industrial LED Light", brand: "Philips", model: "150W Highbay", type: "LED Light", unit: "pcs", qtyMin: 5, qtyMax: 50, specs: "150W, 15000 Lumens, IP65, 50000hr Life, GST Invoice" },
 
-  // CONSTRUCTION MATERIALS
-  { category: "Construction Materials", product: "TMT Bar", brand: "Tata", model: "12mm Fe500", type: "TMT Bar", unit: "pcs", qtyMin: 50, qtyMax: 500, specs: "Fe500D, UTS 545+, earthquake Resistant, Anti Corrosion, Mill Test Certificate, Delivery Included, GST Invoice" },
+  // CONSTRUCTION MATERIALS (15 products)
+  { category: "Construction Materials", product: "TMT Bar", brand: "Tata", model: "12mm Fe500", type: "TMT Bar", unit: "pcs", qtyMin: 50, qtyMax: 500, specs: "Fe500D, UTS 545+, Earthquake Resistant, Anti Corrosion, Mill Test Certificate, Delivery Included, GST Invoice" },
   { category: "Construction Materials", product: "TMT Bar", brand: "JSW", model: "16mm Fe550", type: "TMT Bar", unit: "pcs", qtyMin: 50, qtyMax: 500, specs: "Fe550D, Superior Bendability, ISI Marked, Quality Certificate, Delivery Included, GST Invoice" },
+  { category: "Construction Materials", product: "TMT Bar", brand: "SAIL", model: "20mm Fe500", type: "TMT Bar", unit: "pcs", qtyMin: 50, qtyMax: 500, specs: "Fe500D, IS 1786 Compliant, Mill Test Certificate, Delivery Included, GST Invoice" },
   { category: "Construction Materials", product: "Cement", brand: "ACC", model: "53 Grade", type: "Cement", unit: "bags", qtyMin: 50, qtyMax: 500, specs: "OPC 53S, Initial Strength 27MPa, Low Heat of Hydration, ISI Marked, 6 Month Shelf Life, Delivery Included, GST Invoice" },
   { category: "Construction Materials", product: "Cement", brand: "Ultratech", model: "OPC 53", type: "Cement", unit: "bags", qtyMin: 50, qtyMax: 500, specs: "OPC 53 Grade, Superior Strength, Fast Setting, ISI Marked, Quality Guaranteed, Delivery Included, GST Invoice" },
-  { category: "Construction Materials", product: "Steel Beam", brand: "JSW", model: "Structural", type: "Steel Beam", unit: "pcs", qtyMin: 10, qtyMax: 100, specs: "ISMB 200, Hot Rolled, IS 2062 E250, Test Certificate, Fabrication Available, GST Invoice" },
+  { category: "Construction Materials", product: "Cement", brand: "Ambuja", model: "PPC", type: "Cement", unit: "bags", qtyMin: 50, qtyMax: 500, specs: "PPC Grade, Eco-Friendly, Low Heat, Durability, Delivery Included, GST Invoice" },
+  { category: "Construction Materials", product: "Steel Beam", brand: "JSW", model: "ISMB 200", type: "Steel Beam", unit: "pcs", qtyMin: 10, qtyMax: 100, specs: "Hot Rolled, IS 2062 E250, Test Certificate, Fabrication Available, GST Invoice" },
+  { category: "Construction Materials", product: "Steel Channel", brand: "Tata", model: "ISMC 100", type: "Channel", unit: "pcs", qtyMin: 20, qtyMax: 200, specs: "Hot Rolled, IS 2062, 6m Length, Test Certificate, GST Invoice" },
   { category: "Construction Materials", product: "Aluminum Panel", brand: "Alstrong", model: "4mm ACP", type: "ACP Sheet", unit: "pcs", qtyMin: 20, qtyMax: 200, specs: "4mm Thickness, PVDF Coating, Fire Retardant, 2440x1220mm Sheet, 10 Year Warranty, GST Invoice" },
   { category: "Construction Materials", product: "Bricks", brand: null, model: "Red Clay", type: "Brick", unit: "pcs", qtyMin: 1000, qtyMax: 10000, specs: "230x115x75mm, Class A, Compressive Strength 10MPa, Uniform Shape, Delivery Available, GST Invoice" },
+  { category: "Construction Materials", product: "Fly Ash Bricks", brand: null, model: "Standard", type: "Brick", unit: "pcs", qtyMin: 500, qtyMax: 5000, specs: "Eco-Friendly, 9x4x3 inch, Compressive Strength 10MPa, Uniform Size, GST Invoice" },
+  { category: "Construction Materials", product: "AAC Blocks", brand: null, model: "600x200x200", type: "Block", unit: "pcs", qtyMin: 100, qtyMax: 1000, specs: "Autoclaved Aerated, Light Weight, Thermal Insulation, 4 Inch, GST Invoice" },
   { category: "Construction Materials", product: "Sand", brand: null, model: "River Sand", type: "Sand", unit: "ton", qtyMin: 5, qtyMax: 50, specs: "Cubic Delivered, Zone 2-3, Low Silt, Washed and Screened, Quality Report, Delivery Included" },
+  { category: "Construction Materials", product: "Crushed Stone", brand: null, model: "20mm", type: "Aggregate", unit: "ton", qtyMin: 5, qtyMax: 100, specs: "20mm Aggregate, Well Graded, CBR Value 80+, Quality Report, Delivery Included" },
+  { category: "Construction Materials", product: "Ready Mix Concrete", brand: null, model: "M25 Grade", type: "Concrete", unit: "cum", qtyMin: 50, qtyMax: 500, specs: "M25 Grade, 7 Day 25 MPa, Pump Ready, ISI Marked, On Site Delivery" },
 
-  // RAW MATERIALS
+  // RAW MATERIALS (10 products)
   { category: "Raw Materials", product: "Aluminum Ingot", brand: null, model: "Primary Grade", type: "Aluminum", unit: "ton", qtyMin: 1, qtyMax: 20, specs: "99.7% Pure, Ingot Form, LM6/LM24 Grade, Chemical Composition Report, GST Invoice" },
   { category: "Raw Materials", product: "Copper Scrap", brand: null, model: "Bare Bright", type: "Copper Scrap", unit: "kg", qtyMin: 100, qtyMax: 1000, specs: "99.9% Pure, No Insulation, Bright Bare Wire, Lab Test Report, GST Invoice" },
+  { category: "Raw Materials", product: "Copper Rod", brand: "Luvata", model: "8mm", type: "Copper", unit: "kg", qtyMin: 100, qtyMax: 500, specs: "99.9% Pure, 8mm Diameter, ETP Grade, Annealed, Lab Test Report, GST Invoice" },
   { category: "Raw Materials", product: "MS Scrap", brand: null, model: "Heavy Melting", type: "MS Scrap", unit: "ton", qtyMin: 5, qtyMax: 50, specs: "HMS 1&2, 98% Metal Recovery, No Radiated, Lab Tested, GST Invoice" },
   { category: "Raw Materials", product: "Steel Scrap", brand: null, model: "Shredded", type: "Steel Scrap", unit: "ton", qtyMin: 5, qtyMax: 30, specs: "Shredded Form, ISRI 211-214, 98.5% Pure, No Contamination, GST Invoice" },
   { category: "Raw Materials", product: "Iron Ore", brand: null, model: "Fines 63%", type: "Iron Ore", unit: "ton", qtyMin: 100, qtyMax: 1000, specs: "Fe 63%+, Low Silica, Moisture 4% Max, Chrome 0.1% Max, Assay Report, GST Invoice" },
+  { category: "Raw Materials", product: "Aluminum Scrap", brand: null, model: " UBC", type: "Aluminum Scrap", unit: "ton", qtyMin: 2, qtyMax: 20, specs: "Used Beverage Cans, 98.5% Pure, Bale Form, Lab Test Report, GST Invoice" },
+  { category: "Raw Materials", product: "Zinc Ingot", brand: null, model: "SHG 99.995%", type: "Zinc", unit: "ton", qtyMin: 1, qtyMax: 10, specs: "SHG 99.995%, 1MT Ingots, ISO Certified, Chemical Report, GST Invoice" },
+  { category: "Raw Materials", product: "Lead Ingot", brand: null, model: "Pure Grade", type: "Lead", unit: "ton", qtyMin: 1, qtyMax: 10, specs: "99.97% Pure, 25kg Ingots, Anti Corrosion, Lab Test Report, GST Invoice" },
+  { category: "Raw Materials", product: "Brass Scrap", brand: null, model: "Honey", type: "Brass Scrap", unit: "kg", qtyMin: 50, qtyMax: 500, specs: "Honey Grade, 62% Copper, Clean, No Plating, Lab Test Report, GST Invoice" },
 
-  // CHEMICALS & PLASTICS
+  // CHEMICALS & PLASTICS (10 products)
   { category: "Chemicals & Plastics", product: "HDPE Granules", brand: "Reliance", model: "Injection Grade", type: "HDPE", unit: "kg", qtyMin: 500, qtyMax: 5000, specs: "MFI 20, Natural Color, Food Grade, BIS Approved, Technical Data Sheet, GST Invoice" },
   { category: "Chemicals & Plastics", product: "PVC Resin", brand: "Finolex", model: "SG5", type: "PVC", unit: "kg", qtyMin: 500, qtyMax: 5000, specs: "K Value 67, Suspension Polymer, BIS Certified, Technical Data Sheet, GST Invoice" },
   { category: "Chemicals & Plastics", product: "Polypropylene Granules", brand: "Reliance", model: "PP H110MA", type: "PP Granules", unit: "kg", qtyMin: 500, qtyMax: 5000, specs: "MFI 3, Homopolymer, Injection Molding Grade, BIS Approved, TDS Available, GST Invoice" },
   { category: "Chemicals & Plastics", product: "LDPE Film", brand: "Standard", model: "Film Grade", type: "LDPE", unit: "kg", qtyMin: 200, qtyMax: 2000, specs: "MFI 2, Natural, Blown Film Grade, Food Contact Approved, TDS Available, GST Invoice" },
   { category: "Chemicals & Plastics", product: "ABS Granules", brand: "LG Chem", model: "HF-6560", type: "ABS", unit: "kg", qtyMin: 200, qtyMax: 2000, specs: "High Flow, Impact Modified, Heat Resistant, OEM Grade, TDS Available, GST Invoice" },
+  { category: "Chemicals & Plastics", product: "Polycarbonate Sheet", brand: "Danpalon", model: "6mm", type: "Sheet", unit: "pcs", qtyMin: 10, qtyMax: 100, specs: "6mm Twin Wall, UV Protected, 99% Light Transmission, 10 Year Warranty, GST Invoice" },
+  { category: "Chemicals & Plastics", product: "Epoxy Resin", brand: "Araldite", model: "AW 106", type: "Resin", unit: "kg", qtyMin: 10, qtyMax: 100, specs: "Low Viscosity, Clear, 45 Min Pot Life, Industrial Grade, GST Invoice" },
+  { category: "Chemicals & Plastics", product: "Industrial Lubricant", brand: "Mobil", model: "DTE 26", type: "Oil", unit: "liter", qtyMin: 20, qtyMax: 200, specs: "Hydraulic Oil, ISO VG 68, Anti Wear, 5000hr Drain, GST Invoice" },
+  { category: "Chemicals & Plastics", product: "Sulfuric Acid", brand: null, model: "98%", type: "Acid", unit: "kg", qtyMin: 100, qtyMax: 1000, specs: "98% Pure, Industrial Grade, MSDS Available, GST Invoice" },
+  { category: "Chemicals & Plastics", product: "Sodium Hydroxide", brand: null, model: "Flakes 98%", type: "Chemical", unit: "kg", qtyMin: 100, qtyMax: 1000, specs: "Caustic Soda Flakes, 98% Purity, Industrial Grade, GST Invoice" },
 
-  // PACKAGING
+  // PACKAGING (10 products)
   { category: "Packaging", product: "Corrugated Box", brand: null, model: "5 Ply", type: "Box", unit: "pcs", qtyMin: 50, qtyMax: 500, specs: "5 Ply, Bursting Strength 12kg/cm2, Custom Sizes, Printing Available, MOQ 50, GST Invoice" },
+  { category: "Packaging", product: "Corrugated Box", brand: null, model: "3 Ply", type: "Box", unit: "pcs", qtyMin: 100, qtyMax: 1000, specs: "3 Ply, Bursting Strength 8kg/cm2, Light Duty, Custom Sizes, MOQ 100, GST Invoice" },
   { category: "Packaging", product: "Stretch Film Roll", brand: null, model: "23 mic", type: "Film", unit: "roll", qtyMin: 10, qtyMax: 100, specs: "23 Micron, 500mm Width, 300m Length, Load Capacity 200kg, UV Stabilized, GST Invoice" },
   { category: "Packaging", product: "Bubble Wrap Roll", brand: null, model: "5mm Bubble", type: "Bubble Wrap", unit: "roll", qtyMin: 5, qtyMax: 50, specs: "5mm Bubble, 50m Length, 500mm Width, Lightweight, Recyclable, GST Invoice" },
-  { category: "Packaging", product: "Packing Tape", brand: "3M", model: "Translucent", type: "Tape", unit: "pcs", qtyMin: 20, qtyMax: 200 },
-
-  // TEXTILES & APPAREL
-  { category: "Textiles & Apparel", product: "Cotton Fabric", brand: "Raymond", model: "60 inch", type: "Fabric", unit: "meter", qtyMin: 50, qtyMax: 500 },
-  { category: "Textiles & Apparel", product: "Polyester Fabric", brand: "Arvind", model: "58 inch", type: "Fabric", unit: "meter", qtyMin: 50, qtyMax: 500 },
-  { category: "Textiles & Apparel", product: "Formal Shirts", brand: null, model: "Cotton Blend", type: "Shirt", unit: "pcs", qtyMin: 25, qtyMax: 250 },
-  { category: "Textiles & Apparel", product: "Industrial Workwear", brand: null, model: "Cotton", type: "Workwear", unit: "pcs", qtyMin: 25, qtyMax: 200 },
-
-  // FOOD & AGRICULTURE
-  { category: "Food & Agriculture", product: "Basmati Rice", brand: "India Gate", model: "5kg", type: "Rice", unit: "kg", qtyMin: 50, qtyMax: 500 },
-  { category: "Food & Agriculture", product: "Wheat", brand: null, model: "Sharbati", type: "Wheat", unit: "kg", qtyMin: 100, qtyMax: 1000 },
-  { category: "Food & Agriculture", product: "Organic Fertilizer", brand: "Godrej", model: "25kg", type: "Fertilizer", unit: "bags", qtyMin: 10, qtyMax: 100 },
-  { category: "Food & Agriculture", product: "Sprayer Pump", brand: "MAP", model: "16L", type: "Sprayer", unit: "pcs", qtyMin: 5, qtyMax: 50 },
-
-  // HEALTH & SAFETY
-  { category: "Health & Safety", product: "N95 Mask", brand: "3M", model: "VFM 100pcs", type: "Mask", unit: "pcs", qtyMin: 50, qtyMax: 500 },
-  { category: "Health & Safety", product: "Safety Helmet", brand: "Ultimate", model: "ISI Marked", type: "Helmet", unit: "pcs", qtyMin: 10, qtyMax: 100 },
-  { category: "Health & Safety", product: "Industrial Gloves", brand: "Midas", model: "Heavy Duty", type: "Gloves", unit: "pairs", qtyMin: 25, qtyMax: 200 },
-  { category: "Health & Safety", product: "First Aid Kit", brand: "Dukal", model: "OSHA", type: "First Aid", unit: "pcs", qtyMin: 5, qtyMax: 50 },
-
-  // LOGISTICS & TRANSPORT
-  { category: "Logistics & Transport", product: "Packer and Mover Service", brand: null, model: "2BHK", type: "Service", unit: "service", qtyMin: 1, qtyMax: 3 },
-  { category: "Logistics & Transport", product: "Truck Transport", brand: null, model: "14ft", type: "Truck", unit: "trips", qtyMin: 1, qtyMax: 10 },
-  { category: "Logistics & Transport", product: "Container Storage", brand: null, model: "20ft", type: "Container", unit: "units", qtyMin: 1, qtyMax: 5 },
-  { category: "Logistics & Transport", product: "Warehouse Rental", brand: null, model: "5000sqft", type: "Warehouse", unit: "sqft", qtyMin: 1000, qtyMax: 10000 },
-
-  // BUSINESS SERVICES
-  { category: "Business Services", product: "Management Consulting", brand: null, model: "Strategic", type: "Consulting", unit: "hours", qtyMin: 10, qtyMax: 100 },
-  { category: "Business Services", product: "Digital Marketing", brand: null, model: "Monthly Package", type: "Marketing", unit: "month", qtyMin: 1, qtyMax: 6 },
-  { category: "Business Services", product: "Website Development", brand: null, model: "E-commerce", type: "Development", unit: "project", qtyMin: 1, qtyMax: 3 },
-  { category: "Business Services", product: "Legal Documentation", brand: null, model: "Corporate", type: "Legal", unit: "service", qtyMin: 1, qtyMax: 5 },
-
-  // SERVICES & MAINTENANCE
-  { category: "Services & Maintenance", product: "Wedding Catering", brand: null, model: "100 plates", type: "Catering", unit: "plates", qtyMin: 50, qtyMax: 500 },
-  { category: "Services & Maintenance", product: "Corporate Event", brand: null, model: "50 persons", type: "Event", unit: "event", qtyMin: 1, qtyMax: 5 },
-  { category: "Services & Maintenance", product: "Interior Design", brand: null, model: "Full House", type: "Interior", unit: "project", qtyMin: 1, qtyMax: 3 },
-  { category: "Services & Maintenance", product: "AC Repair Service", brand: null, model: "Split/Window", type: "Service", unit: "service", qtyMin: 5, qtyMax: 50 },
-
-  // PACKAGING continued
   { category: "Packaging", product: "Packing Tape", brand: "3M", model: "Translucent", type: "Tape", unit: "pcs", qtyMin: 20, qtyMax: 200, specs: "48mm Width, 50m Length, Clear, Acrylic Adhesive, UV Resistant, GST Invoice" },
+  { category: "Packaging", product: "Brown Tape", brand: "Champion", model: "48mm", type: "Tape", unit: "pcs", qtyMin: 20, qtyMax: 200, specs: "48mm Width, 65m Length, Brown Color, Hot Melt Adhesive, GST Invoice" },
+  { category: "Packaging", product: "PP Woven Sacks", brand: null, model: "50kg", type: "Sacks", unit: "pcs", qtyMin: 100, qtyMax: 1000, specs: "PP Woven, 50kg Capacity, Laminated, Custom Print, GST Invoice" },
+  { category: "Packaging", product: "Plastic Crates", brand: "Nilkamal", model: "Medium", type: "Crate", unit: "pcs", qtyMin: 10, qtyMax: 100, specs: "PP Plastic, 32L Capacity, Stackable, Ventilated, GST Invoice" },
+  { category: "Packaging", product: "Pallet", brand: null, model: "Wooden 4 Way", type: "Pallet", unit: "pcs", qtyMin: 20, qtyMax: 200, specs: "Pine Wood, 4 Way Entry, ISPM 15 Compliant, Heat Treated, GST Invoice" },
+  { category: "Packaging", product: "Metal Drum", brand: null, model: "200L", type: "Drum", unit: "pcs", qtyMin: 5, qtyMax: 50, specs: "MS Steel, 200L Capacity, Open Top, Lined/Unlined, Reconditioned, GST Invoice" },
 
-  // TEXTILES & APPAREL
+  // TEXTILES & APPAREL (10 products)
   { category: "Textiles & Apparel", product: "Cotton Fabric", brand: "Raymond", model: "60 inch", type: "Fabric", unit: "meter", qtyMin: 50, qtyMax: 500, specs: "100% Cotton, 60 inch Width, GSM 150, OEKO-TEX Certified, Color Fastness Guaranteed, GST Invoice" },
   { category: "Textiles & Apparel", product: "Polyester Fabric", brand: "Arvind", model: "58 inch", type: "Fabric", unit: "meter", qtyMin: 50, qtyMax: 500, specs: "Polyester Blend, 58 inch Width, GSM 120, Wrinkle Resistant, Color Fastness Guaranteed, GST Invoice" },
+  { category: "Textiles & Apparel", product: "Silk Fabric", brand: null, model: "Banarasi", type: "Fabric", unit: "meter", qtyMin: 10, qtyMax: 100, specs: "Pure Silk, 44 inch Width, Traditional Design, GST Invoice" },
+  { category: "Textiles & Apparel", product: "Denim Fabric", brand: "Arvind", model: "14oz", type: "Fabric", unit: "meter", qtyMin: 50, qtyMax: 300, specs: "100% Cotton, 14oz Weight, Selvedge, Indigo, GST Invoice" },
   { category: "Textiles & Apparel", product: "Formal Shirts", brand: null, model: "Cotton Blend", type: "Shirt", unit: "pcs", qtyMin: 25, qtyMax: 250, specs: "65% Poly 35% Cotton, Regular Fit, Solid Colors, Sizes S-5XL, MOQ 25, GST Invoice" },
   { category: "Textiles & Apparel", product: "Industrial Workwear", brand: null, model: "Cotton", type: "Workwear", unit: "pcs", qtyMin: 25, qtyMax: 200, specs: "100% Cotton 12oz, Hi-Vis Options, EN ISO Certified, Sizes M-4XL, MOQ 25, GST Invoice" },
+  { category: "Textiles & Apparel", product: "T-Shirts", brand: null, model: "Round Neck", type: "T-Shirt", unit: "pcs", qtyMin: 50, qtyMax: 500, specs: "100% Cotton, 180 GSM, Solid Colors, Sizes S-5XL, MOQ 50, GST Invoice" },
+  { category: "Textiles & Apparel", product: "School Uniform Fabric", brand: null, model: "Poly Cotton", type: "Fabric", unit: "meter", qtyMin: 100, qtyMax: 1000, specs: "65/35 Poly Cotton, 110 GSM, School Colors, Durable, GST Invoice" },
+  { category: "Textiles & Apparel", product: "Mattress", brand: "Sleepyhead", model: "Queen 8 inch", type: "Mattress", unit: "pcs", qtyMin: 1, qtyMax: 10, specs: "Memory Foam, 8 inch, Medium Firm, Removable Cover, 10 Year Warranty, GST Invoice" },
+  { category: "Textiles & Apparel", product: "Curtains", brand: null, model: "Blackout", type: "Curtain", unit: "pcs", qtyMin: 10, qtyMax: 100, specs: "Blackout Fabric, 54 inch Width, Eyelet, Various Colors, GST Invoice" },
 
-  // FOOD & AGRICULTURE
+  // FOOD & AGRICULTURE (10 products)
   { category: "Food & Agriculture", product: "Basmati Rice", brand: "India Gate", model: "5kg", type: "Rice", unit: "kg", qtyMin: 50, qtyMax: 500, specs: "Extra Long Grain, 99.95% Purity, FSSAI Certified, Aroma Guaranteed, Non-Sticky, GST Invoice" },
   { category: "Food & Agriculture", product: "Wheat", brand: null, model: "Sharbati", type: "Wheat", unit: "kg", qtyMin: 100, qtyMax: 1000, specs: "Premium Sharbati, 99% Purity, Moisture 12% Max, FSSAI Certified, Clean and Sorted, GST Invoice" },
-  { category: "Food & Agriculture", product: "Organic Fertilizer", brand: "Godrej", model: "25kg", type: "Fer", unit: "bags", qtyMin: 10, qtyMax: 100, specs: "Organic, NPK 10:5:5, 25kg Bag, FCO Certified, Bio-Fortified, GST Invoice" },
+  { category: "Food & Agriculture", product: "Maize", brand: null, model: "Yellow", type: "Corn", unit: "kg", qtyMin: 100, qtyMax: 500, specs: "Yellow Maize, 12% Moisture, No Aflatoxin, FSSAI Certified, GST Invoice" },
+  { category: "Food & Agriculture", product: "Organic Fertilizer", brand: "Godrej", model: "25kg", type: "Fertilizer", unit: "bags", qtyMin: 10, qtyMax: 100, specs: "Organic, NPK 10:5:5, 25kg Bag, FCO Certified, Bio-Fortified, GST Invoice" },
+  { category: "Food & Agriculture", product: "NPK Fertilizer", brand: "IPL", model: "10-26-26", type: "Fertilizer", unit: "bags", qtyMin: 20, qtyMax: 200, specs: "NPK 10-26-26, 50kg Bag, Water Soluble, FCO Certified, GST Invoice" },
+  { category: "Food & Agriculture", product: "Urea", brand: "NFL", model: "46% N", type: "Fertilizer", unit: "bags", qtyMin: 20, qtyMax: 200, specs: "46% Nitrogen, 50kg Bag, Granular, FCO Certified, GST Invoice" },
   { category: "Food & Agriculture", product: "Sprayer Pump", brand: "MAP", model: "16L", type: "Sprayer", unit: "pcs", qtyMin: 5, qtyMax: 50, specs: "16L Capacity, Battery Operated, 8 Bar Pressure, Adjustable Nozzle, 1 Year Warranty, GST Invoice" },
+  { category: "Food & Agriculture", product: "Drip Irrigation Kit", brand: "Netafim", model: "1 Acre", type: "Irrigation", unit: "sets", qtyMin: 1, qtyMax: 10, specs: "1 Acre Setup, Drippers 4LPH, HDPE Pipes, Filter Included, GST Invoice" },
+  { category: "Food & Agriculture", product: "Plywood", brand: "Greenply", model: "18mm BWR", type: "Plywood", unit: "pcs", qtyMin: 5, qtyMax: 50, specs: "BWR Grade, 18mm, Calibrated, 7 Ply, Boiling Water Resistant, GST Invoice" },
+  { category: "Food & Agriculture", product: "Agricultural Pipes", brand: "Finolex", model: "4 inch", type: "Pipe", unit: "pcs", qtyMin: 10, qtyMax: 100, specs: "PVC, 4 inch Diameter, 6m Length, UV Stabilized, ISI Marked, GST Invoice" },
 
-  // HEALTH & SAFETY
+  // HEALTH & SAFETY (10 products)
   { category: "Health & Safety", product: "N95 Mask", brand: "3M", model: "VFM 100pcs", type: "Mask", unit: "pcs", qtyMin: 50, qtyMax: 500, specs: "N95 Grade, 4 Layer Protection, BIS Approved, 99% Bacterial Filtration, Comfortable Fit, GST Invoice" },
+  { category: "Health & Safety", product: "N99 Mask", brand: "3M", model: "9210+", type: "Mask", unit: "pcs", qtyMin: 20, qtyMax: 200, specs: "N99 Grade, 4 Layer Protection, BIS Approved, 99% Particulate Filtration, GST Invoice" },
   { category: "Health & Safety", product: "Safety Helmet", brand: "Ultimate", model: "ISI Marked", type: "Helmet", unit: "pcs", qtyMin: 10, qtyMax: 100, specs: "IS 2925 Certified, UV Stabilized, Ratchet Adjustment, Electrical Insulation, 3 Year Shelf Life, GST Invoice" },
+  { category: "Health & Safety", product: "Safety Shoes", brand: "Bata", model: "Grip Guard", type: "Shoes", unit: "pairs", qtyMin: 10, qtyMax: 100, specs: "Steel Toe Cap, PU Sole, Anti Skid, Oil Resistant, BIS Approved, GST Invoice" },
   { category: "Health & Safety", product: "Industrial Gloves", brand: "Midas", model: "Heavy Duty", type: "Gloves", unit: "pairs", qtyMin: 25, qtyMax: 200, specs: "Cut Level 5, PU Coated, Abrasion Resistant, Sizes M-XXL, EN388 Certified, GST Invoice" },
+  { category: "Health & Safety", product: "Nitrile Gloves", brand: "Ansell", model: "TouchNTuff", type: "Gloves", unit: "pcs", qtyMin: 100, qtyMax: 1000, specs: "100 Count Box, Powder Free, 4 mil Thickness, Food Grade, GST Invoice" },
   { category: "Health & Safety", product: "First Aid Kit", brand: "Dukal", model: "OSHA", type: "First Aid", unit: "pcs", qtyMin: 5, qtyMax: 50, specs: "OSHA Compliant, 100 Items, Plastic Case, Wall Mountable, Refill Available, GST Invoice" },
+  { category: "Health & Safety", product: "Safety Vest", brand: null, model: "Hi-Vis", type: "Vest", unit: "pcs", qtyMin: 20, qtyMax: 200, specs: "EN ISO 20471, Fluorescent Orange, Reflective Strips, Adjustable, GST Invoice" },
+  { category: "Health & Safety", product: "Fire Extinguisher", brand: "Safe Pros", model: "5kg ABC", type: "Fire Safety", unit: "pcs", qtyMin: 2, qtyMax: 20, specs: "ABC Dry Powder, 5kg, BIS Approved, Wall Mounted, 5 Year Warranty, GST Invoice" },
+  { category: "Health & Safety", product: "Safety Goggles", brand: "UVEX", model: "i-3", type: "Goggles", unit: "pcs", qtyMin: 10, qtyMax: 100, specs: "Anti Fog, Anti Scratch, Indirect Ventilation, EN166 Certified, GST Invoice" },
 
-  // LOGISTICS & TRANSPORT
+  // LOGISTICS & TRANSPORT (10 products)
   { category: "Logistics & Transport", product: "Packer and Mover Service", brand: null, model: "2BHK", type: "Service", unit: "service", qtyMin: 1, qtyMax: 3, specs: "Packing Material Included, 3 Men Team, Door to Door, Insurance Available, 10 Years Experience, GST Invoice" },
+  { category: "Logistics & Transport", product: "Packer and Mover Service", brand: null, model: "3BHK", type: "Service", unit: "service", qtyMin: 1, qtyMax: 3, specs: "Premium Packing, 5 Men Team, Door to Door, Insurance Included, 10 Years Experience, GST Invoice" },
   { category: "Logistics & Transport", product: "Truck Transport", brand: null, model: "14ft", type: "Truck", unit: "trips", qtyMin: 1, qtyMax: 10, specs: "14ft Container, 4 Ton Capacity, GPS Tracked, Experienced Driver, Door Pickup, All India Permit, GST Invoice" },
+  { category: "Logistics & Transport", product: "Truck Transport", brand: null, model: "20ft", type: "Truck", unit: "trips", qtyMin: 1, qtyMax: 10, specs: "20ft Container, 8 Ton Capacity, GPS Tracked, Experienced Driver, All India Permit, GST Invoice" },
   { category: "Logistics & Transport", product: "Container Storage", brand: null, model: "20ft", type: "Container", unit: "units", qtyMin: 1, qtyMax: 5, specs: "20ft Dry Container, CSC Certified, Pest Controlled, 24/7 Security, CCTV Surveillance, Flexible Tenure, GST Invoice" },
+  { category: "Logistics & Transport", product: "Container Storage", brand: null, model: "40ft", type: "Container", unit: "units", qtyMin: 1, qtyMax: 3, specs: "40ft High Cube, CSC Certified, Climate Control Option, 24/7 Security, CCTV Surveillance, GST Invoice" },
   { category: "Logistics & Transport", product: "Warehouse Rental", brand: null, model: "5000sqft", type: "Warehouse", unit: "sqft", qtyMin: 1000, qtyMax: 10000, specs: "Industrial Area, PEB Structure, 20ft Ceiling Height, Loading Bay, Power Backup, 24/7 Security, GST Invoice" },
+  { category: "Logistics & Transport", product: "Warehouse Rental", brand: null, model: "10000sqft", type: "Warehouse", unit: "sqft", qtyMin: 5000, qtyMax: 20000, specs: "Commercial Complex, RCC Structure, 15ft Ceiling, Loading Dock, Power 3 Phase, 24/7 Security, GST Invoice" },
+  { category: "Logistics & Transport", product: "Cold Storage", brand: null, model: "100sqft", type: "Cold Storage", unit: "sqft", qtyMin: 100, qtyMax: 1000, specs: "-18C to +5C, Temperature Controlled, 24/7 Monitoring, Power Backup, GST Invoice" },
+  { category: "Logistics & Transport", product: "Flight Cargo Service", brand: null, model: "Door to Door", type: "Cargo", unit: "kg", qtyMin: 10, qtyMax: 500, specs: "Air Freight, Door to Door, Tracking Available, 48hr Delivery, GST Invoice" },
 
-  // BUSINESS SERVICES
+  // BUSINESS SERVICES (10 products)
   { category: "Business Services", product: "Management Consulting", brand: null, model: "Strategic", type: "Consulting", unit: "hours", qtyMin: 10, qtyMax: 100, specs: "Industry Expert, Strategy Development, Market Analysis, Implementation Support, Progress Reports, GST Invoice" },
+  { category: "Business Services", product: "Financial Audit", brand: null, model: "Statutory", type: "Audit", unit: "service", qtyMin: 1, qtyMax: 5, specs: "CA Certified, Statutory Audit, Balance Sheet Review, Tax Compliance, GST Invoice" },
   { category: "Business Services", product: "Digital Marketing", brand: null, model: "Monthly Package", type: "Marketing", unit: "month", qtyMin: 1, qtyMax: 6, specs: "SEO + SMM + PPC, Monthly Reports, Dedicated Account Manager, Social Media Management, GST Invoice" },
+  { category: "Business Services", product: "Social Media Marketing", brand: null, model: "Content Creation", type: "Marketing", unit: "posts", qtyMin: 10, qtyMax: 50, specs: "15 Posts Monthly, Graphics, Captions, Hashtag Strategy, Engagement Report, GST Invoice" },
   { category: "Business Services", product: "Website Development", brand: null, model: "E-commerce", type: "Development", unit: "project", qtyMin: 1, qtyMax: 3, specs: "Custom Design, Payment Gateway, Inventory Management, Mobile Responsive, 1 Year Support, GST Invoice" },
+  { category: "Business Services", product: "Website Development", brand: null, model: "Business", type: "Development", unit: "project", qtyMin: 1, qtyMax: 5, specs: "5 Pages, Responsive Design, Contact Form, SEO Optimized, 6 Month Support, GST Invoice" },
+  { category: "Business Services", product: "App Development", brand: null, model: "Android", type: "Development", unit: "project", qtyMin: 1, qtyMax: 3, specs: "Native Android, Custom Features, Play Store Ready, 1 Year Support, GST Invoice" },
   { category: "Business Services", product: "Legal Documentation", brand: null, model: "Corporate", type: "Legal", unit: "service", qtyMin: 1, qtyMax: 5, specs: "ROC Compliance, MOA/AOA Drafting, Share Registry, Annual Compliance, CA Verified, GST Invoice" },
+  { category: "Business Services", product: "Trademark Registration", brand: null, model: "Logo", type: "IPR", unit: "service", qtyMin: 1, qtyMax: 3, specs: "TM Application, Search Report, Filing, Government Fees Included, 18 Months Timeline, GST Invoice" },
+  { category: "Business Services", product: "ISO Certification", brand: null, model: "9001:2015", type: "Certification", unit: "service", qtyMin: 1, qtyMax: 2, specs: "QMS Certification, Documentation Support, Internal Audit, 3 Year Validity, GST Invoice" },
 
-  // SERVICES & MAINTENANCE
+  // SERVICES & MAINTENANCE (10 products)
   { category: "Services & Maintenance", product: "Wedding Catering", brand: null, model: "100 plates", type: "Catering", unit: "plates", qtyMin: 50, qtyMax: 500, specs: "North Indian + South Indian, 5 Star Quality, Trained Staff, Live Counter, Hall Decoration, GST Invoice" },
+  { category: "Services & Maintenance", product: "Corporate Catering", brand: null, model: "Buffet", type: "Catering", unit: "plates", qtyMin: 20, qtyMax: 200, specs: "Multi Cuisine, Professional Setup, Trained Staff, Eco Friendly, GST Invoice" },
   { category: "Services & Maintenance", product: "Corporate Event", brand: null, model: "50 persons", type: "Event", unit: "event", qtyMin: 1, qtyMax: 5, specs: "Venue Selection, Invitation Design, Catering, Photography, AV Equipment, GST Invoice" },
+  { category: "Services & Maintenance", product: "Wedding Event", brand: null, model: "500 guests", type: "Event", unit: "event", qtyMin: 1, qtyMax: 2, specs: "Complete Planning, Venue, Decor, Catering, Photography, Entertainment, GST Invoice" },
   { category: "Services & Maintenance", product: "Interior Design", brand: null, model: "Full House", type: "Interior", unit: "project", qtyMin: 1, qtyMax: 3, specs: "2BHK/3BHK, Modular Kitchen, Wardrobes, False Ceiling, Civil Work Included, 3 Year Warranty, GST Invoice" },
-  { category: "Services & Maintenance", product: "AC Repair Service", brand: null, model: "Split/Window", type: "Service", unit: "service", qtyMin: 5, qtyMax: 50, specs: "Gas Refilling, PCB Repair, Coil Cleaning, 90 Day Warranty, Genuine Parts, Trained Technician, GST Invoice" }
+  { category: "Services & Maintenance", product: "Interior Design", brand: null, model: "Office", type: "Interior", unit: "project", qtyMin: 1, qtyMax: 5, specs: "Workstations, Meeting Rooms, Reception, False Ceiling, Lighting, 3 Year Warranty, GST Invoice" },
+  { category: "Services & Maintenance", product: "AC Repair Service", brand: null, model: "Split/Window", type: "Service", unit: "service", qtyMin: 5, qtyMax: 50, specs: "Gas Refilling, PCB Repair, Coil Cleaning, 90 Day Warranty, Genuine Parts, Trained Technician, GST Invoice" },
+  { category: "Services & Maintenance", product: "AC AMC Service", brand: null, model: "Annual", type: "AMC", unit: "units", qtyMin: 2, qtyMax: 20, specs: "2 Services Yearly, Gas Top Up, Filter Cleaning, Priority Support, Genuine Parts, GST Invoice" },
+  { category: "Services & Maintenance", product: "Pest Control Service", brand: null, model: "Full Home", type: "Pest Control", unit: "service", qtyMin: 1, qtyMax: 5, specs: "Cockroach, Termite, Ant Treatment, 1 Year Warranty, Government Approved, GST Invoice" },
+  { category: "Services & Maintenance", product: "Housekeeping Service", brand: null, model: "Monthly", type: "Housekeeping", unit: "months", qtyMin: 1, qtyMax: 12, specs: "Daily Cleaning, Trained Staff, All Equipment, Supplies Included, GST Invoice" }
 ];
 
 function getRandomProduct(category) {
@@ -1155,12 +1235,12 @@ function shuffleArray(arr) {
   return shuffled;
 }
 
-async function getRecentCityCategories(days = 30) {
-  const thirtyDaysAgo = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+async function getRecentCityCategories(days = 15) {
+  const daysAgo = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
   const recent = await DummyRequirement.find({
-    createdAt: { $gte: thirtyDaysAgo }
-  }).select("city category").lean();
-  return new Set(recent.map(r => `${r.city}|${r.category}`));
+    createdAt: { $gte: daysAgo }
+  }).select("city category product").lean();
+  return new Set(recent.map(r => `${r.city}|${r.category}|${r.product}`));
 }
 
 async function generateDummyRequirements(count = 3) {
@@ -1172,7 +1252,7 @@ async function generateDummyRequirements(count = 3) {
   }
   
   const adminCategories = await getCategories();
-  const recentCombos = await getRecentCityCategories(30);
+  const recentCombos = await getRecentCityCategories(15);
   
   const categoryDistribution = {};
   for (let i = 0; i < count; i++) {
@@ -1201,13 +1281,22 @@ async function generateDummyRequirements(count = 3) {
     
     for (let i = 0; i < categoryCount; i++) {
       const city = shuffledCities[i % shuffledCities.length];
-      const comboKey = `${city}|${platformCategory}`;
       
-      if (recentCombos.has(comboKey) && generated.length < count * 2) {
+      let productData;
+      let attempts = 0;
+      let comboKey;
+      
+      do {
+        productData = getRandomProduct(platformCategory);
+        comboKey = `${city}|${productData.category}|${productData.product}`;
+        attempts++;
+        if (attempts > 10) break;
+      } while (recentCombos.has(comboKey));
+      
+      if (attempts > 10 && recentCombos.has(comboKey)) {
         continue;
       }
       
-      const productData = getRandomProduct(platformCategory);
       const effectiveCategory = productData.category;
       const quantity = getQuantityForProduct(productData);
       const unit = productData.unit;
