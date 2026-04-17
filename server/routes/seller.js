@@ -3,6 +3,7 @@ const router = express.Router();
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+const jwt = require("jsonwebtoken");
 
 const Offer = require("../models/Offer");
 const Requirement = require("../models/Requirement");
@@ -12,6 +13,7 @@ const ChatMessage = require("../models/ChatMessage");
 const PlatformSettings = require("../models/PlatformSettings");
 const PendingOfferDraft = require("../models/PendingOfferDraft");
 const OptedInSeller = require("../models/OptedInSeller");
+const WhatsAppOTP = require("../models/WhatsAppOTP");
 const auth = require("../middleware/auth");
 const sellerOnly = require("../middleware/sellerOnly");
 const sendPush = require("../utils/sendPush");
@@ -22,7 +24,7 @@ const {
   serializeNotification
 } = require("../utils/notifications");
 const { normalizeRequirementAttachmentsForResponse } = require("../utils/attachments");
-const { normalizeE164, sendViaGupshupTemplate, sendViaWapiTemplate } = require("../utils/sendWhatsApp");
+const { normalizeE164, sendViaGupshupTemplate, sendViaWapiTemplate, sendWhatsAppMessage } = require("../utils/sendWhatsApp");
 const { notifyNewOffer, notifyReverseAuction } = require("../services/adminNotifications");
 const WhatsAppTemplateRegistry = require("../models/WhatsAppTemplateRegistry");
 
@@ -1249,6 +1251,111 @@ const requirements = requirementsRaw.filter((requirement) => {
   );
 
   res.json(mapped);
+});
+
+function generateOTP() {
+  return String(Math.floor(1000 + Math.random() * 9000));
+}
+
+router.post("/otp/request", async (req, res) => {
+  const { mobile } = req.body;
+  if (!mobile) {
+    return res.status(400).json({ message: "Mobile number is required" });
+  }
+  
+  const mobileE164 = normalizeE164(mobile);
+  const otp = generateOTP();
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+  
+  await WhatsAppOTP.create({
+    mobileE164,
+    otp,
+    status: "pending",
+    expiresAt,
+    attempts: 0,
+    source: "seller_deeplink"
+  });
+  
+  await sendWhatsAppMessage({
+    to: mobileE164,
+    body: `Your HOKO Seller verification code is: *${otp}*\n\nThis code expires in 10 minutes.`
+  });
+  
+  res.json({ success: true, message: "OTP sent to WhatsApp" });
+});
+
+router.post("/otp/verify", async (req, res) => {
+  const { mobile, otp } = req.body;
+  if (!mobile || !otp) {
+    return res.status(400).json({ success: false, message: "Mobile and OTP are required" });
+  }
+  
+  const mobileE164 = normalizeE164(mobile);
+  
+  const otpRecord = await WhatsAppOTP.findOne({
+    mobileE164,
+    otp: otp.trim(),
+    status: "pending"
+  }).sort({ createdAt: -1 });
+  
+  if (!otpRecord) {
+    return res.status(400).json({ success: false, message: "Invalid or expired OTP" });
+  }
+  
+  if (new Date() > otpRecord.expiresAt) {
+    await WhatsAppOTP.findByIdAndUpdate(otpRecord._id, { $set: { status: "expired" } });
+    return res.status(400).json({ success: false, message: "OTP has expired. Please request a new one." });
+  }
+  
+  if (otpRecord.attempts >= 5) {
+    await WhatsAppOTP.findByIdAndUpdate(otpRecord._id, { $set: { status: "expired" } });
+    return res.status(400).json({ success: false, message: "Too many attempts. Please request a new OTP." });
+  }
+  
+  await otpRecord.incrementAttempts();
+  
+  let user = await User.findOne({ mobile: mobileE164 });
+  if (!user) {
+    user = await User.create({
+      mobile: mobileE164,
+      role: "buyer",
+      roles: { buyer: true },
+      city: "",
+      name: "Seller",
+      email: "",
+      tokenVersion: 0
+    });
+  }
+  
+  if (!user.roles?.seller) {
+    user.roles = { ...user.roles, seller: true };
+    await user.save();
+  }
+  
+  await WhatsAppOTP.findByIdAndUpdate(otpRecord._id, { 
+    $set: { status: "verified", verifiedAt: new Date() } 
+  });
+  
+  const token = jwt.sign(
+    { id: user._id, role: "seller", tokenVersion: user.tokenVersion || 0 },
+    process.env.JWT_SECRET,
+    { expiresIn: "7d" }
+  );
+  
+  res.json({ 
+    success: true, 
+    message: "Verification successful!",
+    token,
+    user: {
+      _id: user._id,
+      email: user.email,
+      role: user.role,
+      roles: user.roles,
+      city: user.city,
+      preferredCurrency: user.preferredCurrency || "INR",
+      mobile: user.mobile
+    }
+  });
 });
 
 module.exports = router;

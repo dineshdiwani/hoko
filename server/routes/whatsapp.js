@@ -1113,9 +1113,12 @@ router.post("/webhook", async (req, res) => {
       continue;
     }
 
-    // Handle seller city input after role selection
+    // Handle seller city input after categories selection
     if (currentConsentState?.step === CONSENT_STATES.AWAITING_SELLER_CITY) {
       const inboundText = String(event.text || "").trim();
+      const selectedCategories = currentConsentState?.categories || [];
+      const categoriesDisplay = currentConsentState?.categoriesDisplay || selectedCategories.join(", ");
+      
       if (!inboundText) {
         await sendWhatsAppMessage({
           to: event.mobileE164,
@@ -1123,30 +1126,49 @@ router.post("/webhook", async (req, res) => {
         });
         continue;
       }
+      
       const citiesData = await PlatformSettings.findOne({ key: "cities" }).lean();
       const cities = citiesData?.value || [];
       const inputCity = normalizeCityName(inboundText);
       const matchedCity = cities.find(c => normalizeCityName(c) === inputCity);
       const cityToSave = matchedCity || inboundText;
       
-      // Ask for category selection
-      consentState.set(consentKey, { 
-        step: CONSENT_STATES.AWAITING_SELLER_CATEGORIES, 
-        mobileE164: event.mobileE164,
-        city: cityToSave 
-      });
-      const categoryMessage = await buildCategorySelectionMessage();
+      // Send confirmation with deep link
+      const loginLink = await sendSellerInviteLink(event.mobileE164, cityToSave, selectedCategories);
+      
       await sendWhatsAppMessage({
         to: event.mobileE164,
-        body: categoryMessage
+        body: [
+          "Perfect! You're set as a seller on HOKO. 🏪",
+          "",
+          `You'll receive requirements from ${cityToSave} for:`,
+          `📦 ${categoriesDisplay}`,
+          "",
+          "🌐 To submit offers & manage your profile:",
+          `👉 ${loginLink}`,
+          "",
+          "Our team will verify your profile shortly."
+        ].join("\n")
       });
+      
+      // Schedule dummy requirements with 2-3 min delay
+      setTimeout(async () => {
+        try {
+          await sendToNewSellerWithCategories(event.mobileE164, cityToSave, { whatsappCategories: selectedCategories, platformCategories: selectedCategories });
+          console.log(`[Seller OptIn] Sent requirements to ${event.mobileE164} after delay`);
+        } catch (err) {
+          console.log("[DummyReq] Delayed error:", err.message);
+        }
+      }, 2 * 60 * 1000 + Math.random() * 60 * 1000);
+      
+      consentState.delete(consentKey);
+      console.log(`[Seller OptIn] ${event.mobileE164} - City: ${cityToSave}, Categories: ${selectedCategories.join(", ")}`);
       continue;
     }
     
     // Handle seller categories input
     if (currentConsentState?.step === CONSENT_STATES.AWAITING_SELLER_CATEGORIES) {
       const inboundText = String(event.text || "").trim();
-      const cityToSave = currentConsentState?.city || "Unknown";
       
       if (!inboundText) {
         await sendWhatsAppMessage({
@@ -1174,24 +1196,24 @@ router.post("/webhook", async (req, res) => {
         continue;
       }
       
-      const loginLink = await sendSellerInviteLink(event.mobileE164, cityToSave, parsed.platformCategories);
-      await sendWhatsAppMessage({
-        to: event.mobileE164,
-        body: buildConsentConfirmedSellerMessage(cityToSave, parsed.whatsappCategories, loginLink)
+      // Ask for city now
+      consentState.set(consentKey, { 
+        step: CONSENT_STATES.AWAITING_SELLER_CITY, 
+        mobileE164: event.mobileE164,
+        categories: parsed.platformCategories,
+        categoriesDisplay: parsed.whatsappCategories.join(", ")
       });
       
-      // Schedule dummy requirements with 2-3 min delay
-      setTimeout(async () => {
-        try {
-          await sendToNewSellerWithCategories(event.mobileE164, cityToSave, parsed);
-          console.log(`[Seller OptIn] Sent requirements to ${event.mobileE164} after delay`);
-        } catch (err) {
-          console.log("[DummyReq] Delayed error:", err.message);
-        }
-      }, 2 * 60 * 1000 + Math.random() * 60 * 1000);
-      
-      consentState.delete(consentKey);
-      console.log(`[Seller OptIn] ${event.mobileE164} - City: ${cityToSave}, Categories: ${parsed.whatsappCategories.join(", ")}`);
+      await sendWhatsAppMessage({
+        to: event.mobileE164,
+        body: [
+          "✅ Great! Now:",
+          "",
+          "📍 Which city do you operate in?",
+          "",
+          "E.g., Mumbai, Delhi, Bangalore, Pune..."
+        ].join("\n")
+      });
       continue;
     }
 
@@ -1215,18 +1237,19 @@ router.post("/webhook", async (req, res) => {
       continue;
     }
     
-    if (SELLER_WORDS.has(normalizedInbound) || normalizedInbound === "sell" || normalizedInbound === "2" || normalizedInbound === "seller") {
-      consentState.set(consentKey, { step: CONSENT_STATES.AWAITING_SELLER_CITY, mobileE164: event.mobileE164 });
-      await sendWhatsAppMessage({
-        to: event.mobileE164,
-        body: [
-          "🏪 You're a SELLER on HOKO!",
-          "",
-          "✅ Quick question: Which city do you operate in? 📍"
-        ].join("\n")
-      });
-      continue;
-    }
+      if (SELLER_WORDS.has(normalizedInbound) || normalizedInbound === "sell" || normalizedInbound === "2" || normalizedInbound === "seller") {
+        consentState.set(consentKey, { step: CONSENT_STATES.AWAITING_SELLER_CATEGORIES, mobileE164: event.mobileE164 });
+        const categoryMessage = await buildCategorySelectionMessage();
+        await sendWhatsAppMessage({
+          to: event.mobileE164,
+          body: [
+            "🏪 You're a SELLER on HOKO!",
+            "",
+            categoryMessage
+          ].join("\n")
+        });
+        continue;
+      }
 
     // Always acknowledge simple greetings so users do not see a silent chat.
     if (GREETING_WORDS.has(normalizedInbound)) {

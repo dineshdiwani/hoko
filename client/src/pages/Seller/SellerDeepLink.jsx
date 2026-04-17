@@ -58,6 +58,17 @@ export default function SellerDeepLink() {
     sellerName: "",
     sellerCity: ""
   });
+  
+  // OTP verification state
+  const [otpStep, setOtpStep] = useState(false);
+  const [otpValue, setOtpValue] = useState("");
+  const [otpError, setOtpError] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [resendTimer, setResendTimer] = useState(0);
+  
+  const mobileFromUrl = String(params.get("mobile") || "").replace(/^\+/, "");
+  const cityFromUrl = String(params.get("city") || "").trim();
+  const catsFromUrl = String(params.get("cats") || "").trim();
   const autoSubmitTriedRef = useRef(false);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
@@ -279,10 +290,81 @@ export default function SellerDeepLink() {
     }
   };
 
+  // OTP functions
+  const requestOtp = async () => {
+    if (!mobileFromUrl) {
+      alert("Mobile number not found. Please use the link from WhatsApp.");
+      return;
+    }
+    try {
+      await api.post("/seller/otp/request", {
+        mobile: "+" + mobileFromUrl
+      });
+      setOtpSent(true);
+      setOtpStep(true);
+      setResendTimer(60);
+      const interval = setInterval(() => {
+        setResendTimer((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } catch (err) {
+      alert(err?.response?.data?.message || "Failed to send OTP. Please try again.");
+    }
+  };
+
+  const verifyOtp = async () => {
+    if (otpValue.length !== 4) {
+      setOtpError("Please enter 4-digit OTP");
+      return;
+    }
+    setOtpError("");
+    try {
+      const res = await api.post("/seller/otp/verify", {
+        mobile: "+" + mobileFromUrl,
+        otp: otpValue
+      });
+      if (res.data?.success && res.data?.token && res.data?.user) {
+        setSession({
+          _id: res.data.user._id,
+          role: res.data.user.role || "seller",
+          roles: res.data.user.roles || { seller: true },
+          email: res.data.user.email || "",
+          city: cityFromUrl || res.data.user.city || "",
+          name: res.data.user.name || "Seller",
+          preferredCurrency: res.data.user.preferredCurrency || "INR",
+          mobile: res.data.user.mobile || mobileFromUrl,
+          token: res.data.token
+        });
+        setForm((prev) => ({
+          ...prev,
+          sellerCity: cityFromUrl || res.data.user.city || ""
+        }));
+        setOtpStep(false);
+        setOtpValue("");
+        // Redirect to dashboard with city
+        navigate(`/seller/dashboard?city=${encodeURIComponent(cityFromUrl || res.data.user.city || "")}`, { replace: true });
+      } else {
+        throw new Error(res.data?.message || "Verification failed");
+      }
+    } catch (err) {
+      setOtpError(err?.response?.data?.message || err?.message || "Invalid OTP");
+    }
+  };
+
   useEffect(() => {
     const session = getSession();
-    if (session?.token && session?.roles?.seller && session?.city && !form.sellerCity) {
-      setForm((prev) => ({ ...prev, sellerCity: session.city }));
+    if (session?.token && session?.roles?.seller) {
+      if (session?.city && !form.sellerCity) {
+        setForm((prev) => ({ ...prev, sellerCity: session.city }));
+      }
+    } else if (mobileFromUrl && !session?.token) {
+      // Auto-request OTP for WhatsApp deep link users
+      requestOtp();
     }
   }, []);
 
@@ -680,6 +762,64 @@ export default function SellerDeepLink() {
             </div>
           </div>
         )}
+        
+        {/* OTP Verification Screen */}
+        {otpStep && (
+          <div className="dashboard-panel p-6 space-y-4">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <h2 className="text-xl font-bold mb-2">Verify Your WhatsApp</h2>
+              <p className="text-gray-600 text-sm">
+                We've sent a 4-digit code to<br />
+                <strong>+{mobileFromUrl}</strong>
+              </p>
+            </div>
+            
+            <div className="space-y-3">
+              <input
+                type="text"
+                value={otpValue}
+                onChange={(e) => setOtpValue(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                placeholder="Enter 4-digit OTP"
+                className="app-input text-center text-2xl tracking-widest"
+                maxLength={4}
+              />
+              {otpError && (
+                <p className="text-red-600 text-sm text-center">{otpError}</p>
+              )}
+              <button
+                onClick={verifyOtp}
+                disabled={otpValue.length !== 4}
+                className="btn-primary w-full"
+              >
+                Verify OTP
+              </button>
+              <div className="text-center">
+                {resendTimer > 0 ? (
+                  <p className="text-gray-500 text-sm">Resend OTP in {resendTimer}s</p>
+                ) : (
+                  <button
+                    onClick={requestOtp}
+                    className="text-amber-700 text-sm hover:underline"
+                  >
+                    Resend OTP
+                  </button>
+                )}
+              </div>
+              <button
+                onClick={() => setOtpStep(false)}
+                className="text-gray-500 text-sm hover:underline w-full text-center"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+        
         {loading ? (
           <p className="ui-body text-[var(--ui-muted)]">Loading requirement...</p>
         ) : (
