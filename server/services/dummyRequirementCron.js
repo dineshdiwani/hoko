@@ -1006,6 +1006,7 @@ function getProduct(platformCategory) {
 function generateDetail(platformCategory, quantity, unit, brandData = {}) {
   const styleRoll = Math.random();
   const lang = selectLanguage();
+  const hasBrand = brandData && brandData.brand;
   let templates;
   
   if (lang === "regional") {
