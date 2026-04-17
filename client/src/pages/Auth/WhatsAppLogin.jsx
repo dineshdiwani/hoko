@@ -82,7 +82,12 @@ export default function WhatsAppLogin() {
         }
         
         if (res.data.token && res.data.user) {
-          setSession({
+          const dashParams = new URLSearchParams();
+          if (cityFromUrl) dashParams.set("city", cityFromUrl);
+          
+          localStorage.removeItem("whatsapp_seller_mobile");
+          
+          await setSession({
             _id: user._id,
             role: user.role || "seller",
             roles: user.roles || { seller: true, buyer: true },
@@ -93,15 +98,9 @@ export default function WhatsAppLogin() {
             mobile: user.mobile || mobile,
             token: res.data.token
           });
+          window.location.href = `/seller/dashboard?${dashParams.toString()}`;
+          return;
         }
-        
-        localStorage.removeItem("whatsapp_seller_mobile");
-        
-        const dashParams = new URLSearchParams();
-        if (cityFromUrl) dashParams.set("city", cityFromUrl);
-        const redirectUrl = `/seller/dashboard?${dashParams.toString()}`;
-        console.log("[WhatsAppLogin] Redirecting to:", redirectUrl);
-        navigate(redirectUrl, { replace: true });
       } else {
         throw new Error(res.data?.message || "Verification failed");
       }
