@@ -1,4 +1,4 @@
-const CACHE_NAME = "hoko-pwa-v11";
+const CACHE_NAME = "hoko-pwa-v13";
 const APP_SHELL = [
   "/",
   "/index.html",
@@ -34,7 +34,10 @@ self.addEventListener("fetch", (event) => {
       fetch(request)
         .then((response) => {
           if (response && response.status === 200) {
-            caches.open(CACHE_NAME).then((cache) => cache.put("/index.html", response.clone()));
+            const responseClone = response.clone();
+            responseClone.text().then((text) => {
+              caches.open(CACHE_NAME).then((cache) => cache.put("/index.html", new Response(text, responseClone)));
+            }).catch(() => {});
           }
           return response;
         })
@@ -77,7 +80,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Hashed JS/CSS assets should come from network first so deploys are visible immediately.
+// Hashed JS/CSS assets should come from network first so deploys are visible immediately.
   if (
     (request.destination === "script" || request.destination === "style") &&
     /\/assets\/.+-[A-Za-z0-9_-]+\.(js|css)$/.test(url.pathname)
@@ -86,7 +89,14 @@ self.addEventListener("fetch", (event) => {
       fetch(request)
           .then((response) => {
             if (response && response.status === 200) {
-              caches.open(CACHE_NAME).then((cache) => cache.put(request, response.clone()));
+              const reader = response.body.getReader();
+              return reader.read().then(({ done, value }) => {
+                const body = new Uint8Array(value);
+                caches.open(CACHE_NAME).then((cache) => {
+                  cache.put(request, new Response(body, { status: 200, statusText: "OK", headers: response.headers }));
+                });
+                return new Response(body, { status: 200, statusText: "OK", headers: response.headers });
+              }).catch(() => response);
             }
             return response;
           })
@@ -108,15 +118,21 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Non-hashed JS/CSS can still use cache-first with background revalidation.
+// Non-hashed JS/CSS can still use cache-first with background revalidation.
   if (request.destination === "script" || request.destination === "style") {
     event.respondWith(
       caches.match(request).then((cached) => {
         const networkRequest = fetch(request)
           .then((response) => {
             if (response && response.status === 200 && response.type === "basic") {
-              const copy = response.clone();
-              caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+              const reader = response.body.getReader();
+              return reader.read().then(({ done, value }) => {
+                const body = new Uint8Array(value);
+                caches.open(CACHE_NAME).then((cache) => {
+                  cache.put(request, new Response(body, { status: 200, statusText: "OK", headers: response.headers }));
+                });
+                return new Response(body, { status: 200, statusText: "OK", headers: response.headers });
+              }).catch(() => response);
             }
             return response;
           })
@@ -147,9 +163,14 @@ self.addEventListener("fetch", (event) => {
             if (!response || response.status !== 200 || response.type !== "basic") {
               return response;
             }
-            const copy = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
-            return response;
+            const reader = response.body.getReader();
+            return reader.read().then(({ done, value }) => {
+              const body = new Uint8Array(value);
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(request, new Response(body, { status: 200, statusText: "OK", headers: response.headers }));
+              });
+              return new Response(body, { status: 200, statusText: "OK", headers: response.headers });
+            }).catch(() => response);
           })
           .catch(
             () =>
