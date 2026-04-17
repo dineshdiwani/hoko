@@ -272,7 +272,43 @@ const PRODUCT_MASTER = [
   { category: "Services & Maintenance", product: "AC Repair Service", brand: null, model: "Split/Window", type: "Service", unit: "service", qtyMin: 5, qtyMax: 50, specs: "Gas Refilling, PCB Repair, Coil Cleaning, 90 Day Warranty, Genuine Parts, Trained Technician, GST Invoice" },
   { category: "Services & Maintenance", product: "AC AMC Service", brand: null, model: "Annual", type: "AMC", unit: "units", qtyMin: 2, qtyMax: 20, specs: "2 Services Yearly, Gas Top Up, Filter Cleaning, Priority Support, Genuine Parts, GST Invoice" },
   { category: "Services & Maintenance", product: "Pest Control Service", brand: null, model: "Full Home", type: "Pest Control", unit: "service", qtyMin: 1, qtyMax: 5, specs: "Cockroach, Termite, Ant Treatment, 1 Year Warranty, Government Approved, GST Invoice" },
-  { category: "Services & Maintenance", product: "Housekeeping Service", brand: null, model: "Monthly", type: "Housekeeping", unit: "months", qtyMin: 1, qtyMax: 12, specs: "Daily Cleaning, Trained Staff, All Equipment, Supplies Included, GST Invoice" }
+  { category: "Services & Maintenance", product: "Housekeeping Service", brand: null, model: "Monthly", type: "Housekeeping", unit: "months", qtyMin: 1, qtyMax: 12, specs: "Daily Cleaning, Trained Staff, All Equipment, Supplies Included, GST Invoice" },
+
+  // REAL ESTATE & RENTING (10 products)
+  { category: "Real Estate & Renting", product: "1 BHK Apartment Rental", brand: null, model: "Semi Furnished", type: "Apartment", unit: "months", qtyMin: 1, qtyMax: 12, specs: "800 sqft, 1 BHK, Semi Furnished, 2nd Floor, Lift Available, Near Metro, 1 Month Security" },
+  { category: "Real Estate & Renting", product: "2 BHK Apartment Rental", brand: null, model: "Fully Furnished", type: "Apartment", unit: "months", qtyMin: 1, qtyMax: 12, specs: "1200 sqft, 2 BHK, Fully Furnished, 3rd Floor, Lift, Parking, Near School, 1 Month Security" },
+  { category: "Real Estate & Renting", product: "3 BHK Villa Rental", brand: null, model: "Independent", type: "Villa", unit: "months", qtyMin: 1, qtyMax: 12, specs: "2500 sqft, 3 BHK, Independent House, Garden, Parking 2 Cars, 24/7 Security, 2 Month Security" },
+  { category: "Real Estate & Renting", product: "Office Space Rental", brand: null, model: "1000 sqft", type: "Office", unit: "months", qtyMin: 1, qtyMax: 12, specs: "1000 sqft, Commercial, AC, Cubicles Ready, Conference Room, Lift, Parking, Near Metro, GST Invoice" },
+  { category: "Real Estate & Renting", product: "Shop Rental", brand: null, model: "Ground Floor", type: "Shop", unit: "months", qtyMin: 1, qtyMax: 12, specs: "400 sqft, Ground Floor, Main Road, High Footfall, Parking, WC Attached, GST Invoice" },
+  { category: "Real Estate & Renting", product: "Warehouse Space Rental", brand: null, model: "5000 sqft", type: "Warehouse", unit: "months", qtyMin: 1, qtyMax: 6, specs: "5000 sqft, Industrial Area, PEB Structure, 20ft Ceiling, Loading Bay, Power Backup, 3 Phase, GST Invoice" },
+  { category: "Real Estate & Renting", product: "Godown Rental", brand: null, model: "2000 sqft", type: "Godown", unit: "months", qtyMin: 1, qtyMax: 6, specs: "2000 sqft, Ground Floor, Ventilated, Pest Controlled, Easy Loading, GST Invoice" },
+  { category: "Real Estate & Renting", product: "PG Accommodation", brand: null, model: "Single Sharing", type: "PG", unit: "months", qtyMin: 1, qtyMax: 12, specs: "Single Room, AC/Non AC Options, Food Included, WiFi, Laundry, Near IT Hub, GST Invoice" },
+  { category: "Real Estate & Renting", product: "Land Purchase", brand: null, model: "1 Acre", type: "Land", unit: "plots", qtyMin: 1, qtyMax: 10, specs: "1 Acre, Agricultural/NON Agricultural, Clear Title, Demarcated, Road Access, Registry Ready, GST Invoice" },
+  { category: "Real Estate & Renting", product: "Commercial Plot Purchase", brand: null, model: "500 sqyd", type: "Plot", unit: "plots", qtyMin: 1, qtyMax: 5, specs: "500 sqyd, Commercial Zone, Main Road, All Approvals, Corner Plot, Registry Ready, GST Invoice" },
+
+  // HOUSE MAINTENANCE & SERVICES (10 products)
+  { category: "House Maintenance & Services", product: "Plumbing Repair Service", brand: null, model: "Full Service", type: "Service", unit: "service", qtyMin: 1, qtyMax: 10, specs: "Pipe Leakage, Tap Fixing, Tank Cleaning, Toilet Repair, 30 Day Warranty, Trained Plumber, GST Invoice" },
+  { category: "House Maintenance & Services", product: "Electrical Wiring Service", brand: null, model: "Full Rewiring", type: "Service", unit: "service", qtyMin: 1, qtyMax: 5, specs: "Complete House Rewiring, Modular Switches, MCB Box, 1 Year Warranty, Licensed Electrician, GST Invoice" },
+  { category: "House Maintenance & Services", product: "Painting Service", brand: null, model: "Full Home", type: "Service", unit: "service", qtyMin: 1, qtyMax: 3, specs: "Interior + Exterior, Asian Berger/Tractor, 2 Coats, Material Included, 5 Year Warranty, GST Invoice" },
+  { category: "House Maintenance & Services", product: "Waterproofing Service", brand: null, model: "Terrace", type: "Service", unit: "sqft", qtyMin: 100, qtyMax: 1000, specs: "Chemical Waterproofing, 5 Year Warranty, Leakage Guaranteed, Material Included, Professional Team, GST Invoice" },
+  { category: "House Maintenance & Services", product: "False Ceiling Service", brand: null, model: "Gypsum", type: "Service", unit: "sqft", qtyMin: 100, qtyMax: 500, specs: "Gypsum Board, Designer Patterns, LED Lights Included, 3 Year Warranty, Professional Installation, GST Invoice" },
+  { category: "House Maintenance & Services", product: "Carpentry Service", brand: null, model: "Custom Furniture", type: "Service", unit: "service", qtyMin: 1, qtyMax: 10, specs: "Custom Wardrobes, Modular Kitchen, TV Units, 5 Year Warranty on Hardware, Teak/BWP Plywood, GST Invoice" },
+  { category: "House Maintenance & Services", product: "Deep Cleaning Service", brand: null, model: "Full Home", type: "Service", unit: "service", qtyMin: 1, qtyMax: 5, specs: "Deep Cleaning, Kitchen + Bathrooms, Sofa/Carpet Shampooing, 10 Points Checklist, Professional Team, GST Invoice" },
+  { category: "House Maintenance & Services", product: "Pest Control Service", brand: null, model: "Full Home", type: "Service", unit: "service", qtyMin: 1, qtyMax: 5, specs: "Cockroach, Termite, Rodent Treatment, 1 Year Warranty, Government Approved Chemicals, Professional Team, GST Invoice" },
+  { category: "House Maintenance & Services", product: "Glass Partition Service", brand: null, model: "Office", type: "Service", unit: "sqft", qtyMin: 50, qtyMax: 300, specs: "Tempered Glass, Aluminum Frame, SS Fittings, 3 Year Warranty, Professional Installation, GST Invoice" },
+  { category: "House Maintenance & Services", product: "Solar Panel Installation", brand: null, model: "3KW", type: "Installation", unit: "service", qtyMin: 1, qtyMax: 3, specs: "3KW Solar System, On Grid, 25 Year Warranty, Government Subsidy Eligible, GST Invoice" },
+
+  // INSURANCE LIFE HEALTH & MOTOR (10 products)
+  { category: "Insurance Life Health & Motor", product: "Term Life Insurance", brand: null, model: "1 Crore", type: "Insurance", unit: "policy", qtyMin: 1, qtyMax: 1, specs: "1 Crore Sum Assured, 30 Year Term, Age 18-45, No Medical Exam Required, GST Invoice" },
+  { category: "Insurance Life Health & Motor", product: "Health Insurance", brand: null, model: "Family Floater", type: "Insurance", unit: "policy", qtyMin: 1, qtyMax: 1, specs: "5 Lakh Coverage, Family of 4, Cashless Hospitalization, No Sub Limits, GST Invoice" },
+  { category: "Insurance Life Health & Motor", product: "Critical Illness Insurance", brand: null, model: "Premium", type: "Insurance", unit: "policy", qtyMin: 1, qtyMax: 1, specs: "Critical Illness Cover, 30 Diseases, Lump Sum Payout, Age 18-65, GST Invoice" },
+  { category: "Insurance Life Health & Motor", product: "Car Insurance", brand: null, model: "Comprehensive", type: "Insurance", unit: "policy", qtyMin: 1, qtyMax: 1, specs: "Comprehensive Cover, IDV 10 Lakh, Zero Depreciation, Roadside Assistance, GST Invoice" },
+  { category: "Insurance Life Health & Motor", product: "Bike Insurance", brand: null, model: "Third Party", type: "Insurance", unit: "policy", qtyMin: 1, qtyMax: 1, specs: "Third Party Cover, 1 Year Valid, Instant Policy, GST Invoice" },
+  { category: "Insurance Life Health & Motor", product: "Group Health Insurance", brand: null, model: "20 Employees", type: "Insurance", unit: "policy", qtyMin: 1, qtyMax: 1, specs: "20 Member Coverage, 5 Lakh Floater, Cashless Network 10000+, GST Invoice" },
+  { category: "Insurance Life Health & Motor", product: "Home Insurance", brand: null, model: "Structure + Content", type: "Insurance", unit: "policy", qtyMin: 1, qtyMax: 1, specs: "Building + Content, Fire + Theft Cover, Natural Calamities, GST Invoice" },
+  { category: "Insurance Life Health & Motor", product: "Travel Insurance", brand: null, model: "International", type: "Insurance", unit: "policy", qtyMin: 1, qtyMax: 1, specs: "30 Days Coverage, Medical 5 Lakh, Trip Cancellation, Baggage Loss, GST Invoice" },
+  { category: "Insurance Life Health & Motor", product: "Cyber Insurance", brand: null, model: "Individual", type: "Insurance", unit: "policy", qtyMin: 1, qtyMax: 1, specs: "Identity Theft Cover, Financial Loss Cover, 24/7 Support, GST Invoice" },
+  { category: "Insurance Life Health & Motor", product: "Personal Accident Insurance", brand: null, model: "50 Lakh", type: "Insurance", unit: "policy", qtyMin: 1, qtyMax: 1, specs: "50 Lakh Coverage, Accidental Death + Disability, 24/7 Worldwide, GST Invoice" }
 ];
 
 function getRandomProduct(category) {
@@ -816,6 +852,33 @@ const CATEGORY_DETAIL_TEMPLATES = {
       "Want {product}. IT services. AMC or on-call. Network/hardware. Monthly contract. Best rate. HOKO pe do.",
       "Looking for {product}. Professional services. Experienced team. Best approach. Submit on HOKO.",
       "We need {product}. Business support. Quality service. Best rates. HOKO pe do."
+    ],
+    "Real Estate & Renting": [
+      "Looking for {product}. Family/employees accommodation. Budget flexible. Good location. HOKO pe options do.",
+      "We need {product}. Urgent requirement. Office/home use. Location flexible. Price on HOKO.",
+      "In need of {product}. Commercial/residential. Good condition. Negotiable rent. Quote HOKO pe do.",
+      "Require {product}. Immediate possession. Verified property. Legal clear. Price negotiation. HOKO.",
+      "Want {product}. Investment/rental income. Good returns. Verified documents. Best price. HOKO pe do.",
+      "Looking for {product}. Relocation. Family friendly. Near school/office. HOKO pe do.",
+      "We need {product}. Warehouse/storage. Industrial area. Power backup. Monthly rent. HOKO pe rate do."
+    ],
+    "House Maintenance & Services": [
+      "Looking for {product}. Home/office maintenance. Experienced team. Warranty preferred. HOKO pe do.",
+      "We need {product}. Urgent repair. Professional service. Quality work. Best price. HOKO pe quote do.",
+      "In need of {product}. Renovation/repair. Experienced workers. Material included. Price HOKO.",
+      "Require {product}. Regular maintenance. Monthly/yearly contract. Trusted vendor. HOKO pe do.",
+      "Want {product}. Home improvement. Quality service. Warranty. Best rates. Submit on HOKO.",
+      "Looking for {product}. Plumbing/electrical work. Certified workers. Quick service. Price on HOKO.",
+      "We need {product}. Painting/waterproofing. Professional. Material included. Best price. HOKO."
+    ],
+    "Insurance Life Health & Motor": [
+      "Looking for {product}. Family protection. Best coverage. Affordable premium. HOKO pe options do.",
+      "We need {product}. Health/life cover. Comprehensive. Cashless hospitalization. Quote HOKO.",
+      "In need of {product}. Vehicle insurance. Third party/comprehensive. Best price. HOKO pe do.",
+      "Require {product}. Business/employees. Group policy. Best rates. Tax benefit. HOKO.",
+      "Want {product}. Term/health insurance. Critical illness cover. Best sum assured. HOKO pe submit.",
+      "Looking for {product}. Family floater. Cashless network. Pre-existing disease cover. Price on HOKO.",
+      "We need {product}. Vehicle/travel insurance. Quick processing. Best coverage. HOKO pe do."
     ]
   },
   hinglish: {
@@ -1092,6 +1155,33 @@ const CATEGORY_DETAIL_TEMPLATES = {
       "Want {product}. IT services। AMC ya on-call। Network ya hardware। Monthly contract। Best rate। HOKO pe do।",
       "Looking for {product}. Professional services। Experienced team। Best approach। Submit on HOKO।",
       "We need {product}. Business support। Quality service। Best rates। HOKO pe do।"
+    ],
+    "Real Estate & Renting": [
+      "Looking for {product}. Family ya employees ke liye। Budget flexible। Good location। HOKO pe options do।",
+      "We need {product}. Urgent requirement। Office ya home use। Location flexible। Price on HOKO।",
+      "In need of {product}. Commercial ya residential। Good condition। Negotiable rent। Quote HOKO pe do।",
+      "Require {product}. Immediate possession। Verified property। Legal clear। Price negotiation। HOKO।",
+      "Want {product}. Investment ya rental income। Good returns। Verified documents। Best price। HOKO pe do।",
+      "Looking for {product}. Relocation ke liye। Family friendly। Near school ya office। HOKO pe do।",
+      "We need {product}. Warehouse ya storage। Industrial area। Power backup। Monthly rent। HOKO pe rate do।"
+    ],
+    "House Maintenance & Services": [
+      "Looking for {product}. Home ya office maintenance। Experienced team। Warranty preferred। HOKO pe do।",
+      "We need {product}. Urgent repair। Professional service। Quality work। Best price। HOKO pe quote do।",
+      "In need of {product}. Renovation ya repair। Experienced workers। Material included। Price HOKO।",
+      "Require {product}. Regular maintenance। Monthly ya yearly contract। Trusted vendor। HOKO pe do।",
+      "Want {product}. Home improvement। Quality service। Warranty। Best rates। Submit on HOKO।",
+      "Looking for {product}. Plumbing ya electrical work। Certified workers। Quick service। Price on HOKO।",
+      "We need {product}. Painting ya waterproofing। Professional। Material included। Best price। HOKO।"
+    ],
+    "Insurance Life Health & Motor": [
+      "Looking for {product}. Family protection ke liye। Best coverage। Affordable premium। HOKO pe options do।",
+      "We need {product}. Health ya life cover। Comprehensive। Cashless hospitalization। Quote HOKO।",
+      "In need of {product}. Vehicle insurance। Third party ya comprehensive। Best price। HOKO pe do।",
+      "Require {product}. Business ya employees। Group policy। Best rates। Tax benefit। HOKO।",
+      "Want {product}. Term ya health insurance। Critical illness cover। Best sum assured। HOKO pe submit।",
+      "Looking for {product}. Family floater। Cashless network। Pre-existing disease cover। Price on HOKO।",
+      "We need {product}. Vehicle ya travel insurance। Quick processing। Best coverage। HOKO pe do।"
     ]
   }
 };
@@ -1102,7 +1192,8 @@ const CATEGORY_GROUPS = {
     categories: [
       "Electronics & Appliances",
       "Furniture & Home",
-      "Vehicles & Parts"
+      "Vehicles & Parts",
+      "Real Estate & Renting"
     ]
   },
   industrial: {
@@ -1120,7 +1211,8 @@ const CATEGORY_GROUPS = {
     categories: [
       "Logistics & Transport",
       "Business Services",
-      "Services & Maintenance"
+      "Services & Maintenance",
+      "House Maintenance & Services"
     ]
   },
   other: {
@@ -1129,7 +1221,8 @@ const CATEGORY_GROUPS = {
       "Food & Agriculture",
       "Health & Safety",
       "Textiles & Apparel",
-      "Packaging"
+      "Packaging",
+      "Insurance Life Health & Motor"
     ]
   }
 };
