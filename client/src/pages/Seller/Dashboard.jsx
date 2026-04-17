@@ -427,6 +427,22 @@ export default function SellerDashboard() {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
+  // Load cities and categories for filters
+  useEffect(() => {
+    fetchOptions()
+      .then((data) => {
+        const nextCities = Array.isArray(data?.cities) ? data.cities : [];
+        if (nextCities.length) {
+          setCities(nextCities);
+        }
+        const nextCategories = Array.isArray(data?.categories)
+          ? data.categories
+          : [];
+        setCategories(nextCategories);
+      })
+      .catch(() => {});
+  }, []);
+
   const visibleRequirements = requirements;
 
   const smartTabRequirements = visibleRequirements.filter(matchesSmartTab);
