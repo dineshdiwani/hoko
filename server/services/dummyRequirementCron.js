@@ -417,23 +417,92 @@ async function selectPlatformCategory() {
   return selected || "Electronics & Appliances";
 }
 
-function getSmartQuantity(platformCategory) {
-  if (platformCategory.includes("Electronics") || platformCategory.includes("Furniture")) {
-    return randomInt(1, 3);
-  }
-  if (platformCategory.includes("Vehicles")) {
+function getSmartQuantity(platformCategory, product) {
+  const productLower = String(product || "").toLowerCase();
+  
+  if (platformCategory.includes("Vehicles") || productLower.includes("car") || productLower.includes("vehicle") || productLower.includes("suv") || productLower.includes("sedan") || productLower.includes("hatchback")) {
     return randomItem([1, 2, 3, 5]);
   }
+  
   if (platformCategory.includes("Services") || platformCategory.includes("Logistics") || platformCategory.includes("Business")) {
+    if (productLower.includes("catering") || productLower.includes("event") || productLower.includes("decoration")) {
+      return randomItem([1, 2, 3, 5]);
+    }
+    if (productLower.includes("truck") || productLower.includes("container") || productLower.includes("trip")) {
+      return randomItem([1, 2, 3, 5, 10]);
+    }
+    return 1;
+  }
+  
+  if (productLower.includes("tv") || productLower.includes("refrigerator") || productLower.includes("ac") || productLower.includes("laptop") || productLower.includes("computer") || productLower.includes("laptop") || productLower.includes("smartphone") || productLower.includes("phone") || productLower.includes("camera") || productLower.includes("console")) {
+    return randomItem([1, 2, 3, 5]);
+  }
+  
+  if (productLower.includes("bed") || productLower.includes("sofa") || productLower.includes("chair") || productLower.includes("table") || productLower.includes("furniture") || productLower.includes("kitchen")) {
     return randomItem([1, 2, 3, 5, 10]);
   }
-  if (platformCategory.includes("Industrial") || platformCategory.includes("Electrical") || platformCategory.includes("Construction") || platformCategory.includes("Textiles") || platformCategory.includes("Health") || platformCategory.includes("Packaging")) {
-    return randomInt(2, 15);
+  
+  if (productLower.includes("motor") || productLower.includes("generator") || productLower.includes("machine") || productLower.includes("lathe") || productLower.includes("cnc") || productLower.includes("welder") || productLower.includes("pump")) {
+    return randomItem([1, 2, 3, 5]);
   }
-  if (platformCategory.includes("Raw Materials") || platformCategory.includes("Chemicals") || platformCategory.includes("Food")) {
+  
+  if (productLower.includes("wire") || productLower.includes("cable") || productLower.includes("roll") || productLower.includes("film")) {
     return randomItem([5, 10, 20, 25, 50]);
   }
-  return randomInt(1, 5);
+  
+  if (productLower.includes("bearing")) {
+    return randomItem([10, 20, 50, 100]);
+  }
+  
+  if (productLower.includes("bar") || productLower.includes("steel") || productLower.includes("beam") || productLower.includes("cement") || productLower.includes("bag") || productLower.includes("panel") || productLower.includes("tmt")) {
+    return randomItem([50, 100, 200, 500]);
+  }
+  
+  if (productLower.includes("scrap") || productLower.includes("ore") || productLower.includes("ingot") || productLower.includes("grain") || productLower.includes("rice") || productLower.includes("wheat")) {
+    return randomItem([1, 5, 10, 20, 50]);
+  }
+  
+  if (productLower.includes("granule") || productLower.includes("resin") || productLower.includes("chemical") || productLower.includes("poly")) {
+    return randomItem([500, 1000, 2000, 5000]);
+  }
+  
+  if (productLower.includes("mask") || productLower.includes("glove") || productLower.includes("helmet") || productLower.includes("kit") || productLower.includes("safety")) {
+    return randomItem([10, 25, 50, 100]);
+  }
+  
+  if (productLower.includes("fabric") || productLower.includes("roll") || productLower.includes("cloth")) {
+    return randomItem([10, 25, 50, 100]);
+  }
+  
+  if (productLower.includes("shirt") || productLower.includes("wear") || productLower.includes("garment") || productLower.includes("workwear")) {
+    return randomItem([25, 50, 100, 250]);
+  }
+  
+  if (productLower.includes("box") || productLower.includes("tape") || productLower.includes("wrap") || productLower.includes("corrugated")) {
+    return randomItem([50, 100, 250, 500]);
+  }
+  
+  if (productLower.includes("fertilizer") || productLower.includes("sprayer")) {
+    return randomItem([10, 25, 50, 100]);
+  }
+  
+  if (productLower.includes("mc") || productLower.includes("mcb") || productLower.includes("switchgear") || productLower.includes("vfd") || productLower.includes("plc") || productLower.includes("breaker") || productLower.includes("valve") || productLower.includes("meter")) {
+    return randomItem([5, 10, 20, 50]);
+  }
+  
+  if (platformCategory.includes("Electronics") || platformCategory.includes("Furniture")) {
+    return randomItem([1, 2, 3, 5]);
+  }
+  
+  if (platformCategory.includes("Raw Materials") || platformCategory.includes("Chemicals") || platformCategory.includes("Food") || platformCategory.includes("Construction")) {
+    return randomItem([10, 25, 50, 100]);
+  }
+  
+  if (platformCategory.includes("Industrial") || platformCategory.includes("Electrical") || platformCategory.includes("Packaging") || platformCategory.includes("Textiles") || platformCategory.includes("Health")) {
+    return randomItem([5, 10, 25, 50]);
+  }
+  
+  return randomItem([1, 2, 3, 5, 10]);
 }
 
 async function getSmartUnit(platformCategory, product) {
@@ -625,7 +694,7 @@ async function generateDummyRequirements(count = 3) {
       }
       
       const product = getProduct(platformCategory, adminCategories);
-      const quantity = getSmartQuantity(platformCategory);
+      const quantity = getSmartQuantity(platformCategory, product);
       const unit = await getSmartUnit(platformCategory, product);
       const brandData = getBrandModel(platformCategory, adminCategories);
       const condition = brandData.condition || randomItem(["new", "used"]);
