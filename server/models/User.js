@@ -30,7 +30,7 @@ const userSchema = new mongoose.Schema(
 
     city: {
       type: String,
-      required: true
+      default: ""
     },
 
     preferredCurrency: {
