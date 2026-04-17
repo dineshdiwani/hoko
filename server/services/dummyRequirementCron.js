@@ -602,323 +602,416 @@ const DETAIL_STYLES = {
 const CATEGORY_DETAIL_TEMPLATES = {
   english: {
     "Electronics & Appliances": [
-      "{product} required. Home use for living room. Brand preferred. Best price with GST. Submit on HOKO.",
-      "{product} required. Office or business use. Good brand. Quick delivery. Share your best price on HOKO.",
-      "{product} required. New setup at home. Premium quality with warranty. GST invoice mandatory. Price on HOKO.",
-      "{product} required. Replacement needed urgently. Old one not working. Home delivery preferred. HOKO pe price do.",
-      "{product} required. For studies/work. Brand new with official warranty. Best price. Submit on HOKO."
+      "Looking for {product}. Need it for home use - living room ya bedroom. Brand preferred. Best price with GST. Submit on HOKO.",
+      "We need {product}. For office/business use. Good brand needed. Quick delivery. Share your best price on HOKO.",
+      "In need of {product}. Setting up new home. Premium quality with warranty a must. GST invoice mandatory. Price on HOKO.",
+      "Require {product} urgently. Old one stopped working. Need replacement ASAP. Home delivery preferred. HOKO pe price do.",
+      "Want {product} for studies/work. Brand new with official warranty. Best price. Submit on HOKO.",
+      "On the lookout for {product}. Home ya office use. Good brand. GST invoice. Share price on HOKO.",
+      "We're looking for {product}. New setup. Premium quality. Warranty included. Best price on HOKO.",
+      "Searching for {product}. Replacement needed. Old model not working. Home delivery. Price on HOKO."
     ],
     "Furniture & Home": [
-      "{product} required. New house furnishing. Living room use. Quality furniture with delivery. Submit on HOKO.",
-      "{product} required. Bedroom furniture. Good quality. Storage preferred. Best dealer price. Submit on HOKO.",
-      "{product} required. Home decoration. Modern design. Premium finish. Photos and price. Submit on HOKO.",
-      "{product} required. Office/home office use. Good quality. Budget flexible. Share price on HOKO.",
-      "{product} required. Rental apartment. Affordable options. Quality furniture. Share options on HOKO."
+      "Looking for {product}. New house furnishing. Living room use. Quality furniture with delivery. Submit on HOKO.",
+      "We need {product}. Bedroom furniture. Good quality. Storage wala preferred. Best dealer price. Submit on HOKO.",
+      "In need of {product}. Home decoration. Modern design. Premium finish. Photos and price. Submit on HOKO.",
+      "Require {product} for office/home office. Good quality needed. Budget flexible. Share price on HOKO.",
+      "Want {product} for rental apartment. Affordable options. Quality furniture. Share options on HOKO.",
+      "Looking for {product}. Living room furnishing. Good quality. Delivery needed. Best price on HOKO.",
+      "We need {product}. Bedroom setup. Storage furniture. Premium quality. Price on HOKO."
     ],
     "Vehicles & Parts": [
-      "{product} required. Daily commute. Well maintained pre-owned. Best price. Submit on HOKO.",
-      "{product} required. Family use. Service history mandatory. Clean vehicle. Best price. Submit on HOKO.",
-      "{product} required. Business use. Reliable vehicle. Good condition. Transfer included. Price on HOKO.",
-      "{product} required. First vehicle. Budget flexible. Safe and reliable. Best price. Submit on HOKO.",
-      "{product} required. Pre-owned vehicle. Low km driven. Insurance valid. Well maintained. Price on HOKO."
+      "Looking for {product}. For daily commute. Well maintained pre-owned. Best price. Submit on HOKO.",
+      "We need {product}. Family use. Service history mandatory. Clean vehicle. Best price. Submit on HOKO.",
+      "In need of {product}. Business use. Reliable vehicle. Good condition. Transfer included. Price on HOKO.",
+      "Require {product}. First vehicle. Budget flexible. Safe and reliable. Best price. Submit on HOKO.",
+      "Want {product}. Pre-owned vehicle. Low km driven. Insurance valid. Well maintained. Price on HOKO.",
+      "Looking for {product}. Daily use. Well maintained. Best deal. Submit on HOKO.",
+      "We need {product}. Family car. Service records. Best price on HOKO."
     ],
     "Industrial Machinery": [
-      "{product} required. Factory/industrial use. Heavy duty. Reliable brand. Technical specs. Submit on HOKO.",
-      "{product} required. Production line. Quality machinery with warranty. Installation required. Quote on HOKO.",
-      "{product} required. Plant maintenance. Test run mandatory. Quality guarantee. Share price on HOKO.",
-      "{product} required. New setup. Efficient machinery. IE3 efficiency preferred. Complete pricing. Submit on HOKO.",
-      "{product} required. Industrial requirement. Technical specifications. Test certificates. Best price. HOKO pe quote do."
+      "Looking for {product}. Factory/industrial use. Heavy duty. Reliable brand. Technical specs. Submit on HOKO.",
+      "We need {product}. Production line. Quality machinery with warranty. Installation required. Quote on HOKO.",
+      "In need of {product}. Plant maintenance. Test run mandatory. Quality guarantee. Share price on HOKO.",
+      "Require {product}. New setup. Efficient machinery. IE3 efficiency preferred. Complete pricing. Submit on HOKO.",
+      "Want {product}. Industrial use. Technical specifications. Test certificates. Best price. HOKO pe quote do.",
+      "Looking for {product}. Manufacturing unit. Heavy duty machinery. Quote on HOKO.",
+      "We need {product}. Production facility. Quality equipment. Best price on HOKO."
     ],
     "Electrical Parts": [
-      "{product} required. Electrical project. ISI marked products mandatory. Competitive price. Submit on HOKO.",
-      "{product} required. Factory maintenance. Consistent quality essential. Bulk pricing available. HOKO pe price do.",
-      "{product} required. Construction site. Reliable parts. Good quality. GST invoice. Price on HOKO.",
-      "{product} required. New building wiring. Multiple pieces. GST invoice mandatory. Per unit price. HOKO.",
-      "{product} required. Trial order to check quality. Technical datasheet. Share price on HOKO."
+      "Looking for {product}. Electrical project. ISI marked products mandatory. Competitive price. Submit on HOKO.",
+      "We need {product}. Factory maintenance. Consistent quality essential. Bulk pricing available. HOKO pe price do.",
+      "In need of {product}. Construction site. Reliable parts. Good quality. GST invoice. Price on HOKO.",
+      "Require {product}. New building wiring. Multiple pieces. GST invoice mandatory. Per unit price. HOKO.",
+      "Want {product}. Trial order to check quality. Technical datasheet. Share price on HOKO.",
+      "Looking for {product}. Electrical work. ISI marked. Best price. Submit on HOKO.",
+      "We need {product}. Wiring project. Quality parts. GST invoice. Price on HOKO."
     ],
     "Construction Materials": [
-      "{product} required. House/building construction. Quality materials with delivery. Certificate. Submit on HOKO.",
-      "{product} required. Ongoing project. Bulk order. Site delivery mandatory. Best price. HOKO pe quote do.",
-      "{product} required. New construction. Quality material. Site delivery. GST invoice. Price on HOKO.",
-      "{product} required. Commercial project. Reliable supplier. Consistent quality. GST mandatory. Submit on HOKO.",
-      "{product} required. Building work. Quality materials. Timely delivery essential. Best price. HOKO."
+      "Looking for {product}. House/building construction. Quality materials with delivery. Certificate. Submit on HOKO.",
+      "We need {product}. Ongoing project. Bulk order. Site delivery mandatory. Best price. HOKO pe quote do.",
+      "In need of {product}. New construction. Quality material. Site delivery. GST invoice. Price on HOKO.",
+      "Require {product}. Commercial project. Reliable supplier. Consistent quality. GST mandatory. Submit on HOKO.",
+      "Want {product}. Building work. Quality materials. Timely delivery essential. Best price. HOKO.",
+      "Looking for {product}. Construction site. Quality material. Delivery needed. Price on HOKO.",
+      "We need {product}. House build. Bulk order. Best price on HOKO."
     ],
     "Services & Maintenance": [
-      "{product} required. Event/celebration planning. Experienced team. Budget flexible. Share packages on HOKO.",
-      "{product} required. Office/home service. Professional service. Quality work. Best price. Submit on HOKO.",
-      "{product} required. Renovation/interior work. Creative team. Portfolio required. Quote on HOKO.",
-      "{product} required. Urgent repair. Professional service. Warranty preferred. Service charges. HOKO pe do.",
-      "{product} required. Regular maintenance. Experienced team. Good reviews. Best price. Submit on HOKO."
+      "Looking for {product}. Event/celebration planning. Experienced team. Budget flexible. Share packages on HOKO.",
+      "We need {product}. Office/home service. Professional service. Quality work. Best price. Submit on HOKO.",
+      "In need of {product}. Renovation/interior work. Creative team. Portfolio required. Quote on HOKO.",
+      "Require {product} urgently. Professional service. Warranty preferred. Service charges. HOKO pe do.",
+      "Want {product}. Regular maintenance. Experienced team. Good reviews. Best price. Submit on HOKO.",
+      "Looking for {product}. Event planning. Experienced vendor. Budget flexible. HOKO pe do.",
+      "We need {product}. Repair/maintenance. Professional. Best price. Submit on HOKO."
     ],
     "Raw Materials": [
-      "{product} required. Manufacturing unit. Consistent quality. Monthly orders possible. GST invoice. HOKO pe price do.",
-      "{product} required. Factory raw material. High volume. Competitive rates. Quality certificate. Submit on HOKO.",
-      "{product} required. Production requirement. Test sample required. Bulk order. Best price. HOKO.",
-      "{product} required. Regular manufacturing. Quality material. Timely delivery. GST invoice. Price on HOKO.",
-      "{product} required. Production use. Consistent quality essential. Long-term supplier interested. HOKO pe quote do."
+      "Looking for {product}. Manufacturing unit. Consistent quality. Monthly orders possible. GST invoice. HOKO pe price do.",
+      "We need {product}. Factory raw material. High volume. Competitive rates. Quality certificate. Submit on HOKO.",
+      "In need of {product}. Production requirement. Test sample required. Bulk order. Best price. HOKO.",
+      "Require {product}. Regular manufacturing. Quality material. Timely delivery. GST invoice. Price on HOKO.",
+      "Want {product}. Production use. Consistent quality essential. Long-term supplier interested. HOKO pe quote do.",
+      "Looking for {product}. Bulk order. Industrial use. Quality material. GST invoice. HOKO pe do.",
+      "We need {product}. Manufacturing. Monthly supply. Best price on HOKO."
     ],
     "Chemicals & Plastics": [
-      "{product} required. Plastic manufacturing. Consistent quality. BIS certified. Per kg rate. Submit on HOKO.",
-      "{product} required. Industrial use. Quality material. Test sample. Delivery included. Price on HOKO.",
-      "{product} required. Production line. Quality granules/resin. Technical specs. Best price. HOKO.",
-      "{product} required. Manufacturing. Monthly orders. Quality consistency. GST invoice. Price do HOKO pe.",
-      "{product} required. Industrial grade. Safety data sheet. Competitive pricing. Submit on HOKO."
+      "Looking for {product}. Plastic manufacturing. Consistent quality. BIS certified. Per kg rate. Submit on HOKO.",
+      "We need {product}. Industrial use. Quality material. Test sample. Delivery included. Price on HOKO.",
+      "In need of {product}. Production line. Quality granules/resin. Technical specs. Best price. HOKO.",
+      "Require {product}. Manufacturing. Monthly orders. Quality consistency. GST invoice. Price do HOKO pe.",
+      "Want {product}. Industrial grade. Safety data sheet. Competitive pricing. Submit on HOKO.",
+      "Looking for {product}. Plastic industry. Consistent quality. Best price. HOKO pe do.",
+      "We need {product}. Manufacturing unit. Bulk order. Quality material. Price on HOKO."
     ],
     "Packaging": [
-      "{product} required. Product packaging. Monthly requirement. Quality important. Bulk pricing. HOKO pe price do.",
-      "{product} required. Urgent order. Quick delivery. Good quality. Per piece/roll price. Submit on HOKO.",
-      "{product} required. Shipping/warehousing. Consistent quality. Monthly orders. Competitive rates. HOKO.",
-      "{product} required. Manufacturing packaging. Custom printing available. Samples and price. HOKO pe do.",
-      "{product} required. Food-grade packaging. Safety compliance. Quality material. Best price. Submit on HOKO."
+      "Looking for {product}. Product packaging. Monthly requirement. Quality important. Bulk pricing. HOKO pe price do.",
+      "We need {product}. Urgent order. Quick delivery. Good quality. Per piece/roll price. Submit on HOKO.",
+      "In need of {product}. Shipping/warehousing. Consistent quality. Monthly orders. Competitive rates. HOKO.",
+      "Require {product}. Manufacturing packaging. Custom printing available. Samples and price. HOKO pe do.",
+      "Want {product}. Food-grade packaging. Safety compliance. Quality material. Best price. Submit on HOKO.",
+      "Looking for {product}. Packaging material. Bulk order. Quality needed. Best price on HOKO.",
+      "We need {product}. Shipping boxes/film. Monthly order. Price on HOKO."
     ],
     "Textiles & Apparel": [
-      "{product} required. Retail/shop use. Good quality fabric. Per meter rate. GST invoice. Submit on HOKO.",
-      "{product} required. E-commerce/business use. Bulk order. Fast delivery. Competitive price. HOKO pe do.",
-      "{product} required. Office/school uniform. Multiple sizes. Per piece rate. Bulk pricing. Submit on HOKO.",
-      "{product} required. Manufacturing use. Regular monthly orders. Quality consistency. Best price. HOKO.",
-      "{product} required. Boutique/designer use. Premium quality. Unique designs. Sample first. Price on HOKO."
+      "Looking for {product}. Retail/shop use. Good quality fabric. Per meter rate. GST invoice. Submit on HOKO.",
+      "We need {product}. E-commerce/business use. Bulk order. Fast delivery. Competitive price. HOKO pe do.",
+      "In need of {product}. Office/school uniform. Multiple sizes. Per piece rate. Bulk pricing. Submit on HOKO.",
+      "Require {product}. Manufacturing use. Regular monthly orders. Quality consistency. Best price. HOKO.",
+      "Want {product}. Boutique/designer use. Premium quality. Unique designs. Sample first. Price on HOKO.",
+      "Looking for {product}. Fabric for clothing. Good quality. Best price. Submit on HOKO.",
+      "We need {product}. Bulk order. Textile. Competitive rates. HOKO pe do."
     ],
     "Food & Agriculture": [
-      "{product} required. Restaurant/daily cooking. Consistent quality. FSSAI certified. Best wholesale. HOKO pe do.",
-      "{product} required. Distribution/business. Bulk order. Clean quality. FSSAI mandatory. Price on HOKO.",
-      "{product} required. Wedding/celebration. Premium quality. Bulk order. Delivery included. Submit on HOKO.",
-      "{product} required. Retail/resale. Wholesale rate. Good margin. Clean stock. Best price. HOKO.",
-      "{product} required. Hotel/catering. Daily requirement. Fresh stock. Regular supply. Price on HOKO."
+      "Looking for {product}. Restaurant/daily cooking. Consistent quality. FSSAI certified. Best wholesale. HOKO pe do.",
+      "We need {product}. Distribution/business. Bulk order. Clean quality. FSSAI mandatory. Price on HOKO.",
+      "In need of {product}. Wedding/celebration. Premium quality. Bulk order. Delivery included. Submit on HOKO.",
+      "Require {product}. Retail/resale. Wholesale rate. Good margin. Clean stock. Best price. HOKO.",
+      "Want {product}. Hotel/catering. Daily requirement. Fresh stock. Regular supply. Price on HOKO.",
+      "Looking for {product}. Food business. Bulk order. FSSAI certified. Best price on HOKO.",
+      "We need {product}. Daily cooking. Quality grains. Regular supply. HOKO pe do."
     ],
     "Health & Safety": [
-      "{product} required. Factory/industrial. ISI marked mandatory. Bulk order. Per piece rate. HOKO pe do.",
-      "{product} required. Construction site. Safety equipment. OSHA compliant. Multiple pieces. Price on HOKO.",
-      "{product} required. Office/workplace. Safety supplies. Quality products. Bulk pricing. Submit on HOKO.",
-      "{product} required. Hospital/medical. Quality medical-grade. Certification mandatory. Catalog. HOKO pe price do.",
-      "{product} required. School/public place. Safety equipment. BIS/ISO marked. Best price. Submit on HOKO."
+      "Looking for {product}. Factory/industrial. ISI marked mandatory. Bulk order. Per piece rate. HOKO pe do.",
+      "We need {product}. Construction site. Safety equipment. OSHA compliant. Multiple pieces. Price on HOKO.",
+      "In need of {product}. Office/workplace. Safety supplies. Quality products. Bulk pricing. Submit on HOKO.",
+      "Require {product}. Hospital/medical. Quality medical-grade. Certification mandatory. Catalog. HOKO pe price do.",
+      "Want {product}. School/public place. Safety equipment. BIS/ISO marked. Best price. Submit on HOKO.",
+      "Looking for {product}. Safety gear. Bulk order. ISI marked. Best price on HOKO.",
+      "We need {product}. Factory safety. PPE items. Quality products. Price on HOKO."
     ],
     "Logistics & Transport": [
-      "{product} required. Material transport. Reliable service. GPS tracked. Experienced driver. Per trip. HOKO.",
-      "{product} required. House/office shifting. Professional team. Packing material. Insurance. Estimate. HOKO pe do.",
-      "{product} required. Warehouse/storage. Industrial area. Power backup. Per sqft rate. Submit on HOKO.",
-      "{product} required. Container storage. 20ft/40ft. CSC certified. 24/7 security. Per month. HOKO pe rate do.",
-      "{product} required. Cold storage. Perishables. Temperature controlled. Per sqft/pallet. GST invoice. HOKO."
+      "Looking for {product}. Material transport. Reliable service. GPS tracked. Experienced driver. Per trip. HOKO.",
+      "We need {product}. House/office shifting. Professional team. Packing material. Insurance. Estimate. HOKO pe do.",
+      "In need of {product}. Warehouse/storage. Industrial area. Power backup. Per sqft rate. Submit on HOKO.",
+      "Require {product}. Container storage. 20ft/40ft. CSC certified. 24/7 security. Per month. HOKO pe rate do.",
+      "Want {product}. Cold storage. Perishables. Temperature controlled. Per sqft/pallet. GST invoice. HOKO.",
+      "Looking for {product}. Transport service. Reliable. GPS tracked. Best rates on HOKO.",
+      "We need {product}. Storage space. Warehouse. Industrial area. HOKO pe rate do."
     ],
     "Business Services": [
-      "{product} required. Business growth. Experienced consultant. Track record. Budget flexible. HOKO pe approach do.",
-      "{product} required. Online presence. SEO + marketing. Monthly retainer. Results oriented. Submit on HOKO.",
-      "{product} required. Website/app development. Custom design. Mobile responsive. 1 year support. Quote. HOKO.",
-      "{product} required. Company registration. Legal compliance. CA/CS services. Professional fees. Submit on HOKO.",
-      "{product} required. IT services. AMC or on-call. Network/hardware. Monthly contract. Best rate. HOKO pe do."
+      "Looking for {product}. Business growth. Experienced consultant. Track record. Budget flexible. HOKO pe approach do.",
+      "We need {product}. Online presence. SEO + marketing. Monthly retainer. Results oriented. Submit on HOKO.",
+      "In need of {product}. Website/app development. Custom design. Mobile responsive. 1 year support. Quote. HOKO.",
+      "Require {product}. Company registration. Legal compliance. CA/CS services. Professional fees. Submit on HOKO.",
+      "Want {product}. IT services. AMC or on-call. Network/hardware. Monthly contract. Best rate. HOKO pe do.",
+      "Looking for {product}. Professional services. Experienced team. Best approach. Submit on HOKO.",
+      "We need {product}. Business support. Quality service. Best rates. HOKO pe do."
     ]
   },
   hinglish: {
     "Electronics & Appliances": [
-      "{product} chahiye. Ghar ke liye. Living room ya bedroom. Brand preferred. GST ke saath best price. HOKO pe do.",
-      "{product} chahiye. Office ya business ke liye. Good brand. Jaldi delivery. Best price share karo HOKO pe.",
-      "{product} chahiye. New setup ke liye. Premium quality with warranty. GST invoice mandatory. Price HOKO pe do.",
-      "{product} chahiye. Urgent replacement. Purana kharab ho gaya. Home delivery preferred. HOKO pe price do.",
-      "{product} chahiye. Studies ya work ke liye. Brand new with official warranty. Best price. HOKO pe submit karo."
+      "Looking for {product}. Ghar ke liye chahiye - living room ya bedroom. Brand preferred. GST ke saath best price. HOKO pe do.",
+      "We need {product}. Office/business ke liye. Good brand chahiye. Jaldi delivery. Best price share karo HOKO pe.",
+      "In need of {product}. New home setup kar rahe hain. Premium quality with warranty zaroor. GST invoice mandatory. HOKO pe price do.",
+      "Require {product} urgently. Purana kharab ho gaya. Jaldi replacement chahiye. Home delivery preferred. HOKO pe price do.",
+      "Want {product} for studies/work. Brand new with official warranty. Best price. HOKO pe submit karo.",
+      "On the lookout for {product}. Home ya office use. Good brand. GST invoice. Share price on HOKO.",
+      "We're looking for {product}. New setup. Premium quality. Warranty included. Best price on HOKO.",
+      "Searching for {product}. Replacement needed. Old model not working. Home delivery. Price on HOKO."
     ],
     "Furniture & Home": [
-      "{product} chahiye. New house furnishing. Living room ke liye. Quality furniture with delivery. HOKO pe do.",
-      "{product} chahiye. Bedroom furniture. Good quality. Storage wala preferred. Best dealer price. HOKO pe do.",
-      "{product} chahiye. Home decoration. Modern design. Premium finish. Photos aur price share karo HOKO pe.",
-      "{product} chahiye. Office ya home office. Good quality. Budget flexible. Share price on HOKO.",
-      "{product} chahiye. Rental apartment. Affordable options. Quality furniture. Share options on HOKO."
+      "Looking for {product}. New house furnish karna hai. Living room ke liye. Quality furniture with delivery. HOKO pe do.",
+      "We need {product}. Bedroom furniture. Good quality. Storage wala preferred. Best dealer price. HOKO pe do.",
+      "In need of {product}. Home decoration. Modern design. Premium finish. Photos aur price share karo HOKO pe.",
+      "Require {product} for office/home office. Good quality needed. Budget flexible. Share price on HOKO.",
+      "Want {product} for rental apartment. Affordable options. Quality furniture. Share options on HOKO.",
+      "Looking for {product}. Living room furnishing. Good quality. Delivery needed. Best price on HOKO.",
+      "We need {product}. Bedroom setup. Storage furniture. Premium quality. Price on HOKO."
     ],
     "Vehicles & Parts": [
-      "{product} chahiye. Daily commute ke liye. Well maintained pre-owned. Best price. HOKO pe do.",
-      "{product} chahiye. Family use ke liye. Service history mandatory. Clean vehicle. Best price. HOKO pe do.",
-      "{product} chahiye. Business use ke liye. Reliable vehicle. Good condition. Transfer included. Price on HOKO.",
-      "{product} chahiye. First vehicle. Budget flexible. Safe and reliable. Best price. HOKO pe submit karo.",
-      "{product} chahiye. Pre-owned vehicle. Low km driven. Insurance valid. Well maintained. Price on HOKO."
+      "Looking for {product}. Daily commute ke liye. Well maintained pre-owned. Best price. HOKO pe do.",
+      "We need {product}. Family use ke liye. Service history mandatory. Clean vehicle. Best price. HOKO pe do.",
+      "In need of {product}. Business use ke liye. Reliable vehicle. Good condition. Transfer included. Price on HOKO.",
+      "Require {product}. First vehicle. Budget flexible. Safe and reliable. Best price. HOKO pe submit karo.",
+      "Want {product}. Pre-owned vehicle. Low km driven. Insurance valid. Well maintained. Price on HOKO.",
+      "Looking for {product}. Daily use. Well maintained. Best deal. Submit on HOKO.",
+      "We need {product}. Family car. Service records. Best price on HOKO."
     ],
     "Industrial Machinery": [
-      "{product} chahiye. Factory ya industrial use. Heavy duty. Reliable brand. Technical specs. HOKO pe do.",
-      "{product} chahiye. Production line ke liye. Quality machinery with warranty. Installation required. Quote HOKO pe do.",
-      "{product} chahiye. Plant maintenance. Test run mandatory. Quality guarantee. Share price on HOKO.",
-      "{product} chahiye. New setup ke liye. Efficient machinery. IE3 efficiency preferred. Complete pricing. HOKO pe do.",
-      "{product} chahiye. Industrial requirement. Technical specifications. Test certificates. Best price. HOKO pe quote do."
+      "Looking for {product}. Factory/industrial use. Heavy duty. Reliable brand. Technical specs. HOKO pe do.",
+      "We need {product}. Production line ke liye. Quality machinery with warranty. Installation required. Quote HOKO pe do.",
+      "In need of {product}. Plant maintenance. Test run mandatory. Quality guarantee. Share price on HOKO.",
+      "Require {product}. New setup. Efficient machinery. IE3 efficiency preferred. Complete pricing. HOKO pe do.",
+      "Want {product}. Industrial requirement. Technical specifications. Test certificates. Best price. HOKO pe quote do.",
+      "Looking for {product}. Manufacturing unit. Heavy duty machinery. Quote on HOKO.",
+      "We need {product}. Production facility. Quality equipment. Best price on HOKO."
     ],
     "Electrical Parts": [
-      "{product} chahiye. Electrical project. ISI marked products mandatory. Competitive price. HOKO pe do.",
-      "{product} chahiye. Factory maintenance. Consistent quality essential. Bulk pricing available. HOKO pe price do.",
-      "{product} chahiye. Construction site. Reliable parts. Good quality. GST invoice. Price on HOKO.",
-      "{product} chahiye. New building wiring. Multiple pieces. GST invoice mandatory. Per unit price. HOKO.",
-      "{product} chahiye. Trial order quality check. Technical datasheet. Share price on HOKO."
+      "Looking for {product}. Electrical project. ISI marked products mandatory. Competitive price. HOKO pe do.",
+      "We need {product}. Factory maintenance. Consistent quality essential. Bulk pricing available. HOKO pe price do.",
+      "In need of {product}. Construction site. Reliable parts. Good quality. GST invoice. Price on HOKO.",
+      "Require {product}. New building wiring. Multiple pieces. GST invoice mandatory. Per unit price. HOKO.",
+      "Want {product}. Trial order to check quality. Technical datasheet. Share price on HOKO.",
+      "Looking for {product}. Electrical work. ISI marked. Best price. Submit on HOKO.",
+      "We need {product}. Wiring project. Quality parts. GST invoice. Price on HOKO."
     ],
     "Construction Materials": [
-      "{product} chahiye. House ya building construction. Quality materials with delivery. Certificate. HOKO pe do.",
-      "{product} chahiye. Ongoing project. Bulk order. Site delivery mandatory. Best price. HOKO pe quote do.",
-      "{product} chahiye. New construction. Quality material. Site delivery. GST invoice. Price on HOKO.",
-      "{product} chahiye. Commercial project. Reliable supplier. Consistent quality. GST mandatory. HOKO pe do.",
-      "{product} chahiye. Building work. Quality materials. Timely delivery essential. Best price. HOKO."
+      "Looking for {product}. House/building construction. Quality materials with delivery. Certificate. HOKO pe do.",
+      "We need {product}. Ongoing project. Bulk order. Site delivery mandatory. Best price. HOKO pe quote do.",
+      "In need of {product}. New construction. Quality material. Site delivery. GST invoice. Price on HOKO.",
+      "Require {product}. Commercial project. Reliable supplier. Consistent quality. GST mandatory. HOKO pe do.",
+      "Want {product}. Building work. Quality materials. Timely delivery essential. Best price. HOKO.",
+      "Looking for {product}. Construction site. Quality material. Delivery needed. Price on HOKO.",
+      "We need {product}. House build. Bulk order. Best price on HOKO."
     ],
     "Services & Maintenance": [
-      "{product} chahiye. Event ya celebration planning. Experienced team. Budget flexible. Packages HOKO pe do.",
-      "{product} chahiye. Office ya home service. Professional service. Quality work. Best price. HOKO pe do.",
-      "{product} chahiye. Renovation ya interior work. Creative team. Portfolio required. Quote HOKO pe do.",
-      "{product} chahiye. Urgent repair. Professional service. Warranty preferred. Service charges. HOKO pe do.",
-      "{product} chahiye. Regular maintenance. Experienced team. Good reviews. Best price. HOKO pe submit karo."
+      "Looking for {product}. Event/celebration planning. Experienced team. Budget flexible. Packages HOKO pe do.",
+      "We need {product}. Office/home service. Professional service. Quality work. Best price. HOKO pe do.",
+      "In need of {product}. Renovation/interior work. Creative team. Portfolio required. Quote HOKO pe do.",
+      "Require {product} urgently. Professional service. Warranty preferred. Service charges. HOKO pe do.",
+      "Want {product}. Regular maintenance. Experienced team. Good reviews. Best price. HOKO pe submit karo.",
+      "Looking for {product}. Event planning. Experienced vendor. Budget flexible. HOKO pe do.",
+      "We need {product}. Repair/maintenance. Professional. Best price. Submit on HOKO."
     ],
     "Raw Materials": [
-      "{product} chahiye. Manufacturing unit. Consistent quality. Monthly orders possible. GST invoice. HOKO pe price do.",
-      "{product} chahiye. Factory raw material. High volume. Competitive rates. Quality certificate. HOKO pe do.",
-      "{product} chahiye. Production requirement. Test sample required. Bulk order. Best price. HOKO.",
-      "{product} chahiye. Regular manufacturing. Quality material. Timely delivery. GST invoice. Price on HOKO.",
-      "{product} chahiye. Production use. Consistent quality essential. Long-term supplier interested. HOKO pe quote do."
+      "Looking for {product}. Manufacturing unit. Consistent quality. Monthly orders possible. GST invoice. HOKO pe price do.",
+      "We need {product}. Factory raw material. High volume. Competitive rates. Quality certificate. HOKO pe do.",
+      "In need of {product}. Production requirement. Test sample required. Bulk order. Best price. HOKO.",
+      "Require {product}. Regular manufacturing. Quality material. Timely delivery. GST invoice. Price on HOKO.",
+      "Want {product}. Production use. Consistent quality essential. Long-term supplier interested. HOKO pe quote do.",
+      "Looking for {product}. Bulk order. Industrial use. Quality material. GST invoice. HOKO pe do.",
+      "We need {product}. Manufacturing. Monthly supply. Best price on HOKO."
     ],
     "Chemicals & Plastics": [
-      "{product} chahiye. Plastic manufacturing. Consistent quality. BIS certified. Per kg rate. HOKO pe do.",
-      "{product} chahiye. Industrial use. Quality material. Test sample. Delivery included. Price on HOKO.",
-      "{product} chahiye. Production line. Quality granules ya resin. Technical specs. Best price. HOKO.",
-      "{product} chahiye. Manufacturing. Monthly orders. Quality consistency. GST invoice. Price do HOKO pe.",
-      "{product} chahiye. Industrial grade. Safety data sheet. Competitive pricing. HOKO pe submit karo."
+      "Looking for {product}. Plastic manufacturing. Consistent quality. BIS certified. Per kg rate. HOKO pe do.",
+      "We need {product}. Industrial use. Quality material. Test sample. Delivery included. Price on HOKO.",
+      "In need of {product}. Production line. Quality granules ya resin. Technical specs. Best price. HOKO.",
+      "Require {product}. Manufacturing. Monthly orders. Quality consistency. GST invoice. Price do HOKO pe.",
+      "Want {product}. Industrial grade. Safety data sheet. Competitive pricing. HOKO pe submit karo.",
+      "Looking for {product}. Plastic industry. Consistent quality. Best price. HOKO pe do.",
+      "We need {product}. Manufacturing unit. Bulk order. Quality material. Price on HOKO."
     ],
     "Packaging": [
-      "{product} chahiye. Product packaging. Monthly requirement. Quality important. Bulk pricing. HOKO pe price do.",
-      "{product} chahiye. Urgent order. Quick delivery. Good quality. Per piece ya roll price. HOKO pe do.",
-      "{product} chahiye. Shipping ya warehousing. Consistent quality. Monthly orders. Competitive rates. HOKO.",
-      "{product} chahiye. Manufacturing packaging. Custom printing available. Samples and price. HOKO pe do.",
-      "{product} chahiye. Food-grade packaging. Safety compliance. Quality material. Best price. HOKO pe submit karo."
+      "Looking for {product}. Product packaging. Monthly requirement. Quality important. Bulk pricing. HOKO pe price do.",
+      "We need {product}. Urgent order. Quick delivery. Good quality. Per piece ya roll price. HOKO pe do.",
+      "In need of {product}. Shipping/warehousing. Consistent quality. Monthly orders. Competitive rates. HOKO.",
+      "Require {product}. Manufacturing packaging. Custom printing available. Samples and price. HOKO pe do.",
+      "Want {product}. Food-grade packaging. Safety compliance. Quality material. Best price. HOKO pe submit karo.",
+      "Looking for {product}. Packaging material. Bulk order. Quality needed. Best price on HOKO.",
+      "We need {product}. Shipping boxes ya film. Monthly order. Price on HOKO."
     ],
     "Textiles & Apparel": [
-      "{product} chahiye. Retail ya shop use. Good quality fabric. Per meter rate. GST invoice. HOKO pe do.",
-      "{product} chahiye. E-commerce ya business use. Bulk order. Fast delivery. Competitive price. HOKO pe do.",
-      "{product} chahiye. Office ya school uniform. Multiple sizes. Per piece rate. Bulk pricing. HOKO pe do.",
-      "{product} chahiye. Manufacturing use. Regular monthly orders. Quality consistency. Best price. HOKO.",
-      "{product} chahiye. Boutique ya designer use. Premium quality. Unique designs. Sample first. Price on HOKO."
+      "Looking for {product}. Retail/shop use. Good quality fabric. Per meter rate. GST invoice. HOKO pe do.",
+      "We need {product}. E-commerce/business use. Bulk order. Fast delivery. Competitive price. HOKO pe do.",
+      "In need of {product}. Office/school uniform. Multiple sizes. Per piece rate. Bulk pricing. HOKO pe do.",
+      "Require {product}. Manufacturing use. Regular monthly orders. Quality consistency. Best price. HOKO.",
+      "Want {product}. Boutique/designer use. Premium quality. Unique designs. Sample first. Price on HOKO.",
+      "Looking for {product}. Fabric for clothing. Good quality. Best price. Submit on HOKO.",
+      "We need {product}. Bulk order. Textile. Competitive rates. HOKO pe do."
     ],
     "Food & Agriculture": [
-      "{product} chahiye. Restaurant ya daily cooking. Consistent quality. FSSAI certified. Best wholesale. HOKO pe do.",
-      "{product} chahiye. Distribution ya business. Bulk order. Clean quality. FSSAI mandatory. Price on HOKO.",
-      "{product} chahiye. Wedding ya celebration. Premium quality. Bulk order. Delivery included. HOKO pe do.",
-      "{product} chahiye. Retail ya resale. Wholesale rate. Good margin. Clean stock. Best price. HOKO.",
-      "{product} chahiye. Hotel ya catering. Daily requirement. Fresh stock. Regular supply. Price on HOKO."
+      "Looking for {product}. Restaurant/daily cooking. Consistent quality. FSSAI certified. Best wholesale. HOKO pe do.",
+      "We need {product}. Distribution/business. Bulk order. Clean quality. FSSAI mandatory. Price on HOKO.",
+      "In need of {product}. Wedding/celebration. Premium quality. Bulk order. Delivery included. HOKO pe do.",
+      "Require {product}. Retail/resale. Wholesale rate. Good margin. Clean stock. Best price. HOKO.",
+      "Want {product}. Hotel/catering. Daily requirement. Fresh stock. Regular supply. Price on HOKO.",
+      "Looking for {product}. Food business. Bulk order. FSSAI certified. Best price on HOKO.",
+      "We need {product}. Daily cooking. Quality grains. Regular supply. HOKO pe do."
     ],
     "Health & Safety": [
-      "{product} chahiye. Factory ya industrial. ISI marked mandatory. Bulk order. Per piece rate. HOKO pe do.",
-      "{product} chahiye. Construction site. Safety equipment. OSHA compliant. Multiple pieces. Price on HOKO.",
-      "{product} chahiye. Office ya workplace. Safety supplies. Quality products. Bulk pricing. HOKO pe do.",
-      "{product} chahiye. Hospital ya medical. Quality medical-grade. Certification mandatory. Catalog. HOKO pe price do.",
-      "{product} chahiye. School ya public place. Safety equipment. BIS ya ISO marked. Best price. HOKO pe do."
+      "Looking for {product}. Factory/industrial. ISI marked mandatory. Bulk order. Per piece rate. HOKO pe do.",
+      "We need {product}. Construction site. Safety equipment. OSHA compliant. Multiple pieces. Price on HOKO.",
+      "In need of {product}. Office/workplace. Safety supplies. Quality products. Bulk pricing. HOKO pe do.",
+      "Require {product}. Hospital/medical. Quality medical-grade. Certification mandatory. Catalog. HOKO pe price do.",
+      "Want {product}. School/public place. Safety equipment. BIS ya ISO marked. Best price. HOKO pe do.",
+      "Looking for {product}. Safety gear. Bulk order. ISI marked. Best price on HOKO.",
+      "We need {product}. Factory safety. PPE items. Quality products. Price on HOKO."
     ],
     "Logistics & Transport": [
-      "{product} chahiye. Material transport. Reliable service. GPS tracked. Experienced driver. Per trip. HOKO.",
-      "{product} chahiye. House ya office shifting. Professional team. Packing material. Insurance. Estimate. HOKO pe do.",
-      "{product} chahiye. Warehouse ya storage. Industrial area. Power backup. Per sqft rate. HOKO pe do.",
-      "{product} chahiye. Container storage. 20ft ya 40ft. CSC certified. 24/7 security. Per month. HOKO pe rate do.",
-      "{product} chahiye. Cold storage. Perishables. Temperature controlled. Per sqft ya pallet. GST invoice. HOKO."
+      "Looking for {product}. Material transport. Reliable service. GPS tracked. Experienced driver. Per trip. HOKO.",
+      "We need {product}. House/office shifting. Professional team. Packing material. Insurance. Estimate. HOKO pe do.",
+      "In need of {product}. Warehouse/storage. Industrial area. Power backup. Per sqft rate. HOKO pe do.",
+      "Require {product}. Container storage. 20ft ya 40ft. CSC certified. 24/7 security. Per month. HOKO pe rate do.",
+      "Want {product}. Cold storage. Perishables. Temperature controlled. Per sqft ya pallet. GST invoice. HOKO.",
+      "Looking for {product}. Transport service. Reliable. GPS tracked. Best rates on HOKO.",
+      "We need {product}. Storage space. Warehouse. Industrial area. HOKO pe rate do."
     ],
     "Business Services": [
-      "{product} chahiye. Business growth. Experienced consultant. Track record. Budget flexible. HOKO pe approach do.",
-      "{product} chahiye. Online presence. SEO ya marketing. Monthly retainer. Results oriented. HOKO pe do.",
-      "{product} chahiye. Website ya app development. Custom design. Mobile responsive. 1 year support. Quote. HOKO.",
-      "{product} chahiye. Company registration. Legal compliance. CA ya CS services. Professional fees. HOKO pe do.",
-      "{product} chahiye. IT services. AMC ya on-call. Network ya hardware. Monthly contract. Best rate. HOKO pe do."
+      "Looking for {product}. Business growth. Experienced consultant. Track record. Budget flexible. HOKO pe approach do.",
+      "We need {product}. Online presence. SEO ya marketing. Monthly retainer. Results oriented. HOKO pe do.",
+      "In need of {product}. Website ya app development. Custom design. Mobile responsive. 1 year support. Quote. HOKO.",
+      "Require {product}. Company registration. Legal compliance. CA ya CS services. Professional fees. HOKO pe do.",
+      "Want {product}. IT services. AMC ya on-call. Network ya hardware. Monthly contract. Best rate. HOKO pe do.",
+      "Looking for {product}. Professional services. Experienced team. Best approach. Submit on HOKO.",
+      "We need {product}. Business support. Quality service. Best rates. HOKO pe do."
     ]
   },
   hindi: {
     "Electronics & Appliances": [
-      "{product} चाहिए। Ghar के लिए। Living room ya bedroom। Brand preferred। GST के साथ best price। HOKO पर do.",
-      "{product} चाहिए। Office ya business के लिए। Good brand। Jaldi delivery। Best price share करो HOKO पर।",
-      "{product} चाहिए। New setup के लिए। Premium quality with warranty। GST invoice mandatory। Price HOKO पर do।",
-      "{product} चाहिए। Urgent replacement। Old काम करना बंद कर दिया। Home delivery preferred। HOKO पर price do।",
-      "{product} चाहिए। Studies ya work के लिए। Brand new with official warranty। Best price। HOKO पर submit करो।"
+      "Looking for {product}. Ghar ke liye चाहिए - living room ya bedroom। Brand preferred। GST ke saath best price। HOKO पर do।",
+      "We need {product}. Office ya business ke liye। Good brand चाहिए। Jaldi delivery। Best price share करो HOKO पर।",
+      "In need of {product}. New home setup कर रहे hain। Premium quality with warranty जरूर। GST invoice mandatory। HOKO पर price do।",
+      "Require {product} urgently। Old काम करना बंद कर दिया। Jaldi replacement चाहिए। Home delivery preferred। HOKO पर price do।",
+      "Want {product} for studies ya work। Brand new with official warranty। Best price। HOKO पर submit करो।",
+      "On the lookout for {product}. Home ya office use। Good brand। GST invoice। Share price on HOKO।",
+      "We're looking for {product}. New setup। Premium quality। Warranty included। Best price on HOKO।",
+      "Searching for {product}. Replacement needed। Old model not working। Home delivery। Price on HOKO।"
     ],
     "Furniture & Home": [
-      "{product} चाहिए। New house furnishing। Living room के लिए। Quality furniture with delivery। HOKO पर do।",
-      "{product} चाहिए। Bedroom furniture। Good quality। Storage वाला preferred। Best dealer price। HOKO पर do।",
-      "{product} चाहिए। Home decoration। Modern design। Premium finish। Photos और price share करो HOKO पर।",
-      "{product} चाहिए। Office ya home office। Good quality। Budget flexible। Share price on HOKO।",
-      "{product} चाहिए। Rental apartment। Affordable options। Quality furniture। Share options on HOKO।"
+      "Looking for {product}. New house furnish करना hai। Living room ke liye। Quality furniture with delivery। HOKO पर do।",
+      "We need {product}. Bedroom furniture। Good quality। Storage वाला preferred। Best dealer price। HOKO पर do।",
+      "In need of {product}. Home decoration। Modern design। Premium finish। Photos aur price share करो HOKO पर।",
+      "Require {product} for office ya home office। Good quality needed। Budget flexible। Share price on HOKO।",
+      "Want {product} for rental apartment। Affordable options। Quality furniture। Share options on HOKO।",
+      "Looking for {product}. Living room furnishing। Good quality। Delivery needed। Best price on HOKO।",
+      "We need {product}. Bedroom setup। Storage furniture। Premium quality। Price on HOKO।"
     ],
     "Vehicles & Parts": [
-      "{product} चाहिए। Daily commute के लिए। Well maintained pre-owned। Best price। HOKO पर do।",
-      "{product} चाहिए। Family use के लिए। Service history mandatory। Clean vehicle। Best price। HOKO पर do।",
-      "{product} चाहिए। Business use के लिए। Reliable vehicle। Good condition। Transfer included। Price on HOKO।",
-      "{product} चाहिए। First vehicle। Budget flexible। Safe and reliable। Best price। HOKO पर submit करो।",
-      "{product} चाहिए। Pre-owned vehicle। Low km driven। Insurance valid। Well maintained। Price on HOKO।"
+      "Looking for {product}. Daily commute ke liye। Well maintained pre-owned। Best price। HOKO पर do।",
+      "We need {product}. Family use ke liye। Service history mandatory। Clean vehicle। Best price। HOKO पर do।",
+      "In need of {product}. Business use ke liye। Reliable vehicle। Good condition। Transfer included। Price on HOKO।",
+      "Require {product}. First vehicle। Budget flexible। Safe and reliable। Best price। HOKO पर submit करो।",
+      "Want {product}. Pre-owned vehicle। Low km driven। Insurance valid। Well maintained। Price on HOKO।",
+      "Looking for {product}. Daily use। Well maintained। Best deal। Submit on HOKO।",
+      "We need {product}. Family car। Service records। Best price on HOKO।"
     ],
     "Industrial Machinery": [
-      "{product} चाहिए। Factory ya industrial use। Heavy duty। Reliable brand। Technical specs। HOKO पर do।",
-      "{product} चाहिए। Production line के लिए। Quality machinery with warranty। Installation required। Quote HOKO पर do।",
-      "{product} चाहिए। Plant maintenance। Test run mandatory। Quality guarantee। Share price on HOKO।",
-      "{product} चाहिए। New setup के लिए। Efficient machinery। IE3 efficiency preferred। Complete pricing। HOKO पर do।",
-      "{product} चाहिए। Industrial requirement। Technical specifications। Test certificates। Best price। HOKO पर quote do।"
+      "Looking for {product}. Factory ya industrial use। Heavy duty। Reliable brand। Technical specs। HOKO पर do।",
+      "We need {product}. Production line ke liye। Quality machinery with warranty। Installation required। Quote HOKO पर do।",
+      "In need of {product}. Plant maintenance। Test run mandatory। Quality guarantee। Share price on HOKO।",
+      "Require {product}. New setup। Efficient machinery। IE3 efficiency preferred। Complete pricing। HOKO पर do।",
+      "Want {product}. Industrial requirement। Technical specifications। Test certificates। Best price। HOKO पर quote do।",
+      "Looking for {product}. Manufacturing unit। Heavy duty machinery। Quote on HOKO।",
+      "We need {product}. Production facility। Quality equipment। Best price on HOKO।"
     ],
     "Electrical Parts": [
-      "{product} चाहिए। Electrical project। ISI marked products mandatory। Competitive price। HOKO पर do।",
-      "{product} चाहिए। Factory maintenance। Consistent quality essential। Bulk pricing available। HOKO पर price do।",
-      "{product} चाहिए। Construction site। Reliable parts। Good quality। GST invoice। Price on HOKO।",
-      "{product} चाहिए। New building wiring। Multiple pieces। GST invoice mandatory। Per unit price। HOKO।",
-      "{product} चाहिए। Trial order quality check। Technical datasheet। Share price on HOKO।"
+      "Looking for {product}. Electrical project। ISI marked products mandatory। Competitive price। HOKO पर do।",
+      "We need {product}. Factory maintenance। Consistent quality essential। Bulk pricing available। HOKO पर price do।",
+      "In need of {product}. Construction site। Reliable parts। Good quality। GST invoice। Price on HOKO।",
+      "Require {product}. New building wiring। Multiple pieces। GST invoice mandatory। Per unit price। HOKO।",
+      "Want {product}. Trial order to check quality। Technical datasheet। Share price on HOKO।",
+      "Looking for {product}. Electrical work। ISI marked। Best price। Submit on HOKO।",
+      "We need {product}. Wiring project। Quality parts। GST invoice। Price on HOKO।"
     ],
     "Construction Materials": [
-      "{product} चाहिए। House ya building construction। Quality materials with delivery। Certificate। HOKO पर do।",
-      "{product} चाहिए। Ongoing project। Bulk order। Site delivery mandatory। Best price। HOKO पर quote do।",
-      "{product} चाहिए। New construction। Quality material। Site delivery। GST invoice। Price on HOKO।",
-      "{product} चाहिए। Commercial project। Reliable supplier। Consistent quality। GST mandatory। HOKO पर do।",
-      "{product} चाहिए। Building work। Quality materials। Timely delivery essential। Best price। HOKO।"
+      "Looking for {product}. House ya building construction। Quality materials with delivery। Certificate। HOKO पर do।",
+      "We need {product}. Ongoing project। Bulk order। Site delivery mandatory। Best price। HOKO पर quote do।",
+      "In need of {product}. New construction। Quality material। Site delivery। GST invoice। Price on HOKO।",
+      "Require {product}. Commercial project। Reliable supplier। Consistent quality। GST mandatory। HOKO पर do।",
+      "Want {product}. Building work। Quality materials। Timely delivery essential। Best price। HOKO।",
+      "Looking for {product}. Construction site। Quality material। Delivery needed। Price on HOKO।",
+      "We need {product}. House build। Bulk order। Best price on HOKO।"
     ],
     "Services & Maintenance": [
-      "{product} चाहिए। Event ya celebration planning। Experienced team। Budget flexible। Packages HOKO पर do।",
-      "{product} चाहिए। Office ya home service। Professional service। Quality work। Best price। HOKO पर do।",
-      "{product} चाहिए। Renovation ya interior work। Creative team। Portfolio required। Quote HOKO पर do।",
-      "{product} चाहिए। Urgent repair। Professional service। Warranty preferred। Service charges। HOKO पर do।",
-      "{product} चाहिए। Regular maintenance। Experienced team। Good reviews। Best price। HOKO पर submit करो।"
+      "Looking for {product}. Event ya celebration planning। Experienced team। Budget flexible। Packages HOKO पर do।",
+      "We need {product}. Office ya home service। Professional service। Quality work। Best price। HOKO पर do।",
+      "In need of {product}. Renovation ya interior work। Creative team। Portfolio required। Quote HOKO पर do।",
+      "Require {product} urgently। Professional service। Warranty preferred। Service charges। HOKO पर do।",
+      "Want {product}. Regular maintenance। Experienced team। Good reviews। Best price। HOKO पर submit करो।",
+      "Looking for {product}. Event planning। Experienced vendor। Budget flexible। HOKO पर do।",
+      "We need {product}. Repair ya maintenance। Professional। Best price। Submit on HOKO।"
     ],
     "Raw Materials": [
-      "{product} चाहिए। Manufacturing unit। Consistent quality। Monthly orders possible। GST invoice। HOKO पर price do।",
-      "{product} चाहिए। Factory raw material। High volume। Competitive rates। Quality certificate। HOKO पर do।",
-      "{product} चाहिए। Production requirement। Test sample required। Bulk order। Best price। HOKO।",
-      "{product} चाहिए। Regular manufacturing। Quality material। Timely delivery। GST invoice। Price on HOKO।",
-      "{product} चाहिए। Production use। Consistent quality essential। Long-term supplier interested। HOKO पर quote do।"
+      "Looking for {product}. Manufacturing unit। Consistent quality। Monthly orders possible। GST invoice। HOKO पर price do।",
+      "We need {product}. Factory raw material। High volume। Competitive rates। Quality certificate। HOKO पर do।",
+      "In need of {product}. Production requirement। Test sample required। Bulk order। Best price। HOKO।",
+      "Require {product}. Regular manufacturing। Quality material। Timely delivery। GST invoice। Price on HOKO।",
+      "Want {product}. Production use। Consistent quality essential। Long-term supplier interested। HOKO पर quote do।",
+      "Looking for {product}. Bulk order। Industrial use। Quality material। GST invoice। HOKO पर do।",
+      "We need {product}. Manufacturing। Monthly supply। Best price on HOKO।"
     ],
     "Chemicals & Plastics": [
-      "{product} चाहिए। Plastic manufacturing। Consistent quality। BIS certified। Per kg rate। HOKO पर do।",
-      "{product} चाहिए। Industrial use। Quality material। Test sample। Delivery included। Price on HOKO।",
-      "{product} चाहिए। Production line। Quality granules ya resin। Technical specs। Best price। HOKO।",
-      "{product} चाहिए। Manufacturing। Monthly orders। Quality consistency। GST invoice। Price do HOKO pe।",
-      "{product} चाहिए। Industrial grade। Safety data sheet। Competitive pricing। HOKO pe submit करो।"
+      "Looking for {product}. Plastic manufacturing। Consistent quality। BIS certified। Per kg rate। HOKO पर do।",
+      "We need {product}. Industrial use। Quality material। Test sample। Delivery included। Price on HOKO।",
+      "In need of {product}. Production line। Quality granules ya resin। Technical specs। Best price। HOKO।",
+      "Require {product}. Manufacturing। Monthly orders। Quality consistency। GST invoice। Price do HOKO pe।",
+      "Want {product}. Industrial grade। Safety data sheet। Competitive pricing। HOKO pe submit करो।",
+      "Looking for {product}. Plastic industry। Consistent quality। Best price। HOKO pe do।",
+      "We need {product}. Manufacturing unit। Bulk order। Quality material। Price on HOKO।"
     ],
     "Packaging": [
-      "{product} चाहिए। Product packaging। Monthly requirement। Quality important। Bulk pricing। HOKO pe price do।",
-      "{product} चाहिए। Urgent order। Quick delivery। Good quality। Per piece ya roll price। HOKO pe do।",
-      "{product} चाहिए। Shipping ya warehousing। Consistent quality। Monthly orders। Competitive rates। HOKO।",
-      "{product} चाहिए। Manufacturing packaging। Custom printing available। Samples and price। HOKO pe do।",
-      "{product} चाहिए। Food-grade packaging। Safety compliance। Quality material। Best price। HOKO pe submit करो।"
+      "Looking for {product}. Product packaging। Monthly requirement। Quality important। Bulk pricing। HOKO pe price do।",
+      "We need {product}. Urgent order। Quick delivery। Good quality। Per piece ya roll price। HOKO pe do।",
+      "In need of {product}. Shipping ya warehousing। Consistent quality। Monthly orders। Competitive rates। HOKO।",
+      "Require {product}. Manufacturing packaging। Custom printing available। Samples and price। HOKO pe do।",
+      "Want {product}. Food-grade packaging। Safety compliance। Quality material। Best price। HOKO pe submit करो।",
+      "Looking for {product}. Packaging material। Bulk order। Quality needed। Best price on HOKO।",
+      "We need {product}. Shipping boxes ya film। Monthly order। Price on HOKO।"
     ],
     "Textiles & Apparel": [
-      "{product} चाहिए। Retail ya shop use। Good quality fabric। Per meter rate। GST invoice। HOKO pe do।",
-      "{product} चाहिए। E-commerce ya business use। Bulk order। Fast delivery। Competitive price। HOKO pe do।",
-      "{product} चाहिए। Office ya school uniform। Multiple sizes। Per piece rate। Bulk pricing। HOKO pe do।",
-      "{product} चाहिए। Manufacturing use। Regular monthly orders। Quality consistency। Best price। HOKO।",
-      "{product} चाहिए। Boutique ya designer use। Premium quality। Unique designs। Sample first। Price on HOKO।"
+      "Looking for {product}. Retail ya shop use। Good quality fabric। Per meter rate। GST invoice। HOKO pe do।",
+      "We need {product}. E-commerce ya business use। Bulk order। Fast delivery। Competitive price। HOKO pe do।",
+      "In need of {product}. Office ya school uniform। Multiple sizes। Per piece rate। Bulk pricing। HOKO pe do।",
+      "Require {product}. Manufacturing use। Regular monthly orders। Quality consistency। Best price। HOKO।",
+      "Want {product}. Boutique ya designer use। Premium quality। Unique designs। Sample first। Price on HOKO।",
+      "Looking for {product}. Fabric for clothing। Good quality। Best price। Submit on HOKO।",
+      "We need {product}. Bulk order। Textile। Competitive rates। HOKO pe do।"
     ],
     "Food & Agriculture": [
-      "{product} चाहिए। Restaurant ya daily cooking। Consistent quality। FSSAI certified। Best wholesale। HOKO pe do।",
-      "{product} चाहिए। Distribution ya business। Bulk order। Clean quality। FSSAI mandatory। Price on HOKO।",
-      "{product} चाहिए। Wedding ya celebration। Premium quality। Bulk order। Delivery included। HOKO pe do।",
-      "{product} चाहिए। Retail ya resale। Wholesale rate। Good margin। Clean stock। Best price। HOKO।",
-      "{product} चाहिए। Hotel ya catering। Daily requirement। Fresh stock। Regular supply। Price on HOKO।"
+      "Looking for {product}. Restaurant ya daily cooking। Consistent quality। FSSAI certified। Best wholesale। HOKO pe do।",
+      "We need {product}. Distribution ya business। Bulk order। Clean quality। FSSAI mandatory। Price on HOKO।",
+      "In need of {product}. Wedding ya celebration। Premium quality। Bulk order। Delivery included। HOKO pe do।",
+      "Require {product}. Retail ya resale। Wholesale rate। Good margin। Clean stock। Best price। HOKO।",
+      "Want {product}. Hotel ya catering। Daily requirement। Fresh stock। Regular supply। Price on HOKO।",
+      "Looking for {product}. Food business। Bulk order। FSSAI certified। Best price on HOKO।",
+      "We need {product}. Daily cooking। Quality grains। Regular supply। HOKO pe do।"
     ],
     "Health & Safety": [
-      "{product} चाहिए। Factory ya industrial। ISI marked mandatory। Bulk order। Per piece rate। HOKO pe do।",
-      "{product} चाहिए। Construction site। Safety equipment। OSHA compliant। Multiple pieces। Price on HOKO।",
-      "{product} चाहिए। Office ya workplace। Safety supplies। Quality products। Bulk pricing। HOKO pe do।",
-      "{product} चाहिए। Hospital ya medical। Quality medical-grade। Certification mandatory। Catalog। HOKO pe price do।",
-      "{product} चाहिए। School ya public place। Safety equipment। BIS ya ISO marked। Best price। HOKO pe do।"
+      "Looking for {product}. Factory ya industrial। ISI marked mandatory। Bulk order। Per piece rate। HOKO pe do।",
+      "We need {product}. Construction site। Safety equipment। OSHA compliant। Multiple pieces। Price on HOKO।",
+      "In need of {product}. Office ya workplace। Safety supplies। Quality products। Bulk pricing। HOKO pe do।",
+      "Require {product}. Hospital ya medical। Quality medical-grade। Certification mandatory। Catalog। HOKO pe price do।",
+      "Want {product}. School ya public place। Safety equipment। BIS ya ISO marked। Best price। HOKO pe do।",
+      "Looking for {product}. Safety gear। Bulk order। ISI marked। Best price on HOKO।",
+      "We need {product}. Factory safety। PPE items। Quality products। Price on HOKO।"
     ],
     "Logistics & Transport": [
-      "{product} चाहिए। Material transport। Reliable service। GPS tracked। Experienced driver। Per trip। HOKO।",
-      "{product} चाहिए। House ya office shifting। Professional team। Packing material। Insurance। Estimate। HOKO pe do।",
-      "{product} चाहिए। Warehouse ya storage। Industrial area। Power backup। Per sqft rate। HOKO pe do।",
-      "{product} चाहिए। Container storage। 20ft ya 40ft। CSC certified। 24/7 security। Per month। HOKO pe rate do।",
-      "{product} चाहिए। Cold storage। Perishables। Temperature controlled। Per sqft ya pallet। GST invoice। HOKO।"
+      "Looking for {product}. Material transport। Reliable service। GPS tracked। Experienced driver। Per trip। HOKO।",
+      "We need {product}. House ya office shifting। Professional team। Packing material। Insurance। Estimate। HOKO pe do।",
+      "In need of {product}. Warehouse ya storage। Industrial area। Power backup। Per sqft rate। HOKO pe do।",
+      "Require {product}. Container storage। 20ft ya 40ft। CSC certified। 24/7 security। Per month। HOKO pe rate do।",
+      "Want {product}. Cold storage। Perishables। Temperature controlled। Per sqft ya pallet। GST invoice। HOKO।",
+      "Looking for {product}. Transport service। Reliable। GPS tracked। Best rates on HOKO।",
+      "We need {product}. Storage space। Warehouse। Industrial area। HOKO pe rate do।"
     ],
     "Business Services": [
-      "{product} चाहिए। Business growth। Experienced consultant। Track record। Budget flexible। HOKO pe approach do।",
-      "{product} चाहिए। Online presence। SEO ya marketing। Monthly retainer। Results oriented। HOKO pe do।",
-      "{product} चाहिए। Website ya app development। Custom design। Mobile responsive। 1 year support। Quote। HOKO।",
-      "{product} चाहिए। Company registration। Legal compliance। CA ya CS services। Professional fees। HOKO pe do।",
-      "{product} चाहिए। IT services। AMC ya on-call। Network ya hardware। Monthly contract। Best rate। HOKO pe do।"
+      "Looking for {product}. Business growth। Experienced consultant। Track record। Budget flexible। HOKO pe approach do।",
+      "We need {product}. Online presence। SEO ya marketing। Monthly retainer। Results oriented। HOKO pe do।",
+      "In need of {product}. Website ya app development। Custom design। Mobile responsive। 1 year support। Quote। HOKO।",
+      "Require {product}. Company registration। Legal compliance। CA ya CS services। Professional fees। HOKO pe do।",
+      "Want {product}. IT services। AMC ya on-call। Network ya hardware। Monthly contract। Best rate। HOKO pe do।",
+      "Looking for {product}. Professional services। Experienced team। Best approach। Submit on HOKO।",
+      "We need {product}. Business support। Quality service। Best rates। HOKO pe do।"
     ]
   }
 };
