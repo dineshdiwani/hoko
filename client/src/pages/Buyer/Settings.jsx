@@ -164,6 +164,24 @@ export default function BuyerSettings() {
       };
       const res = await api.post("/buyer/profile", payload);
       const data = res.data || {};
+      
+      if (data.merged) {
+        setSession({
+          _id: data.user._id,
+          role: data.user.role,
+          roles: data.user.roles,
+          email: data.user.email,
+          city: data.user.city,
+          name: data.user.name || "Buyer",
+          preferredCurrency: data.user.preferredCurrency || "INR",
+          mobile: data.user.mobile,
+          token: data.token
+        });
+        alert("Account merged successfully! You can now login with both WhatsApp and Google.");
+        navigate("/buyer/dashboard");
+        return;
+      }
+      
       setProfile((prev) => ({
         ...prev,
         name: data.name || prev.name,

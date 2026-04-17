@@ -1531,7 +1531,49 @@ router.post("/profile", auth, buyerOnly, async (req, res) => {
   if (typeof email === "string" && email.trim()) {
     const existingUser = await User.findOne({ email: email.trim(), _id: { $ne: req.user._id } });
     if (existingUser) {
-      return res.status(400).json({ message: "This email is already registered. Please use a different email." });
+      const requirementsMerged = await Requirement.updateMany(
+        { buyerId: req.user._id },
+        { $set: { buyerId: existingUser._id } }
+      );
+      await TempRequirement.updateMany(
+        { userId: req.user._id },
+        { $set: { userId: existingUser._id } }
+      );
+      existingUser.mobile = req.user.mobile;
+      if (existingUser.city && !existingUser.city.trim()) {
+        existingUser.city = req.user.city;
+      }
+      if (!existingUser.roles?.buyer) {
+        existingUser.roles = { ...existingUser.roles, buyer: true };
+      }
+      if (req.user.buyerSettings) {
+        existingUser.buyerSettings = {
+          ...existingUser.buyerSettings,
+          ...req.user.buyerSettings
+        };
+      }
+      await existingUser.save();
+      await User.findByIdAndDelete(req.user._id);
+      console.log(`[Account Merge] Merged WhatsApp user ${req.user._id} into Google user ${existingUser._id}, ${requirementsMerged.modifiedCount} requirements`);
+      const token = jwt.sign(
+        { id: existingUser._id, role: "buyer", tokenVersion: existingUser.tokenVersion || 0 },
+        process.env.JWT_SECRET,
+        { expiresIn: "7d" }
+      );
+      return res.json({
+        merged: true,
+        message: "Account merged successfully!",
+        token,
+        user: {
+          _id: existingUser._id,
+          email: existingUser.email,
+          role: existingUser.role,
+          roles: existingUser.roles,
+          city: existingUser.city,
+          preferredCurrency: existingUser.preferredCurrency || "INR",
+          mobile: existingUser.mobile
+        }
+      });
     }
   }
 
