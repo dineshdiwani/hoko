@@ -406,7 +406,12 @@ function AppShell() {
 
         <Route
           path="/seller/dashboard"
-          element={<SellerDashboard />}
+          element={
+            <div style={{background: 'green', color: 'white', padding: '20px', minHeight: '100vh'}}>
+              <h1>Dashboard Route Test</h1>
+              <p>If you see this green box, the route works. The issue is inside SellerDashboard.</p>
+            </div>
+          }
         />
 
         <Route
