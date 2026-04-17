@@ -34,7 +34,7 @@ export default function WhatsAppLogin() {
     setDebugOtp(null);
     try {
       console.log("[WhatsAppLogin] Sending OTP request to +" + mobile.replace(/\D/g, ""));
-      const res = await api.post("/api/seller/otp/request", {
+      const res = await api.post("/seller/otp/request", {
         mobile: "+" + mobile.replace(/\D/g, "")
       });
       console.log("[WhatsAppLogin] OTP request success, response:", res?.data);
@@ -74,7 +74,7 @@ export default function WhatsAppLogin() {
     setOtpError("");
     setLoading(true);
     try {
-      const res = await api.post("/api/seller/otp/verify", {
+      const res = await api.post("/seller/otp/verify", {
         mobile: "+" + mobile.replace(/\D/g, ""),
         otp: otp
       });
