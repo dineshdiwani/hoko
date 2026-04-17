@@ -19,7 +19,8 @@ export default function WhatsAppLogin() {
   const [mobile, setMobile] = useState(mobileFromUrl);
 
   useEffect(() => {
-    if (mobileFromUrl && mobile) {
+    console.log("[WhatsAppLogin] useEffect: mobileFromUrl=", mobileFromUrl, "mobile=", mobile);
+    if (mobileFromUrl) {
       requestOtp();
     }
   }, [mobileFromUrl]);
