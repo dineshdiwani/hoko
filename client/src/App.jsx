@@ -93,22 +93,27 @@ function requireBuyer() {
 }
 
 function requireSeller() {
-  const session = getSession();
-  const result = session?.token && (session.role === "seller" || session.roles?.seller);
-  
-  // Force show debug - write to document directly
-  if (typeof document !== 'undefined') {
-    let dbg = document.getElementById('debug-bar');
-    if (!dbg) {
-      dbg = document.createElement('div');
-      dbg.id = 'debug-bar';
-      dbg.style.cssText = 'position:fixed;top:0;left:0;right:0;background:red;color:white;padding:15px;font-size:18px;font-weight:bold;z-index:99999;text-align:center;';
-      document.body.appendChild(dbg);
+  try {
+    const session = getSession();
+    const result = session?.token && (session.role === "seller" || session.roles?.seller);
+    
+    // Force show debug - write to document directly
+    if (typeof document !== 'undefined') {
+      let dbg = document.getElementById('debug-bar');
+      if (!dbg) {
+        dbg = document.createElement('div');
+        dbg.id = 'debug-bar';
+        dbg.style.cssText = 'position:fixed;top:0;left:0;right:0;background:red;color:white;padding:15px;font-size:18px;font-weight:bold;z-index:99999;text-align:center;';
+        document.body.appendChild(dbg);
+      }
+      dbg.innerText = 'requireSeller: session=' + (session ? 'yes' : 'no') + ' token=' + (session?.token ? 'yes' : 'no') + ' role=' + (session?.role) + ' roles=' + JSON.stringify(session?.roles) + ' result=' + result;
     }
-    dbg.innerText = 'requireSeller: session=' + (session ? 'yes' : 'no') + ' token=' + (session?.token ? 'yes' : 'no') + ' result=' + result;
+    
+    return result;
+  } catch (e) {
+    console.error("requireSeller error:", e);
+    return false;
   }
-  
-  return result;
 }
 
 function requireAdmin() {
