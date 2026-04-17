@@ -416,6 +416,7 @@ async function sendSellerInviteLink(mobileE164, city, categories = []) {
   if (city) params.set("city", city);
   if (categories.length > 0) params.set("cats", categories.join(","));
   params.set("ref", "wa");
+  params.set("v", Date.now()); // cache busting
   
   return `${appBase}/seller/login?${params.toString()}`;
 }
