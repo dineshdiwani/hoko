@@ -31,14 +31,16 @@ export default function WhatsAppLogin() {
     if (!mobile) return;
     setLoading(true);
     setOtpError("");
+    setDebugOtp(null);
     try {
+      console.log("[WhatsAppLogin] Sending OTP request to +" + mobile.replace(/\D/g, ""));
       const res = await api.post("/api/seller/otp/request", {
         mobile: "+" + mobile.replace(/\D/g, "")
       });
-      console.log("[WhatsAppLogin] OTP sent, response:", res.data);
+      console.log("[WhatsAppLogin] OTP request success, response:", res?.data);
       
       // Show OTP in dev mode for testing
-      if (res.data?.otp) {
+      if (res?.data?.otp) {
         setDebugOtp(res.data.otp);
       }
       
@@ -55,7 +57,10 @@ export default function WhatsAppLogin() {
       setStep("ENTER_OTP");
     } catch (err) {
       console.error("[WhatsAppLogin] OTP request error:", err);
-      setOtpError(err?.response?.data?.message || "Failed to send OTP");
+      console.error("[WhatsAppLogin] Error status:", err?.response?.status);
+      console.error("[WhatsAppLogin] Error data:", err?.response?.data);
+      const msg = err?.response?.data?.message || err?.message || "Failed to send OTP";
+      setOtpError(msg);
     } finally {
       setLoading(false);
     }
