@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import api from "../../services/api";
 import socket, { connectSocket } from "../../services/socket";
@@ -16,6 +16,29 @@ import ReviewModal from "../../components/ReviewModal";
 import ReportModal from "../../components/ReportModal";
 import ChatModal from "../../components/ChatModal";
 import { confirmDialog } from "../../utils/dialogs";
+
+const SELLER_DASHBOARD_STATE_KEY = "seller_dashboard_state";
+
+function readSellerDashboardState() {
+  if (typeof window === "undefined") {
+    return {
+      selectedCity: "all",
+      selectedCategory: "all"
+    };
+  }
+  try {
+    const raw = JSON.parse(localStorage.getItem(SELLER_DASHBOARD_STATE_KEY) || "{}");
+    return {
+      selectedCity: String(raw?.selectedCity || "all").trim() || "all",
+      selectedCategory: String(raw?.selectedCategory || "all").trim() || "all"
+    };
+  } catch {
+    return {
+      selectedCity: "all",
+      selectedCategory: "all"
+    };
+  }
+}
 import {
   extractAttachmentFileName,
   getAttachmentDisplayName,
@@ -47,10 +70,11 @@ export default function SellerDashboard() {
   const [switching, setSwitching] = useState(false);
   const [dashboardCategories, setDashboardCategories] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
+  const persistedState = readSellerDashboardState();
+  const [selectedCategory, setSelectedCategory] = useState(persistedState.selectedCategory);
   const [cities, setCities] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [selectedCity, setSelectedCity] = useState("all");
+  const [selectedCity, setSelectedCity] = useState(persistedState.selectedCity);
   const [activeSmartTab, setActiveSmartTab] = useState("all");
   const [chatOpen, setChatOpen] = useState(false);
   const [chatPeer, setChatPeer] = useState(null);
@@ -234,6 +258,18 @@ export default function SellerDashboard() {
       setSelectedCity((prev) => resolveCityValue(cityFromLink, cities, prev));
     }
   }, [location.search, cities]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        SELLER_DASHBOARD_STATE_KEY,
+        JSON.stringify({
+          selectedCity,
+          selectedCategory
+        })
+      );
+    } catch {}
+  }, [selectedCity, selectedCategory]);
 
   useEffect(() => {
     const buildSamplePosts = () => {
