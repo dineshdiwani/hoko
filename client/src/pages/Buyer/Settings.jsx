@@ -145,6 +145,7 @@ export default function BuyerSettings() {
     try {
       const payload = {
         name: profile.name,
+        email: profile.email,
         mobile: profile.mobile,
         city: profile.city,
         preferredCurrency: profile.preferredCurrency,
@@ -289,7 +290,13 @@ export default function BuyerSettings() {
               </label>
               <label className="block">
                 <span className="text-sm text-gray-600">Email</span>
-                <input value={profile.email} disabled className="w-full border rounded-xl px-4 py-3 bg-gray-50" />
+                <input
+                  value={profile.email}
+                  onChange={(e) => setProfile((prev) => ({ ...prev, email: e.target.value }))}
+                  type="email"
+                  placeholder="Enter your email"
+                  className="w-full border rounded-xl px-4 py-3"
+                />
               </label>
               <label className="block">
                 <span className="text-sm text-gray-600">Mobile (optional)</span>

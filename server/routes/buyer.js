@@ -1436,6 +1436,7 @@ router.get("/profile", auth, buyerOnly, async (req, res) => {
 router.post("/profile", auth, buyerOnly, async (req, res) => {
   const {
     name,
+    email,
     mobile,
     city,
     preferredCurrency,
@@ -1444,6 +1445,9 @@ router.post("/profile", auth, buyerOnly, async (req, res) => {
 
   if (typeof name === "string") {
     req.user.name = name.trim();
+  }
+  if (typeof email === "string") {
+    req.user.email = email.trim();
   }
   if (typeof mobile === "string") {
     req.user.mobile = mobile.trim();
