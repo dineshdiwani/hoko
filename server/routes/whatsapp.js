@@ -124,23 +124,16 @@ function buildRoleSelectionMessage() {
 
 function buildWelcomeMessage() {
   return [
-    "🔥 Welcome to HOKO!",
-    "India's fastest B2B marketplace 😎",
+    "🔥 Welcome to Hoko",
+    "India's smart way to buy & sell 😎",
     "",
-    "Get instant offers from verified sellers",
-    "OR",
-    "Get real buyer requirements daily",
+    "🛒 Want to BUY? → Get multiple offers from sellers",
+    "🏪 Want to SELL? → Get real buyer requirements",
     "",
-    "Tap your choice 👇"
+    "👉 Reply with, If you are a",
+    "1️⃣ BUYER",
+    "2️⃣ SELLER"
   ].join("\n");
-}
-
-function buildInteractiveWelcomeMessage() {
-  return {
-    header: "Welcome to HOKO!",
-    body: "India's fastest B2B marketplace.\n\n🛒 Get instant price offers\n🏪 Get buyer requirements daily",
-    footer: "Tap your choice 👇"
-  };
 }
 
 function buildConsentPromptMessage() {
