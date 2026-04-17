@@ -1259,15 +1259,12 @@ function generateOTP() {
 
 router.post("/otp/request", async (req, res) => {
   const { mobile } = req.body;
-  console.log(`[OTP Request] body:`, req.body);
   
   if (!mobile) {
     return res.status(400).json({ message: "Mobile number is required" });
   }
   
   const mobileE164 = normalizeE164(mobile);
-  console.log(`[OTP Request] mobileE164: ${mobileE164}`);
-  
   const otp = generateOTP();
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
   
@@ -1280,27 +1277,20 @@ router.post("/otp/request", async (req, res) => {
     source: "seller_deeplink"
   });
   
-  console.log(`\n\n🔐 [OTP TEST] For ${mobileE164}: ${otp}\n\n`);
-  
-  let whatsappOk = false;
   try {
-    const sendResult = await sendWhatsAppMessage({
+    await sendWhatsAppMessage({
       to: mobileE164,
       body: `Your HOKO Seller verification code is: *${otp}*\n\nThis code expires in 10 minutes.`
     });
-    whatsappOk = sendResult?.ok || false;
-    console.log(`[OTP Request] WhatsApp result for ${mobileE164}:`, sendResult);
   } catch (err) {
     console.error(`[OTP Request] WhatsApp error for ${mobileE164}:`, err.message);
   }
   
-  res.json({ success: true, message: "OTP sent", otp: otp }); // Include OTP in response for testing
+  res.json({ success: true, message: "OTP sent to WhatsApp" });
 });
 
 router.post("/otp/verify", async (req, res) => {
   const { mobile, otp } = req.body;
-  console.log(`[OTP Verify] Request body:`, req.body);
-  console.log(`[OTP Verify] mobile type: ${typeof mobile}, otp type: ${typeof otp}`);
   
   if (!mobile || !otp) {
     return res.status(400).json({ success: false, message: "Mobile and OTP are required" });
@@ -1308,25 +1298,11 @@ router.post("/otp/verify", async (req, res) => {
   
   const mobileE164 = normalizeE164(mobile);
   const otpTrimmed = String(otp).trim();
-  console.log(`[OTP Verify] Normalized mobile: ${mobileE164}, trimmed OTP: '${otpTrimmed}'`);
-  
-  // Find all recent OTPs for this mobile for debugging
-  const allOtps = await WhatsAppOTP.find({ mobileE164 }).sort({ createdAt: -1 }).limit(3).lean();
-  console.log(`[OTP Verify] Recent OTPs in DB:`, allOtps.map(o => ({ otp: o.otp, status: o.status })));
   
   const otpRecord = await WhatsAppOTP.findOne({
     mobileE164,
     status: "pending"
   }).sort({ createdAt: -1 });
-  
-  console.log(`[OTP Verify] Latest pending OTP record:`, otpRecord ? { otp: otpRecord.otp, status: otpRecord.status } : 'none');
-  
-  // Compare OTPs
-  if (otpRecord && String(otpRecord.otp).trim() === otpTrimmed) {
-    console.log(`[OTP Verify] OTP MATCH!`);
-  } else if (otpRecord) {
-    console.log(`[OTP Verify] OTP MISMATCH - DB: '${otpRecord.otp}', Input: '${otpTrimmed}'`);
-  }
   
   if (!otpRecord || String(otpRecord.otp).trim() !== otpTrimmed) {
     return res.status(400).json({ success: false, message: "Invalid or expired OTP" });
