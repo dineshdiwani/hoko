@@ -38,172 +38,147 @@ function normalizeMobileE164(mobile) {
   return mobile;
 }
 
-const PLATFORM_CATEGORY_TEMPLATES = {
-  "Electronics & Appliances": [
-    "LED Smart TV", "Frost Free Refrigerator", "Split AC",
-    "Fully Automatic Washing Machine", "Smartphone", "Laptop",
-    "Headphones", "DSLR Camera", "Gaming Console"
-  ],
-  "Furniture & Home": [
-    "King Size Bed with Storage", "L-Shaped Sofa Set 6 Seater", "Dining Table Set 6 Chairs",
-    "Office Executive Chair Set", "Modular Kitchen Complete", "TV Unit Wall Mounted"
-  ],
-  "Vehicles & Parts": [
-    "Pre-Owned Sedan Car", "Used SUV Vehicle",
-    "Second Hand Hatchback Car", "Pre-Owned Compact SUV",
-    "Brand New Hatchback Car", "New Compact SUV"
-  ],
-  "Industrial Machinery": [
-    "Three Phase Induction Motor", "AC Motor",
-    "Diesel Generator", "MIG Welding Machine",
-    "PLC Module", "CNC Lathe Machine"
-  ],
-  "Electrical Parts": [
-    "Copper Wire", "Electric Wire",
-    "Ball Bearing", "Variable Frequency Drive",
-    "MCB Circuit Breaker", "Low Voltage Switchgear"
-  ],
-  "Construction Materials": [
-    "TMT Bar", "Cement Bags",
-    "Steel Structural Beams", "Aluminum Composite Panels"
-  ],
-  "Services & Maintenance": [
-    "Wedding Catering Service", "Corporate Event Management",
-    "Birthday Party Decoration Service", "Interior Design Package"
-  ],
-  "Raw Materials": [
-    "Aluminum Ingot", "Copper Wire Scrap", "MS Scrap",
-    "Steel Scrap", "Iron Ore Fines"
-  ],
-  "Chemicals & Plastics": [
-    "HDPE Granules", "PVC Resin", "Polypropylene Granules",
-    "Polyethylene Film Roll", "ABS Granules"
-  ],
-  "Packaging": [
-    "Corrugated Box", "Stretch Film Roll",
-    "Bubble Wrap Roll", "Packing Tape"
-  ],
-  "Textiles & Apparel": [
-    "Cotton Fabric Roll", "Polyester Blend Fabric", "Readymade Shirts",
-    "Industrial Workwear Set"
-  ],
-  "Food & Agriculture": [
-    "Basmati Rice", "Wheat Grain", "Organic Fertilizer",
-    "Agricultural Sprayer Pump"
-  ],
-  "Health & Safety": [
-    "N95 Mask Box", "Safety Helmet", "Industrial Gloves Box",
-    "First Aid Kit Complete"
-  ],
-  "Logistics & Transport": [
-    "Packer and Mover Service", "Open Truck",
-    "Container Storage", "Warehouse Rental"
-  ],
-  "Business Services": [
-    "Consulting Service", "Digital Marketing Package",
-    "Website Development", "Legal Documentation Service"
-  ]
-};
+const PRODUCT_MASTER = [
+  // ELECTRONICS & APPLIANCES
+  { category: "Electronics & Appliances", product: "LED Smart TV", brand: "Samsung", model: "55 inch 4K", type: "LED TV", unit: "pcs", qtyMin: 1, qtyMax: 5 },
+  { category: "Electronics & Appliances", product: "LED Smart TV", brand: "LG", model: "43 inch Full HD", type: "LED TV", unit: "pcs", qtyMin: 1, qtyMax: 5 },
+  { category: "Electronics & Appliances", product: "Frost Free Refrigerator", brand: "Samsung", model: "253L", type: "Refrigerator", unit: "pcs", qtyMin: 1, qtyMax: 3 },
+  { category: "Electronics & Appliances", product: "Frost Free Refrigerator", brand: "LG", model: "260L", type: "Refrigerator", unit: "pcs", qtyMin: 1, qtyMax: 3 },
+  { category: "Electronics & Appliances", product: "Split AC", brand: "Daikin", model: "1.5 Ton", type: "Split AC", unit: "pcs", qtyMin: 1, qtyMax: 10 },
+  { category: "Electronics & Appliances", product: "Split AC", brand: "Voltas", model: "1.5 Ton", type: "Split AC", unit: "pcs", qtyMin: 1, qtyMax: 10 },
+  { category: "Electronics & Appliances", product: "Fully Automatic Washing Machine", brand: "LG", model: "7kg", type: "Washing Machine", unit: "pcs", qtyMin: 1, qtyMax: 5 },
+  { category: "Electronics & Appliances", product: "Fully Automatic Washing Machine", brand: "Samsung", model: "6.5kg", type: "Washing Machine", unit: "pcs", qtyMin: 1, qtyMax: 5 },
+  { category: "Electronics & Appliances", product: "Laptop", brand: "Dell", model: "Inspiron 15", type: "Laptop", unit: "pcs", qtyMin: 1, qtyMax: 10 },
+  { category: "Electronics & Appliances", product: "Laptop", brand: "HP", model: "15s", type: "Laptop", unit: "pcs", qtyMin: 1, qtyMax: 10 },
+  { category: "Electronics & Appliances", product: "Laptop", brand: "Lenovo", model: "IdeaPad 14", type: "Laptop", unit: "pcs", qtyMin: 1, qtyMax: 10 },
+  { category: "Electronics & Appliances", product: "Smartphone", brand: "Samsung", model: "Galaxy S24", type: "Smartphone", unit: "pcs", qtyMin: 2, qtyMax: 20 },
+  { category: "Electronics & Appliances", product: "Smartphone", brand: "Apple", model: "iPhone 15", type: "Smartphone", unit: "pcs", qtyMin: 2, qtyMax: 20 },
+  { category: "Electronics & Appliances", product: "Headphones", brand: "Sony", model: "WH-1000XM5", type: "Headphones", unit: "pcs", qtyMin: 1, qtyMax: 10 },
+  { category: "Electronics & Appliances", product: "DSLR Camera", brand: "Canon", model: "EOS 1500D", type: "Camera", unit: "pcs", qtyMin: 1, qtyMax: 5 },
+  { category: "Electronics & Appliances", product: "Gaming Console", brand: "Sony", model: "PlayStation 5", type: "Gaming Console", unit: "pcs", qtyMin: 1, qtyMax: 3 },
 
-const BRAND_MODEL_TEMPLATES = {
-  "Electronics & Appliances": [
-    { brand: "Samsung", model: "55 inch LED Smart TV", type: "LED TV" },
-    { brand: "LG", model: "260L Frost Free Refrigerator", type: "Refrigerator" },
-    { brand: "Voltas", model: "1.5 Ton Split AC", type: "Split AC" },
-    { brand: "Whirlpool", model: "7kg Fully Automatic", type: "Washing Machine" },
-    { brand: "Samsung", model: "Galaxy S24 Ultra 256GB", type: "Smartphone" },
-    { brand: "Apple", model: "iPhone 15 Pro 256GB", type: "Smartphone" },
-    { brand: "Dell", model: "Inspiron 15 12th Gen", type: "Laptop" },
-    { brand: "HP", model: "15s Laptop 12th Gen", type: "Laptop" },
-    { brand: "Lenovo", model: "IdeaPad 14 inch", type: "Laptop" },
-    { brand: "Apple", model: "MacBook Air M2", type: "Laptop" },
-    { brand: "Sony", model: "WH-1000XM5", type: "Headphones" },
-    { brand: "Canon", model: "EOS 1500D DSLR", type: "Camera" },
-    { brand: "Sony", model: "PlayStation 5", type: "Gaming Console" },
-    { brand: "LG", model: "8kg Front Load", type: "Washing Machine" }
-  ],
-  "Vehicles & Parts": [
-    { brand: "Maruti", model: "Swift Dzire 2022", type: "Sedan", condition: "Pre-Owned" },
-    { brand: "Toyota", model: "Innova Crysta 2021", type: "SUV", condition: "Used" },
-    { brand: "Honda", model: "City 2023 ZX", type: "Sedan", condition: "Second Hand" },
-    { brand: "Kia", model: "Seltos 2022", type: "Compact SUV", condition: "Pre-Owned" },
-    { brand: "Maruti", model: "Swift LXI", type: "Hatchback", condition: "Brand New" },
-    { brand: "Tata", model: "Nexon XZ Plus", type: "Compact SUV", condition: "New" },
-    { brand: "Hyundai", model: "Creta 2023", type: "SUV", condition: "Pre-Owned" },
-    { brand: "Mahindra", model: "XUV500 2022", type: "SUV", condition: "Used" }
-  ],
-  "Industrial Machinery": [
-    { brand: "ABB", model: "5HP Three Phase Motor", type: "Induction Motor" },
-    { brand: "Siemens", model: "7.5HP AC Motor", type: "AC Motor" },
-    { brand: "Kirloskar", model: "25kVA Silent", type: "Diesel Generator" },
-    { brand: "Miller", model: "400A MIG", type: "Welding Machine" },
-    { brand: "Allen Bradley", model: "1756 PLC Module", type: "PLC Controller" },
-    { brand: "ACE", model: "CNC 200", type: "CNC Lathe" },
-    { brand: "Larsen & Toubro", model: "10HP Industrial", type: "Motor" }
-  ],
-  "Electrical Parts": [
-    { brand: "Havells", model: "1.5sqmm 90mtr", type: "Copper Wire" },
-    { brand: "Polycab", model: "2.5sqmm 90mtr", type: "Electric Wire" },
-    { brand: "SKF", model: "6205 Pack of 10", type: "Ball Bearing" },
-    { brand: "ABB", model: "VFD ACS550 10HP", type: "Variable Frequency Drive" },
-    { brand: "Schneider", model: "MCB 63A 3 Pole", type: "Circuit Breaker" },
-    { brand: "ABB", model: "Low Voltage", type: "Switchgear" },
-    { brand: "Siemens", model: "32A MCB", type: "Circuit Breaker" }
-  ],
-  "Construction Materials": [
-    { brand: "Tata", model: "12mm Fe500", type: "TMT Bar" },
-    { brand: "ACC", model: "53 Grade", type: "Cement" },
-    { brand: "JSW", model: "Structural Beams", type: "Steel Beam" },
-    { brand: "Alstrong", model: "4mm ACP Sheet", type: "Aluminum Panel" }
-  ],
-  "Chemicals & Plastics": [
-    { brand: "Reliance", model: "HDPE Injection Grade", type: "Granules" },
-    { brand: "Finolex", model: "PVC SG5", type: "Resin" },
-    { brand: "Borouge", model: "PP H110MA", type: "Granules" },
-    { brand: "Standard", model: "LDPE Film Grade", type: "Film Roll" },
-    { brand: "LG Chem", model: "HF-6560", type: "ABS Granules" }
-  ],
-  "Textiles & Apparel": [
-    { brand: "Raymond", model: "Cotton Blend 60 inch", type: "Fabric" },
-    { brand: "Arvind", model: "Polyester 58 inch", type: "Fabric" },
-    { brand: "Lifestyle", model: "Formal Shirts", type: "Readymade" },
-    { brand: "达姆", model: "Industrial Grade", type: "Workwear" }
-  ],
-  "Food & Agriculture": [
-    { brand: "India Gate", model: "Basmati 5kg", type: "Rice" },
-    { brand: "Aashirvaad", model: "Sharbati Wheat", type: "Wheat" },
-    { brand: "Godrej", model: "Pro-Gard 25kg", type: "Fertilizer" },
-    { brand: "MAP", model: "16L Sprayer", type: "Sprayer Pump" }
-  ],
-  "Health & Safety": [
-    { brand: "3M", model: "N95 VFM 100pcs", type: "Mask" },
-    { brand: "Ultimate", model: "ISI Marked", type: "Safety Helmet" },
-    { brand: "Midas", model: "Heavy Duty Box", type: "Gloves" },
-    { brand: "Dukal", model: "OSHA Compliant", type: "First Aid Kit" }
-  ]
-};
+  // FURNITURE & HOME
+  { category: "Furniture & Home", product: "King Size Bed", brand: "UrbanLadder", model: "6x6 feet", type: "Bed", unit: "pcs", qtyMin: 1, qtyMax: 5 },
+  { category: "Furniture & Home", product: "L-Shaped Sofa", brand: "Fabindia", model: "6 Seater", type: "Sofa", unit: "pcs", qtyMin: 1, qtyMax: 3 },
+  { category: "Furniture & Home", product: "Dining Table Set", brand: null, model: "6 Chairs", type: "Dining Table", unit: "sets", qtyMin: 1, qtyMax: 3 },
+  { category: "Furniture & Home", product: "Office Executive Chair", brand: "Godrej", model: "Ergo", type: "Chair", unit: "pcs", qtyMin: 2, qtyMax: 20 },
+  { category: "Furniture & Home", product: "Modular Kitchen", brand: null, model: "L-Shape", type: "Kitchen", unit: "sets", qtyMin: 1, qtyMax: 2 },
+  { category: "Furniture & Home", product: "TV Unit", brand: null, model: "Wall Mounted", type: "TV Unit", unit: "pcs", qtyMin: 1, qtyMax: 3 },
 
-function findMatchingTemplateKey(category, templateObj) {
-  if (templateObj[category]) return category;
-  const categoryLower = category.toLowerCase();
-  for (const key of Object.keys(templateObj)) {
-    if (categoryLower.includes(key.toLowerCase()) || key.toLowerCase().includes(categoryLower)) {
-      return key;
-    }
+  // VEHICLES & PARTS
+  { category: "Vehicles & Parts", product: "Sedan Car", brand: "Maruti", model: "Swift Dzire", type: "Sedan", unit: "pcs", qtyMin: 1, qtyMax: 5, condition: "used" },
+  { category: "Vehicles & Parts", product: "SUV Vehicle", brand: "Toyota", model: "Innova Crysta", type: "SUV", unit: "pcs", qtyMin: 1, qtyMax: 3, condition: "used" },
+  { category: "Vehicles & Parts", product: "SUV Vehicle", brand: "Tata", model: "Nexon", type: "SUV", unit: "pcs", qtyMin: 1, qtyMax: 5, condition: "new" },
+  { category: "Vehicles & Parts", product: "Hatchback Car", brand: "Maruti", model: "Swift", type: "Hatchback", unit: "pcs", qtyMin: 1, qtyMax: 5, condition: "new" },
+  { category: "Vehicles & Parts", product: "Compact SUV", brand: "Hyundai", model: "Creta", type: "SUV", unit: "pcs", qtyMin: 1, qtyMax: 3, condition: "used" },
+  { category: "Vehicles & Parts", product: "Two Wheeler", brand: "Honda", model: "Activa", type: "Scooter", unit: "pcs", qtyMin: 1, qtyMax: 10 },
+
+  // INDUSTRIAL MACHINERY
+  { category: "Industrial Machinery", product: "Three Phase Motor", brand: "ABB", model: "5HP", type: "Motor", unit: "pcs", qtyMin: 1, qtyMax: 10 },
+  { category: "Industrial Machinery", product: "AC Motor", brand: "Siemens", model: "7.5HP", type: "Motor", unit: "pcs", qtyMin: 1, qtyMax: 5 },
+  { category: "Industrial Machinery", product: "Diesel Generator", brand: "Kirloskar", model: "25kVA", type: "Generator", unit: "pcs", qtyMin: 1, qtyMax: 3 },
+  { category: "Industrial Machinery", product: "MIG Welding Machine", brand: "Miller", model: "400A", type: "Welder", unit: "pcs", qtyMin: 1, qtyMax: 5 },
+  { category: "Industrial Machinery", product: "CNC Lathe", brand: "ACE", model: "CNC 200", type: "CNC Lathe", unit: "pcs", qtyMin: 1, qtyMax: 2 },
+  { category: "Industrial Machinery", product: "Industrial Pump", brand: "Kirloskar", model: "5HP", type: "Pump", unit: "pcs", qtyMin: 1, qtyMax: 10 },
+
+  // ELECTRICAL PARTS
+  { category: "Electrical Parts", product: "Copper Wire", brand: "Havells", model: "1.5sqmm 90mtr", type: "Wire", unit: "roll", qtyMin: 5, qtyMax: 50 },
+  { category: "Electrical Parts", product: "Electric Wire", brand: "Polycab", model: "2.5sqmm 90mtr", type: "Wire", unit: "roll", qtyMin: 5, qtyMax: 50 },
+  { category: "Electrical Parts", product: "Ball Bearing", brand: "SKF", model: "6205", type: "Bearing", unit: "pcs", qtyMin: 10, qtyMax: 100 },
+  { category: "Electrical Parts", product: "MCB Circuit Breaker", brand: "Havells", model: "32A", type: "MCB", unit: "pcs", qtyMin: 5, qtyMax: 50 },
+  { category: "Electrical Parts", product: "VFD Drive", brand: "ABB", model: "ACS550 10HP", type: "VFD", unit: "pcs", qtyMin: 1, qtyMax: 10 },
+  { category: "Electrical Parts", product: "PLC Controller", brand: "Allen Bradley", model: "1756", type: "PLC", unit: "pcs", qtyMin: 1, qtyMax: 10 },
+
+  // CONSTRUCTION MATERIALS
+  { category: "Construction Materials", product: "TMT Bar", brand: "Tata", model: "12mm Fe500", type: "TMT Bar", unit: "pcs", qtyMin: 50, qtyMax: 500 },
+  { category: "Construction Materials", product: "TMT Bar", brand: "JSW", model: "16mm Fe550", type: "TMT Bar", unit: "pcs", qtyMin: 50, qtyMax: 500 },
+  { category: "Construction Materials", product: "Cement", brand: "ACC", model: "53 Grade", type: "Cement", unit: "bags", qtyMin: 50, qtyMax: 500 },
+  { category: "Construction Materials", product: "Cement", brand: "Ultratech", model: "OPC 53", type: "Cement", unit: "bags", qtyMin: 50, qtyMax: 500 },
+  { category: "Construction Materials", product: "Steel Beam", brand: "JSW", model: "Structural", type: "Steel Beam", unit: "pcs", qtyMin: 10, qtyMax: 100 },
+  { category: "Construction Materials", product: "Aluminum Panel", brand: "Alstrong", model: "4mm ACP", type: "ACP Sheet", unit: "pcs", qtyMin: 20, qtyMax: 200 },
+  { category: "Construction Materials", product: "Bricks", brand: null, model: "Red Clay", type: "Brick", unit: "pcs", qtyMin: 1000, qtyMax: 10000 },
+  { category: "Construction Materials", product: "Sand", brand: null, model: "River Sand", type: "Sand", unit: "ton", qtyMin: 5, qtyMax: 50 },
+
+  // RAW MATERIALS
+  { category: "Raw Materials", product: "Aluminum Ingot", brand: null, model: "Primary Grade", type: "Aluminum", unit: "ton", qtyMin: 1, qtyMax: 20 },
+  { category: "Raw Materials", product: "Copper Scrap", brand: null, model: "Bare Bright", type: "Copper Scrap", unit: "kg", qtyMin: 100, qtyMax: 1000 },
+  { category: "Raw Materials", product: "MS Scrap", brand: null, model: "Heavy Melting", type: "MS Scrap", unit: "ton", qtyMin: 5, qtyMax: 50 },
+  { category: "Raw Materials", product: "Steel Scrap", brand: null, model: "Shredded", type: "Steel Scrap", unit: "ton", qtyMin: 5, qtyMax: 30 },
+  { category: "Raw Materials", product: "Iron Ore", brand: null, model: "Fines 63%", type: "Iron Ore", unit: "ton", qtyMin: 100, qtyMax: 1000 },
+
+  // CHEMICALS & PLASTICS
+  { category: "Chemicals & Plastics", product: "HDPE Granules", brand: "Reliance", model: "Injection Grade", type: "HDPE", unit: "kg", qtyMin: 500, qtyMax: 5000 },
+  { category: "Chemicals & Plastics", product: "PVC Resin", brand: "Finolex", model: "SG5", type: "PVC", unit: "kg", qtyMin: 500, qtyMax: 5000 },
+  { category: "Chemicals & Plastics", product: "Polypropylene Granules", brand: "Reliance", model: "PP H110MA", type: "PP Granules", unit: "kg", qtyMin: 500, qtyMax: 5000 },
+  { category: "Chemicals & Plastics", product: "LDPE Film", brand: "Standard", model: "Film Grade", type: "LDPE", unit: "kg", qtyMin: 200, qtyMax: 2000 },
+  { category: "Chemicals & Plastics", product: "ABS Granules", brand: "LG Chem", model: "HF-6560", type: "ABS", unit: "kg", qtyMin: 200, qtyMax: 2000 },
+
+  // PACKAGING
+  { category: "Packaging", product: "Corrugated Box", brand: null, model: "5 Ply", type: "Box", unit: "pcs", qtyMin: 50, qtyMax: 500 },
+  { category: "Packaging", product: "Stretch Film Roll", brand: null, model: "23 mic", type: "Film", unit: "roll", qtyMin: 10, qtyMax: 100 },
+  { category: "Packaging", product: "Bubble Wrap Roll", brand: null, model: "5mm Bubble", type: "Bubble Wrap", unit: "roll", qtyMin: 5, qtyMax: 50 },
+  { category: "Packaging", product: "Packing Tape", brand: "3M", model: "Translucent", type: "Tape", unit: "pcs", qtyMin: 20, qtyMax: 200 },
+
+  // TEXTILES & APPAREL
+  { category: "Textiles & Apparel", product: "Cotton Fabric", brand: "Raymond", model: "60 inch", type: "Fabric", unit: "meter", qtyMin: 50, qtyMax: 500 },
+  { category: "Textiles & Apparel", product: "Polyester Fabric", brand: "Arvind", model: "58 inch", type: "Fabric", unit: "meter", qtyMin: 50, qtyMax: 500 },
+  { category: "Textiles & Apparel", product: "Formal Shirts", brand: null, model: "Cotton Blend", type: "Shirt", unit: "pcs", qtyMin: 25, qtyMax: 250 },
+  { category: "Textiles & Apparel", product: "Industrial Workwear", brand: null, model: "Cotton", type: "Workwear", unit: "pcs", qtyMin: 25, qtyMax: 200 },
+
+  // FOOD & AGRICULTURE
+  { category: "Food & Agriculture", product: "Basmati Rice", brand: "India Gate", model: "5kg", type: "Rice", unit: "kg", qtyMin: 50, qtyMax: 500 },
+  { category: "Food & Agriculture", product: "Wheat", brand: null, model: "Sharbati", type: "Wheat", unit: "kg", qtyMin: 100, qtyMax: 1000 },
+  { category: "Food & Agriculture", product: "Organic Fertilizer", brand: "Godrej", model: "25kg", type: "Fertilizer", unit: "bags", qtyMin: 10, qtyMax: 100 },
+  { category: "Food & Agriculture", product: "Sprayer Pump", brand: "MAP", model: "16L", type: "Sprayer", unit: "pcs", qtyMin: 5, qtyMax: 50 },
+
+  // HEALTH & SAFETY
+  { category: "Health & Safety", product: "N95 Mask", brand: "3M", model: "VFM 100pcs", type: "Mask", unit: "pcs", qtyMin: 50, qtyMax: 500 },
+  { category: "Health & Safety", product: "Safety Helmet", brand: "Ultimate", model: "ISI Marked", type: "Helmet", unit: "pcs", qtyMin: 10, qtyMax: 100 },
+  { category: "Health & Safety", product: "Industrial Gloves", brand: "Midas", model: "Heavy Duty", type: "Gloves", unit: "pairs", qtyMin: 25, qtyMax: 200 },
+  { category: "Health & Safety", product: "First Aid Kit", brand: "Dukal", model: "OSHA", type: "First Aid", unit: "pcs", qtyMin: 5, qtyMax: 50 },
+
+  // LOGISTICS & TRANSPORT
+  { category: "Logistics & Transport", product: "Packer and Mover Service", brand: null, model: "2BHK", type: "Service", unit: "service", qtyMin: 1, qtyMax: 3 },
+  { category: "Logistics & Transport", product: "Truck Transport", brand: null, model: "14ft", type: "Truck", unit: "trips", qtyMin: 1, qtyMax: 10 },
+  { category: "Logistics & Transport", product: "Container Storage", brand: null, model: "20ft", type: "Container", unit: "units", qtyMin: 1, qtyMax: 5 },
+  { category: "Logistics & Transport", product: "Warehouse Rental", brand: null, model: "5000sqft", type: "Warehouse", unit: "sqft", qtyMin: 1000, qtyMax: 10000 },
+
+  // BUSINESS SERVICES
+  { category: "Business Services", product: "Management Consulting", brand: null, model: "Strategic", type: "Consulting", unit: "hours", qtyMin: 10, qtyMax: 100 },
+  { category: "Business Services", product: "Digital Marketing", brand: null, model: "Monthly Package", type: "Marketing", unit: "month", qtyMin: 1, qtyMax: 6 },
+  { category: "Business Services", product: "Website Development", brand: null, model: "E-commerce", type: "Development", unit: "project", qtyMin: 1, qtyMax: 3 },
+  { category: "Business Services", product: "Legal Documentation", brand: null, model: "Corporate", type: "Legal", unit: "service", qtyMin: 1, qtyMax: 5 },
+
+  // SERVICES & MAINTENANCE
+  { category: "Services & Maintenance", product: "Wedding Catering", brand: null, model: "100 plates", type: "Catering", unit: "plates", qtyMin: 50, qtyMax: 500 },
+  { category: "Services & Maintenance", product: "Corporate Event", brand: null, model: "50 persons", type: "Event", unit: "event", qtyMin: 1, qtyMax: 5 },
+  { category: "Services & Maintenance", product: "Interior Design", brand: null, model: "Full House", type: "Interior", unit: "project", qtyMin: 1, qtyMax: 3 },
+  { category: "Services & Maintenance", product: "AC Repair Service", brand: null, model: "Split/Window", type: "Service", unit: "service", qtyMin: 5, qtyMax: 50 }
+];
+
+function getRandomProduct(category) {
+  const categoryProducts = PRODUCT_MASTER.filter(p => p.category === category);
+  if (!categoryProducts.length) {
+    const allProducts = PRODUCT_MASTER;
+    return allProducts[Math.floor(Math.random() * allProducts.length)];
   }
-  return null;
+  return categoryProducts[Math.floor(Math.random() * categoryProducts.length)];
 }
 
-function getBrandModel(platformCategory) {
-  const matchKey = findMatchingTemplateKey(platformCategory, BRAND_MODEL_TEMPLATES);
-  if (matchKey) {
-    const templates = BRAND_MODEL_TEMPLATES[matchKey];
-    if (templates && templates.length > 0) {
-      const selected = randomItem(templates);
-      if (selected) return selected;
-    }
+function getQuantityForProduct(product) {
+  const min = product.qtyMin || 1;
+  const max = product.qtyMax || 5;
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+async function getSmartUnit(category, product) {
+  const adminUnits = await getUnits();
+  const availableUnits = Array.isArray(adminUnits) && adminUnits.length > 0 ? adminUnits : ["pcs", "units"];
+  const productUnit = product.unit || "pcs";
+  if (availableUnits.some(u => u.toLowerCase() === productUnit.toLowerCase())) {
+    return productUnit;
   }
-  return { brand: null, model: null, type: null, condition: null };
+  return availableUnits[0] || "pcs";
 }
 
 function selectLanguage() {
@@ -765,299 +740,9 @@ async function selectPlatformCategory() {
   return selected || "Electronics & Appliances";
 }
 
-function getSmartQuantity(platformCategory, product) {
-  const productLower = String(product || "").toLowerCase();
-  
-  if (platformCategory.includes("Electronics & Appliances")) {
-    if (productLower.includes("tv") || productLower.includes("led") || productLower.includes("smart tv")) {
-      return randomItem([1, 2, 3]);
-    }
-    if (productLower.includes("refrigerator") || productLower.includes("fridge")) {
-      return randomItem([1, 2, 3]);
-    }
-    if (productLower.includes("ac") || productLower.includes("air conditioner")) {
-      return randomItem([1, 2, 3, 5]);
-    }
-    if (productLower.includes("washing machine") || productLower.includes("washer")) {
-      return randomItem([1, 2, 3]);
-    }
-    if (productLower.includes("laptop") || productLower.includes("macbook") || productLower.includes("notebook") || productLower.includes("computer")) {
-      return randomItem([1, 2, 5]);
-    }
-    if (productLower.includes("smartphone") || productLower.includes("iphone") || productLower.includes("phone") || productLower.includes("mobile")) {
-      return randomItem([1, 2, 5, 10]);
-    }
-    if (productLower.includes("headphone") || productLower.includes("earphone") || productLower.includes("earbud") || productLower.includes("audio")) {
-      return randomItem([1, 2, 5, 10]);
-    }
-    if (productLower.includes("camera") || productLower.includes("dslr") || productLower.includes("mirrorless")) {
-      return randomItem([1, 2, 3]);
-    }
-    if (productLower.includes("console") || productLower.includes("playstation") || productLower.includes("xbox")) {
-      return randomItem([1, 2, 3]);
-    }
-    return randomItem([1, 2, 3, 5]);
-  }
-  
-  if (platformCategory.includes("Furniture & Home")) {
-    if (productLower.includes("bed") || productLower.includes("mattress")) {
-      return randomItem([1, 2, 5]);
-    }
-    if (productLower.includes("sofa") || productLower.includes("couch")) {
-      return randomItem([1, 2, 3]);
-    }
-    if (productLower.includes("chair") && !productLower.includes("office")) {
-      return randomItem([2, 4, 6, 10]);
-    }
-    if (productLower.includes("office chair")) {
-      return randomItem([1, 2, 5, 10]);
-    }
-    if (productLower.includes("table") || productLower.includes("dining")) {
-      return randomItem([1, 2, 5]);
-    }
-    if (productLower.includes("kitchen") || productLower.includes("modular")) {
-      return randomItem([1, 2, 3]);
-    }
-    if (productLower.includes("tv unit") || productLower.includes("cabinet")) {
-      return randomItem([1, 2, 3]);
-    }
-    return randomItem([1, 2, 5]);
-  }
-  
-  if (platformCategory.includes("Vehicles") || productLower.includes("car") || productLower.includes("vehicle") || productLower.includes("suv") || productLower.includes("sedan") || productLower.includes("hatchback") || productLower.includes("compact")) {
-    return randomItem([1, 2, 3, 5]);
-  }
-  
-  if (platformCategory.includes("Services") || platformCategory.includes("Logistics") || platformCategory.includes("Business")) {
-    if (productLower.includes("catering") || productLower.includes("event") || productLower.includes("decoration") || productLower.includes("wedding")) {
-      return randomItem([1, 2, 3]);
-    }
-    if (productLower.includes("truck") || productLower.includes("container")) {
-      return randomItem([1, 2, 5, 10]);
-    }
-    if (productLower.includes("packer") || productLower.includes("mover") || productLower.includes("2bhk") || productLower.includes("3bhk")) {
-      return randomItem([1, 2, 3]);
-    }
-    if (productLower.includes("warehouse") || productLower.includes("storage") || productLower.includes("rental")) {
-      return randomItem([1, 2, 3, 5]);
-    }
-    if (productLower.includes("consulting") || productLower.includes("marketing") || productLower.includes("development") || productLower.includes("legal")) {
-      return randomItem([1, 2, 3]);
-    }
-    return 1;
-  }
-  
-  if (productLower.includes("motor") || productLower.includes("generator") || productLower.includes("lathe") || productLower.includes("cnc") || productLower.includes("welder") || productLower.includes("pump")) {
-    return randomItem([1, 2, 3, 5]);
-  }
-  
-  if (productLower.includes("wire") || productLower.includes("cable")) {
-    return randomItem([5, 10, 20, 50, 100]);
-  }
-  
-  if (productLower.includes("bearing")) {
-    return randomItem([10, 20, 50, 100, 200]);
-  }
-  
-  if (productLower.includes("bar") || productLower.includes("steel") || productLower.includes("beam") || productLower.includes("cement") || productLower.includes("panel") || productLower.includes("tmt")) {
-    return randomItem([50, 100, 200, 500]);
-  }
-  
-  if (productLower.includes("scrap") || productLower.includes("ore") || productLower.includes("ingot")) {
-    return randomItem([1, 5, 10, 20, 50]);
-  }
-  
-  if (productLower.includes("grain") || productLower.includes("rice") || productLower.includes("wheat")) {
-    return randomItem([5, 10, 20, 50, 100]);
-  }
-  
-  if (productLower.includes("granule") || productLower.includes("resin") || productLower.includes("poly") || productLower.includes("hdpe") || productLower.includes("pvc") || productLower.includes("abs")) {
-    return randomItem([500, 1000, 2000, 5000]);
-  }
-  
-  if (productLower.includes("mask") || productLower.includes("glove") || productLower.includes("helmet") || productLower.includes("first aid")) {
-    return randomItem([10, 25, 50, 100, 200]);
-  }
-  
-  if (productLower.includes("fabric") || productLower.includes("cloth") || productLower.includes("cotton") || productLower.includes("polyester")) {
-    return randomItem([10, 25, 50, 100]);
-  }
-  
-  if (productLower.includes("shirt") || productLower.includes("wear") || productLower.includes("garment") || productLower.includes("workwear") || productLower.includes("readymade")) {
-    return randomItem([25, 50, 100, 250]);
-  }
-  
-  if (productLower.includes("box") || productLower.includes("corrugated")) {
-    return randomItem([50, 100, 250, 500, 1000]);
-  }
-  
-  if (productLower.includes("tape") || productLower.includes("wrap") || productLower.includes("film") || productLower.includes("bubble")) {
-    return randomItem([10, 25, 50, 100]);
-  }
-  
-  if (productLower.includes("fertilizer") || productLower.includes("sprayer") || productLower.includes("agricultural")) {
-    return randomItem([10, 25, 50, 100]);
-  }
-  
-  if (productLower.includes("mcb") || productLower.includes("switchgear") || productLower.includes("vfd") || productLower.includes("plc") || productLower.includes("breaker") || productLower.includes("valve") || productLower.includes("transmitter")) {
-    return randomItem([5, 10, 20, 50]);
-  }
-  
-  if (platformCategory.includes("Industrial") || platformCategory.includes("Electrical")) {
-    return randomItem([1, 2, 5, 10]);
-  }
-  
-  if (platformCategory.includes("Raw Materials") || platformCategory.includes("Chemicals") || platformCategory.includes("Food") || platformCategory.includes("Construction")) {
-    return randomItem([10, 25, 50, 100]);
-  }
-  
-  if (platformCategory.includes("Packaging") || platformCategory.includes("Textiles") || platformCategory.includes("Health")) {
-    return randomItem([10, 25, 50, 100]);
-  }
-  
-  return randomItem([1, 2, 5, 10]);
-}
-
-async function getSmartUnit(platformCategory, product) {
-  const productLower = String(product || "").toLowerCase();
-  const adminUnits = await getUnits();
-  const availableUnits = Array.isArray(adminUnits) && adminUnits.length > 0 ? adminUnits : ["pcs", "units", "nos"];
-  
-  const hasUnit = (unit) => availableUnits.some(u => u.toLowerCase() === unit.toLowerCase());
-  const filterUnits = (units) => units.filter(hasUnit);
-  
-  let unitCandidates = [];
-  
-  if (platformCategory.includes("Raw Materials") || platformCategory.includes("Chemicals") || platformCategory.includes("Food")) {
-    if (productLower.includes("granule") || productLower.includes("resin") || productLower.includes("ore") || productLower.includes("scrap") || productLower.includes("powder") || productLower.includes("poly") || productLower.includes("hdpe") || productLower.includes("pvc") || productLower.includes("abs")) {
-      unitCandidates = filterUnits(["kg", "ton", "quintal"]);
-    } else if (productLower.includes("liquid") || productLower.includes("oil") || productLower.includes("solvent") || productLower.includes("chemical")) {
-      unitCandidates = filterUnits(["liter", "ltr", "gallon"]);
-    } else if (productLower.includes("cement") || productLower.includes("fertilizer") || productLower.includes("bag")) {
-      unitCandidates = filterUnits(["bags", "units"]);
-    } else if (productLower.includes("grain") || productLower.includes("rice") || productLower.includes("wheat") || productLower.includes("seed")) {
-      unitCandidates = filterUnits(["kg", "quintal", "ton", "bags"]);
-    }
-    if (!unitCandidates.length) unitCandidates = filterUnits(["kg", "quintal", "ton", "bags"]);
-  }
-  
-  if (platformCategory.includes("Vehicles") || productLower.includes("car") || productLower.includes("vehicle") || productLower.includes("suv") || productLower.includes("sedan") || productLower.includes("hatchback") || productLower.includes("compact")) {
-    unitCandidates = filterUnits(["units", "nos", "pcs"]);
-  }
-  
-  if (platformCategory.includes("Electronics & Appliances")) {
-    if (productLower.includes("tv") || productLower.includes("led") || productLower.includes("refrigerator") || productLower.includes("fridge") || productLower.includes("ac") || productLower.includes("laptop") || productLower.includes("computer") || productLower.includes("phone") || productLower.includes("mobile") || productLower.includes("camera") || productLower.includes("console") || productLower.includes("headphone") || productLower.includes("washing")) {
-      unitCandidates = filterUnits(["pcs", "units", "nos"]);
-    }
-    if (!unitCandidates.length) unitCandidates = filterUnits(["pcs", "units", "nos"]);
-  }
-  
-  if (platformCategory.includes("Furniture & Home") || platformCategory.includes("Furniture")) {
-    if (productLower.includes("bed") || productLower.includes("sofa") || productLower.includes("table") || productLower.includes("chair") || productLower.includes("kitchen") || productLower.includes("cabinet")) {
-      unitCandidates = filterUnits(["pcs", "units", "nos", "sets"]);
-    }
-    if (!unitCandidates.length) unitCandidates = filterUnits(["pcs", "units", "nos"]);
-  }
-  
-  if (platformCategory.includes("Industrial") || platformCategory.includes("Electrical")) {
-    if (productLower.includes("motor") || productLower.includes("generator") || productLower.includes("machine") || productLower.includes("lathe") || productLower.includes("cnc") || productLower.includes("welder") || productLower.includes("pump") || productLower.includes("compressor")) {
-      unitCandidates = filterUnits(["pcs", "units", "nos", "sets"]);
-    } else if (productLower.includes("wire") || productLower.includes("cable")) {
-      unitCandidates = filterUnits(["roll", "mtr", "meter", "coils"]);
-    } else if (productLower.includes("bearing") || productLower.includes("valve") || productLower.includes("gear") || productLower.includes("bolt") || productLower.includes("nut") || productLower.includes("mcb") || productLower.includes("switchgear") || productLower.includes("plc") || productLower.includes("vfd") || productLower.includes("breaker")) {
-      unitCandidates = filterUnits(["pcs", "nos", "packs", "sets"]);
-    }
-    if (!unitCandidates.length) unitCandidates = filterUnits(["pcs", "units", "nos", "sets"]);
-  }
-  
-  if (platformCategory.includes("Construction")) {
-    if (productLower.includes("bar") || productLower.includes("steel") || productLower.includes("beam") || productLower.includes("rod") || productLower.includes("tmt")) {
-      unitCandidates = filterUnits(["pcs", "mtr", "ton", "quintal"]);
-    } else if (productLower.includes("cement") || productLower.includes("bag")) {
-      unitCandidates = filterUnits(["bags", "ton", "quintal"]);
-    } else if (productLower.includes("sand") || productLower.includes("aggregate") || productLower.includes("gravel") || productLower.includes("crusher")) {
-      unitCandidates = filterUnits(["ton", "cubic feet"]);
-    } else if (productLower.includes("brick") || productLower.includes("block") || productLower.includes("tile")) {
-      unitCandidates = filterUnits(["pcs", "thousand"]);
-    }
-    if (!unitCandidates.length) unitCandidates = filterUnits(["pcs", "bags", "ton", "quintal"]);
-  }
-  
-  if (platformCategory.includes("Packaging")) {
-    if (productLower.includes("box") || productLower.includes("carton")) {
-      unitCandidates = filterUnits(["pcs", "units"]);
-    } else if (productLower.includes("roll") || productLower.includes("film") || productLower.includes("wrap") || productLower.includes("sheet")) {
-      unitCandidates = filterUnits(["roll", "pcs"]);
-    } else if (productLower.includes("tape")) {
-      unitCandidates = filterUnits(["pcs", "rolls"]);
-    }
-    if (!unitCandidates.length) unitCandidates = filterUnits(["pcs", "units", "rolls"]);
-  }
-  
-  if (platformCategory.includes("Textiles") || platformCategory.includes("Apparel")) {
-    if (productLower.includes("fabric") || productLower.includes("cloth") || productLower.includes("denim") || productLower.includes("linen") || productLower.includes("cotton") || productLower.includes("polyester")) {
-      unitCandidates = filterUnits(["meter", "mtr", "roll", "kg"]);
-    } else if (productLower.includes("shirt") || productLower.includes("pant") || productLower.includes("dress") || productLower.includes("wear") || productLower.includes("garment") || productLower.includes("suit") || productLower.includes("workwear") || productLower.includes("readymade")) {
-      unitCandidates = filterUnits(["pcs", "dozens", "sets"]);
-    }
-    if (!unitCandidates.length) unitCandidates = filterUnits(["pcs", "meter", "mtr", "rolls"]);
-  }
-  
-  if (platformCategory.includes("Health") || platformCategory.includes("Safety")) {
-    if (productLower.includes("mask") || productLower.includes("glove") || productLower.includes("cap") || productLower.includes("shoe")) {
-      unitCandidates = filterUnits(["pcs", "boxes", "packs", "pairs"]);
-    } else if (productLower.includes("kit") || productLower.includes("set") || productLower.includes("helmet")) {
-      unitCandidates = filterUnits(["pcs", "boxes", "packs"]);
-    }
-    if (!unitCandidates.length) unitCandidates = filterUnits(["pcs", "boxes", "packs"]);
-  }
-  
-  if (platformCategory.includes("Services") || platformCategory.includes("Business")) {
-    if (productLower.includes("catering") || productLower.includes("food") || productLower.includes("lunch") || productLower.includes("dinner")) {
-      unitCandidates = filterUnits(["plates", "persons", "guests"]);
-    } else if (productLower.includes("consulting") || productLower.includes("advisory") || productLower.includes("marketing") || productLower.includes("legal")) {
-      unitCandidates = filterUnits(["hours", "sessions", "month", "project", "package"]);
-    } else if (productLower.includes("event") || productLower.includes("wedding") || productLower.includes("decoration") || productLower.includes("interior")) {
-      unitCandidates = filterUnits(["hours", "days", "event", "package"]);
-    } else if (productLower.includes("packer") || productLower.includes("mover")) {
-      unitCandidates = filterUnits(["service", "job"]);
-    }
-    if (!unitCandidates.length) unitCandidates = filterUnits(["service", "job", "package"]);
-  }
-  
-  if (platformCategory.includes("Logistics") || platformCategory.includes("Transport")) {
-    if (productLower.includes("truck") || productLower.includes("vehicle") || productLower.includes("container")) {
-      unitCandidates = filterUnits(["trips", "units", "loads"]);
-    } else if (productLower.includes("warehouse") || productLower.includes("storage")) {
-      unitCandidates = filterUnits(["sqft", "sqm", "month"]);
-    }
-    if (!unitCandidates.length) unitCandidates = filterUnits(["trips", "units", "loads"]);
-  }
-  
-  if (!unitCandidates.length) {
-    unitCandidates = filterUnits(["pcs", "units", "nos"]);
-  }
-  
-  const selectedUnit = randomItem(unitCandidates);
-  return selectedUnit || availableUnits[0] || "pcs";
-}
-
-function getProduct(platformCategory) {
-  const matchKey = findMatchingTemplateKey(platformCategory, PLATFORM_CATEGORY_TEMPLATES);
-  if (matchKey) {
-    const products = PLATFORM_CATEGORY_TEMPLATES[matchKey];
-    if (products && products.length > 0) {
-      const selected = randomItem(products);
-      if (selected) return selected;
-    }
-  }
-  return `${platformCategory} Product`;
-}
-
-function generateDetail(platformCategory, quantity, unit, brandData = {}) {
+function generateDetail(productName, quantity, unit) {
   const styleRoll = Math.random();
   const lang = selectLanguage();
-  const hasBrand = brandData && brandData.brand;
   let templates;
   
   if (lang === "regional") {
@@ -1082,17 +767,9 @@ function generateDetail(platformCategory, quantity, unit, brandData = {}) {
     detail = randomItem(templates.negotiation) || "Looking for best price on {product}.";
   }
   
-  if (hasBrand) {
-    detail = detail.replace("{product}", `${brandData.brand} ${brandData.model}`);
-  } else {
-    detail = detail.replace("{product}", randomItem(PLATFORM_CATEGORY_TEMPLATES[platformCategory]) || "this item");
-  }
-  
-  detail = detail.replace("{timeline}", randomItem(TIMELINES) || "ASAP");
-  detail = detail.replace("{budget}", randomItem(BUDGETS) || "Competitive pricing required");
+  detail = detail.replace("{product}", productName);
   detail = detail.replace("{qty}", String(quantity || ""));
   detail = detail.replace("{unit}", String(unit || "pcs"));
-  detail = detail.replace("{industry}", randomItem(["factory", "warehouse", "office", "plant", "manufacturing unit", "warehouse"]) || "factory");
   
   return detail;
 }
@@ -1158,18 +835,20 @@ async function generateDummyRequirements(count = 3) {
         continue;
       }
       
-      const product = getProduct(platformCategory, adminCategories);
-      const quantity = getSmartQuantity(platformCategory, product);
-      const unit = await getSmartUnit(platformCategory, product);
-      const brandData = getBrandModel(platformCategory, adminCategories);
-      const condition = brandData.condition || randomItem(["new", "used"]);
-      const details = generateDetail(platformCategory, quantity, unit, brandData);
+      const productData = getRandomProduct(platformCategory);
+      const quantity = getQuantityForProduct(productData);
+      const unit = productData.unit;
+      const condition = productData.condition || randomItem(["new", "used"]);
+      const productName = productData.brand 
+        ? `${productData.brand} ${productData.model} ${productData.product}` 
+        : `${productData.model} ${productData.product}`;
+      const details = generateDetail(productName, quantity, unit);
       
       try {
         const offerInvitedFrom = platformCategory.includes("Raw Materials") || platformCategory.includes("Chemicals") || platformCategory.includes("Industrial") || platformCategory.includes("Electrical") ? "anywhere" : "city";
         
         const dummy = await DummyRequirement.create({
-          product: product,
+          product: productName,
           quantity: quantity,
           unit: unit,
           city: String(city),
@@ -1184,12 +863,12 @@ async function generateDummyRequirements(count = 3) {
           buyerId: dummyBuyer._id,
           city: String(city),
           category: platformCategory,
-          productName: brandData.model ? `${brandData.brand} ${brandData.model}` : product,
-          product: product,
-          brand: brandData.brand || null,
-          make: brandData.brand || null,
-          typeModel: brandData.model || null,
-          type: brandData.type || condition,
+          productName: productName,
+          product: productData.product,
+          brand: productData.brand || null,
+          make: productData.brand || null,
+          typeModel: productData.model || null,
+          type: productData.type || condition,
           condition: condition,
           quantity: String(quantity),
           unit: unit,
@@ -1203,7 +882,7 @@ async function generateDummyRequirements(count = 3) {
         await dummy.save();
         
         generated.push(dummy);
-        console.log(`[DummyReq] Generated: ${city} | ${platformCategory} | ${product}`);
+        console.log(`[DummyReq] Generated: ${city} | ${platformCategory} | ${productName} | Qty: ${quantity} ${unit}`);
         
         if (generated.length >= count) break;
       } catch (err) {
