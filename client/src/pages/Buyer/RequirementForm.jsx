@@ -61,7 +61,7 @@ export default function RequirementForm({ isPublic = false }) {
   const sessionCity = String(session?.city || "").trim();
 
   const [form, setForm] = useState({
-    mobile: mobileFromUrl || "",
+    mobile: "",
     city: cityFromUrl || "",
     category: "",
     product: productFromUrl || "",
@@ -203,6 +203,32 @@ export default function RequirementForm({ isPublic = false }) {
 
     loadRequirement();
   }, [isEditMode, navigate, requirementId]);
+
+  useEffect(() => {
+    async function fetchMobileFromRef() {
+      if (!isPublic || !tempRequirementRef || form.mobile) return;
+      
+      try {
+        const res = await api.get(`/buyer/temp-requirement/${tempRequirementRef}`);
+        const tempData = res?.data;
+        if (tempData?.mobileE164) {
+          const mobile = tempData.mobileE164.replace("+", "");
+          setForm((prev) => ({ ...prev, mobile }));
+        }
+      } catch (err) {
+        console.log("[RequirementForm] Could not fetch mobile from ref:", err);
+        if (mobileFromUrl) {
+          setForm((prev) => ({ ...prev, mobile: mobileFromUrl }));
+        }
+      }
+    }
+    
+    if (mobileFromUrl) {
+      setForm((prev) => ({ ...prev, mobile: mobileFromUrl }));
+    }
+    
+    fetchMobileFromRef();
+  }, [tempRequirementRef, isPublic]);
 
   useEffect(() => {
     const draft = localStorage.getItem("draft_requirement_text");
@@ -672,15 +698,17 @@ export default function RequirementForm({ isPublic = false }) {
             </h2>
 
         <div className="grid gap-3 md:grid-cols-2">
-        {/* Mobile */}
+        {/* Mobile - auto-filled from WhatsApp */}
         <div className="md:col-span-2">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Mobile Number (auto-verified via WhatsApp)
+          </label>
           <input
             name="mobile"
             type="tel"
             value={form.mobile}
-            onChange={handleChange}
-            placeholder="Mobile Number (for OTP) *"
-            className="w-full px-3 py-2 border rounded-xl text-sm"
+            readOnly
+            className="w-full px-3 py-2 border rounded-xl text-sm bg-gray-50"
             required
             readOnly={!!mobileFromUrl}
           />

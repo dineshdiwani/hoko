@@ -246,7 +246,8 @@ async function sendBuyerInviteLink(mobileE164) {
   );
   
   const appBase = resolvePublicAppUrl();
-  return `${appBase}/buyer/requirement/new?ref=${tempReq._id.toString()}`;
+  const mobileParam = mobileE164.replace("+", "");
+  return `${appBase}/buyer/requirement/new?ref=${tempReq._id.toString()}&mobile=${mobileParam}`;
 }
 
 async function sendBuyerRequirementInvite(mobileE164) {
@@ -259,7 +260,8 @@ async function sendBuyerRequirementInvite(mobileE164) {
     { upsert: true, new: true, setDefaultsOnInsert: true }
   );
   
-  return await sendBuyerInviteTemplate(mobileE164, tempReq._id.toString());
+  const mobileParam = mobileE164.replace("+", "");
+  return await sendBuyerInviteTemplate(mobileE164, tempReq._id.toString(), mobileParam);
 }
 
 async function createBuyerLeadAndSendConfirmation(mobileE164, product, city, provider = "whatsapp") {
@@ -298,7 +300,8 @@ async function createBuyerLeadAndSendConfirmation(mobileE164, product, city, pro
   );
   
   const appBase = resolvePublicAppUrl();
-  const deepLink = `${appBase}/buyer/requirement/new?ref=${tempReq._id.toString()}&product=${encodeURIComponent(product || "")}&city=${encodeURIComponent(city || "")}`;
+  const mobileParam = mobileE164.replace("+", "");
+  const deepLink = `${appBase}/buyer/requirement/new?ref=${tempReq._id.toString()}&mobile=${mobileParam}&product=${encodeURIComponent(product || "")}&city=${encodeURIComponent(city || "")}`;
   
   const message = buildBuyerConfirmationMessage(product, city, requirementId, deepLink);
   await sendWhatsAppMessage({
@@ -686,7 +689,7 @@ function resolveWhatsAppProvider() {
   return String(process.env.WHATSAPP_PROVIDER || "mock").trim().toLowerCase();
 }
 
-async function sendBuyerInviteTemplate(to, tempRequirementId) {
+async function sendBuyerInviteTemplate(to, tempRequirementId, mobile) {
   const provider = resolveWhatsAppProvider();
   if (!["gupshup", "meta"].includes(provider)) {
     console.log(`[Buyer Invite] Provider ${provider} not supported for template send`);
@@ -694,7 +697,8 @@ async function sendBuyerInviteTemplate(to, tempRequirementId) {
   }
 
   const appBase = resolvePublicAppUrl();
-  const deepLink = `${appBase}/buyer/requirement/new?ref=${tempRequirementId}`;
+  const mobileParam = mobile || to.replace("+", "");
+  const deepLink = `${appBase}/buyer/requirement/new?ref=${tempRequirementId}&mobile=${mobileParam}`;
 
   const templateConfig = await WhatsAppTemplateRegistry.findOne({
     key: "buyer_invite_post_requirement",
@@ -767,7 +771,7 @@ async function createTempRequirementAndSendInvite(mobileE164) {
     }
   );
 
-  const sendResult = await sendBuyerInviteTemplate(mobileE164, tempReq._id.toString());
+  const sendResult = await sendBuyerInviteTemplate(mobileE164, tempReq._id.toString(), mobileE164.replace("+", ""));
 
   await WhatsAppDeliveryLog.create({
     requirementId: null,

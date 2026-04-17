@@ -421,6 +421,34 @@ async function sendRequirementAckTemplate(mobileE164, requirementId) {
   }
 }
 
+router.get("/temp-requirement/:refId", async (req, res) => {
+  const { refId } = req.params;
+  
+  let cleanRefId = refId.trim();
+  try {
+    const decoded = decodeURIComponent(cleanRefId);
+    const idMatch = decoded.match(/([a-f0-9]{20,24})/i);
+    if (idMatch) cleanRefId = idMatch[1];
+  } catch {}
+  
+  try {
+    const tempReq = await TempRequirement.findOne({ _id: cleanRefId }).lean();
+    if (!tempReq) {
+      return res.status(404).json({ message: "Temp requirement not found" });
+    }
+    
+    res.json({
+      mobileE164: tempReq.mobileE164,
+      product: tempReq.product,
+      city: tempReq.city,
+      status: tempReq.status
+    });
+  } catch (err) {
+    console.error("[TempRequirement] Error:", err.message);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 /**
  * Public endpoint for WhatsApp-initiated requirement submission
  */
