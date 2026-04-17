@@ -233,155 +233,134 @@ const REGIONAL_LANGUAGES = ["Tamil", "Telugu", "Marathi", "Gujarati", "Bengali",
 const LANGUAGE_TEMPLATES = {
   english: {
     short: [
-      "Price please?",
-      "Needed urgently. Share your best price on HOKO.",
-      "Share your lowest price",
-      "Looking for best deal. Submit your offer on HOKO.",
-      "Your price?",
-      "Interested. Submit your best offer.",
-      "Quick quote needed",
-      "Available? Share price",
-      "Need this. Best price?",
-      "Urgent requirement. Price?",
-      "Looking for {product}. Best price?"
+      "Need {product}. Share your best price on HOKO.",
+      "Looking for {product}. Best deal?",
+      "Urgent! Need {product}. Share price.",
+      "Interested in {product}. Submit offer on HOKO."
     ],
     casual: [
-      "Hi, we need {qty} {unit}. Submit your best price on HOKO.",
-      "Hey, looking for {product}. What's your rate for {qty} {unit}?",
-      "Do you have {product} in stock? Need about {qty} {unit}.",
-      "Hi, interested in {product}. Submit your price for {qty} {unit} on HOKO.",
-      "We need this urgently. Can you supply {qty} {unit}?",
-      "Looking for supplier. Submit your best price on HOKO.",
-      "Hi, can you arrange {qty} {unit}? What's the cost?",
-      "Need {product} for our factory. {qty} {unit}. Submit your price on HOKO.",
-      "Requirement for our plant. Can you supply {product}? Share price.",
-      "We are interested in {product}. {qty} {unit} needed. Your rate?"
+      "Hi, I'm setting up something and need {product}. What's your rate for {qty} {unit}? Share your best price on HOKO.",
+      "Hey, looking for {product} for my home/office. Need about {qty} {unit}. Can you arrange? Share price on HOKO.",
+      "Do you have {product} in stock? Need {qty} {unit} urgently. Please share your price with GST on HOKO.",
+      "Hi, interested in {product}. Need {qty} {unit} for our project. What's your best price including delivery?",
+      "Looking for a reliable supplier for {product}. Need {qty} {unit}. Share your competitive price on HOKO.",
+      "My old {product} broke down and I urgently need a replacement. Can you supply {qty} {unit}? Share price on HOKO.",
+      "We're expanding our setup and need {product}. {qty} {unit} required. Submit your best price on HOKO please.",
+      "Hi, can you arrange {qty} {unit} of {product}? Need good quality with warranty. Share your price on HOKO.",
+      "Need {product} for our factory/plant. {qty} {unit}. Looking for best quality at competitive price. Submit on HOKO.",
+      "We saw your contact and need {product} urgently. {qty} {unit} required. Share your lowest price on HOKO."
     ],
     detailed: [
-      "Required for our {industry}. Need {qty} {unit}. Please share:\n- Best unit price\n- Delivery timeline\n- Payment terms\n- GST extra?",
-      "We have a requirement for {product} ({qty} {unit}). Submit your best price on HOKO including:\n- Product specifications\n- Delivery schedule\n- Warranty details\n- GST invoice available?",
-      "Business requirement - need {qty} {unit}. Submit on HOKO:\n- Complete pricing breakdown\n- Availability status\n- Expected delivery date\n- Payment options",
-      "Procurement requirement for {product}. Qty: {qty} {unit}. Kindly share:\n- Per unit price\n- Bulk discount if applicable\n- Delivery timeline\n- Tax invoice mandatory"
+      "We have an urgent requirement for {product}. Need {qty} {unit}. Please share:\n- Best unit price with GST\n- Delivery timeline\n- Payment terms\n- Warranty details\n- Installation included?",
+      "Business requirement - need {product} for ongoing operations. Qty: {qty} {unit}. Submit your best price on HOKO including:\n- Product specifications\n- Delivery schedule\n- GST invoice availability\n- Any bulk discounts",
+      "Procurement requirement for {product}. Quantity needed: {qty} {unit}. Kindly share:\n- Per unit price breakdown\n- Bulk discount if ordering more\n- Expected delivery date\n- Tax invoice mandatory\nSubmit on HOKO.",
+      "We're looking for quality {product} supplier. Need {qty} {unit}. Share complete pricing with:\n- Unit price\n- Delivery charges\n- GST extra or inclusive\n- Warranty period\nSubmit your best offer on HOKO."
     ],
     formal: [
-      "We have a requirement for {product}. Quantity: {qty} {unit}. Please submit your quotation on HOKO with complete product details, pricing, and delivery timeline.",
-      "Our organization requires {qty} {unit} of {product} for ongoing operations. Kindly submit your best offer on HOKO with technical specifications.",
-      "Please quote for {product} ({qty} {unit}) on HOKO with details on pricing, availability, and delivery schedule.",
-      "We require {product} for our upcoming project. Quantity: {qty} {unit}. Please share your competitive rates on HOKO along with product specifications."
+      "We have a procurement requirement for {product}. Quantity: {qty} {unit}. Please submit your detailed quotation on HOKO including product specifications, pricing, delivery timeline, and payment terms.",
+      "Our organization requires {product} for ongoing business operations. Quantity: {qty} {unit}. Kindly submit your competitive offer on HOKO with complete technical specifications and warranty details.",
+      "Please provide your best quotation for {product}. Required quantity: {qty} {unit}. Include pricing breakdown, GST details, delivery schedule, and payment terms. Submit on HOKO.",
+      "We require quality {product} for our upcoming project. Quantity: {qty} {unit}. Please share your most competitive rates on HOKO along with product specifications and delivery capability."
     ],
     urgent: [
-      "URGENT - Need {product} ({qty} {unit}) within {timeline}. Submit your best price on HOKO immediately.",
-      "Urgent requirement! Need {product} ASAP. Qty: {qty} {unit}. Submit your best price on HOKO right away.",
-      "Time-sensitive order. {product} ({qty} {unit}) needed by {timeline}. Submit your lowest price on HOKO immediately.",
-      "Urgent procurement - {product} ({qty} {unit}) required by {timeline}. Submit your best rate on HOKO."
+      "URGENT requirement for {product}. Need {qty} {unit} within {timeline}. This is time-sensitive! Submit your best price on HOKO immediately.",
+      "Urgent! Need {product} ASAP for our project. Qty: {qty} {unit}. Please share your lowest price on HOKO right away. Delivery is critical.",
+      "Time-sensitive procurement! {product} ({qty} {unit}) needed by {timeline}. Submit your best price on HOKO immediately. We are ready to order today.",
+      "Emergency requirement - {product} ({qty} {unit}) needed by {timeline}. Looking for immediate response. Submit your competitive rate on HOKO."
     ],
     negotiation: [
-      "Looking for best price on {product}. We are serious buyers. Submit your lowest quote on HOKO.",
-      "Ready to place order if price is competitive. Need {qty} {unit} of {product}. Submit your best price on HOKO?",
-      "Multiple suppliers being contacted for {product}. Qty: {qty} {unit}. Lowest price wins. Submit your offer on HOKO.",
-      "Comparing quotes for {product}. Need {qty} {unit}. Submit your best price on HOKO to get our business."
+      "We're serious buyers looking for the best price on {product}. Need {qty} {unit}. Multiple suppliers being considered. Submit your lowest quote on HOKO to get our business.",
+      "Ready to place order immediately if price is right. Need {qty} {unit} of {product}. Share your most competitive rate on HOKO. We compare all quotes.",
+      "Comparing prices for {product}. Need {qty} {unit}. Lowest price wins our order. Submit your best offer on HOKO. We're looking for long-term supplier relationship.",
+      "Budget-conscious purchase for {product}. Qty: {qty} {unit}. Looking for best value, not just lowest price. Share quality product pricing on HOKO."
     ]
   },
   hinglish: {
     short: [
-      "Price batao?",
-      "Jaldi zaroorat hai. HOKO pe best price do.",
-      "Sabse kam price batao",
-      "Deal chahiye. HOKO pe offer do.",
-      "Kitna loge?",
-      "Interested hu. Best price do.",
-      "Jaldi quote chahiye",
-      "Hai kya? Price batao",
-      "Chahiye ye. Best price?",
-      "Emergency requirement. Price?",
-      "{product} dhundh rahe hain. Best price?"
+      "Need {product}. HOKO pe best price do.",
+      "{product} dhundh rahe hain. Deal chahiye.",
+      "Jaldi! {product} chahiye. Price batao.",
+      "{product} mein interested. HOKO pe offer do."
     ],
     casual: [
-      "Hi, {qty} {unit} chahiye. HOKO pe best price do.",
-      "Hey, {product} dhundh rahe hain. {qty} {unit} ka rate kya hoga?",
-      "{product} stock mein hai? {qty} {unit} chahiye.",
-      "Hi, {product} mein interested. HOKO pe price do.",
-      "Jaldi chahiye. {qty} {unit} supply kar sakte ho?",
-      "Supplier dhundh rahe. HOKO pe best price do.",
-      "Hi, arrange kar sakte ho {qty} {unit}? Cost kya hoga?",
-      "{product} factory ke liye chahiye. {qty} {unit}. HOKO pe price do.",
-      "Plant ke liye requirement hai. {product} supply kar sakte ho?",
-      "{product} mein interested hain. {qty} {unit} chahiye. Rate kya?"
+      "Hi, kuch setup kar rahe hain aur {product} chahiye. {qty} {unit} ka rate kya hoga? HOKO pe best price do.",
+      "Hey, ghar/office ke liye {product} dhundh rahe hain. {qty} {unit} chahiye. Arrange kar sakte ho? HOKO pe price do.",
+      "{product} stock mein hai? {qty} {unit} jaldi chahiye. GST ke saath price share karo HOKO pe.",
+      "Hi, {product} mein interested. {qty} {unit} chahiye hamare project ke liye. Delivery ke saath best price kya hoga?",
+      "Reliable supplier dhundh rahe hain {product} ke liye. {qty} {unit} chahiye. Competitive price share karo HOKO pe.",
+      "Mera {product} kharab ho gaya, urgently replacement chahiye. {qty} {unit} supply kar sakte ho? HOKO pe price do.",
+      "Hamari setup expand ho rahi hai, {product} chahiye. {qty} {unit} required. HOKO pe best price do.",
+      "Hi, {product} ke {qty} {unit} arrange kar sakte ho? Good quality with warranty chahiye. HOKO pe price do.",
+      "{product} factory/plant ke liye chahiye. {qty} {unit}. Best quality competitive price mein dhundh rahe hain. HOKO pe submit karo.",
+      "Aapka contact mila, {product} urgently chahiye. {qty} {unit} required. HOKO pe lowest price share karo."
     ],
     detailed: [
-      "{industry} ke liye chahiye. {qty} {unit} zaroorat hai. Please share:\n- Per unit price\n- Delivery time\n- Payment terms\n- GST extra?",
-      "{product} ki requirement hai ({qty} {unit}). HOKO pe best price do:\n- Product specifications\n- Delivery schedule\n- Warranty details\n- GST bill milega?",
-      "Business requirement - {qty} {unit} chahiye. HOKO pe submit karo:\n- Complete price breakdown\n- Stock status\n- Delivery date\n- Payment options",
-      "{product} procurement requirement. Qty: {qty} {unit}. Please share:\n- Per unit price\n- Bulk discount\n- Delivery timeline\n- Tax invoice mandatory"
+      "Hamare paas {product} ki urgent requirement hai. {qty} {unit} chahiye. Please share karo:\n- GST ke saath best unit price\n- Delivery timeline\n- Payment terms\n- Warranty details\n- Installation included?",
+      "Business requirement hai - {product} chahiye ongoing operations ke liye. Qty: {qty} {unit}. HOKO pe best price do with:\n- Product specifications\n- Delivery schedule\n- GST invoice availability\n- Bulk discounts",
+      "{product} ki procurement requirement hai. Quantity needed: {qty} {unit}. Please share karo:\n- Per unit price breakdown\n- Bulk discount agar zyada order karenge toh\n- Expected delivery date\n- Tax invoice mandatory\nHOKO pe submit karo.",
+      "Quality {product} supplier dhundh rahe hain. {qty} {unit} chahiye. Complete pricing share karo with:\n- Unit price\n- Delivery charges\n- GST extra or inclusive\n- Warranty period\nBest offer HOKO pe do."
     ],
     formal: [
-      "{product} ki requirement hai. Quantity: {qty} {unit}. HOKO pe quotation do with complete details.",
-      "Hamare organization ko {product} chahiye ({qty} {unit}). HOKO pe best offer do.",
-      "{product} ke liye quote do ({qty} {unit}). HOKO pe pricing, availability aur delivery share karo.",
-      "{product} chahiye upcoming project ke liye. Quantity: {qty} {unit}. HOKO pe competitive rates share karo."
+      "Hamare paas {product} ki procurement requirement hai. Quantity: {qty} {unit}. Please submit detailed quotation HOKO pe including product specifications, pricing, delivery timeline, and payment terms.",
+      "Hamare organization ko {product} chahiye ongoing business operations ke liye. Quantity: {qty} {unit}. Kindly submit competitive offer HOKO pe with complete technical specifications and warranty details.",
+      "Please provide your best quotation for {product}. Required quantity: {qty} {unit}. Include pricing breakdown, GST details, delivery schedule, and payment terms. Submit on HOKO.",
+      "Hamare upcoming project ke liye quality {product} chahiye. Quantity: {qty} {unit}. Please share competitive rates HOKO pe along with product specifications and delivery capability."
     ],
     urgent: [
-      "URGENT - {product} chahiye ({qty} {unit}) {timeline} tak. HOKO pe best price do.",
-      "Jaldi requirement! {product} ASAP chahiye. Qty: {qty} {unit}. HOKO pe best price do.",
-      "Time-sensitive order. {product} ({qty} {unit}) chahiye by {timeline}. HOKO pe lowest price do.",
-      "Urgent procurement - {product} ({qty} {unit}) {timeline} tak. HOKO pe best rate do."
+      "URGENT requirement for {product}. Need {qty} {unit} within {timeline}. Time-sensitive hai! HOKO pe best price immediately do.",
+      "Jaldi! {product} ASAP chahiye hamare project ke liye. Qty: {qty} {unit}. Please share lowest price HOKO pe right away. Delivery critical hai.",
+      "Time-sensitive procurement! {product} ({qty} {unit}) chahiye by {timeline}. HOKO pe best price immediately submit karo. Today order dene ke ready hain.",
+      "Emergency requirement - {product} ({qty} {unit}) chahiye by {timeline}. Immediate response dhundh rahe hain. HOKO pe competitive rate do."
     ],
     negotiation: [
-      "{product} pe best price dhundh rahe. Serious buyers hain. HOKO pe lowest quote do.",
-      "Agar price competitive hai toh order denge. {qty} {unit} chahiye. HOKO pe best price do?",
-      "{product} ke liye bahut suppliers contact kar rahe. Qty: {qty} {unit}. Lowest price wins. HOKO pe offer do.",
-      "{product} quotes compare kar rahe hain. {qty} {unit} chahiye. HOKO pe best price do."
+      "Serious buyers hain, {product} pe best price dhundh rahe hain. {qty} {unit} chahiye. Bahut suppliers consider kar rahe hain. Lowest quote do HOKO pe, hamara business paane ke liye.",
+      "Agar price sahi hai toh immediately order place karne ke ready hain. {product} ke {qty} {unit} chahiye. Most competitive rate share karo HOKO pe. Saare quotes compare kar rahe hain.",
+      "{product} ki prices compare kar rahe hain. {qty} {unit} chahiye. Lowest price wins hamara order. HOKO pe best offer do. Long-term supplier relationship dhundh rahe hain.",
+      "{product} ke liye budget-conscious purchase hai. Qty: {qty} {unit}. Best value dhundh rahe hain, sirf lowest price nahi. HOKO pe quality product pricing share karo."
     ]
   },
   hindi: {
     short: [
-      "कीमत बताओ?",
-      "जल्दी जरूरत है। HOKO पर सबसे अच्छी कीमत दो।",
-      "सबसे कम कीमत बताओ",
-      "सौदा चाहिए। HOKO पर ऑफर दो।",
-      "कितना लोगे?",
-      "रुचि है। सबसे अच्छी कीमत दो।",
-      "जल्दी कोट चाहिए",
-      "उपलब्ध है? कीमत बताओ",
-      "चाहिए ये। सबसे अच्छी कीमत?",
-      "तत्काल जरूरत। कीमत?",
-      "{product} खोज रहे हैं। सबसे अच्छी कीमत?"
+      "Need {product}. HOKO pe best price do.",
+      "{product} खोज रहे हैं। Deal चाहिए।",
+      "Jaldi! {product} चाहिए। Price बताओ।",
+      "{product} में interested। HOKO pe offer दो।"
     ],
     casual: [
-      "नमस्ते, {qty} {unit} चाहिए। HOKO पर सबसे अच्छी कीमत दो।",
-      "अरे, {product} खोज रहे हैं। {qty} {unit} का रेट क्या होगा?",
-      "{product} स्टॉक में है? {qty} {unit} चाहिए।",
-      "नमस्ते, {product} में रुचि है। HOKO पर कीमत दो।",
-      "जल्दी चाहिए। {qty} {unit} सप्लाई कर सकते हो?",
-      "सप्लायर खोज रहे। HOKO पर सबसे अच्छी कीमत दो।",
-      "नमस्ते, arrange कर सकते हो {qty} {unit}? कॉस्ट क्या होगा?",
-      "{product} फैक्ट्री के लिए चाहिए। {qty} {unit}। HOKO पर कीमत दो।",
-      "प्लांट के लिए जरूरत है। {product} सप्लाई कर सकते हो?",
-      "{product} में रुचि है। {qty} {unit} चाहिए। रेट क्या?"
+      "नमस्ते, कुछ setup कर रहे हैं और {product} चाहिए। {qty} {unit} का rate क्या होगा? HOKO पर best price दो।",
+      "अरे, घर/ऑफिस के लिए {product} खोज रहे हैं। {qty} {unit} चाहिए। Arrange कर सकते हो? HOKO पर price दो।",
+      "{product} स्टॉक में है? {qty} {unit} जल्दी चाहिए। GST के साथ price share करो HOKO पर।",
+      "नमस्ते, {product} में interested। {qty} {unit} चाहिए हमारे project के लिए। Delivery के साथ best price क्या होगा?",
+      "Reliable supplier खोज रहे हैं {product} के लिए। {qty} {unit} चाहिए। Competitive price share करो HOKO पर।",
+      "मेरा {product} खराब हो गया, urgently replacement चाहिए। {qty} {unit} supply कर सकते हो? HOKO पर price दो।",
+      "हमारी setup expand हो रही है, {product} चाहिए। {qty} {unit} required। HOKO पर best price दो।",
+      "नमस्ते, {product} के {qty} {unit} arrange कर सकते हो? Good quality with warranty चाहिए। HOKO पर price दो।",
+      "{product} factory/plant के लिए चाहिए। {qty} {unit}। Best quality competitive price में खोज रहे हैं। HOKO पर submit करो।",
+      "आपका contact मिला, {product} urgently चाहिए। {qty} {unit} required। HOKO पर lowest price share करो।"
     ],
     detailed: [
-      "{industry} के लिए चाहिए। {qty} {unit} जरूरत है। कृपया बताओ:\n- प्रति यूनिट कीमत\n- डिलीवरी समय\n- भुगतान शर्तें\n- जीएसटी अलग?",
-      "{product} की जरूरत है ({qty} {unit})। HOKO पर सबसे अच्छी कीमत दो:\n- उत्पाद विशिष्टताएं\n- डिलीवरी अनुसूची\n- वारंटी विवरण\n- जीएसटी बिल मिलेगा?",
-      "व्यापारिक जरूरत - {qty} {unit} चाहिए। HOKO पर submit करो:\n- पूर्ण मूल्य विवरण\n- स्टॉक स्थिति\n- डिलीवरी तिथि\n- भुगतान विकल्प",
-      "{product} खरीद जरूरत। मात्रा: {qty} {unit}। कृपया बताओ:\n- प्रति यूनिट कीमत\n- थोक छूट\n- डिलीवरी समय\n- टैक्स इनवॉइस अनिवार्य"
+      "हमारे पास {product} की urgent requirement है। {qty} {unit} चाहिए। Please share करो:\n- GST के साथ best unit price\n- Delivery timeline\n- Payment terms\n- Warranty details\n- Installation included?",
+      "Business requirement है - {product} चाहिए ongoing operations के लिए। Qty: {qty} {unit}। HOKO पर best price दो with:\n- Product specifications\n- Delivery schedule\n- GST invoice availability\n- Bulk discounts",
+      "{product} की procurement requirement है। Quantity needed: {qty} {unit}। Please share करो:\n- Per unit price breakdown\n- Bulk discount अगर ज्यादा order करेंगे तो\n- Expected delivery date\n- Tax invoice mandatory\nHOKO पर submit करो।",
+      "Quality {product} supplier खोज रहे हैं। {qty} {unit} चाहिए। Complete pricing share करो with:\n- Unit price\n- Delivery charges\n- GST extra or inclusive\n- Warranty period\nBest offer HOKO पर दो।"
     ],
     formal: [
-      "{product} की जरूरत है। मात्रा: {qty} {unit}। HOKO पर quotation दो।",
-      "हमारे संगठन को {product} चाहिए ({qty} {unit})। HOKO पर सबसे अच्छा offer दो।",
-      "{product} के लिए quote दो ({qty} {unit})। HOKO पर pricing, availability और delivery share करो।",
-      "{product} चाहिए आगामी project के लिए। मात्रा: {qty} {unit}। HOKO पर competitive rates share करो।"
+      "हमारे पास {product} की procurement requirement है। Quantity: {qty} {unit}। Please submit detailed quotation HOKO पर including product specifications, pricing, delivery timeline, and payment terms.",
+      "हमारे organization को {product} चाहिए ongoing business operations के लिए। Quantity: {qty} {unit}। Kindly submit competitive offer HOKO पर with complete technical specifications and warranty details.",
+      "Please provide your best quotation for {product}। Required quantity: {qty} {unit}। Include pricing breakdown, GST details, delivery schedule, and payment terms। Submit on HOKO।",
+      "हमारे upcoming project के लिए quality {product} चाहिए। Quantity: {qty} {unit}। Please share competitive rates HOKO पर along with product specifications and delivery capability।"
     ],
     urgent: [
-      "तत्काल - {product} चाहिए ({qty} {unit}) {timeline} तक। HOKO पर सबसे अच्छी कीमत दो।",
-      "जल्दी जरूरत! {product} ASAP चाहिए। मात्रा: {qty} {unit}। HOKO पर सबसे अच्छी कीमत दो।",
-      "समय-संवेदनशील ऑर्डर। {product} ({qty} {unit}) चाहिए by {timeline}। HOKO पर सबसे कम कीमत दो।",
-      "तत्काल खरीद - {product} ({qty} {unit}) {timeline} तक। HOKO पर सबसे अच्छा rate दो।"
+      "URGENT requirement for {product}। Need {qty} {unit} within {timeline}। Time-sensitive है! HOKO पर best price immediately दो।",
+      "जल्दी! {product} ASAP चाहिए हमारे project के लिए। Qty: {qty} {unit}। Please share lowest price HOKO पर right away। Delivery critical है।",
+      "Time-sensitive procurement! {product} ({qty} {unit}) चाहिए by {timeline}। HOKO पर best price immediately submit करो। Today order देने के ready हैं।",
+      "Emergency requirement - {product} ({qty} {unit}) चाहिए by {timeline}। Immediate response खोज रहे हैं। HOKO पर competitive rate दो।"
     ],
     negotiation: [
-      "{product} पर सबसे अच्छी कीमत खोज रहे। गंभीर खरीदार हैं। HOKO पर सबसे कम quote दो।",
-      "अगर कीमत competitive है तो order देंगे। {qty} {unit} चाहिए। HOKO पर सबसे अच्छी कीमत दो?",
-      "{product} के लिए कई suppliers contact कर रहे। मात्रा: {qty} {unit}। सबसे कम कीमत जीतेगी। HOKO पर offer दो।",
-      "{product} quotes compare कर रहे हैं। {qty} {unit} चाहिए। HOKO पर सबसे अच्छी कीमत दो।"
+      "Serious buyers हैं, {product} पर best price खोज रहे हैं। {qty} {unit} चाहिए। बहुत suppliers consider कर रहे हैं। Lowest quote दो HOKO पर, हमारा business पाने के लिए।",
+      "अगर price सही है तो immediately order place करने के ready हैं। {product} के {qty} {unit} चाहिए। Most competitive rate share करो HOKO पर। सारे quotes compare कर रहे हैं।",
+      "{product} की prices compare कर रहे हैं। {qty} {unit} चाहिए। Lowest price wins हमारा order। HOKO पर best offer दो। Long-term supplier relationship खोज रहे हैं।",
+      "{product} के लिए budget-conscious purchase है। Qty: {qty} {unit}। Best value खोज रहे हैं, सिर्फ lowest price नहीं। HOKO पर quality product pricing share करो।"
     ]
   },
   regional: {
@@ -1040,7 +1019,7 @@ function generateDetail(productName, quantity, unit, specs, category) {
   let detail;
   
   const categoryTemplates = CATEGORY_DETAIL_TEMPLATES[lang]?.[category] || CATEGORY_DETAIL_TEMPLATES.english?.[category];
-  const useCategoryTemplate = categoryTemplates && Math.random() < 0.40;
+  const useCategoryTemplate = categoryTemplates && Math.random() < 0.70;
   
   if (useCategoryTemplate) {
     detail = randomItem(categoryTemplates);
@@ -1049,15 +1028,13 @@ function generateDetail(productName, quantity, unit, specs, category) {
     detail = detail.replace("{unit}", String(unit || "pcs"));
     detail = detail.replace("{timeline}", randomItem(TIMELINES) || "ASAP");
     detail = detail.replace("{budget}", randomItem(BUDGETS) || "Competitive pricing");
-  } else if (styleRoll < 0.15) {
-    detail = randomItem(templates.short) || "Looking for {product}. Best price?";
-  } else if (styleRoll < 0.35) {
+  } else if (styleRoll < 0.20) {
     detail = randomItem(templates.casual) || "Hi, looking for {product}. What's your rate?";
-  } else if (styleRoll < 0.55) {
+  } else if (styleRoll < 0.45) {
     detail = randomItem(templates.detailed) || "We have a requirement for {product}. Please share your best price.";
-  } else if (styleRoll < 0.70) {
+  } else if (styleRoll < 0.65) {
     detail = randomItem(templates.formal) || "We have a requirement for {product}. Please submit your quotation.";
-  } else if (styleRoll < 0.85) {
+  } else if (styleRoll < 0.80) {
     detail = randomItem(templates.urgent) || "URGENT - Need {product}. Please confirm availability.";
   } else {
     detail = randomItem(templates.negotiation) || "Looking for best price on {product}.";
