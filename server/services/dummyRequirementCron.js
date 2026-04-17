@@ -209,11 +209,11 @@ function getBrandModel(platformCategory) {
 const DETAIL_STYLES = {
   short: [
     "Price please?",
-    "Needed urgently. WhatsApp me the best price.",
+    "Needed urgently. Share your best price on HOKO.",
     "Share your lowest price",
-    "Looking for best deal. Contact me.",
+    "Looking for best deal. Submit your offer on HOKO.",
     "Your price?",
-    "Interested. Quote me your best price.",
+    "Interested. Submit your best offer.",
     "Quick quote needed",
     "Available? Share price",
     "Need this. Best price?",
@@ -221,40 +221,40 @@ const DETAIL_STYLES = {
     "Looking for {product}. Best price?"
   ],
   casual: [
-    "Hi, we need {qty} {unit}. Can you send your best price?",
+    "Hi, we need {qty} {unit}. Submit your best price on HOKO.",
     "Hey, looking for {product}. What's your rate for {qty} {unit}?",
     "Do you have {product} in stock? Need about {qty} {unit}.",
-    "Hi, interested in {product}. Pls share price for {qty} {unit}.",
+    "Hi, interested in {product}. Submit your price for {qty} {unit} on HOKO.",
     "We need this urgently. Can you supply {qty} {unit}?",
-    "Looking for supplier. Your best price for {qty} {unit}?",
+    "Looking for supplier. Submit your best price on HOKO.",
     "Hi, can you arrange {qty} {unit}? What's the cost?",
-    "Need {product} for our factory. {qty} {unit}. WhatsApp price?",
+    "Need {product} for our factory. {qty} {unit}. Submit your price on HOKO.",
     "Requirement for our plant. Can you supply {product}? Share price.",
     "We are interested in {product}. {qty} {unit} needed. Your rate?"
   ],
   detailed: [
     "Required for our {industry}. Need {qty} {unit}. Please share:\n- Best unit price\n- Delivery timeline\n- Payment terms\n- GST extra?",
-    "We have a requirement for {product} ({qty} {unit}). Please quote your best price including:\n- Product specifications\n- Delivery schedule\n- Warranty details\n- GST invoice available?",
-    "Business requirement - need {qty} {unit}. Please provide:\n- Complete pricing breakdown\n- Availability status\n- Expected delivery date\n- Payment options",
+    "We have a requirement for {product} ({qty} {unit}). Submit your best price on HOKO including:\n- Product specifications\n- Delivery schedule\n- Warranty details\n- GST invoice available?",
+    "Business requirement - need {qty} {unit}. Submit on HOKO:\n- Complete pricing breakdown\n- Availability status\n- Expected delivery date\n- Payment options",
     "Procurement requirement for {product}. Qty: {qty} {unit}. Kindly share:\n- Per unit price\n- Bulk discount if applicable\n- Delivery timeline\n- Tax invoice mandatory"
   ],
   formal: [
-    "We have a requirement for {product}. Quantity: {qty} {unit}. Please submit your quotation with complete product details, pricing, and delivery timeline.",
-    "Our organization requires {qty} {unit} of {product} for ongoing operations. Kindly provide your best offer with technical specifications.",
-    "Please quote for {product} ({qty} {unit}) with details on pricing, availability, and delivery schedule.",
-    "We require {product} for our upcoming project. Quantity: {qty} {unit}. Please share your competitive rates along with product specifications."
+    "We have a requirement for {product}. Quantity: {qty} {unit}. Please submit your quotation on HOKO with complete product details, pricing, and delivery timeline.",
+    "Our organization requires {qty} {unit} of {product} for ongoing operations. Kindly submit your best offer on HOKO with technical specifications.",
+    "Please quote for {product} ({qty} {unit}) on HOKO with details on pricing, availability, and delivery schedule.",
+    "We require {product} for our upcoming project. Quantity: {qty} {unit}. Please share your competitive rates on HOKO along with product specifications."
   ],
   urgent: [
-    "URGENT - Need {product} ({qty} {unit}) within {timeline}. Please confirm availability and best price immediately.",
-    "Urgent requirement! Need {product} ASAP. Qty: {qty} {unit}. Please whatsapp your best price right away.",
-    "Time-sensitive order. {product} ({qty} {unit}) needed by {timeline}. Share your lowest price immediately.",
-    "Urgent procurement - {product} ({qty} {unit}) required by {timeline}. Please confirm if you can supply and your best rate."
+    "URGENT - Need {product} ({qty} {unit}) within {timeline}. Submit your best price on HOKO immediately.",
+    "Urgent requirement! Need {product} ASAP. Qty: {qty} {unit}. Submit your best price on HOKO right away.",
+    "Time-sensitive order. {product} ({qty} {unit}) needed by {timeline}. Submit your lowest price on HOKO immediately.",
+    "Urgent procurement - {product} ({qty} {unit}) required by {timeline}. Submit your best rate on HOKO."
   ],
   negotiation: [
-    "Looking for best price on {product}. We are serious buyers. Share your lowest quote for {qty} {unit}.",
-    "Ready to place order if price is competitive. Need {qty} {unit} of {product}. Your best price?",
-    "Multiple suppliers being contacted for {product}. Qty: {qty} {unit}. Lowest price wins. What can you offer?",
-    "Comparing quotes for {product}. Need {qty} {unit}. Share your best price to get our business."
+    "Looking for best price on {product}. We are serious buyers. Submit your lowest quote on HOKO.",
+    "Ready to place order if price is competitive. Need {qty} {unit} of {product}. Submit your best price on HOKO?",
+    "Multiple suppliers being contacted for {product}. Qty: {qty} {unit}. Lowest price wins. Submit your offer on HOKO.",
+    "Comparing quotes for {product}. Need {qty} {unit}. Submit your best price on HOKO to get our business."
   ]
 };
 
@@ -688,10 +688,6 @@ function generateDetail(platformCategory, quantity, unit, brandData = {}) {
   
   if (hasBrand && randomBool(0.3) && !detail.includes("brand") && !detail.includes("Brand")) {
     detail = `Looking for ${brandData.brand} ${brandData.model}. ` + detail;
-  }
-  
-  if (randomBool(0.1) && !detail.includes("WhatsApp") && !detail.includes("whatsapp")) {
-    detail += " WhatsApp preferred.";
   }
   
   return detail;
