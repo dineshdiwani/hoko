@@ -1,23 +1,19 @@
-import { useEffect, useRef, useState, useCallback } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import api from "../../services/api";
-import socket, { connectSocket } from "../../services/socket";
-import {
-  fetchNotifications,
-  markNotificationsReadByContext
-} from "../../services/notifications";
-import { fetchOptions } from "../../services/options";
-import { getSession, logout } from "../../services/auth";
-import { getSellerDashboardCategories, setSession } from "../../services/storage";
-import { generateSamplePostsForCity } from "../../services/samplePosts";
-import NotificationCenter from "../../components/NotificationCenter";
-import OfferModal from "../../components/OfferModal";
-import ReviewModal from "../../components/ReviewModal";
-import ReportModal from "../../components/ReportModal";
-import ChatModal from "../../components/ChatModal";
-import { confirmDialog } from "../../utils/dialogs";
+import { useState } from "react";
+import { getSession } from "../../services/auth";
 
-const SELLER_DASHBOARD_STATE_KEY = "seller_dashboard_state";
+export default function SellerDashboard() {
+  console.log("[SellerDashboard] Component rendering");
+  const session = getSession();
+  
+  return (
+    <div style={{background: 'blue', color: 'white', minHeight: '100vh', padding: '20px'}}>
+      <h1>Seller Dashboard Working!</h1>
+      <p>Session exists: {session ? 'YES' : 'NO'}</p>
+      <p>Token: {session?.token ? 'YES' : 'NO'}</p>
+      <p>Role: {session?.role || 'none'}</p>
+    </div>
+  );
+}
 
 function readSellerDashboardState() {
   if (typeof window === "undefined") {
@@ -53,11 +49,21 @@ import {
 } from "../../utils/notifications";
 
 export default function SellerDashboard() {
-  console.log("[SellerDashboard] Component rendering, session:", session ? "exists" : "null", "token:", session?.token ? "yes" : "no");
+  console.log("[SellerDashboard] Component rendering");
   const navigate = useNavigate();
   const location = useLocation();
   const session = getSession();
-  const menuRef = useRef(null);
+  
+  // Simple fallback test - if nothing works, show this
+  return (
+    <div style={{background: 'blue', color: 'white', minHeight: '100vh', padding: '20px'}}>
+      <h1>Seller Dashboard Working!</h1>
+      <p>Session exists: {session ? 'YES' : 'NO'}</p>
+      <p>Token: {session?.token ? 'YES' : 'NO'}</p>
+      <p>Role: {session?.role || 'none'}</p>
+    </div>
+  );
+}
 
   const [requirements, setRequirements] = useState([]);
   const [activeRequirement, setActiveRequirement] = useState(null);
