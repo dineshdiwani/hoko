@@ -189,12 +189,21 @@ router.get("/requirements", adminAuth, async (req, res) => {
 
 router.post("/reset", adminAuth, async (req, res) => {
   try {
+    const Requirement = require("../models/Requirement");
     const { keepRealRequirement } = req.body;
+    
     if (keepRealRequirement) {
+      const dummies = await DummyRequirement.find({ realRequirementId: { $exists: true } }).select("realRequirementId");
+      const realIds = dummies.map(d => d.realRequirementId).filter(id => id);
+      await Requirement.deleteMany({ _id: { $in: realIds } });
       await DummyRequirement.deleteMany({ realRequirementId: { $exists: true } });
     } else {
+      const dummies = await DummyRequirement.find({}).select("realRequirementId");
+      const realIds = dummies.map(d => d.realRequirementId).filter(id => id);
+      await Requirement.deleteMany({ _id: { $in: realIds } });
       await DummyRequirement.deleteMany({});
     }
+    
     logActivity("reset", keepRealRequirement ? "Deleted with real requirements" : "All deleted");
     res.json({ ok: true });
   } catch (err) {
