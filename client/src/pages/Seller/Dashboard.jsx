@@ -66,19 +66,6 @@ export default function SellerDashboard() {
   // Handle city from URL params (from WhatsApp deep link)
   const cityFromUrl = searchParams.get("city") || "";
   console.log("[SellerDashboard] cityFromUrl:", cityFromUrl);
-  
-  // Update session city if coming from WhatsApp
-  useEffect(() => {
-    console.log("[SellerDashboard] useEffect cityFromUrl:", cityFromUrl, "session?.token:", session?.token);
-    if (cityFromUrl && session?.token) {
-      setSelectedCity(cityFromUrl); // Update local state immediately
-      api.post("/seller/profile", { city: cityFromUrl }).then(() => {
-        console.log("[SellerDashboard] City updated to:", cityFromUrl);
-      }).catch((e) => {
-        console.log("[SellerDashboard] City update failed:", e);
-      });
-    }
-  }, [cityFromUrl, session?.token]);
 
   const [requirements, setRequirements] = useState([]);
   const [activeRequirement, setActiveRequirement] = useState(null);
