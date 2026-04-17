@@ -11,6 +11,8 @@ export default function AdminDummyRequirements() {
   const [intervalHours, setIntervalHours] = useState(12);
   const [quantity, setQuantity] = useState(3);
   const [maxQuantity, setMaxQuantity] = useState(10);
+  const [editingId, setEditingId] = useState(null);
+  const [editForm, setEditForm] = useState({});
 
   const loadStatus = useCallback(async () => {
     try {
@@ -111,6 +113,47 @@ export default function AdminDummyRequirements() {
       alert("Deleted!");
     } catch (err) {
       alert(err?.response?.data?.message || "Failed");
+    }
+  };
+
+  const deleteRequirement = async (id) => {
+    if (!confirm("Delete this dummy requirement?")) return;
+    try {
+      await api.delete(`/dummy-requirements/${id}`);
+      await loadRequirements();
+      alert("Deleted!");
+    } catch (err) {
+      alert(err?.response?.data?.message || "Failed to delete");
+    }
+  };
+
+  const startEdit = (req) => {
+    setEditingId(req._id);
+    setEditForm({
+      product: req.product || "",
+      quantity: req.quantity || "",
+      unit: req.unit || "",
+      city: req.city || "",
+      category: req.category || "",
+      details: req.details || "",
+      status: req.status || "new"
+    });
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditForm({});
+  };
+
+  const saveEdit = async (id) => {
+    try {
+      await api.put(`/dummy-requirements/${id}`, editForm);
+      setEditingId(null);
+      setEditForm({});
+      await loadRequirements();
+      alert("Updated!");
+    } catch (err) {
+      alert(err?.response?.data?.message || "Failed to update");
     }
   };
 
@@ -225,34 +268,125 @@ export default function AdminDummyRequirements() {
           </div>
 
           <div className="bg-white border rounded-2xl p-4">
-            <p className="font-semibold mb-3">Generated Requirements</p>
-            <div className="space-y-2 max-h-60 overflow-auto">
+            <div className="flex items-center justify-between mb-3">
+              <p className="font-semibold">Generated Requirements</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => resetRequirements(false)}
+                  className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-sm"
+                >
+                  Reset All
+                </button>
+                <button
+                  onClick={() => resetRequirements(true)}
+                  className="px-3 py-1.5 bg-orange-100 text-orange-700 rounded-lg text-sm"
+                >
+                  Keep & Reset
+                </button>
+              </div>
+            </div>
+            <div className="space-y-3 max-h-96 overflow-auto">
               {requirements.length === 0 ? (
                 <p className="text-sm text-gray-500">No requirements</p>
               ) : (
                 requirements.map((req) => (
-                  <div key={req._id} className="text-sm border-b pb-2">
-                    <span className="font-medium">{req.product}</span>
-                    <span className="ml-2 text-gray-500">
-                      | Qty: {req.quantity} | {req.city} | {req.status}
-                    </span>
+                  <div key={req._id} className="border rounded-lg p-3">
+                    {editingId === req._id ? (
+                      <div className="space-y-2">
+                        <input
+                          type="text"
+                          value={editForm.product}
+                          onChange={(e) => setEditForm({ ...editForm, product: e.target.value })}
+                          className="w-full border rounded px-2 py-1 text-sm"
+                          placeholder="Product"
+                        />
+                        <div className="grid grid-cols-3 gap-2">
+                          <input
+                            type="number"
+                            value={editForm.quantity}
+                            onChange={(e) => setEditForm({ ...editForm, quantity: e.target.value })}
+                            className="border rounded px-2 py-1 text-sm"
+                            placeholder="Qty"
+                          />
+                          <input
+                            type="text"
+                            value={editForm.unit}
+                            onChange={(e) => setEditForm({ ...editForm, unit: e.target.value })}
+                            className="border rounded px-2 py-1 text-sm"
+                            placeholder="Unit"
+                          />
+                          <select
+                            value={editForm.status}
+                            onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+                            className="border rounded px-2 py-1 text-sm"
+                          >
+                            <option value="new">New</option>
+                            <option value="sent">Sent</option>
+                            <option value="expired">Expired</option>
+                          </select>
+                        </div>
+                        <input
+                          type="text"
+                          value={editForm.city}
+                          onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
+                          className="w-full border rounded px-2 py-1 text-sm"
+                          placeholder="City"
+                        />
+                        <textarea
+                          value={editForm.details}
+                          onChange={(e) => setEditForm({ ...editForm, details: e.target.value })}
+                          className="w-full border rounded px-2 py-1 text-sm"
+                          rows={2}
+                          placeholder="Details"
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => saveEdit(req._id)}
+                            className="px-3 py-1 bg-green-100 text-green-700 rounded text-sm"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={cancelEdit}
+                            className="px-3 py-1 bg-gray-100 text-gray-700 rounded text-sm"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="font-medium">{req.product}</p>
+                            <p className="text-sm text-gray-500">
+                              Qty: {req.quantity} {req.unit} | {req.city} | {req.category}
+                            </p>
+                            <p className="text-xs text-gray-400 mt-1">{req.details}</p>
+                            <p className="text-xs text-gray-400">
+                              Status: <span className={`font-medium ${req.status === 'sent' ? 'text-green-600' : req.status === 'new' ? 'text-blue-600' : 'text-gray-600'}`}>{req.status}</span> | {formatDate(req.createdAt)}
+                            </p>
+                          </div>
+                          <div className="flex gap-2 ml-4">
+                            <button
+                              onClick={() => startEdit(req)}
+                              className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => deleteRequirement(req._id)}
+                              className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))
               )}
-            </div>
-            <div className="mt-3 flex gap-2">
-              <button
-                onClick={() => resetRequirements(false)}
-                className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-sm"
-              >
-                Reset All
-              </button>
-              <button
-                onClick={() => resetRequirements(true)}
-                className="px-3 py-1.5 bg-orange-100 text-orange-700 rounded-lg text-sm"
-              >
-                Keep & Reset
-              </button>
             </div>
           </div>
         </div>

@@ -202,4 +202,62 @@ router.post("/reset", adminAuth, async (req, res) => {
   }
 });
 
+router.delete("/:id", adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const dummy = await DummyRequirement.findByIdAndDelete(id);
+    if (!dummy) {
+      return res.status(404).json({ message: "Requirement not found" });
+    }
+    if (dummy.realRequirementId) {
+      const Requirement = require("../models/Requirement");
+      await Requirement.findByIdAndDelete(dummy.realRequirementId);
+    }
+    logActivity("delete", `Deleted: ${dummy.product}`);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+router.put("/:id", adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { product, quantity, unit, city, category, details, status } = req.body;
+    
+    const dummy = await DummyRequirement.findById(id);
+    if (!dummy) {
+      return res.status(404).json({ message: "Requirement not found" });
+    }
+    
+    if (product !== undefined) dummy.product = product;
+    if (quantity !== undefined) dummy.quantity = Number(quantity);
+    if (unit !== undefined) dummy.unit = unit;
+    if (city !== undefined) dummy.city = city;
+    if (category !== undefined) dummy.category = category;
+    if (details !== undefined) dummy.details = details;
+    if (status !== undefined) dummy.status = status;
+    
+    await dummy.save();
+    
+    if (dummy.realRequirementId) {
+      const Requirement = require("../models/Requirement");
+      await Requirement.findByIdAndUpdate(dummy.realRequirementId, {
+        productName: dummy.product,
+        product: dummy.product,
+        quantity: String(dummy.quantity),
+        unit: dummy.unit,
+        city: dummy.city,
+        category: dummy.category,
+        details: dummy.details
+      });
+    }
+    
+    logActivity("edit", `Updated: ${dummy.product}`);
+    res.json({ ok: true, dummy });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 module.exports = router;
