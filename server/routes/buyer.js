@@ -4,6 +4,7 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 const mongoose = require("mongoose");
+const jwt = require("jsonwebtoken");
 
 const Requirement = require("../models/Requirement");
 const Offer = require("../models/Offer");
@@ -804,7 +805,7 @@ router.post("/requirement/verify-otp", async (req, res) => {
 
   await otpRecord.incrementAttempts();
 
-  let requirement, softUser, tempRequirement;
+  let requirement, softUser, tempRequirement, user;
   
   try {
     otpRecord.requirementData = requirementData;
@@ -814,6 +815,24 @@ router.post("/requirement/verify-otp", async (req, res) => {
     requirement = result.requirement;
     softUser = result.softUser;
     tempRequirement = result.tempRequirement;
+
+    user = await User.findOne({ mobile: mobileE164 });
+    if (!user) {
+      user = await User.create({
+        mobile: mobileE164,
+        role: "buyer",
+        roles: { buyer: true },
+        city: requirementData?.city || "",
+        name: "Buyer",
+        email: "",
+        tokenVersion: 0
+      });
+    }
+
+    if (!user.roles?.buyer) {
+      user.roles = { ...user.roles, buyer: true };
+      await user.save();
+    }
   } catch (err) {
     console.error("[OTP Verify] Requirement creation error:", err);
     return res.status(500).json({ 
@@ -830,6 +849,12 @@ router.post("/requirement/verify-otp", async (req, res) => {
   });
 
   await sendRequirementConfirmationviaWhatsApp(mobileE164, requirement, requirementData?.product);
+
+  const token = jwt.sign(
+    { id: user._id, role: "buyer", tokenVersion: user.tokenVersion || 0 },
+    process.env.JWT_SECRET,
+    { expiresIn: "7d" }
+  );
 
   setImmediate(async () => {
     try {
@@ -850,7 +875,17 @@ router.post("/requirement/verify-otp", async (req, res) => {
   res.json({ 
     success: true, 
     message: "Requirement submitted and verified!",
-    requirementId: requirement._id
+    requirementId: requirement._id,
+    token,
+    user: {
+      _id: user._id,
+      email: user.email,
+      role: user.role,
+      roles: user.roles,
+      city: user.city,
+      preferredCurrency: user.preferredCurrency || "INR",
+      mobile: user.mobile
+    }
   });
 });
 

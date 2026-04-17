@@ -3,6 +3,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { fetchOptions } from "../../services/options";
 import api from "../../services/api";
 import { getSession } from "../../services/auth";
+import { setSession } from "../../services/storage";
 import {
   getAttachmentDisplayName,
   getAttachmentTypeMeta
@@ -644,7 +645,21 @@ export default function RequirementForm({ isPublic = false }) {
         setSubmitted(true);
         setOtpValue("");
         
-        const requirementId = verifyRes.data?.requirementId;
+        const { token, user, requirementId } = verifyRes.data;
+        
+        if (token && user) {
+          setSession({
+            _id: user._id,
+            role: user.role,
+            roles: user.roles,
+            email: user.email,
+            city: user.city,
+            name: user.name || "Buyer",
+            preferredCurrency: user.preferredCurrency || "INR",
+            mobile: user.mobile,
+            token
+          });
+        }
         
         if (requirementId) {
           navigate(`/buyer/dashboard?highlight=${requirementId}`, { replace: true });
