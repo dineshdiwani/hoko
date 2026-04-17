@@ -153,8 +153,8 @@ export default function OfferList() {
         socket.emit("buyer_viewed_offer", {
           sellerId,
           product:
-            requirement.product ||
             requirement.productName ||
+            requirement.product ||
             "Product"
         });
       }
@@ -170,8 +170,8 @@ export default function OfferList() {
         socket.emit("buyer_viewed_offer", {
           sellerId,
           product:
-            requirement.product ||
             requirement.productName ||
+            requirement.product ||
             "Product"
         });
       }
@@ -201,7 +201,7 @@ export default function OfferList() {
   }
 
   const productName =
-    requirement.product || requirement.productName || "Product";
+    requirement.productName || requirement.product || "Product";
   const requirementDetails = String(
     requirement.details || requirement.description || ""
   ).trim();

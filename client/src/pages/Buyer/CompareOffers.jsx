@@ -56,7 +56,7 @@ export default function CompareOffers() {
     const requirementBase = {
       city: formatValue(requirement.city),
       category: formatValue(requirement.category),
-      product: formatValue(requirement.product || requirement.productName),
+      product: formatValue(requirement.productName || requirement.product),
       makeBrand: formatValue(requirement.makeBrand || requirement.brand),
       typeModel: formatValue(requirement.typeModel),
       quantityUnit: formatValue(

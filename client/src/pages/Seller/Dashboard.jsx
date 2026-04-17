@@ -1085,7 +1085,7 @@ export default function SellerDashboard() {
 
                   <div className="flex justify-between items-start mb-2">
                     <div>
-                      <h3 className="ui-heading">{req.product || req.productName || "-"}</h3>
+                      <h3 className="ui-heading">{req.productName || req.product || "-"}</h3>
                       <p className="ui-body text-[var(--ui-muted)]">
                         City: {req.city || "-"} | Category: {req.category || "-"}
                       </p>

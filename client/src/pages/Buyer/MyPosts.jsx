@@ -360,7 +360,7 @@ export default function MyPosts({
             {/* Top row */}
             <div className="flex justify-between items-start mb-2">
               <h3 className="font-semibold text-base text-[var(--ui-text)]">
-                {req.product || req.productName || "-"}
+                {req.productName || req.product || "-"}
               </h3>
 
               <span
