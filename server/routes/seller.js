@@ -1307,12 +1307,15 @@ router.post("/otp/verify", async (req, res) => {
     return res.status(400).json({ success: false, message: "OTP has expired. Please request a new one." });
   }
   
+  // Increment attempts
+  otpRecord.attempts += 1;
+  otpRecord.lastAttemptAt = new Date();
   if (otpRecord.attempts >= 5) {
-    await WhatsAppOTP.findByIdAndUpdate(otpRecord._id, { $set: { status: "expired" } });
+    otpRecord.status = "expired";
+    await otpRecord.save();
     return res.status(400).json({ success: false, message: "Too many attempts. Please request a new OTP." });
   }
-  
-  await otpRecord.incrementAttempts();
+  await otpRecord.save();
   
   let user = await User.findOne({ mobile: mobileE164 });
   if (!user) {

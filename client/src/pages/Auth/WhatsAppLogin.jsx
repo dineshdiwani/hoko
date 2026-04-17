@@ -62,8 +62,10 @@ export default function WhatsAppLogin() {
         mobile: "+" + mobile.replace(/\D/g, ""),
         otp: otp
       });
-      if (res.data?.success && res.data?.token && res.data?.user) {
-        const user = res.data.user;
+      console.log("[WhatsAppLogin] Verify response:", res.data);
+      
+      if (res.data?.success) {
+        const user = res.data.user || {};
         
         // Store WhatsApp params
         if (catsFromUrl) {
@@ -73,17 +75,19 @@ export default function WhatsAppLogin() {
           localStorage.setItem("whatsapp_seller_city", cityFromUrl);
         }
         
-        setSession({
-          _id: user._id,
-          role: user.role || "seller",
-          roles: user.roles || { seller: true, buyer: true },
-          email: user.email || "",
-          city: cityFromUrl || user.city || "",
-          name: user.name || "Seller",
-          preferredCurrency: user.preferredCurrency || "INR",
-          mobile: user.mobile || mobile,
-          token: res.data.token
-        });
+        if (res.data.token && res.data.user) {
+          setSession({
+            _id: user._id,
+            role: user.role || "seller",
+            roles: user.roles || { seller: true, buyer: true },
+            email: user.email || "",
+            city: cityFromUrl || user.city || "",
+            name: user.name || "Seller",
+            preferredCurrency: user.preferredCurrency || "INR",
+            mobile: user.mobile || mobile,
+            token: res.data.token
+          });
+        }
         
         // Clear WhatsApp temp storage
         localStorage.removeItem("whatsapp_seller_mobile");
