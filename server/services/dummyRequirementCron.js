@@ -13,6 +13,9 @@ function randomInt(min, max) {
 }
 
 function randomItem(arr) {
+  if (!Array.isArray(arr) || arr.length === 0) {
+    return null;
+  }
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
@@ -196,7 +199,8 @@ function getBrandModel(platformCategory) {
   if (matchKey) {
     const templates = BRAND_MODEL_TEMPLATES[matchKey];
     if (templates && templates.length > 0) {
-      return randomItem(templates);
+      const selected = randomItem(templates);
+      if (selected) return selected;
     }
   }
   return { brand: null, model: null, type: null, condition: null };
@@ -364,7 +368,8 @@ async function getCategories() {
   } catch (err) {
     console.log("[DummyReq] getCategories error:", err.message);
   }
-  return Object.keys(PLATFORM_CATEGORY_WEIGHTS);
+  const fallback = Object.keys(PLATFORM_CATEGORY_WEIGHTS);
+  return Array.isArray(fallback) ? fallback : [];
 }
 
 async function getUnits() {
@@ -405,9 +410,11 @@ function getRandomCity(cities) {
 async function selectPlatformCategory() {
   const categories = await getCategories();
   if (!Array.isArray(categories) || categories.length === 0) {
-    return Object.keys(PLATFORM_CATEGORY_WEIGHTS)[0];
+    const keys = Object.keys(PLATFORM_CATEGORY_WEIGHTS);
+    return keys.length > 0 ? keys[0] : "Electronics & Appliances";
   }
-  return randomItem(categories);
+  const selected = randomItem(categories);
+  return selected || "Electronics & Appliances";
 }
 
 function getSmartQuantity(platformCategory) {
@@ -498,7 +505,8 @@ async function getSmartUnit(platformCategory, product) {
     }
   }
   
-  return randomItem(categoryUnits);
+  const selectedUnit = randomItem(categoryUnits);
+  return selectedUnit || "pcs";
 }
 
 function getProduct(platformCategory) {
@@ -506,7 +514,8 @@ function getProduct(platformCategory) {
   if (matchKey) {
     const products = PLATFORM_CATEGORY_TEMPLATES[matchKey];
     if (products && products.length > 0) {
-      return randomItem(products);
+      const selected = randomItem(products);
+      if (selected) return selected;
     }
   }
   return `${platformCategory} Product`;
@@ -518,17 +527,17 @@ function generateDetail(platformCategory, quantity, unit, brandData = {}) {
   const hasBrand = brandData && brandData.brand;
   
   if (styleRoll < 0.15) {
-    detail = randomItem(DETAIL_STYLES.short);
+    detail = randomItem(DETAIL_STYLES.short) || "Looking for {product}. Best price?";
   } else if (styleRoll < 0.35) {
-    detail = randomItem(DETAIL_STYLES.casual);
+    detail = randomItem(DETAIL_STYLES.casual) || "Hi, looking for {product}. What's your rate?";
   } else if (styleRoll < 0.55) {
-    detail = randomItem(DETAIL_STYLES.detailed);
+    detail = randomItem(DETAIL_STYLES.detailed) || "We have a requirement for {product}. Please share your best price.";
   } else if (styleRoll < 0.70) {
-    detail = randomItem(DETAIL_STYLES.formal);
+    detail = randomItem(DETAIL_STYLES.formal) || "We have a requirement for {product}. Please submit your quotation.";
   } else if (styleRoll < 0.85) {
-    detail = randomItem(DETAIL_STYLES.urgent);
+    detail = randomItem(DETAIL_STYLES.urgent) || "URGENT - Need {product}. Please confirm availability.";
   } else {
-    detail = randomItem(DETAIL_STYLES.negotiation);
+    detail = randomItem(DETAIL_STYLES.negotiation) || "Looking for best price on {product}.";
   }
   
   if (hasBrand) {
@@ -537,11 +546,11 @@ function generateDetail(platformCategory, quantity, unit, brandData = {}) {
     detail = detail.replace("{product}", randomItem(PLATFORM_CATEGORY_TEMPLATES[platformCategory]) || "this item");
   }
   
-  detail = detail.replace("{timeline}", randomItem(TIMELINES));
-  detail = detail.replace("{budget}", randomItem(BUDGETS));
-  detail = detail.replace("{qty}", quantity);
-  detail = detail.replace("{unit}", unit);
-  detail = detail.replace("{industry}", randomItem(["factory", "warehouse", "office", "plant", "manufacturing unit", "warehouse"]));
+  detail = detail.replace("{timeline}", randomItem(TIMELINES) || "ASAP");
+  detail = detail.replace("{budget}", randomItem(BUDGETS) || "Competitive pricing required");
+  detail = detail.replace("{qty}", String(quantity || ""));
+  detail = detail.replace("{unit}", String(unit || "pcs"));
+  detail = detail.replace("{industry}", randomItem(["factory", "warehouse", "office", "plant", "manufacturing unit", "warehouse"]) || "factory");
   
   if (hasBrand && randomBool(0.3) && !detail.includes("brand") && !detail.includes("Brand")) {
     detail = `Looking for ${brandData.brand} ${brandData.model}. ` + detail;
