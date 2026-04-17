@@ -818,12 +818,10 @@ export default function SellerDashboard() {
 
   return (
     <div className="page dashboard-layout">
-      {/* Debug info */}
-      {debugInfo && (
-        <div className="fixed top-0 left-0 bg-red-500 text-white px-2 py-1 text-xs z-50">
-          {debugInfo}
-        </div>
-      )}
+      {/* Debug - always show */}
+      <div style={{position: 'fixed', top: 0, left: 0, right: 0, background: 'red', color: 'white', padding: '10px', zIndex: 9999, fontSize: '14px'}}>
+        DEBUG: {debugInfo || 'Loading...'}
+      </div>
 
       <header className="dashboard-header dashboard-layout-header">
         <div className="dashboard-shell dashboard-layout-header-row pl-16 md:pl-20">

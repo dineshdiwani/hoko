@@ -94,6 +94,7 @@ function requireBuyer() {
 
 function requireSeller() {
   const session = getSession();
+  console.log("[requireSeller] session:", session ? "exists" : "null", "token:", session?.token ? "yes" : "no");
   if (!session?.token) return false;
   if (session.role === "seller") return true;
   return Boolean(session.roles?.seller);
