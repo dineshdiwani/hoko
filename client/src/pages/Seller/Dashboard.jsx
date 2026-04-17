@@ -239,7 +239,7 @@ export default function SellerDashboard() {
     if (!whatsappMobile) return;
     setOtpLoading(true);
     try {
-      await api.post("/seller/otp/request", {
+      await api.post("/api/seller/otp/request", {
         mobile: "+" + whatsappMobile
       });
       setResendTimer(60);
@@ -267,7 +267,7 @@ export default function SellerDashboard() {
     setOtpError("");
     setOtpLoading(true);
     try {
-      const res = await api.post("/seller/otp/verify", {
+      const res = await api.post("/api/seller/otp/verify", {
         mobile: "+" + whatsappMobile,
         otp: otpValue
       });

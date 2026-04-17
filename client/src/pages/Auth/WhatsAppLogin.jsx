@@ -29,7 +29,7 @@ export default function WhatsAppLogin() {
     setLoading(true);
     setOtpError("");
     try {
-      await api.post("/seller/otp/request", {
+      await api.post("/api/seller/otp/request", {
         mobile: "+" + mobile.replace(/\D/g, "")
       });
       setResendTimer(60);
@@ -58,7 +58,7 @@ export default function WhatsAppLogin() {
     setOtpError("");
     setLoading(true);
     try {
-      const res = await api.post("/seller/otp/verify", {
+      const res = await api.post("/api/seller/otp/verify", {
         mobile: "+" + mobile.replace(/\D/g, ""),
         otp: otp
       });
