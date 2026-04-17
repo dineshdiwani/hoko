@@ -19,6 +19,33 @@ router.get("/options", async (req, res) => {
   res.json(buildOptionsResponse(doc));
 });
 
+router.get("/requirements", async (req, res) => {
+  try {
+    const { city, limit = 50 } = req.query;
+    const query = {
+      "moderation.removed": { $ne: true },
+      status: { $in: ["active", "pending"] }
+    };
+    
+    if (city) {
+      query.$or = [
+        { city: { $regex: city, $options: "i" } },
+        { offerInvitedFrom: "anywhere" }
+      ];
+    }
+    
+    const requirements = await Requirement.find(query)
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit))
+      .select("_id product productName category city quantity unit type makeBrand brand typeModel details createdAt")
+      .lean();
+    
+    res.json(requirements);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch requirements" });
+  }
+});
+
 router.get("/requirement-preview/:requirementId", async (req, res) => {
   const requirementId = String(req.params.requirementId || "").trim();
   if (!requirementId) {
