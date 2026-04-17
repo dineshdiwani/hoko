@@ -29,8 +29,6 @@ export default function WhatsAppLogin() {
     if (!mobileNum) return;
     setLoading(true);
     setOtpError("");
-    const mobileNum = mobile || mobileFromUrl;
-    if (!mobileNum) return;
     
     try {
       const res = await api.post("/seller/otp/request", {
