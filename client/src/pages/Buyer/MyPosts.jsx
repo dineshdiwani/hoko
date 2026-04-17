@@ -333,6 +333,7 @@ export default function MyPosts({
         return (
           <div
             key={req._id || req.id}
+            id={`req-${reqId}`}
             onClick={() =>
               navigate(
                 `/buyer/requirement/${req._id || req.id}/offers`

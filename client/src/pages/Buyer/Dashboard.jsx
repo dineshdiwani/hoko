@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { getSession, logout } from "../../services/auth";
 import { setSession, updateSession } from "../../services/storage";
 import MyPosts from "./MyPosts";
@@ -47,6 +47,8 @@ function readBuyerDashboardState() {
 
 export default function BuyerDashboard() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const highlightId = searchParams.get("highlight") || "";
   const [sessionVersion, setSessionVersion] = useState(0);
   const [refreshToken, setRefreshToken] = useState(0);
   const session = getSession();
@@ -121,7 +123,23 @@ export default function BuyerDashboard() {
         "mousedown",
         handleClickOutside
       );
-  }, []);
+    }, []);
+
+  useEffect(() => {
+    if (highlightId) {
+      setRefreshToken((v) => v + 1);
+      setActiveTab("posts");
+      const timer = setTimeout(() => {
+        const element = document.getElementById(`req-${highlightId}`);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth", block: "center" });
+          element.classList.add("highlight-flash");
+          setTimeout(() => element.classList.remove("highlight-flash"), 3000);
+        }
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [highlightId]);
 
   function handleNotificationClick(notification) {
     if (!notification) return;

@@ -643,8 +643,14 @@ export default function RequirementForm({ isPublic = false }) {
         setOtpStep(false);
         setSubmitted(true);
         setOtpValue("");
-        alert("Requirement posted successfully!");
-        navigate("/buyer/login?redirect=/buyer/dashboard", { replace: true });
+        
+        const requirementId = verifyRes.data?.requirementId;
+        
+        if (requirementId) {
+          navigate(`/buyer/dashboard?highlight=${requirementId}`, { replace: true });
+        } else {
+          navigate("/buyer/dashboard", { replace: true });
+        }
       } else {
         throw new Error(verifyRes.data?.message || "Invalid OTP");
       }

@@ -140,6 +140,22 @@
     color: var(--ui-accent);
   }
 
+  @keyframes highlight-flash-animation {
+    0%, 100% {
+      background-color: transparent;
+      box-shadow: none;
+    }
+    10%, 60% {
+      background-color: rgba(216, 75, 75, 0.15);
+      box-shadow: 0 0 0 3px rgba(216, 75, 75, 0.3);
+    }
+  }
+
+  .highlight-flash {
+    animation: highlight-flash-animation 3s ease-out;
+    border-radius: 0.375rem;
+  }
+
   .text-hoko-brand {
     color: var(--hoko-brand-orange);
   }
