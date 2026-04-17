@@ -1096,24 +1096,43 @@ const CATEGORY_DETAIL_TEMPLATES = {
   }
 };
 
-const PLATFORM_CATEGORY_WEIGHTS = {
-  "Electronics & Appliances": 0.12,
-  "Furniture & Home": 0.08,
-  "Vehicles & Parts": 0.08,
-  "Industrial Machinery": 0.10,
-  "Electrical Parts": 0.10,
-  "Construction Materials": 0.08,
-  "Services & Maintenance": 0.08,
-  "Raw Materials": 0.10,
-  "Chemicals & Plastics": 0.08,
-  "Packaging": 0.05,
-  "Textiles & Apparel": 0.05,
-  "Food & Agriculture": 0.05,
-  "Health & Safety": 0.04,
-  "Logistics & Transport": 0.05,
-  "Business Services": 0.04
+const CATEGORY_GROUPS = {
+  general: {
+    weight: 0.50,
+    categories: [
+      "Electronics & Appliances",
+      "Furniture & Home",
+      "Vehicles & Parts"
+    ]
+  },
+  industrial: {
+    weight: 0.30,
+    categories: [
+      "Industrial Machinery",
+      "Electrical Parts",
+      "Construction Materials",
+      "Raw Materials",
+      "Chemicals & Plastics"
+    ]
+  },
+  services: {
+    weight: 0.15,
+    categories: [
+      "Logistics & Transport",
+      "Business Services",
+      "Services & Maintenance"
+    ]
+  },
+  other: {
+    weight: 0.05,
+    categories: [
+      "Food & Agriculture",
+      "Health & Safety",
+      "Textiles & Apparel",
+      "Packaging"
+    ]
+  }
 };
-
 
 const TIMELINES = ["ASAP", "within 24 hours", "within 2 days", "within 3 days", "within a week", "within 10 days", "by month end"];
 const BUDGETS = ["Budget: INR 20,000-30,000", "Budget: INR 30,000-50,000", "Budget: INR 50,000-80,000", "Budget: INR 1-2 Lakhs", "Budget: INR 2-5 Lakhs", "Budget: INR 5+ Lakhs", "Competitive pricing required"];
@@ -1128,8 +1147,8 @@ async function getCategories() {
   } catch (err) {
     console.log("[DummyReq] getCategories error:", err.message);
   }
-  const fallback = Object.keys(PLATFORM_CATEGORY_WEIGHTS);
-  return Array.isArray(fallback) ? fallback : [];
+  const allCategories = Object.values(CATEGORY_GROUPS).flatMap(g => g.categories);
+  return allCategories;
 }
 
 async function getUnits() {
@@ -1168,13 +1187,21 @@ function getRandomCity(cities) {
 }
 
 async function selectPlatformCategory() {
-  const categories = await getCategories();
-  if (!Array.isArray(categories) || categories.length === 0) {
-    const keys = Object.keys(PLATFORM_CATEGORY_WEIGHTS);
-    return keys.length > 0 ? keys[0] : "Electronics & Appliances";
+  const rand = Math.random();
+  let cumulative = 0;
+  let selectedGroup = "general";
+  
+  for (const [groupKey, group] of Object.entries(CATEGORY_GROUPS)) {
+    cumulative += group.weight;
+    if (rand < cumulative) {
+      selectedGroup = groupKey;
+      break;
+    }
   }
-  const selected = randomItem(categories);
-  return selected || "Electronics & Appliances";
+  
+  const group = CATEGORY_GROUPS[selectedGroup];
+  const category = randomItem(group.categories);
+  return category;
 }
 
 function generateDetail(productName, quantity, unit, specs, category) {
