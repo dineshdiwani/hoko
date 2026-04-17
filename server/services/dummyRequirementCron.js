@@ -621,81 +621,327 @@ const DETAIL_STYLES = {
 };
 
 const CATEGORY_DETAIL_TEMPLATES = {
-  "Electronics & Appliances": [
-    "Required for home use. Delivery needed by {timeline}. Looking for brand new product with full warranty.",
-    "Home requirement with budget of {budget}. Prompt delivery preferred. Need genuine product with official warranty card.",
-    "Looking for this product for new home setup. Installation service available please confirm. Share complete price with GST."
-  ],
-  "Furniture & Home": [
-    "Home furnishing requirement. Delivery by {timeline}. Looking for quality product with easy returns policy.",
-    "Required for new home. Budget flexible for quality. Please share photos and dimensions.",
-    "Replacement for old furniture. Exchange available. Share best dealer price with specifications."
-  ],
-  "Vehicles & Parts": [
-    "Pre-owned vehicle requirement. Looking for well-maintained unit with service history. Budget: {budget}.",
-    "Looking for certified pre-owned vehicle. Complete service records mandatory. Share best price.",
-    "New vehicle requirement. Interested in {timeline} delivery. Share on-road price with all charges."
-  ],
-  "Industrial Machinery": [
-    "Production requirement - quality guarantee essential. Please submit technical specifications sheet with detailed PDF.",
-    "Required for plant maintenance during scheduled shutdown. Installation service available please specify.",
-    "Machinery requirement. Demo unit available please schedule. Technical datasheet and test certificates required."
-  ],
-  "Electrical Parts": [
-    "Maintenance stock replenishment. Looking for reliable supplier with consistent quality. ISI certification mandatory.",
-    "Required for project execution. GST invoice must. Please quote per unit price with MOQ and delivery timeline.",
-    "Trial order to assess quality. If satisfied, expecting monthly orders. Technical datasheet and test certificates required."
-  ],
-  "Construction Materials": [
-    "Construction project requirement. Delivery needed by {timeline}. Quality certificate mandatory.",
-    "Bulk requirement for ongoing project. Interested in yearly supplier agreement. GST invoice required.",
-    "Required for new construction. Budget: {budget}. Share price per {unit} with delivery included."
-  ],
-  "Services & Maintenance": [
-    "Corporate event requirement. Service needed for {timeline}. Please share complete package details with pricing.",
-    "Wedding season requirement. Looking for reliable vendor with good reviews. Budget flexible for quality service.",
-    "Interior project requirement. Need experienced team for execution. Timeline: {timeline}. Share portfolio and quote."
-  ],
-  "Raw Materials": [
-    "Regular manufacturing requirement. Monthly need of approximately {qty} {unit}. Competitive rates for long-term supply invited.",
-    "High volume requirement. Interested in yearly supplier agreement. Price per {unit} with delivery included. GST invoice mandatory.",
-    "Stock replenishment needed urgently. Delivery required within 3 days. Quality certificate mandatory."
-  ],
-  "Chemicals & Plastics": [
-    "Production requirement. Consistent quality essential. Interested in annual rate contract with quarterly price revision.",
-    "Required for manufacturing line. Test certificate required with sample. Price per {unit} with delivery included.",
-    "Regular requirement. Looking for established supplier. Competitive pricing required for long-term partnership."
-  ],
-  "Packaging": [
-    "Packaging requirement for our products. Monthly need of {qty} {unit}. Quality and timely delivery essential.",
-    "Urgent packaging need. Delivery required by {timeline}. Share best price per {unit}.",
-    "Regular supplier needed for packaging materials. Interested in monthly orders. Competitive pricing required."
-  ],
-  "Textiles & Apparel": [
-    "Textile requirement for manufacturing. Monthly need of {qty} {unit}. Quality consistency essential.",
-    "Bulk apparel requirement. Budget: {budget}. Delivery by {timeline}. Share catalog and pricing.",
-    "Fabric requirement for production. Interested in long-term supplier. Share sample and price."
-  ],
-  "Food & Agriculture": [
-    "Foodgrains requirement for distribution. Monthly need of {qty} {unit}. FSSAI certification mandatory.",
-    "Agricultural equipment requirement. Budget flexible for quality. Share specifications and price.",
-    "Organic produce requirement. Regular monthly orders. Quality and timely delivery essential."
-  ],
-  "Health & Safety": [
-    "Safety equipment requirement for factory. ISI marked products mandatory. Budget: {budget}.",
-    "Health supplies for workplace. Delivery needed by {timeline}. Share catalog and pricing.",
-    "PPE requirement for employees. Regular monthly orders. Competitive pricing required."
-  ],
-  "Logistics & Transport": [
-    "Logistics requirement for factory shift. Regular monthly contract. Share quotes for all-in service.",
-    "Transportation requirement for {timeline}. Capacity: mentioned quantity. Reliable service essential.",
-    "Warehouse storage needed. Space requirement: {qty} sqft. Share rental terms and availability."
-  ],
-  "Business Services": [
-    "Professional service requirement. Looking for experienced vendor. Budget: {budget}. Share portfolio.",
-    "Consulting requirement for business expansion. Timeline: {timeline}. Share previous work references.",
-    "Digital services requirement. Monthly retainer preferred. Share service details and pricing."
-  ]
+  english: {
+    "Electronics & Appliances": [
+      "Setting up new home - need this for living room. Please share best price with installation.",
+      "Office requirement - need this ASAP. Share your lowest price for bulk if available.",
+      "Gift for family member. Brand new with warranty please. Share complete price details.",
+      "Renovating my house. Need this urgently. Share your best dealer price.",
+      "My old {product} stopped working. Need urgent replacement. Share price with home delivery."
+    ],
+    "Furniture & Home": [
+      "Moving to new house next month. Need quality furniture. Budget flexible for good product.",
+      "Home renovation project. Looking for durable furniture at reasonable price. Share your best deal.",
+      "Wanted for my new bedroom. Premium quality needed. Please share photos and price.",
+      "Furnishing my rental apartment. Need affordable yet quality furniture. Share options.",
+      "Replacing old furniture. Exchange my old items possible? Share best dealer price."
+    ],
+    "Vehicles & Parts": [
+      "Looking for well-maintained pre-owned car for daily commute. Budget flexible for good condition.",
+      "Need vehicle for family use. Service history and insurance mandatory. Share your best price.",
+      "Replacing my old car. Looking for reliable vehicle with clean background. Share price.",
+      "Business use vehicle needed. Well-maintained pre-owned preferred. Share complete details.",
+      "First car for my son. Budget around {budget}. Need safe and reliable vehicle."
+    ],
+    "Industrial Machinery": [
+      "Factory expansion - need reliable machinery. Quality guarantee essential. Share technical specs.",
+      "Production line upgrade needed. Installation and training must. Share your best quote.",
+      "Plant maintenance requirement. Need quality equipment. Test run before purchase mandatory.",
+      "Setting up new unit. Looking for efficient machinery with warranty. Share complete pricing.",
+      "Industrial requirement for manufacturing. Technical specifications and test certificates mandatory."
+    ],
+    "Electrical Parts": [
+      "Electrical project requirement. ISI marked products mandatory. Share competitive price.",
+      "Factory maintenance stock needed. Consistent quality essential. Monthly orders possible if satisfied.",
+      "Construction site electrical work. Need reliable parts supplier. Share bulk pricing.",
+      "Trial order to check quality. Monthly orders for good product. Share technical datasheet.",
+      "Electrical work for new building. GST invoice must. Share per unit price."
+    ],
+    "Construction Materials": [
+      "Building new house. Need quality materials with delivery. Quality certificate mandatory.",
+      "Ongoing construction project. Bulk requirement for cement, steel etc. Yearly supplier agreement interested.",
+      "Home construction - need TMT bars and cement. Delivery to site needed. Share price.",
+      "Commercial building project. Need reliable material supplier. GST invoice mandatory.",
+      "Looking for construction material supplier. Consistent quality and timely delivery essential."
+    ],
+    "Services & Maintenance": [
+      "Wedding planning - need experienced caterer. Budget flexible for quality service. Share packages.",
+      "Corporate event next week. Professional service required. Share complete event management quote.",
+      "Home interior project. Looking for creative team. 2BHK modular kitchen needed. Share portfolio.",
+      "Office AC not working. Need urgent repair service. Share your service charges.",
+      "Birthday party planning. Looking for reliable event manager. Budget: {budget}. Share options."
+    ],
+    "Raw Materials": [
+      "Manufacturing unit requirement. Monthly need of {qty} {unit}. Long-term supplier agreement interested.",
+      "Factory raw material supply. High volume requirement. Competitive rates for bulk orders.",
+      "Production requirement - need consistent quality material. Test sample required before bulk order.",
+      "Looking for raw material supplier. Quality and timely delivery essential. GST invoice mandatory.",
+      "Regular manufacturing need. Monthly orders of {qty} {unit}. Share your competitive rates."
+    ],
+    "Chemicals & Plastics": [
+      "Plastic manufacturing requirement. Consistent quality essential. Interested in annual rate contract.",
+      "Factory raw material supply. Test sample required. Share price per {unit} with delivery.",
+      "Looking for established chemical supplier. Safety data sheet mandatory. Share competitive pricing.",
+      "Production line requirement. Monthly orders of {qty} {unit}. Quality consistency mandatory.",
+      "Industrial chemical requirement. Supplier reliability important. Share your best rates."
+    ],
+    "Packaging": [
+      "Product packaging requirement. Monthly need of {qty} {unit}. Quality and timely delivery essential.",
+      "Urgent packaging need for orders. Delivery by {timeline}. Share best price per {unit}.",
+      "Looking for packaging material supplier. Consistent quality needed for monthly orders.",
+      "Manufacturing packaging requirement. Custom printing available? Share price and samples.",
+      "Food product packaging needed. Food-grade material mandatory. Share your rates."
+    ],
+    "Textiles & Apparel": [
+      "Clothing business requirement. Need quality fabric supplier. Share fabric samples and pricing.",
+      "Bulk apparel order for retail. Budget: {budget}. Delivery by {timeline}. Share catalog.",
+      "Uniform requirement for office staff. {qty} pieces. Share price and available colors.",
+      "Textile manufacturing need. Regular monthly orders of {qty} {unit}. Share competitive rates.",
+      "Looking for fabric supplier. Quality consistency important. Share samples and pricing."
+    ],
+    "Food & Agriculture": [
+      "Rice requirement for restaurant. Need consistent quality. Monthly orders of {qty} {unit}.",
+      "Agricultural equipment for farm. Budget flexible for good quality. Share specifications.",
+      "Foodgrains distribution business. FSSAI certified products needed. Share wholesale pricing.",
+      "Wedding season rice requirement. Premium quality basmati. Share your best price.",
+      "Organic produce for health store. Regular monthly orders. Share product samples and rates."
+    ],
+    "Health & Safety": [
+      "Factory safety equipment requirement. ISI marked products mandatory. Share bulk pricing.",
+      "Workplace PPE requirement. Monthly orders for employees. Competitive pricing needed.",
+      "Hospital safety supplies. Quality medical-grade products needed. Share catalog and pricing.",
+      "Construction site safety requirement. Helmet, gloves, boots etc. Share complete quote.",
+      "Office first aid supplies. OSHA compliant kit needed. Share price and contents list."
+    ],
+    "Logistics & Transport": [
+      "Factory shift requirement. Need reliable transport service. Share all-inclusive monthly quote.",
+      "Warehouse storage needed for inventory. {qty} sqft space required. Share rental terms.",
+      "Moving office to new location. Need professional packers and movers. Share estimate.",
+      "Goods transportation requirement. Monthly contract. Share truck rental rates.",
+      "Cold storage needed for perishables. {qty} sqft required. Share rental and facilities."
+    ],
+    "Business Services": [
+      "Startup business consulting needed. Looking for experienced consultant. Budget: {budget}. Share approach.",
+      "Digital marketing for new business. Monthly retainer preferred. Share your service packages.",
+      "Website development for e-commerce. Custom design needed. Share portfolio and quote.",
+      "Legal documentation for company registration. Need CA/CS services. Share professional fees.",
+      "IT services requirement for office. Regular maintenance needed. Share annual contract pricing."
+    ]
+  },
+  hinglish: {
+    "Electronics & Appliances": [
+      "Ghar ke liye chahiye ye product. Living room mein lagana hai. Installation ke saath price do.",
+      "Office ke liye AC TV chahiye. Jaldi delivery chahiye. Share your best price.",
+      "Pura naya home setup kar raha hoon. Quality product with warranty chahiye. Price with GST batao.",
+      "Purana TV kharab ho gaya. Urgent replacement chahiye. Home delivery available?",
+      "Beta ke liye laptop chahiye. Studies ke liye. Best price do HOKO pe."
+    ],
+    "Furniture & Home": [
+      "Naya house le rahe hain next month. Quality furniture chahiye. Budget flexible hai.",
+      "Home decoration ke liye sofa chahiye. Premium quality ka. Photos aur price share karo.",
+      "Rental apartment furnish karna hai. Affordable furniture needed. Options batao.",
+      "Bedroom ke liye bed chahiye. Storage wala. Best dealer price do.",
+      "Purani furniture exchange kar sakte ho? New furniture chahiye."
+    ],
+    "Vehicles & Parts": [
+      "Daily commute ke liye car chahiye. Well maintained pre-owned. Budget flexible.",
+      "Family ke liye SUV chahiye. Service history mandatory. Price share karo.",
+      "Apni old car replace karna hai. Reliable vehicle chahiye. Best price do.",
+      "Business ke liye van chahiye. Loading capacity good honi chahiye. Share price.",
+      "Pahli car meri beti ke liye. Budget mein safe car chahiye."
+    ],
+    "Industrial Machinery": [
+      "Factory expansion ho raha hai. Reliable machinery chahiye. Technical specs share karo.",
+      "Production line upgrade karna hai. Installation aur training included hona chahiye. Quote do.",
+      "Plant maintenance ke liye equipment chahiye. Quality guarantee essential. Test run mandatory.",
+      "New unit setup kar rahe hain. Efficient machinery with warranty. Complete pricing share karo.",
+      "Industrial requirement hai. Technical specifications aur test certificates mandatory."
+    ],
+    "Electrical Parts": [
+      "Electrical project hai. ISI marked products chahiye. Competitive price do.",
+      "Factory maintenance stock chahiye. Monthly orders denge agar quality acchi rahi toh.",
+      "Construction site electrical work hai. Reliable parts supplier chahiye. Bulk pricing do.",
+      "Trial order hai quality check ke liye. Technical datasheet share karo.",
+      "New building ke liye electrical work hai. GST invoice must hai. Per unit price do."
+    ],
+    "Construction Materials": [
+      "Naya house build kar raha hoon. Quality materials with delivery chahiye. Certificate mandatory.",
+      "Ongoing construction project hai. Cement, steel etc. bulk mein chahiye. Yearly agreement interested.",
+      "Home construction ke liye TMT bars aur cement chahiye. Site tak delivery needed. Price do.",
+      "Commercial building project hai. Reliable supplier chahiye. GST invoice mandatory.",
+      "Construction material supplier dhundh rahe hain. Consistent quality aur timely delivery essential."
+    ],
+    "Services & Maintenance": [
+      "Shadi ki tyohaar planning hai. Experienced caterer chahiye. Budget flexible hai. Packages batao.",
+      "Corporate event hai next week. Professional service chahiye. Complete event management quote do.",
+      "Home interior project hai. Creative team dhundh rahe hain. 2BHK modular kitchen. Portfolio share karo.",
+      "Office AC kharab ho gaya. Urgent repair service chahiye. Service charges batao.",
+      "Birthday party planning hai. Reliable event manager chahiye. Budget: {budget}. Options batao."
+    ],
+    "Raw Materials": [
+      "Manufacturing unit requirement hai. Monthly {qty} {unit} chahiye. Long-term agreement interested.",
+      "Factory raw material supply chahiye. High volume requirement hai. Competitive rates do.",
+      "Production requirement - consistent quality chahiye. Bulk order se pehle test sample required.",
+      "Raw material supplier dhundh rahe hain. Quality aur timely delivery essential. GST invoice mandatory.",
+      "Regular manufacturing need hai. Monthly {qty} {unit} orders denge. Competitive rates share karo."
+    ],
+    "Chemicals & Plastics": [
+      "Plastic manufacturing requirement hai. Consistent quality essential. Annual rate contract interested.",
+      "Factory raw material supply chahiye. Test sample required. Delivery ke saath price do.",
+      "Established chemical supplier dhundh rahe hain. Safety data sheet mandatory. Competitive pricing do.",
+      "Production line requirement hai. Monthly {qty} {unit} orders. Quality consistency mandatory.",
+      "Industrial chemical requirement hai. Supplier reliability important. Best rates share karo."
+    ],
+    "Packaging": [
+      "Product packaging chahiye. Monthly {qty} {unit} need hai. Quality aur timely delivery essential.",
+      "Urgent packaging need hai orders ke liye. {timeline} tak delivery chahiye. Per {unit} price do.",
+      "Packaging material supplier dhundh rahe hain. Consistent quality monthly orders ke liye.",
+      "Manufacturing packaging requirement hai. Custom printing available? Samples aur price share karo.",
+      "Food product packaging chahiye. Food-grade material mandatory. Rates batao."
+    ],
+    "Textiles & Apparel": [
+      "Clothing business ke liye fabric chahiye. Quality supplier dhundh rahe hain. Samples aur pricing share karo.",
+      "Bulk apparel order hai retail ke liye. Budget: {budget}. {timeline} tak delivery. Catalog do.",
+      "Office staff ke liye uniform chahiye. {qty} pieces. Price aur colors batao.",
+      "Textile manufacturing need hai. Regular monthly {qty} {unit} orders. Competitive rates do.",
+      "Fabric supplier dhundh rahe hain. Quality consistency important. Samples aur pricing share karo."
+    ],
+    "Food & Agriculture": [
+      "Restaurant ke liye rice chahiye. Consistent quality important. Monthly {qty} {unit} orders.",
+      "Farm ke liye agricultural equipment chahiye. Budget flexible good quality ke liye. Specs share karo.",
+      "Foodgrains distribution business hai. FSSAI certified products chahiye. Wholesale pricing do.",
+      "Wedding season ke liye rice requirement hai. Premium quality basmati. Best price do.",
+      "Health store ke liye organic produce chahiye. Regular monthly orders. Samples aur rates share karo."
+    ],
+    "Health & Safety": [
+      "Factory safety equipment chahiye. ISI marked products mandatory. Bulk pricing share karo.",
+      "Workplace PPE requirement hai employees ke liye. Monthly orders. Competitive pricing needed.",
+      "Hospital safety supplies chahiye. Quality medical-grade products. Catalog aur pricing do.",
+      "Construction site safety requirement hai. Helmet, gloves, boots etc. Complete quote do.",
+      "Office first aid supplies chahiye. OSHA compliant kit. Price aur contents list share karo."
+    ],
+    "Logistics & Transport": [
+      "Factory shift ke liye transport service chahiye. Reliable service provider. Monthly quote do.",
+      "Warehouse storage chahiye inventory ke liye. {qty} sqft space required. Rental terms batao.",
+      "Office naya location mein shift ho raha hai. Professional packers movers chahiye. Estimate do.",
+      "Goods transportation requirement hai. Monthly contract. Truck rental rates share karo.",
+      "Perishables ke liye cold storage chahiye. {qty} sqft required. Rental aur facilities batao."
+    ],
+    "Business Services": [
+      "Startup business consulting chahiye. Experienced consultant dhundh rahe hain. Budget: {budget}. Approach batao.",
+      "New business ke liye digital marketing chahiye. Monthly retainer preferred. Service packages do.",
+      "E-commerce website development chahiye. Custom design needed. Portfolio aur quote share karo.",
+      "Company registration ke liye legal documentation chahiye. CA/CS services needed. Professional fees batao.",
+      "Office ke liye IT services requirement hai. Regular maintenance. Annual contract pricing share karo."
+    ]
+  },
+  hindi: {
+    "Electronics & Appliances": [
+      "घर के लिए यह प्रोडक्ट चाहिए। जल्दी डिलीवरी चाहिए। installation के साथ price बताओ।",
+      "ऑफिस के लिए AC/TV चाहिए। तुरंत delivery चाहिए। Best price do.",
+      "नया home setup कर रहा हूं। Quality product with warranty चाहिए। GST के साथ price बताओ।",
+      "पुराना TV खराब हो गया। तुरंत replacement चाहिए। Home delivery available?",
+      "बेटे के लिए laptop चाहिए। पढ़ाई के लिए। Best price do HOKO pe."
+    ],
+    "Furniture & Home": [
+      "अगले month नया house ले रहे हैं। Quality furniture चाहिए। Budget flexible है।",
+      "घर की सजावट के लिए sofa चाहिए। Premium quality का। Photos और price share करो।",
+      "Rental apartment furnish करना है। Affordable furniture needed। Options बताओ।",
+      "Bedroom के लिए bed चाहिए। Storage वाला। Best dealer price do.",
+      "पुरानी furniture exchange कर सकते हो? New furniture चाहिए।"
+    ],
+    "Vehicles & Parts": [
+      "रोज़ाना commute के लिए car चाहिए। Well maintained pre-owned। Budget flexible।",
+      "परिवार के लिए SUV चाहिए। Service history mandatory। Price share करो।",
+      "अपनी पुरानी car replace करनी है। Reliable vehicle चाहिए। Best price do।",
+      "Business के लिए van चाहिए। Loading capacity अच्छी होनी चाहिए। Share price।",
+      "बेटी के लिए पहली car। Budget में safe car चाहिए।"
+    ],
+    "Industrial Machinery": [
+      "Factory expansion हो रहा है। Reliable machinery चाहिए। Technical specs share करो।",
+      "Production line upgrade करना है। Installation और training included होना चाहिए। Quote do।",
+      "Plant maintenance के लिए equipment चाहिए। Quality guarantee essential। Test run mandatory।",
+      "New unit setup कर रहे हैं। Efficient machinery with warranty। Complete pricing share करो।",
+      "Industrial requirement है। Technical specifications और test certificates mandatory।"
+    ],
+    "Electrical Parts": [
+      "Electrical project है। ISI marked products चाहिए। Competitive price do।",
+      "Factory maintenance stock चाहिए। Monthly orders देंगे अगर quality अच्छी रही तो।",
+      "Construction site electrical work है। Reliable parts supplier चाहिए। Bulk pricing do।",
+      "Trial order है quality check के लिए। Technical datasheet share करो।",
+      "New building के लिए electrical work है। GST invoice must है। Per unit price do।"
+    ],
+    "Construction Materials": [
+      "नया house build कर रहे हैं। Quality materials with delivery चाहिए। Certificate mandatory।",
+      "Ongoing construction project है। Cement, steel etc. bulk में चाहिए। Yearly agreement interested।",
+      "Home construction के लिए TMT bars और cement चाहिए। Site तक delivery needed। Price do।",
+      "Commercial building project है। Reliable supplier चाहिए। GST invoice mandatory।",
+      "Construction material supplier खोज रहे हैं। Consistent quality और timely delivery essential।"
+    ],
+    "Services & Maintenance": [
+      "शादी की त्योहार planning है। Experienced caterer चाहिए। Budget flexible है। Packages बताओ।",
+      "Corporate event है next week। Professional service चाहिए। Complete event management quote do।",
+      "Home interior project है। Creative team खोज रहे हैं। 2BHK modular kitchen। Portfolio share करो।",
+      "Office AC खराब हो गया। Urgent repair service चाहिए। Service charges बताओ।",
+      "Birthday party planning है। Reliable event manager चाहिए। Budget: {budget}। Options बताओ।"
+    ],
+    "Raw Materials": [
+      "Manufacturing unit requirement है। Monthly {qty} {unit} चाहिए। Long-term agreement interested।",
+      "Factory raw material supply चाहिए। High volume requirement है। Competitive rates do।",
+      "Production requirement - consistent quality चाहिए। Bulk order से पहले test sample required।",
+      "Raw material supplier खोज रहे हैं। Quality और timely delivery essential। GST invoice mandatory।",
+      "Regular manufacturing need है। Monthly {qty} {unit} orders देंगे। Competitive rates share करो।"
+    ],
+    "Chemicals & Plastics": [
+      "Plastic manufacturing requirement है। Consistent quality essential। Annual rate contract interested।",
+      "Factory raw material supply चाहिए। Test sample required। Delivery के साथ price do।",
+      "Established chemical supplier खोज रहे हैं। Safety data sheet mandatory। Competitive pricing do।",
+      "Production line requirement है। Monthly {qty} {unit} orders। Quality consistency mandatory।",
+      "Industrial chemical requirement है। Supplier reliability important। Best rates share करो।"
+    ],
+    "Packaging": [
+      "Product packaging चाहिए। Monthly {qty} {unit} need है। Quality और timely delivery essential।",
+      "Urgent packaging need है orders के लिए। {timeline} तक delivery चाहिए। Per {unit} price do।",
+      "Packaging material supplier खोज रहे हैं। Consistent quality monthly orders के लिए।",
+      "Manufacturing packaging requirement है। Custom printing available? Samples और price share करो।",
+      "Food product packaging चाहिए। Food-grade material mandatory। Rates बताओ।"
+    ],
+    "Textiles & Apparel": [
+      "Clothing business के लिए fabric चाहिए। Quality supplier खोज रहे हैं। Samples और pricing share करो।",
+      "Bulk apparel order है retail के लिए। Budget: {budget}। {timeline} तक delivery। Catalog do।",
+      "Office staff के लिए uniform चाहिए। {qty} pieces। Price और colors बताओ।",
+      "Textile manufacturing need है। Regular monthly {qty} {unit} orders। Competitive rates do।",
+      "Fabric supplier खोज रहे हैं। Quality consistency important। Samples और pricing share करो।"
+    ],
+    "Food & Agriculture": [
+      "Restaurant के लिए rice चाहिए। Consistent quality important। Monthly {qty} {unit} orders।",
+      "Farm के लिए agricultural equipment चाहिए। Budget flexible good quality के लिए। Specs share करो।",
+      "Foodgrains distribution business है। FSSAI certified products चाहिए। Wholesale pricing do।",
+      "Wedding season के लिए rice requirement है। Premium quality basmati। Best price do।",
+      "Health store के लिए organic produce चाहिए। Regular monthly orders। Samples और rates share करो।"
+    ],
+    "Health & Safety": [
+      "Factory safety equipment चाहिए। ISI marked products mandatory। Bulk pricing share करो।",
+      "Workplace PPE requirement है employees के लिए। Monthly orders। Competitive pricing needed।",
+      "Hospital safety supplies चाहिए। Quality medical-grade products। Catalog और pricing do।",
+      "Construction site safety requirement है। Helmet, gloves, boots etc। Complete quote do।",
+      "Office first aid supplies चाहिए। OSHA compliant kit। Price और contents list share करो।"
+    ],
+    "Logistics & Transport": [
+      "Factory shift के लिए transport service चाहिए। Reliable service provider। Monthly quote do।",
+      "Warehouse storage चाहिए inventory के लिए। {qty} sqft space required। Rental terms बताओ।",
+      "Office नए location में shift हो रहा है। Professional packers movers चाहिए। Estimate do।",
+      "Goods transportation requirement है। Monthly contract। Truck rental rates share करो।",
+      "Perishables के लिए cold storage चाहिए। {qty} sqft required। Rental और facilities बताओ।"
+    ],
+    "Business Services": [
+      "Startup business consulting चाहिए। Experienced consultant खोज रहे हैं। Budget: {budget}। Approach बताओ।",
+      "New business के लिए digital marketing चाहिए। Monthly retainer preferred। Service packages do।",
+      "E-commerce website development चाहिए। Custom design needed। Portfolio और quote share करो।",
+      "Company registration के लिए legal documentation चाहिए। CA/CS services needed। Professional fees बताओ।",
+      "Office के लिए IT services requirement है। Regular maintenance। Annual contract pricing share करो।"
+    ]
+  }
 };
 
 const PLATFORM_CATEGORY_WEIGHTS = {
@@ -779,7 +1025,7 @@ async function selectPlatformCategory() {
   return selected || "Electronics & Appliances";
 }
 
-function generateDetail(productName, quantity, unit, specs) {
+function generateDetail(productName, quantity, unit, specs, category) {
   const styleRoll = Math.random();
   const lang = selectLanguage();
   let templates;
@@ -792,7 +1038,18 @@ function generateDetail(productName, quantity, unit, specs) {
   }
   
   let detail;
-  if (styleRoll < 0.15) {
+  
+  const categoryTemplates = CATEGORY_DETAIL_TEMPLATES[lang]?.[category] || CATEGORY_DETAIL_TEMPLATES.english?.[category];
+  const useCategoryTemplate = categoryTemplates && Math.random() < 0.40;
+  
+  if (useCategoryTemplate) {
+    detail = randomItem(categoryTemplates);
+    detail = detail.replace(/{product}/gi, productName);
+    detail = detail.replace("{qty}", String(quantity || ""));
+    detail = detail.replace("{unit}", String(unit || "pcs"));
+    detail = detail.replace("{timeline}", randomItem(TIMELINES) || "ASAP");
+    detail = detail.replace("{budget}", randomItem(BUDGETS) || "Competitive pricing");
+  } else if (styleRoll < 0.15) {
     detail = randomItem(templates.short) || "Looking for {product}. Best price?";
   } else if (styleRoll < 0.35) {
     detail = randomItem(templates.casual) || "Hi, looking for {product}. What's your rate?";
@@ -806,11 +1063,13 @@ function generateDetail(productName, quantity, unit, specs) {
     detail = randomItem(templates.negotiation) || "Looking for best price on {product}.";
   }
   
-  detail = detail.replace("{product}", productName);
-  detail = detail.replace("{qty}", String(quantity || ""));
-  detail = detail.replace("{unit}", String(unit || "pcs"));
+  if (!useCategoryTemplate) {
+    detail = detail.replace("{product}", productName);
+    detail = detail.replace("{qty}", String(quantity || ""));
+    detail = detail.replace("{unit}", String(unit || "pcs"));
+  }
   
-  if (specs) {
+  if (specs && !useCategoryTemplate) {
     detail += "\n\nSpecifications: " + specs;
   }
   
@@ -885,7 +1144,7 @@ async function generateDummyRequirements(count = 3) {
       const productName = productData.brand 
         ? `${productData.brand} ${productData.model} ${productData.product}` 
         : `${productData.model} ${productData.product}`;
-      const details = generateDetail(productName, quantity, unit, productData.specs);
+      const details = generateDetail(productName, quantity, unit, productData.specs, platformCategory);
       
       try {
         const offerInvitedFrom = platformCategory.includes("Raw Materials") || platformCategory.includes("Chemicals") || platformCategory.includes("Industrial") || platformCategory.includes("Electrical") ? "anywhere" : "city";
