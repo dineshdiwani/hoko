@@ -79,7 +79,7 @@ export default function CityDashboard({
 
   function getShareText(req) {
     const deepLink = buildShareUrl(req);
-    const product = String(req?.product || req?.productName || "Requirement").trim();
+    const product = String(req?.productName || req?.product || "Requirement").trim();
     const quantityValue = String(req?.quantity || "").trim();
     const quantityUnit = String(req?.type || req?.unit || "").trim();
     const quantity = [quantityValue, quantityUnit].filter(Boolean).join(" ");
@@ -509,7 +509,7 @@ export default function CityDashboard({
               >
                 <div className="flex justify-between items-start mb-2">
                   <h3 className="font-semibold text-base text-[var(--ui-text)]">
-                    {req.product || req.productName}
+                    {req.productName || req.product}
                   </h3>
                   {isAuction && (
                     <span className="text-xs px-2 py-1 rounded-full font-medium bg-red-100 text-red-700">
