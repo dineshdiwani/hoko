@@ -53,6 +53,7 @@ import {
 } from "../../utils/notifications";
 
 export default function SellerDashboard() {
+  console.log("[SellerDashboard] Component rendering");
   const navigate = useNavigate();
   const location = useLocation();
   const session = getSession();
@@ -208,7 +209,7 @@ export default function SellerDashboard() {
   };
 
   useEffect(() => {
-    console.log("[Dashboard] Checking session:", session);
+    console.log("[Dashboard] Mounted, session:", session ? "exists" : "null");
     if (!session?.token) {
       console.log("[Dashboard] No token, redirecting to login");
       navigate("/seller/login");
