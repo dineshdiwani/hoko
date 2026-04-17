@@ -713,10 +713,9 @@ export default function RequirementForm({ isPublic = false }) {
             name="mobile"
             type="tel"
             value={form.mobile}
-            readOnly
+            readOnly={true}
             className="w-full px-3 py-2 border rounded-xl text-sm bg-gray-50"
             required
-            readOnly={!!mobileFromUrl}
           />
         </div>
 
