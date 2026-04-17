@@ -16,6 +16,18 @@ import ReviewModal from "../../components/ReviewModal";
 import ReportModal from "../../components/ReportModal";
 import ChatModal from "../../components/ChatModal";
 import { confirmDialog } from "../../utils/dialogs";
+import {
+  extractAttachmentFileName,
+  getAttachmentDisplayName,
+  getAttachmentTypeMeta
+} from "../../utils/attachments";
+import { getPublicAppUrl, isNativeAppRuntime } from "../../utils/runtime";
+import {
+  getNotificationCategory,
+  getNotificationEvent,
+  getNotificationRequirementId,
+  getNotificationState
+} from "../../utils/notifications";
 
 console.log("[SellerDashboard] Module loaded");
 
@@ -41,18 +53,6 @@ function readSellerDashboardState() {
     };
   }
 }
-import {
-  extractAttachmentFileName,
-  getAttachmentDisplayName,
-  getAttachmentTypeMeta
-} from "../../utils/attachments";
-import { getPublicAppUrl, isNativeAppRuntime } from "../../utils/runtime";
-import {
-  getNotificationCategory,
-  getNotificationEvent,
-  getNotificationRequirementId,
-  getNotificationState
-} from "../../utils/notifications";
 
 export default function SellerDashboard() {
   console.log("[SellerDashboard] Component rendering, session:", session ? "exists" : "null", "token:", session?.token ? "yes" : "no");
