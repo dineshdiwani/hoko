@@ -417,7 +417,7 @@ async function sendSellerInviteLink(mobileE164, city, categories = []) {
   if (categories.length > 0) params.set("cats", categories.join(","));
   params.set("ref", "wa");
   
-  return `${appBase}/seller/dashboard?${params.toString()}`;
+  return `${appBase}/seller/login?${params.toString()}`;
 }
 
 function normalizeCityName(city) {
