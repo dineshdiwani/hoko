@@ -88,6 +88,25 @@ export default function UserLogin({ role = "buyer" }) {
     }
   }, [navigate, redirect, currentRole]);
 
+  // WhatsApp bypass: redirect to dashboard with OTP popup
+  useEffect(() => {
+    if (!isSeller || !isFromUrl || !mobileFromUrl) return;
+    
+    // Store WhatsApp params
+    if (catsFromUrl) {
+      localStorage.setItem("whatsapp_seller_cats", catsFromUrl);
+    }
+    if (cityFromUrl) {
+      localStorage.setItem("whatsapp_seller_city", cityFromUrl);
+    }
+    localStorage.setItem("whatsapp_seller_mobile", mobileFromUrl);
+    
+    // Redirect to dashboard - it will show OTP popup
+    const dashParams = new URLSearchParams();
+    if (cityFromUrl) dashParams.set("city", cityFromUrl);
+    navigate(`/seller/dashboard?${dashParams.toString()}`, { replace: true });
+  }, [isSeller, isFromUrl, mobileFromUrl, cityFromUrl, catsFromUrl, navigate]);
+
   useEffect(() => {
     fetchOptions()
       .then((data) => {
