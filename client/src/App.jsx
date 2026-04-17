@@ -406,13 +406,7 @@ function AppShell() {
 
         <Route
           path="/seller/dashboard"
-          element={
-            requireSeller() ? (
-              <SellerDashboard />
-            ) : (
-              <Navigate to="/seller/login" replace />
-            )
-          }
+          element={<SellerDashboard />}
         />
 
         <Route
