@@ -921,74 +921,137 @@ function getSmartQuantity(platformCategory, product) {
 async function getSmartUnit(platformCategory, product) {
   const productLower = String(product || "").toLowerCase();
   const adminUnits = await getUnits();
-  const baseUnits = Array.isArray(adminUnits) && adminUnits.length > 0 ? adminUnits : ["pcs", "units", "nos"];
+  const availableUnits = Array.isArray(adminUnits) && adminUnits.length > 0 ? adminUnits : ["pcs", "units", "nos"];
   
-  let categoryUnits = [...baseUnits];
+  let unitCandidates = [];
   
   if (platformCategory.includes("Raw Materials") || platformCategory.includes("Chemicals") || platformCategory.includes("Food")) {
-    categoryUnits = [...baseUnits, "kg", "quintal", "ton", "liter", "bags"];
-  }
-  if (platformCategory.includes("Services") || platformCategory.includes("Business")) {
-    if (productLower.includes("catering") || productLower.includes("guest") || productLower.includes("people")) {
-      categoryUnits = [...baseUnits, "people", "guests", "persons", "plates"];
-    } else if (productLower.includes("consulting") || productLower.includes("service") || productLower.includes("hour")) {
-      categoryUnits = [...baseUnits, "hours", "sessions", "package"];
-    } else {
-      categoryUnits = [...baseUnits, "service", "job", "set"];
+    if (productLower.includes("granule") || productLower.includes("resin") || productLower.includes("ore") || productLower.includes("scrap") || productLower.includes("powder")) {
+      unitCandidates = availableUnits.filter(u => ["kg", "ton", "quintal", "metric ton"].includes(u.toLowerCase()));
+    } else if (productLower.includes("liquid") || productLower.includes("oil") || productLower.includes("chemical") || productLower.includes("solvent")) {
+      unitCandidates = availableUnits.filter(u => ["liter", "litre", "ltr", "ml", "gallon"].includes(u.toLowerCase()));
+    } else if (productLower.includes("bag") || productLower.includes("cement") || productLower.includes("fertilizer")) {
+      unitCandidates = availableUnits.filter(u => ["bags", "bag", "units", "pcs"].includes(u.toLowerCase()));
+    } else if (productLower.includes("grain") || productLower.includes("rice") || productLower.includes("wheat") || productLower.includes("seed")) {
+      unitCandidates = availableUnits.filter(u => ["kg", "quintal", "ton", "metric ton", "bags"].includes(u.toLowerCase()));
     }
-  }
-  if (platformCategory.includes("Logistics")) {
-    if (productLower.includes("packer") || productLower.includes("mover") || productLower.includes("2bhk") || productLower.includes("3bhk")) {
-      categoryUnits = [...baseUnits, "service", "job", "house"];
-    } else if (productLower.includes("truck") || productLower.includes("container") || productLower.includes("ton")) {
-      categoryUnits = [...baseUnits, "trips", "capacity"];
-    } else if (productLower.includes("sqft") || productLower.includes("warehouse")) {
-      categoryUnits = [...baseUnits, "sqft", "sq.ft", "area"];
-    } else {
-      categoryUnits = [...baseUnits, "service"];
-    }
-  }
-  if (platformCategory.includes("Vehicles")) {
-    categoryUnits = [...baseUnits, "vehicles", "nos"];
-  }
-  if (platformCategory.includes("Industrial") || platformCategory.includes("Electrical")) {
-    if (productLower.includes("motor") || productLower.includes("generator") || productLower.includes("machine") || productLower.includes("welder") || productLower.includes("lathe") || productLower.includes("cnc") || productLower.includes("pump")) {
-      categoryUnits = [...baseUnits, "sets"];
-    } else if (productLower.includes("wire") || productLower.includes("cable")) {
-      categoryUnits = [...baseUnits, "roll", "mtr", "coils"];
-    } else if (productLower.includes("bearing")) {
-      categoryUnits = [...baseUnits, "packs", "sets"];
-    } else if (productLower.includes("valve") || productLower.includes("meter") || productLower.includes("switchgear") || productLower.includes("MCB") || productLower.includes("VFD") || productLower.includes("PLC") || productLower.includes("drive") || productLower.includes("transmitter")) {
-      categoryUnits = [...baseUnits, "modules"];
-    }
-  }
-  if (platformCategory.includes("Construction")) {
-    if (productLower.includes("bar") || productLower.includes("steel") || productLower.includes("beam") || productLower.includes("panel")) {
-      categoryUnits = [...baseUnits, "mtr", "lengths"];
-    } else if (productLower.includes("cement") || productLower.includes("bag")) {
-      categoryUnits = [...baseUnits, "tons"];
-    }
-  }
-  if (platformCategory.includes("Packaging")) {
-    if (productLower.includes("box") || productLower.includes("roll") || productLower.includes("film") || productLower.includes("wrap")) {
-      categoryUnits = [...baseUnits, "rolls", "boxes"];
-    }
-  }
-  if (platformCategory.includes("Textiles")) {
-    if (productLower.includes("fabric") || productLower.includes("roll")) {
-      categoryUnits = [...baseUnits, "meters", "rolls"];
-    } else if (productLower.includes("shirt") || productLower.includes("wear") || productLower.includes("garment")) {
-      categoryUnits = [...baseUnits, "dozens"];
-    }
-  }
-  if (platformCategory.includes("Health")) {
-    if (productLower.includes("mask") || productLower.includes("glove") || productLower.includes("kit")) {
-      categoryUnits = [...baseUnits, "boxes"];
-    }
+    if (!unitCandidates.length) unitCandidates = availableUnits.filter(u => ["kg", "ton", "quintal", "liter", "bags", "units"].includes(u.toLowerCase()));
   }
   
-  const selectedUnit = randomItem(categoryUnits);
-  return selectedUnit || "pcs";
+  if (platformCategory.includes("Vehicles") || productLower.includes("car") || productLower.includes("vehicle") || productLower.includes("suv") || productLower.includes("sedan") || productLower.includes("hatchback")) {
+    unitCandidates = availableUnits.filter(u => ["units", "nos", "pcs", "vehicles"].includes(u.toLowerCase()));
+  }
+  
+  if (platformCategory.includes("Electronics & Appliances") || platformCategory.includes("Furniture")) {
+    if (productLower.includes("tv") || productLower.includes("refrigerator") || productLower.includes("ac") || productLower.includes("laptop") || productLower.includes("computer") || productLower.includes("phone") || productLower.includes("camera") || productLower.includes("console")) {
+      unitCandidates = availableUnits.filter(u => ["pcs", "units", "nos"].includes(u.toLowerCase()));
+    }
+    if (productLower.includes("bed") || productLower.includes("sofa") || productLower.includes("table") || productLower.includes("chair") || productLower.includes("furniture")) {
+      unitCandidates = availableUnits.filter(u => ["pcs", "units", "nos", "sets"].includes(u.toLowerCase()));
+    }
+    if (!unitCandidates.length) unitCandidates = availableUnits.filter(u => ["pcs", "units", "nos"].includes(u.toLowerCase()));
+  }
+  
+  if (platformCategory.includes("Industrial") || platformCategory.includes("Electrical")) {
+    if (productLower.includes("motor") || productLower.includes("generator") || productLower.includes("machine") || productLower.includes("lathe") || productLower.includes("cnc") || productLower.includes("welder") || productLower.includes("pump") || productLower.includes("compressor")) {
+      unitCandidates = availableUnits.filter(u => ["pcs", "units", "nos", "sets"].includes(u.toLowerCase()));
+    }
+    if (productLower.includes("wire") || productLower.includes("cable")) {
+      unitCandidates = availableUnits.filter(u => ["roll", "rolls", "mtr", "meter", "meters", "coils", "km"].includes(u.toLowerCase()));
+    }
+    if (productLower.includes("bearing") || productLower.includes("valve") || productLower.includes("gear") || productLower.includes("bolt") || productLower.includes("nut")) {
+      unitCandidates = availableUnits.filter(u => ["pcs", "units", "nos", "packs", "sets"].includes(u.toLowerCase()));
+    }
+    if (productLower.includes("pipe") || productLower.includes("tube") || productLower.includes("rod")) {
+      unitCandidates = availableUnits.filter(u => ["pcs", "units", "nos", "mtr", "meter", "lengths"].includes(u.toLowerCase()));
+    }
+    if (!unitCandidates.length) unitCandidates = availableUnits.filter(u => ["pcs", "units", "nos"].includes(u.toLowerCase()));
+  }
+  
+  if (platformCategory.includes("Construction")) {
+    if (productLower.includes("bar") || productLower.includes("steel") || productLower.includes("beam") || productLower.includes("rod")) {
+      unitCandidates = availableUnits.filter(u => ["pcs", "nos", "mtr", "meter", "tons", "quintal", "kg"].includes(u.toLowerCase()));
+    }
+    if (productLower.includes("cement") || productLower.includes("bag") || productLower.includes("mortar")) {
+      unitCandidates = availableUnits.filter(u => ["bags", "bag", "units", "pcs", "tons", "quintal"].includes(u.toLowerCase()));
+    }
+    if (productLower.includes("sand") || productLower.includes("aggregate") || productLower.includes("gravel") || productLower.includes("crusher")) {
+      unitCandidates = availableUnits.filter(u => ["tons", "cu ft", "cubic feet", "quintal", "kg"].includes(u.toLowerCase()));
+    }
+    if (productLower.includes("brick") || productLower.includes("block") || productLower.includes("tile")) {
+      unitCandidates = availableUnits.filter(u => ["pcs", "nos", "units", "thousand"].includes(u.toLowerCase()));
+    }
+    if (!unitCandidates.length) unitCandidates = availableUnits.filter(u => ["pcs", "units", "bags", "tons", "quintal"].includes(u.toLowerCase()));
+  }
+  
+  if (platformCategory.includes("Packaging")) {
+    if (productLower.includes("box") || productLower.includes("carton")) {
+      unitCandidates = availableUnits.filter(u => ["pcs", "nos", "units", "boxes"].includes(u.toLowerCase()));
+    }
+    if (productLower.includes("roll") || productLower.includes("film") || productLower.includes("wrap") || productLower.includes("sheet")) {
+      unitCandidates = availableUnits.filter(u => ["roll", "rolls", "pcs", "kg"].includes(u.toLowerCase()));
+    }
+    if (productLower.includes("tape")) {
+      unitCandidates = availableUnits.filter(u => ["pcs", "nos", "units", "rolls", "boxes"].includes(u.toLowerCase()));
+    }
+    if (!unitCandidates.length) unitCandidates = availableUnits.filter(u => ["pcs", "units", "rolls", "boxes"].includes(u.toLowerCase()));
+  }
+  
+  if (platformCategory.includes("Textiles") || platformCategory.includes("Apparel")) {
+    if (productLower.includes("fabric") || productLower.includes("cloth") || productLower.includes("denim") || productLower.includes("linen")) {
+      unitCandidates = availableUnits.filter(u => ["meter", "mtr", "meters", "roll", "rolls", "kg"].includes(u.toLowerCase()));
+    }
+    if (productLower.includes("shirt") || productLower.includes("pant") || productLower.includes("dress") || productLower.includes("wear") || productLower.includes("garment") || productLower.includes("suit")) {
+      unitCandidates = availableUnits.filter(u => ["pcs", "nos", "units", "dozens", "sets"].includes(u.toLowerCase()));
+    }
+    if (!unitCandidates.length) unitCandidates = availableUnits.filter(u => ["pcs", "meter", "mtr", "rolls", "units"].includes(u.toLowerCase()));
+  }
+  
+  if (platformCategory.includes("Health") || platformCategory.includes("Safety")) {
+    if (productLower.includes("mask") || productLower.includes("glove") || productLower.includes("cap") || productLower.includes("shoe")) {
+      unitCandidates = availableUnits.filter(u => ["pcs", "nos", "units", "boxes", "packs", "pairs"].includes(u.toLowerCase()));
+    }
+    if (productLower.includes("kit") || productLower.includes("set")) {
+      unitCandidates = availableUnits.filter(u => ["pcs", "units", "sets", "boxes"].includes(u.toLowerCase()));
+    }
+    if (productLower.includes("helmet")) {
+      unitCandidates = availableUnits.filter(u => ["pcs", "nos", "units"].includes(u.toLowerCase()));
+    }
+    if (!unitCandidates.length) unitCandidates = availableUnits.filter(u => ["pcs", "units", "boxes", "packs"].includes(u.toLowerCase()));
+  }
+  
+  if (platformCategory.includes("Services") || platformCategory.includes("Business")) {
+    if (productLower.includes("catering") || productLower.includes("food") || productLower.includes("lunch") || productLower.includes("dinner")) {
+      unitCandidates = availableUnits.filter(u => ["plates", "persons", "people", "guests", "boxes"].includes(u.toLowerCase()));
+    }
+    if (productLower.includes("consulting") || productLower.includes("advisory")) {
+      unitCandidates = availableUnits.filter(u => ["hours", "sessions", "month", "project", "package"].includes(u.toLowerCase()));
+    }
+    if (productLower.includes("event") || productLower.includes("wedding") || productLower.includes("decoration")) {
+      unitCandidates = availableUnits.filter(u => ["hours", "days", "event", "package", "service"].includes(u.toLowerCase()));
+    }
+    if (!unitCandidates.length) unitCandidates = availableUnits.filter(u => ["service", "job", "package", "units", "hours"].includes(u.toLowerCase()));
+  }
+  
+  if (platformCategory.includes("Logistics") || platformCategory.includes("Transport")) {
+    if (productLower.includes("truck") || productLower.includes("vehicle") || productLower.includes("container")) {
+      unitCandidates = availableUnits.filter(u => ["trips", "units", "pcs", "loads"].includes(u.toLowerCase()));
+    }
+    if (productLower.includes("packer") || productLower.includes("mover")) {
+      unitCandidates = availableUnits.filter(u => ["service", "job", "house", "units"].includes(u.toLowerCase()));
+    }
+    if (productLower.includes("warehouse") || productLower.includes("storage")) {
+      unitCandidates = availableUnits.filter(u => ["sqft", "sq.ft", "sqm", "month", "area"].includes(u.toLowerCase()));
+    }
+    if (!unitCandidates.length) unitCandidates = availableUnits.filter(u => ["trips", "service", "units", "loads"].includes(u.toLowerCase()));
+  }
+  
+  if (!unitCandidates.length) {
+    unitCandidates = availableUnits.filter(u => ["pcs", "units", "nos"].includes(u.toLowerCase()));
+  }
+  
+  const selectedUnit = randomItem(unitCandidates);
+  return selectedUnit || availableUnits[0] || "pcs";
 }
 
 function getProduct(platformCategory) {
