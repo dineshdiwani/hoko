@@ -805,7 +805,7 @@ router.post("/requirement/verify-otp", async (req, res) => {
 
   await otpRecord.incrementAttempts();
 
-  let requirement, softUser, tempRequirement, user;
+  let requirement, softUser, tempRequirement;
   
   try {
     otpRecord.requirementData = requirementData;
@@ -816,23 +816,13 @@ router.post("/requirement/verify-otp", async (req, res) => {
     softUser = result.softUser;
     tempRequirement = result.tempRequirement;
 
-    user = await User.findOne({ mobile: mobileE164 });
-    if (!user) {
-      user = await User.create({
-        mobile: mobileE164,
-        role: "buyer",
-        roles: { buyer: true },
-        city: requirementData?.city || "",
-        name: "Buyer",
-        email: "",
-        tokenVersion: 0
-      });
+    softUser.mobile = mobileE164;
+    softUser.phone = mobileE164;
+    softUser.role = "buyer";
+    if (!softUser.roles?.buyer) {
+      softUser.roles = { ...softUser.roles, buyer: true };
     }
-
-    if (!user.roles?.buyer) {
-      user.roles = { ...user.roles, buyer: true };
-      await user.save();
-    }
+    await softUser.save();
   } catch (err) {
     console.error("[OTP Verify] Requirement creation error:", err);
     return res.status(500).json({ 
@@ -851,7 +841,7 @@ router.post("/requirement/verify-otp", async (req, res) => {
   await sendRequirementConfirmationviaWhatsApp(mobileE164, requirement, requirementData?.product);
 
   const token = jwt.sign(
-    { id: user._id, role: "buyer", tokenVersion: user.tokenVersion || 0 },
+    { id: softUser._id, role: "buyer", tokenVersion: softUser.tokenVersion || 0 },
     process.env.JWT_SECRET,
     { expiresIn: "7d" }
   );
@@ -878,13 +868,13 @@ router.post("/requirement/verify-otp", async (req, res) => {
     requirementId: requirement._id,
     token,
     user: {
-      _id: user._id,
-      email: user.email,
-      role: user.role,
-      roles: user.roles,
-      city: user.city,
-      preferredCurrency: user.preferredCurrency || "INR",
-      mobile: user.mobile
+      _id: softUser._id,
+      email: softUser.email,
+      role: softUser.role,
+      roles: softUser.roles,
+      city: softUser.city,
+      preferredCurrency: softUser.preferredCurrency || "INR",
+      mobile: softUser.mobile
     }
   });
 });
