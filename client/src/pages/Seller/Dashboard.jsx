@@ -55,12 +55,13 @@ function readSellerDashboardState() {
 }
 
 export default function SellerDashboard() {
-  console.log("[SellerDashboard] Component rendering, session:", session ? "exists" : "null", "token:", session?.token ? "yes" : "no");
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const session = getSession();
   const menuRef = useRef(null);
+
+  console.log("[SellerDashboard] Component rendering, session:", session ? "exists" : "null", "token:", session?.token ? "yes" : "no");
 
   // Handle city from URL params (from WhatsApp deep link)
   const cityFromUrl = searchParams.get("city") || "";
