@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import api from "../services/api";
-import { getSession } from "../services/storage";
+import api from "../../services/api";
+import { getSession } from "../../services/storage";
 
 export default function SellerDashboard() {
   const [searchParams] = useSearchParams();
