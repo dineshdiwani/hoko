@@ -43,6 +43,9 @@ export default function RequirementForm({ isPublic = false }) {
   const { id: requirementId } = useParams();
   const [searchParams] = useSearchParams();
   const rawRef = searchParams.get("ref") || "";
+  const mobileFromUrl = searchParams.get("mobile") || "";
+  const productFromUrl = searchParams.get("product") || "";
+  const cityFromUrl = searchParams.get("city") || "";
   console.log("[RequirementForm] rawRef:", rawRef);
   let tempRequirementRef = rawRef;
   
@@ -58,9 +61,10 @@ export default function RequirementForm({ isPublic = false }) {
   const sessionCity = String(session?.city || "").trim();
 
   const [form, setForm] = useState({
-    city: "",
+    mobile: mobileFromUrl || "",
+    city: cityFromUrl || "",
     category: "",
-    product: "",
+    product: productFromUrl || "",
     makeBrand: "",
     typeModel: "",
     quantity: "",
@@ -73,6 +77,12 @@ export default function RequirementForm({ isPublic = false }) {
   const [existingAttachments, setExistingAttachments] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [loadingRequirement, setLoadingRequirement] = useState(isEditMode);
+  
+  const [otpStep, setOtpStep] = useState(false);
+  const [otpValue, setOtpValue] = useState("");
+  const [otpError, setOtpError] = useState("");
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
+  const [postData, setPostData] = useState(null);
   const maxImageBytes = 100 * 1024;
   const [cameraOpen, setCameraOpen] = useState(false);
   const [cameraError, setCameraError] = useState("");
@@ -423,6 +433,7 @@ export default function RequirementForm({ isPublic = false }) {
     setSubmitted(true);
 
     if (
+      !form.mobile ||
       !form.city ||
       !form.category ||
       !form.product ||
@@ -430,6 +441,7 @@ export default function RequirementForm({ isPublic = false }) {
       !form.unit
     ) {
       alert("Please fill all required fields");
+      setSubmitted(false);
       return;
     }
 
@@ -451,6 +463,7 @@ export default function RequirementForm({ isPublic = false }) {
       }
 
       const payload = {
+        mobile: form.mobile,
         city: form.city,
         category: form.category,
         productName: form.product,
@@ -510,6 +523,113 @@ export default function RequirementForm({ isPublic = false }) {
     }
   }
 
+  async function handlePublicSubmit(e) {
+    e.preventDefault();
+    setSubmitted(true);
+
+    if (
+      !form.mobile ||
+      !form.city ||
+      !form.category ||
+      !form.product ||
+      !form.quantity ||
+      !form.unit
+    ) {
+      alert("Please fill all required fields");
+      setSubmitted(false);
+      return;
+    }
+
+    try {
+      let attachmentUrls = [];
+      if (attachments.length) {
+        setUploading(true);
+        const formData = new FormData();
+        attachments.forEach((file) => {
+          formData.append("files", file);
+        });
+        const uploadRes = await api.post(
+          "/buyer/requirement/attachments",
+          formData,
+          { headers: { "Content-Type": "multipart/form-data" } }
+        );
+        attachmentUrls =
+          uploadRes?.data?.files?.map((f) => f.url) || [];
+      }
+
+      const payload = {
+        mobile: form.mobile,
+        city: form.city,
+        category: form.category,
+        productName: form.product,
+        product: form.product,
+        makeBrand: form.makeBrand,
+        typeModel: form.typeModel,
+        quantity: form.quantity,
+        type: form.unit,
+        details: form.details,
+        offerInvitedFrom: form.offerInvitedFrom || "city",
+        attachments: [...existingAttachments, ...attachmentUrls],
+        ref: tempRequirementRef
+      };
+
+      setPostData(payload);
+
+      const otpRes = await api.post("/buyer/requirement/request-otp", {
+        mobile: form.mobile,
+        product: form.product,
+        city: form.city
+      });
+
+      if (otpRes.data?.success) {
+        setOtpStep(true);
+        setSubmitted(false);
+        setUploading(false);
+      } else {
+        throw new Error(otpRes.data?.message || "Failed to send OTP");
+      }
+    } catch (err) {
+      console.error("Requirement submit error:", err);
+      const errorMsg = err?.response?.data?.message || err?.message || "Unknown error";
+      alert(`Failed to post requirement: ${errorMsg}`);
+      setSubmitted(false);
+      setUploading(false);
+    }
+  }
+
+  async function handleOtpVerify() {
+    if (otpValue.length !== 4) {
+      setOtpError("Please enter 4-digit OTP");
+      return;
+    }
+
+    setVerifyingOtp(true);
+    setOtpError("");
+
+    try {
+      const verifyRes = await api.post("/buyer/requirement/verify-otp", {
+        mobile: form.mobile,
+        otp: otpValue,
+        requirementData: postData
+      });
+
+      if (verifyRes.data?.success) {
+        setOtpStep(false);
+        setSubmitted(true);
+        setOtpValue("");
+        alert("Requirement posted successfully!");
+        navigate("/buyer/login?redirect=/buyer/dashboard", { replace: true });
+      } else {
+        throw new Error(verifyRes.data?.message || "Invalid OTP");
+      }
+    } catch (err) {
+      console.error("OTP verify error:", err);
+      setOtpError(err?.response?.data?.message || err?.message || "Invalid OTP. Please try again.");
+    } finally {
+      setVerifyingOtp(false);
+    }
+  }
+
   if (loadingRequirement) {
     return (
       <div className="page">
@@ -542,7 +662,7 @@ export default function RequirementForm({ isPublic = false }) {
 
             <form
               id="buyer-requirement-form"
-              onSubmit={handleSubmit}
+              onSubmit={isPublic && !session?.mobile ? handlePublicSubmit : handleSubmit}
               className={`w-full bg-white rounded-2xl shadow p-4 pb-24 md:pb-4 ${
                 submitted ? "form-submitted" : ""
               }`}
@@ -552,6 +672,20 @@ export default function RequirementForm({ isPublic = false }) {
             </h2>
 
         <div className="grid gap-3 md:grid-cols-2">
+        {/* Mobile */}
+        <div className="md:col-span-2">
+          <input
+            name="mobile"
+            type="tel"
+            value={form.mobile}
+            onChange={handleChange}
+            placeholder="Mobile Number (for OTP) *"
+            className="w-full px-3 py-2 border rounded-xl text-sm"
+            required
+            readOnly={!!mobileFromUrl}
+          />
+        </div>
+
         {/* Product */}
         <input
           name="product"
@@ -854,6 +988,68 @@ export default function RequirementForm({ isPublic = false }) {
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {otpStep && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-xl p-6">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <h2 className="text-xl font-bold mb-2">Verify Your Number</h2>
+              <p className="text-gray-600 text-sm">
+                OTP sent to WhatsApp at<br />
+                <span className="font-semibold">{form.mobile}</span>
+              </p>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2 text-center">
+                Enter 4-digit OTP
+              </label>
+              <input
+                type="text"
+                maxLength={4}
+                value={otpValue}
+                onChange={(e) => setOtpValue(e.target.value.replace(/\D/g, ""))}
+                className="w-full px-4 py-3 text-center text-2xl tracking-widest border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none"
+                placeholder="_ _ _ _"
+              />
+              {otpError && (
+                <p className="text-red-500 text-sm text-center mt-2">{otpError}</p>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <button
+                type="button"
+                onClick={handleOtpVerify}
+                disabled={verifyingOtp || otpValue.length !== 4}
+                className="w-full py-3 btn-brand rounded-xl font-semibold disabled:opacity-60"
+              >
+                {verifyingOtp ? "Verifying..." : "Verify OTP"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setOtpStep(false);
+                  setOtpValue("");
+                  setOtpError("");
+                }}
+                className="w-full py-2 text-gray-600 text-sm"
+              >
+                Cancel
+              </button>
+            </div>
+
+            <p className="text-xs text-gray-500 text-center mt-4">
+              Didn't receive OTP? Check your WhatsApp messages.
+            </p>
           </div>
         </div>
       )}

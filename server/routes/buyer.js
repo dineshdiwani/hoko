@@ -3,6 +3,7 @@ const router = express.Router();
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+const mongoose = require("mongoose");
 
 const Requirement = require("../models/Requirement");
 const Offer = require("../models/Offer");
@@ -546,6 +547,282 @@ router.post("/requirement/public", async (req, res) => {
     tempRequirementId: tempRequirement._id,
     ackSent: ackResult.ok,
     message: "Requirement submitted successfully"
+  });
+});
+
+const WhatsAppOTP = require("../models/WhatsAppOTP");
+const { sendWhatsAppMessage } = require("../utils/sendWhatsApp");
+const { normalizeE164 } = require("../utils/sendWhatsApp");
+
+function generateOTP() {
+  return String(Math.floor(1000 + Math.random() * 9000));
+}
+
+async function findOrCreateSoftUserByMobile(mobile, city) {
+  const normalizedMobile = normalizeE164(mobile);
+  let user = await mongoose.model("User").findOne({ phone: normalizedMobile });
+  if (!user) {
+    user = await mongoose.model("User").create({
+      phone: normalizedMobile,
+      city: city || "",
+      roles: { buyer: true },
+      buyerSettings: { name: "Buyer" },
+      verified: false
+    });
+  }
+  return { user };
+}
+
+async function createRequirementFromOTPData(otpRecord, user) {
+  const data = otpRecord.requirementData;
+  const { user: softUser } = await findOrCreateSoftUserByMobile(otpRecord.mobileE164, data?.city);
+  
+  const moderationRules = await getModerationRules();
+  const textParts = [data?.productName, data?.product, data?.details, data?.brand, data?.makeBrand, data?.typeModel, data?.type].filter(Boolean);
+  const flaggedReason = checkTextForFlags(textParts.join(" "), moderationRules);
+
+  let tempRequirement = null;
+  if (data?.ref) {
+    let refId = data.ref.trim();
+    try {
+      const decoded = decodeURIComponent(refId);
+      const idMatch = decoded.match(/([a-f0-9]{20,24})/i);
+      if (idMatch) refId = idMatch[1];
+    } catch {}
+    
+    try {
+      tempRequirement = await TempRequirement.findOne({ _id: refId, status: "pending" }).lean();
+    } catch {}
+  }
+
+  const requirement = await Requirement.create({
+    productName: data?.productName || data?.product,
+    product: data?.productName || data?.product,
+    city: data?.city,
+    category: data?.category,
+    quantity: data?.quantity,
+    type: data?.type,
+    details: data?.details,
+    brand: data?.brand,
+    makeBrand: data?.makeBrand,
+    typeModel: data?.typeModel,
+    status: "open",
+    statusUpdatedAt: new Date(),
+    expiresAt: (() => {
+      const days = clamp(30, 7, 30, 30);
+      const next = new Date();
+      next.setDate(next.getDate() + days);
+      return next;
+    })(),
+    offerInvitedFrom: normalizeOfferInvitedFrom(data?.offerInvitedFrom),
+    attachments: data?.attachments || [],
+    buyerId: softUser._id,
+    moderation: flaggedReason
+      ? { flagged: true, flaggedAt: new Date(), flaggedReason }
+      : undefined
+  });
+
+  if (tempRequirement) {
+    await TempRequirement.findByIdAndUpdate(tempRequirement._id, {
+      $set: {
+        status: "completed",
+        requirementId: requirement._id,
+        userId: softUser._id
+      }
+    });
+  }
+
+  return { requirement, softUser, tempRequirement };
+}
+
+async function sendOTPviaWhatsApp(mobileE164, otp, product, city) {
+  const message = [
+    `🔐 Your HOKO OTP: *${otp}*`,
+    "",
+    `Valid for 5 minutes.`,
+    "",
+    product ? `Requirement: ${product}` : "",
+    city ? `City: ${city}` : "",
+    "",
+    "HOKO - India's B2B Marketplace"
+  ].filter(Boolean).join("\n");
+
+  try {
+    await sendWhatsAppMessage({
+      to: mobileE164,
+      body: message
+    });
+    return { ok: true };
+  } catch (err) {
+    console.error("[OTP] WhatsApp send error:", err.message);
+    return { ok: false, error: err.message };
+  }
+}
+
+async function sendRequirementConfirmationviaWhatsApp(mobileE164, requirement, product) {
+  const appBase = resolvePublicAppUrl();
+  const deepLink = `${appBase}/buyer/login?redirect=/buyer/dashboard&mobile=${encodeURIComponent(mobileE164.replace("+", ""))}`;
+  
+  const message = [
+    "✅ *Requirement Confirmed!*",
+    "",
+    `📋 ID: HOKO-${requirement._id.toString().slice(-8).toUpperCase()}`,
+    `📦 ${product || requirement.productName || requirement.product}`,
+    requirement.city ? `📍 City: ${requirement.city}` : "",
+    requirement.quantity ? `📊 Qty: ${requirement.quantity} ${requirement.type || ""}` : "",
+    "",
+    "🔥 Sellers have been notified!",
+    "⏱️ Offers expected in ~1 hour",
+    "",
+    "📱 Track offers & chat with sellers:",
+    deepLink,
+    "",
+    "Download HOKO App for best experience!",
+    "",
+    "HOKO - India's B2B Marketplace"
+  ].filter(Boolean).join("\n");
+
+  try {
+    await sendWhatsAppMessage({
+      to: mobileE164,
+      body: message
+    });
+    return { ok: true };
+  } catch (err) {
+    console.error("[Confirmation] WhatsApp send error:", err.message);
+    return { ok: false, error: err.message };
+  }
+}
+
+router.post("/requirement/request-otp", async (req, res) => {
+  const { mobile, product, city } = req.body;
+  
+  if (!mobile) {
+    return res.status(400).json({ success: false, message: "Mobile number is required" });
+  }
+
+  const mobileE164 = normalizeE164(mobile);
+  
+  await WhatsAppOTP.updateMany(
+    { mobileE164, status: "pending" },
+    { $set: { status: "expired" } }
+  );
+
+  const otp = generateOTP();
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+  const otpRecord = await WhatsAppOTP.create({
+    mobileE164,
+    otp,
+    expiresAt,
+    status: "pending",
+    requirementData: null,
+    provider: "whatsapp"
+  });
+
+  const sendResult = await sendOTPviaWhatsApp(mobileE164, otp, product, city);
+
+  if (!sendResult.ok) {
+    return res.status(500).json({ 
+      success: false, 
+      message: "Failed to send OTP. Please try again." 
+    });
+  }
+
+  res.json({ 
+    success: true, 
+    message: "OTP sent to WhatsApp",
+    expiresIn: 300
+  });
+});
+
+router.post("/requirement/verify-otp", async (req, res) => {
+  const { mobile, otp, requirementData } = req.body;
+  
+  if (!mobile || !otp) {
+    return res.status(400).json({ success: false, message: "Mobile and OTP are required" });
+  }
+
+  const mobileE164 = normalizeE164(mobile);
+  
+  const otpRecord = await WhatsAppOTP.findOne({
+    mobileE164,
+    otp: otp.trim(),
+    status: "pending"
+  }).sort({ createdAt: -1 });
+
+  if (!otpRecord) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "Invalid or expired OTP. Please request a new one." 
+    });
+  }
+
+  if (new Date() > otpRecord.expiresAt) {
+    await WhatsAppOTP.findByIdAndUpdate(otpRecord._id, { $set: { status: "expired" } });
+    return res.status(400).json({ 
+      success: false, 
+      message: "OTP has expired. Please request a new one." 
+    });
+  }
+
+  if (otpRecord.attempts >= 5) {
+    await WhatsAppOTP.findByIdAndUpdate(otpRecord._id, { $set: { status: "expired" } });
+    return res.status(400).json({ 
+      success: false, 
+      message: "Too many attempts. Please request a new OTP." 
+    });
+  }
+
+  await otpRecord.incrementAttempts();
+
+  let requirement, softUser, tempRequirement;
+  
+  try {
+    otpRecord.requirementData = requirementData;
+    await otpRecord.save();
+    
+    const result = await createRequirementFromOTPData(otpRecord, softUser);
+    requirement = result.requirement;
+    softUser = result.softUser;
+    tempRequirement = result.tempRequirement;
+  } catch (err) {
+    console.error("[OTP Verify] Requirement creation error:", err);
+    return res.status(500).json({ 
+      success: false, 
+      message: "Failed to create requirement. Please try again." 
+    });
+  }
+
+  await WhatsAppOTP.findByIdAndUpdate(otpRecord._id, { 
+    $set: { 
+      status: "verified", 
+      verifiedAt: new Date() 
+    } 
+  });
+
+  await sendRequirementConfirmationviaWhatsApp(mobileE164, requirement, requirementData?.product);
+
+  setImmediate(async () => {
+    try {
+      const { triggerWhatsAppCampaignForRequirement } = require("../services/whatsAppCampaign");
+      const { notifyMatchingSellers } = require("./whatsapp");
+      const cityNormalized = String(requirement.city || "").trim().toLowerCase();
+      
+      await triggerWhatsAppCampaignForRequirement(requirement, {
+        triggerType: "buyer_post",
+        contactFilters: { cityKeys: [cityNormalized] }
+      });
+      await notifyMatchingSellers(requirement);
+    } catch (err) {
+      console.warn("[WhatsApp Campaign] Trigger failed:", err?.message || err);
+    }
+  });
+
+  res.json({ 
+    success: true, 
+    message: "Requirement submitted and verified!",
+    requirementId: requirement._id
   });
 });
 
