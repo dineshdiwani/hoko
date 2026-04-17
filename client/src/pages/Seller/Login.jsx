@@ -9,8 +9,11 @@ export default function SellerLogin() {
   const mobileFromUrl = searchParams.get("mobile") || "";
   const ref = searchParams.get("ref") || "";
   
+  console.log("[SellerLogin] mobileFromUrl:", mobileFromUrl, "ref:", ref);
+  
   // If coming from WhatsApp with mobile, show WhatsApp login
   const isWhatsAppUser = ref === "wa" && mobileFromUrl;
+  console.log("[SellerLogin] isWhatsAppUser:", isWhatsAppUser);
   
   if (isWhatsAppUser) {
     return <WhatsAppLogin />;
