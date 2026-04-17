@@ -1577,6 +1577,55 @@ router.post("/profile", auth, buyerOnly, async (req, res) => {
     }
   }
 
+  if (typeof mobile === "string" && mobile.trim()) {
+    const existingMobileUser = await User.findOne({ mobile: mobile.trim(), _id: { $ne: req.user._id } });
+    if (existingMobileUser) {
+      const requirementsMerged = await Requirement.updateMany(
+        { buyerId: req.user._id },
+        { $set: { buyerId: existingMobileUser._id } }
+      );
+      await TempRequirement.updateMany(
+        { userId: req.user._id },
+        { $set: { userId: existingMobileUser._id } }
+      );
+      existingMobileUser.email = req.user.email;
+      if (existingMobileUser.city && !existingMobileUser.city.trim()) {
+        existingMobileUser.city = req.user.city;
+      }
+      if (!existingMobileUser.roles?.buyer) {
+        existingMobileUser.roles = { ...existingMobileUser.roles, buyer: true };
+      }
+      if (req.user.buyerSettings) {
+        existingMobileUser.buyerSettings = {
+          ...existingMobileUser.buyerSettings,
+          ...req.user.buyerSettings
+        };
+      }
+      await existingMobileUser.save();
+      await User.findByIdAndDelete(req.user._id);
+      console.log(`[Account Merge] Merged Google user ${req.user._id} into WhatsApp user ${existingMobileUser._id}, ${requirementsMerged.modifiedCount} requirements`);
+      const token = jwt.sign(
+        { id: existingMobileUser._id, role: "buyer", tokenVersion: existingMobileUser.tokenVersion || 0 },
+        process.env.JWT_SECRET,
+        { expiresIn: "7d" }
+      );
+      return res.json({
+        merged: true,
+        message: "Account merged successfully!",
+        token,
+        user: {
+          _id: existingMobileUser._id,
+          email: existingMobileUser.email,
+          role: existingMobileUser.role,
+          roles: existingMobileUser.roles,
+          city: existingMobileUser.city,
+          preferredCurrency: existingMobileUser.preferredCurrency || "INR",
+          mobile: existingMobileUser.mobile
+        }
+      });
+    }
+  }
+
   try {
     await req.user.save();
   } catch (err) {

@@ -177,7 +177,7 @@ export default function BuyerSettings() {
           mobile: data.user.mobile,
           token: data.token
         });
-        alert("Account merged successfully! You can now login with both WhatsApp and Google.");
+        alert("Account merged successfully! Your posts have been combined.");
         navigate("/buyer/dashboard");
         return;
       }
