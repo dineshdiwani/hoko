@@ -73,16 +73,18 @@ export default function BuyerWelcome() {
     video.playbackRate = Math.max(0.5, Math.min(nextRate, 8));
   }
 
-  function submitRequirement() {
+function submitRequirement() {
     if (!text.trim()) {
       alert("Please type in your requirement");
       return;
     }
     localStorage.setItem("draft_requirement_text", text.trim());
     const currentSession = getSession();
+    
+    // If not logged in, go to requirement form (they'll be asked to login on submit)
     if (!currentSession?.token) {
       clearSellerLoginIntent();
-      navigate("/buyer/login");
+      navigate("/buyer/requirement/new");
       return;
     }
 

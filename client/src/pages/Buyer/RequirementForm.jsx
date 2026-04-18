@@ -647,6 +647,11 @@ export default function RequirementForm({ isPublic = false }) {
         
         const { token, user, requirementId } = verifyRes.data;
         
+        // If user was not logged in before (new user), redirect to login
+        // Otherwise go to dashboard
+        const wasLoggedInBefore = session?.token;
+        
+        // If token returned, save the session (for next time login)
         if (token && user) {
           setSession({
             _id: user._id,
@@ -661,10 +666,12 @@ export default function RequirementForm({ isPublic = false }) {
           });
         }
         
-        if (requirementId) {
-          navigate(`/buyer/dashboard?highlight=${requirementId}`, { replace: true });
+        if (!wasLoggedInBefore) {
+          // New user - redirect to login page
+          navigate("/buyer/login?redirect=/buyer/dashboard&newUser=true", { replace: true });
         } else {
-          navigate("/buyer/dashboard", { replace: true });
+          // Already logged in - go to dashboard on myposts tab
+          navigate(`/buyer/dashboard?tab=myposts&highlight=${requirementId || ""}`, { replace: true });
         }
       } else {
         throw new Error(verifyRes.data?.message || "Invalid OTP");
