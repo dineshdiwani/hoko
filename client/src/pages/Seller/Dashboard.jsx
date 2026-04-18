@@ -489,6 +489,12 @@ export default function SellerDashboard() {
       )
     );
     
+    // Only show registration prompt for WhatsApp login users
+    const isWhatsAppLogin = localStorage.getItem("whatsapp_login") === "true";
+    if (!isWhatsAppLogin) {
+      return; // Skip for normal email login users
+    }
+    
     // Show success message and prompt for registration
     setTimeout(() => {
       alert("Your offer has been submitted successfully!");

@@ -87,6 +87,8 @@ export default function WhatsAppLogin() {
           const dashParams = new URLSearchParams();
           if (cityFromUrl) dashParams.set("city", cityFromUrl);
           
+          // Set flag to indicate WhatsApp login
+          localStorage.setItem("whatsapp_login", "true");
           localStorage.removeItem("whatsapp_seller_mobile");
           
           await setSession({
