@@ -1296,7 +1296,7 @@ export default function AdminDashboard() {
                         key={i}
                         type="tel"
                         placeholder={`Mobile ${i + 1} (e.g., 9887482058)`}
-                        defaultValue={displayValue}
+                        value={displayValue}
                         onChange={(e) => {
                           const val = e.target.value.replace(/[^\d]/g, "").slice(0, 10);
                           const newMobiles = [...savedMobiles];

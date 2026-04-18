@@ -1161,7 +1161,7 @@ router.put("/options", adminAuth, requireAdminPermission("options.manage"), asyn
     });
   }
 
-  const next = {
+const next = {
     cities: nextCities,
     categories: nextCategories,
     units: nextUnits,
@@ -1188,6 +1188,26 @@ router.put("/options", adminAuth, requireAdminPermission("options.manage"), asyn
     },
     privacyPolicy: payload.privacyPolicy || current?.privacyPolicy || {
       content: DEFAULT_PRIVACY_POLICY_CONTENT
+    },
+    adminNotifications: payload.adminNotifications || current?.adminNotifications || {
+      enabled: true,
+      mobileNumbers: [],
+      instantEnabled: true,
+      batchEnabled: true,
+      batchIntervalMinutes: 60,
+      minOfferValue: 10000,
+      events: {
+        newBuyer: true,
+        newSeller: true,
+        newRequirement: true,
+        newOffer: true,
+        highValueOffer: true,
+        reverseAuction: true,
+        whatsappInteraction: true,
+        userReport: true,
+        sellerApproved: false,
+        moderationAlert: true
+      }
     }
   };
 

@@ -42,7 +42,7 @@ export default function AdminWhatsApp() {
   const [downloadingWhatsAppFile, setDownloadingWhatsAppFile] = useState(false);
   const [downloadingBuyerWhatsAppFile, setDownloadingBuyerWhatsAppFile] = useState(false);
   const [downloadingTemplateSheetFile, setDownloadingTemplateSheetFile] = useState(false);
-  const [consentConfig, setConsentConfig] = useState({
+const [consentConfig, setConsentConfig] = useState({
     waMeLink: "https://wa.me/918079060554?text=Hi",
     pendingCount: 0,
     optedInCount: 0
