@@ -114,7 +114,7 @@ export default function BuyerWelcome() {
       });
   }
 
-  const startVoiceInput = () => {
+const startVoiceInput = async () => {
     if (!SpeechRecognition) {
       alert("Speech recognition is not supported in this browser.");
       return;
@@ -123,6 +123,19 @@ export default function BuyerWelcome() {
       recognitionRef.current.stop();
       return;
     }
+    
+    // Request microphone permission first
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach(track => track.stop());
+    } catch (micErr) {
+      const micCode = String(micErr?.name || "");
+      if (micCode === "NotAllowedError" || micCode === "PermissionDeniedError") {
+        setSpeechStatus("Mic permission denied. Allow microphone access in browser settings.");
+        return;
+      }
+    }
+    
     const recognition = new SpeechRecognition();
     recognitionRef.current = recognition;
     recognition.lang = "en-IN";

@@ -31,9 +31,8 @@ export default function NotificationPermissionPrompt() {
   const isLoggedIn = Boolean(session?.token);
   const isAdminRoute = typeof window !== "undefined" && window.location.pathname.startsWith("/admin");
   const shouldRender =
-    isLoggedIn &&
     !isAdminRoute &&
-    (state === "default" || state === "denied" || state === "prompt");
+    (state === "default" || state === "prompt");
 
   const helpText = useMemo(() => buildNotificationHelpText(), []);
 
