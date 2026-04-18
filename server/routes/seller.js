@@ -1360,6 +1360,7 @@ router.post("/otp/verify", async (req, res) => {
       role: user.role,
       roles: user.roles,
       city: user.city,
+      sellerProfile: user.sellerProfile,
       preferredCurrency: user.preferredCurrency || "INR",
       mobile: user.mobile
     }
