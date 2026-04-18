@@ -171,9 +171,12 @@ const handleSubmit = () => {
     const firmName = String(seller.firmName || "").trim();
     const managerName = String(seller.managerName || "").trim();
     const city = String(seller.city || "").trim();
-    const categories = Array.isArray(seller.categories) ? seller.categories : [];
+    const categories = seller.categories || [];
+    
+    console.log("Submitting - email:", email, "mobile:", mobile, "firmName:", firmName, "managerName:", managerName, "city:", city, "categories:", categories);
     
     if (!email || !mobile || !firmName || !managerName || categories.length === 0 || !city) {
+      console.log("Validation failed - missing fields");
       alert("Please fill all required fields");
       return;
     }
@@ -182,7 +185,20 @@ const handleSubmit = () => {
       return;
     }
 
-    const profile = { ...seller, email, mobile, firmName, managerName, city };
+    const profile = {
+      email,
+      mobile,
+      firmName,
+      managerName,
+      city,
+      categories,
+      businessName: seller.businessName,
+      businessAddress: seller.businessAddress,
+      ownerName: seller.ownerName,
+      website: seller.website,
+      taxId: seller.taxId
+    };
+    
     if (!session?.token) {
       navigate("/buyer/login");
       return;
