@@ -63,13 +63,16 @@ export default function UserLogin({ role = "buyer" }) {
   const [submitted, setSubmitted] = useState(false);
   const [termsContent, setTermsContent] = useState(defaultTermsContent);
   const [privacyPolicyContent, setPrivacyPolicyContent] = useState(defaultPrivacyPolicyContent);
-  const [cities, setCities] = useState([]);
+const [cities, setCities] = useState([]);
 
+  // Get redirect from URL param if present
+  const urlRedirect = searchParams.get("redirect") || "";
+  
   const redirect = isSeller
     ? (useSellerPostLoginRedirect ? postLoginRedirect : "/seller/dashboard")
-    : (localStorage.getItem("login_intent_role") === "seller"
+    : (urlRedirect || (localStorage.getItem("login_intent_role") === "seller"
         ? (postLoginRedirect || "/seller/register")
-        : "/buyer/dashboard");
+        : "/buyer/dashboard"));
   const cityRef = useRef(city);
   const acceptedTermsRef = useRef(acceptedTerms);
 
@@ -84,9 +87,15 @@ export default function UserLogin({ role = "buyer" }) {
   useEffect(() => {
     const session = getSession();
     if (session?.role === currentRole && session?.token) {
-      navigate(redirect, { replace: true });
+      // Check for redirect param in URL for buyers
+      const urlRedirect = searchParams.get("redirect");
+      if (urlRedirect && !isSeller) {
+        navigate(urlRedirect, { replace: true });
+      } else {
+        navigate(redirect, { replace: true });
+      }
     }
-  }, [navigate, redirect, currentRole]);
+  }, [navigate, redirect, currentRole, searchParams, isSeller]);
 
   // WhatsApp bypass: redirect to dashboard with OTP popup
   useEffect(() => {
