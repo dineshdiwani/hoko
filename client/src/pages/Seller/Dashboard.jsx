@@ -481,6 +481,7 @@ export default function SellerDashboard() {
     );
 
   const markOfferSubmitted = (requirementId) => {
+    console.log("[SellerDashboard] markOfferSubmitted called for:", requirementId);
     if (!requirementId) return;
     setRequirements((prev) =>
       prev.map((req) =>
@@ -488,13 +489,17 @@ export default function SellerDashboard() {
       )
     );
     
-    // Prompt to complete seller registration
-    const wantsToRegister = confirm(
-      "Offer submitted! Complete your seller profile to get better visibility and manage offers?"
-    );
-    if (wantsToRegister) {
-      navigate("/seller/register");
-    }
+    // Prompt to complete seller registration after modal closes
+    setTimeout(() => {
+      console.log("[SellerDashboard] Showing registration prompt");
+      const wantsToRegister = confirm(
+        "Offer submitted! Complete your seller profile to get better visibility and manage offers?"
+      );
+      console.log("[SellerDashboard] User chose:", wantsToRegister);
+      if (wantsToRegister) {
+        navigate("/seller/register");
+      }
+    }, 1000);
   };
 
   async function handleDeleteOffer(requirementId) {
