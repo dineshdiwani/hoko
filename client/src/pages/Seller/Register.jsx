@@ -252,7 +252,8 @@ const switchRes = await api.post("/auth/switch-role", {
         localStorage.removeItem("post_login_redirect_source");
         navigate(postLoginRedirect);
       })
-      .catch((err) => {
+.catch((err) => {
+        console.log("Registration error:", err?.response?.data || err);
         alert(
           err?.response?.data?.message ||
             "Failed to register seller."
