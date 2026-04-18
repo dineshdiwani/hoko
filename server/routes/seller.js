@@ -1273,7 +1273,27 @@ router.post("/otp/check-user", async (req, res) => {
   
   // Check if user has seller role
   if (!user.roles?.seller) {
-    return res.json({ exists: true, user, token: null });
+    // Even if no seller role, return token for buyer role
+    const token = jwt.sign(
+      { id: user._id, role: "buyer", tokenVersion: user.tokenVersion || 0 },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+    
+    return res.json({
+      exists: true,
+      user: {
+        _id: user._id,
+        email: user.email,
+        role: user.role,
+        roles: user.roles,
+        city: user.city,
+        sellerProfile: user.sellerProfile,
+        preferredCurrency: user.preferredCurrency || "INR",
+        mobile: user.mobile
+      },
+      token
+    });
   }
   
   // Generate token for existing seller
