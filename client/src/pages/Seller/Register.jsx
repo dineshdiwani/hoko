@@ -223,7 +223,8 @@ api
             sellerProfile: res.data.sellerProfile
           });
           localStorage.removeItem("whatsapp_login");
-          navigate(postLoginRedirect);
+          alert("Registration submitted successfully!");
+          navigate("/seller/dashboard");
           return;
         }
         
