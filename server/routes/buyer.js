@@ -340,7 +340,7 @@ async function sendRequirementAckTemplate(mobileE164, requirementId) {
   const displayId = String(requirementId).slice(-6).toUpperCase();
 
   const templateConfig = await WhatsAppTemplateRegistry.findOne({
-    key: "buyer_join_app_invite",
+    key: "buyer_requirement_ack_v3",
     isActive: true
   }).lean();
 
@@ -352,15 +352,19 @@ async function sendRequirementAckTemplate(mobileE164, requirementId) {
   try {
     const templateId = String(templateConfig.templateId || "").trim();
     const languageCode = String(templateConfig.language || "en").trim();
-    const displayId = String(requirementId).slice(-6).toUpperCase();
     const parameters = [displayId];
+
+    const appBase = resolvePublicAppUrl();
+    const mobileParam = mobileE164.replace("+", "");
+    const deepLink = `${appBase}/buyer/requirement/new?ref=${requirementId}&mobile=${mobileParam}&src=wa&campaign=requirement_ack&step=view_offers`;
 
     const result = await sendViaGupshupTemplate({
       to: mobileE164,
       templateId,
       templateName: templateConfig.templateName,
       languageCode,
-      parameters
+      parameters,
+      buttonUrl: deepLink
     });
 
     await WhatsAppDeliveryLog.create({

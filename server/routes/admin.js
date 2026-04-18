@@ -1832,7 +1832,18 @@ router.post(
         category: "MARKETING",
         status: "APPROVED",
         variableCount: 1,
-        isActive: true
+        isActive: false
+      },
+      {
+        key: "buyer_requirement_ack_v3",
+        templateName: "buyer_requirement_ack_v3",
+        templateId: "",
+        language: "en",
+        category: "MARKETING",
+        status: "APPROVED",
+        variableCount: 1,
+        isActive: true,
+        buttonUrlPattern: "/buyer/requirement/new"
       }
     ];
 
