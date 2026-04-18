@@ -1140,6 +1140,8 @@ export default function RequirementForm({ isPublic = false }) {
               onClick={() => {
                 const waLink = `https://wa.me/918079060554?text=${encodeURIComponent("Send updates on my post")}`;
                 window.open(waLink, "_blank");
+                setWhatsappVerifyOpen(false);
+                navigate("/buyer/dashboard?tab=myposts", { replace: true });
               }}
               className="w-full bg-green-500 text-white py-3 rounded-lg font-semibold mb-3 hover:bg-green-600"
             >
