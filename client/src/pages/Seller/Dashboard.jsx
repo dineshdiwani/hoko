@@ -489,17 +489,18 @@ export default function SellerDashboard() {
       )
     );
     
-    // Prompt to complete seller registration after modal closes
+    // Show success message and prompt for registration
     setTimeout(() => {
+      alert("Your offer has been submitted successfully!");
       console.log("[SellerDashboard] Showing registration prompt");
       const wantsToRegister = confirm(
-        "Offer submitted! Complete your seller profile to get better visibility and manage offers?"
+        "Complete your seller profile to get better visibility and manage offers?"
       );
       console.log("[SellerDashboard] User chose:", wantsToRegister);
       if (wantsToRegister) {
         navigate("/seller/register");
       }
-    }, 1000);
+    }, 500);
   };
 
   async function handleDeleteOffer(requirementId) {

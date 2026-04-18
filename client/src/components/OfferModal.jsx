@@ -266,16 +266,14 @@ export default function OfferModal({
       });
       setOfferAttachments(nextAttachments);
       setFile(null);
-    } catch (err) {
+} catch (err) {
       alert(
         err?.response?.data?.message || "Failed to submit offer. Try again."
       );
       return;
     }
-    alert(
-      "Your offer has been sent to the Buyer app and on email, The moment he finds offer suitable, will contact you on chat and/or mobile/email given in your profile.Thank you."
-    );
-
+    
+    // Show registration prompt instead of success message
     if (typeof onSubmitted === "function") {
       onSubmitted(requirementId);
     }
