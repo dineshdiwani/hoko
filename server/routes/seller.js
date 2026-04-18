@@ -378,7 +378,6 @@ if (
 
 const update = {
     mobile: mobileValue,
-    email: String(req.body.email || req.user?.email || "").trim(),
     "sellerProfile.businessName": String(businessName || "").trim(),
     "sellerProfile.registrationDetails": String(registrationDetails || "").trim(),
     "sellerProfile.businessAddress": String(businessAddress || "").trim(),
