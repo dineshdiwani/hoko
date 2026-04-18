@@ -1299,13 +1299,14 @@ export default function AdminDashboard() {
                         value={displayValue}
                         onChange={(e) => {
                           const val = e.target.value.replace(/[^\d]/g, "").slice(0, 10);
-                          const newMobiles = [...savedMobiles];
+                          const currentMobiles = options.adminNotifications?.mobileNumbers || [];
+                          const newMobiles = [...currentMobiles];
                           newMobiles[i] = val;
                           setOptions((prev) => ({
                             ...prev,
                             adminNotifications: {
                               ...prev.adminNotifications,
-                              mobileNumbers: newMobiles.filter(v => v.length >= 10)
+                              mobileNumbers: newMobiles
                             }
                           }));
                         }}
