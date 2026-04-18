@@ -253,8 +253,8 @@ export default function SellerRegister() {
             <h2 className="text-xl font-bold mb-6">Seller Details</h2>
 
             <div className="grid gap-3 md:grid-cols-2">
-              <input
-                className="w-full border p-2 rounded"
+<input
+                className={`w-full border p-2 rounded ${submitted && !seller.email ? "border-red-500" : ""}`}
                 type="email"
                 placeholder="Email *"
                 value={seller.email}
@@ -265,7 +265,7 @@ export default function SellerRegister() {
               />
 
               <input
-                className="w-full border p-2 rounded"
+                className={`w-full border p-2 rounded ${submitted && !seller.mobile ? "border-red-500" : ""}`}
                 type="tel"
                 placeholder="Mobile Number *"
                 value={seller.mobile}
@@ -276,7 +276,7 @@ export default function SellerRegister() {
               />
 
               <input
-                className="w-full border p-2 rounded"
+                className={`w-full border p-2 rounded ${submitted && !seller.firmName ? "border-red-500" : ""}`}
                 placeholder="Firm Name *"
                 value={seller.firmName}
                 onChange={(e) =>
@@ -285,16 +285,16 @@ export default function SellerRegister() {
                 required
               />
 
-              {/* Category Dropdown with checkbox list */}
+{/* Category Dropdown with checkbox list */}
               <div className="md:col-span-2">
-                <label className="block font-medium mb-2">
+                <label className={`block font-medium mb-2 ${submitted && (!seller.categories || seller.categories.length === 0) ? "text-red-600" : ""}`}>
                   Categories you deal in *
                 </label>
                 <div className="relative">
                   <button
                     type="button"
                     onClick={() => setShowCategoryMenu((v) => !v)}
-                    className="w-full border p-2 rounded text-left pr-10 relative"
+                    className={`w-full border p-2 rounded text-left pr-10 relative ${submitted && (!seller.categories || seller.categories.length === 0) ? "border-red-500" : ""}`}
                   >
                     {seller.categories.length
                       ? seller.categories.join(", ")
@@ -344,8 +344,8 @@ export default function SellerRegister() {
                 }
               />
 
-              <select
-                className="w-full border p-2 rounded"
+<select
+                className={`w-full border p-2 rounded ${submitted && !seller.city ? "border-red-500" : ""}`}
                 value={seller.city}
                 onChange={(e) =>
                   setSeller({ ...seller, city: e.target.value })
@@ -361,7 +361,7 @@ export default function SellerRegister() {
               </select>
 
               <input
-                className="w-full border p-2 rounded"
+                className={`w-full border p-2 rounded ${submitted && !seller.managerName ? "border-red-500" : ""}`}
                 placeholder="Manager Name *"
                 value={seller.managerName}
                 onChange={(e) =>
