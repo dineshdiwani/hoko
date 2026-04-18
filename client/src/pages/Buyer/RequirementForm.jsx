@@ -561,8 +561,23 @@ export default function RequirementForm({ isPublic = false }) {
         unit: payload.type
       });
 
-      // For logged-in users (from email login), show WhatsApp verify popup
+      // For logged-in users, show popup only when mobile/email/consent is incomplete.
       if (session?.token) {
+        try {
+          const profileRes = await api.get("/buyer/profile");
+          const profile = profileRes?.data || {};
+          const hasEmail = Boolean(
+            String(profile.email || session?.email || "").trim()
+          );
+          const hasMobile = Boolean(
+            String(profile.mobile || session?.mobile || form.mobile || "").trim()
+          );
+          const isWhatsAppOptedIn = profile?.whatsappUpdatesOptedIn === true;
+          if (hasEmail && hasMobile && isWhatsAppOptedIn) {
+            navigate("/buyer/dashboard?tab=posts", { replace: true });
+            return;
+          }
+        } catch {}
         setWhatsappVerifyOpen(true);
         return;
       }

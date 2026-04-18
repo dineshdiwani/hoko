@@ -1412,6 +1412,21 @@ router.get("/profile", auth, buyerOnly, async (req, res) => {
   const documents = (settings.documents || [])
     .map(normalizeBuyerDocument)
     .filter(Boolean);
+  const mobileE164 = normalizeE164(req.user.mobile || "");
+  let whatsappUpdatesOptedIn = false;
+  if (mobileE164) {
+    const buyerWhatsAppContact = await WhatsAppBuyerContact.findOne({
+      mobileE164
+    })
+      .select("optInStatus unsubscribedAt active")
+      .lean();
+    whatsappUpdatesOptedIn = Boolean(
+      buyerWhatsAppContact &&
+        buyerWhatsAppContact.active !== false &&
+        buyerWhatsAppContact.optInStatus === "opted_in" &&
+        !buyerWhatsAppContact.unsubscribedAt
+    );
+  }
 
   res.json({
     name: req.user.name || req.user.googleProfile?.name || "",
@@ -1428,6 +1443,7 @@ router.get("/profile", auth, buyerOnly, async (req, res) => {
       acceptedAt: req.user.termsAccepted?.at || null,
       versionDate: latestPlatformSettings?.updatedAt || null
     },
+    whatsappUpdatesOptedIn,
     buyerSettings: {
       ...settings,
       documents
