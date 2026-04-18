@@ -1132,18 +1132,18 @@ export default function RequirementForm({ isPublic = false }) {
       {whatsappVerifyOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 max-w-sm w-full text-center">
-            <h3 className="text-xl font-bold mb-4">Get Updates on WhatsApp</h3>
+            <h3 className="text-xl font-bold mb-4">Get WhatsApp Updates on Your Post</h3>
             <p className="text-gray-600 mb-6">
-              Send "Hi" on WhatsApp to receive instant notifications when sellers respond to your requirement.
+              Get instant notifications when sellers send you quotes. Click below to enable WhatsApp updates.
             </p>
             <button
               onClick={() => {
-                const waLink = `https://wa.me/918079060554?text=${encodeURIComponent("Hi")}`;
+                const waLink = `https://wa.me/918079060554?text=${encodeURIComponent("Send updates on my post")}`;
                 window.open(waLink, "_blank");
               }}
               className="w-full bg-green-500 text-white py-3 rounded-lg font-semibold mb-3 hover:bg-green-600"
             >
-              📱 Send "Hi" on WhatsApp
+              📱 Enable WhatsApp Updates
             </button>
             <button
               onClick={() => {
@@ -1152,7 +1152,7 @@ export default function RequirementForm({ isPublic = false }) {
               }}
               className="w-full border border-gray-300 py-2 rounded-lg text-gray-600 hover:bg-gray-50"
             >
-              Skip - Go to My Posts
+              Maybe Later
             </button>
           </div>
         </div>

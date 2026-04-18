@@ -33,6 +33,7 @@ const GREETING_WORDS = new Set(["hi", "hii", "hello", "hey", "start", "menu"]);
 const BUYER_WORDS = new Set(["buyer", "buy", "i want to buy", "want to buy", "purchase"]);
 const SELLER_WORDS = new Set(["seller", "sell", "i want to sell", "want to sell", "sell"]);
 const SKIP_WORDS = new Set(["skip", "na", "none", "no", "-"]);
+const UPDATE_WORDS = new Set(["send updates on my post", "update on post", "get updates", "enable updates", "whatsapp updates", "updates on my post"]);
 
 const consentState = new Map();
 
@@ -148,6 +149,18 @@ function buildConsentPromptMessage() {
     "👉 Reply with, If you are a",
     "1️⃣ BUYER",
     "2️⃣ SELLER"
+  ].join("\n");
+}
+
+function buildUpdatesConfirmationMessage() {
+  return [
+    "🔥 Welcome to HOKO!",
+    "",
+    "You'll now get instant updates on your posted requirements.",
+    "",
+    "Check your dashboard for seller responses.",
+    "",
+    "Ready to post your first requirement? Click: hoko.in"
   ].join("\n");
 }
 
@@ -949,6 +962,17 @@ router.post("/webhook", async (req, res) => {
       await ensureBuyerProspect(event.mobileE164);
       notifyWhatsAppInteraction(event.mobileE164, "", event.text || "");
       
+      // Handle "Send updates on my post" - user wants WhatsApp updates
+      if (UPDATE_WORDS.has(normalizedInbound)) {
+        await applyConsentConfirmed(await WhatsAppBuyerContact.findOne({ mobileE164: event.mobileE164 }), "buyer", event);
+        
+        await sendWhatsAppMessage({
+          to: event.mobileE164,
+          body: buildUpdatesConfirmationMessage()
+        });
+        continue;
+      }
+      
       // New user - show greeting and handle BUYER/SELLER directly
       if (BUYER_WORDS.has(normalizedInbound) || normalizedInbound === "buy" || normalizedInbound === "1" || normalizedInbound === "buyer") {
         await applyConsentConfirmed(await WhatsAppBuyerContact.findOne({ mobileE164: event.mobileE164 }), "buyer", event);
@@ -1016,6 +1040,17 @@ router.post("/webhook", async (req, res) => {
 
     // Handle role selection for opted-in contacts
     if (currentConsentState?.step === CONSENT_STATES.AWAITING_ROLE) {
+      // Handle "Send updates on my post" for opted-in users
+      if (UPDATE_WORDS.has(normalizedInbound)) {
+        await applyConsentConfirmed(buyerContact || sellerContact, buyerContact ? "buyer" : "seller", event);
+        
+        await sendWhatsAppMessage({
+          to: event.mobileE164,
+          body: buildUpdatesConfirmationMessage()
+        });
+        continue;
+      }
+      
       if (BUYER_WORDS.has(normalizedInbound) || normalizedInbound === "buy" || normalizedInbound === "1") {
         consentState.delete(consentKey);
         
