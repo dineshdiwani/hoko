@@ -152,9 +152,46 @@ async function sendFlowMessage({
   body,
   campaign = "",
   step = "",
-  metadata = {}
+  metadata = {},
+  templateKey = "",
+  templateParams = [],
+  buttonUrl = ""
 }) {
-  const result = await sendWhatsAppMessage({ to, body });
+  let result;
+  let usedTemplate = false;
+
+  if (templateKey) {
+    try {
+      const templateConfig = await WhatsAppTemplateRegistry.findOne({
+        key: templateKey,
+        isActive: true
+      }).lean();
+
+      if (templateConfig) {
+        const resolvedButtonUrl = buttonUrl || (templateConfig.buttonUrlPattern
+          ? resolveTrackedLink(templateConfig.buttonUrlPattern, { src: "wa", campaign, step })
+          : "");
+
+        result = await sendViaGupshupTemplate({
+          to,
+          templateId: templateConfig.templateId,
+          templateName: templateConfig.templateName,
+          languageCode: templateConfig.language || "en",
+          parameters: templateParams,
+          buttonUrl: resolvedButtonUrl
+        });
+        result = { ok: true, providerMessageId: result?.providerMessageId || "", template: true };
+        usedTemplate = true;
+      }
+    } catch (err) {
+      console.warn(`[sendFlowMessage] Template ${templateKey} failed, falling back to free-text:`, err?.message || err);
+    }
+  }
+
+  if (!usedTemplate) {
+    result = await sendWhatsAppMessage({ to, body });
+  }
+
   await logFunnelEvent({
     mobileE164: to,
     direction: "outbound",
@@ -166,6 +203,8 @@ async function sendFlowMessage({
     status: result?.ok ? "sent" : "failed",
     metadata: {
       bodyPreview: String(body || "").slice(0, 140),
+      usedTemplate,
+      templateKey: templateKey || "",
       ...metadata
     }
   });
@@ -1126,7 +1165,10 @@ router.post("/webhook", async (req, res) => {
         ].join("\n"),
         campaign: "wa_inbound",
         step: "buyer_role_cta",
-        metadata: { deepLink: buyerLink }
+        metadata: { deepLink: buyerLink },
+        templateKey: "buyer_role_cta",
+        templateParams: [buyerLink],
+        buttonUrl: buyerLink
       });
       continue;
     }
@@ -1145,7 +1187,10 @@ router.post("/webhook", async (req, res) => {
         ].join("\n"),
         campaign: "wa_inbound",
         step: "seller_role_cta",
-        metadata: { deepLink: sellerLink }
+        metadata: { deepLink: sellerLink },
+        templateKey: "seller_role_cta",
+        templateParams: [sellerLink],
+        buttonUrl: sellerLink
       });
       continue;
     }
@@ -1191,7 +1236,10 @@ router.post("/webhook", async (req, res) => {
           ].join("\n"),
           campaign: "wa_inbound",
           step: "new_buyer_cta",
-          metadata: { deepLink: buyerLink }
+          metadata: { deepLink: buyerLink },
+          templateKey: "buyer_role_cta",
+          templateParams: [buyerLink],
+          buttonUrl: buyerLink
         });
         continue;
       }
@@ -1212,7 +1260,10 @@ router.post("/webhook", async (req, res) => {
           ].join("\n"),
           campaign: "wa_inbound",
           step: "new_seller_cta",
-          metadata: { deepLink: sellerLink }
+          metadata: { deepLink: sellerLink },
+          templateKey: "seller_role_cta",
+          templateParams: [sellerLink],
+          buttonUrl: sellerLink
         });
         continue;
       }
@@ -1254,7 +1305,10 @@ router.post("/webhook", async (req, res) => {
           ].join("\n"),
           campaign: "wa_inbound",
           step: "buyer_role_cta",
-          metadata: { deepLink: buyerLink }
+          metadata: { deepLink: buyerLink },
+          templateKey: "buyer_role_cta",
+          templateParams: [buyerLink],
+          buttonUrl: buyerLink
         });
         continue;
       }
@@ -1271,7 +1325,10 @@ router.post("/webhook", async (req, res) => {
           ].join("\n"),
           campaign: "wa_inbound",
           step: "seller_role_cta",
-          metadata: { deepLink: sellerLink }
+          metadata: { deepLink: sellerLink },
+          templateKey: "seller_role_cta",
+          templateParams: [sellerLink],
+          buttonUrl: sellerLink
         });
         continue;
       }
@@ -1388,7 +1445,10 @@ router.post("/webhook", async (req, res) => {
         ].join("\n"),
         campaign: "wa_seller_flow",
         step: "seller_confirmed",
-        metadata: { deepLink: loginLink }
+        metadata: { deepLink: loginLink },
+        templateKey: "seller_role_cta",
+        templateParams: [loginLink],
+        buttonUrl: loginLink
       });
 
       setTimeout(async () => {
@@ -1476,7 +1536,10 @@ router.post("/webhook", async (req, res) => {
         ].join("\n"),
         campaign: "wa_inbound",
         step: "buyer_role_cta",
-        metadata: { deepLink: buyerLink }
+        metadata: { deepLink: buyerLink },
+        templateKey: "buyer_role_cta",
+        templateParams: [buyerLink],
+        buttonUrl: buyerLink
       });
       continue;
     }
