@@ -59,6 +59,7 @@ export default function RequirementForm({ isPublic = false }) {
   }
   const isEditMode = Boolean(requirementId);
   const session = getSession();
+  const isLoggedIn = Boolean(session?.token);
   const sessionCity = String(session?.city || "").trim();
 
   const [form, setForm] = useState({
@@ -529,7 +530,7 @@ export default function RequirementForm({ isPublic = false }) {
       });
 
       // For logged-in users (from email login), show WhatsApp verify popup
-      if (isPublic && session?.token) {
+      if (session?.token) {
         setWhatsappVerifyOpen(true);
         return;
       }
@@ -729,7 +730,7 @@ export default function RequirementForm({ isPublic = false }) {
 
             <form
               id="buyer-requirement-form"
-              onSubmit={isPublic && !session?.mobile ? handlePublicSubmit : handleSubmit}
+              onSubmit={isLoggedIn ? handleSubmit : (e) => { e.preventDefault(); navigate("/buyer/login?redirect=/buyer/requirement/new"); }}
               className={`w-full bg-white rounded-2xl shadow p-4 pb-24 md:pb-4 ${
                 submitted ? "form-submitted" : ""
               }`}
