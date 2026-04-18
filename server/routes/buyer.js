@@ -582,24 +582,16 @@ function generateOTP() {
   return String(Math.floor(1000 + Math.random() * 9000));
 }
 
-async function findOrCreateSoftUserByMobile(mobile, city) {
-  const normalizedMobile = normalizeE164(mobile);
-  let user = await mongoose.model("User").findOne({ phone: normalizedMobile });
-  if (!user) {
-    user = await mongoose.model("User").create({
-      phone: normalizedMobile,
-      city: city || "",
-      roles: { buyer: true },
-      buyerSettings: { name: "Buyer" },
-      verified: false
-    });
-  }
-  return { user };
+async function findOrCreateSoftUserByMobileForOtp(mobile, city) {
+  return findOrCreateSoftUserByMobile(normalizeE164(mobile), city || "user_default");
 }
 
 async function createRequirementFromOTPData(otpRecord, user) {
   const data = otpRecord.requirementData;
-  const { user: softUser } = await findOrCreateSoftUserByMobile(otpRecord.mobileE164, data?.city);
+  const { user: softUser } = await findOrCreateSoftUserByMobileForOtp(
+    otpRecord.mobileE164,
+    data?.city
+  );
   
   const moderationRules = await getModerationRules();
   const textParts = [data?.productName, data?.product, data?.details, data?.brand, data?.makeBrand, data?.typeModel, data?.type].filter(Boolean);
@@ -695,7 +687,9 @@ async function sendOTPviaWhatsApp(mobileE164, otp, product, city) {
 
 async function sendRequirementConfirmationviaWhatsApp(mobileE164, requirement, product) {
   const appBase = resolvePublicAppUrl();
-  const deepLink = `${appBase}/buyer/login?redirect=/buyer/dashboard&mobile=${encodeURIComponent(mobileE164.replace("+", ""))}`;
+  const deepLink = `${appBase}/buyer/login?redirect=/buyer/dashboard&mobile=${encodeURIComponent(
+    mobileE164.replace("+", "")
+  )}&src=wa&campaign=buyer_requirement_confirm&step=track_offers`;
   
   const message = [
     "✅ *Requirement Confirmed!*",
