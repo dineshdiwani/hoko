@@ -163,26 +163,26 @@ export default function SellerRegister() {
     }));
   };
 
-  const handleSubmit = () => {
+const handleSubmit = () => {
     setSubmitted(true);
-    if (
-      !seller.email ||
-      !seller.mobile ||
-      !seller.firmName ||
-      !seller.managerName ||
-      !Array.isArray(seller.categories) ||
-      seller.categories.length === 0 ||
-      !seller.city
-    ) {
+    
+    const email = String(seller.email || "").trim();
+    const mobile = String(seller.mobile || "").trim();
+    const firmName = String(seller.firmName || "").trim();
+    const managerName = String(seller.managerName || "").trim();
+    const city = String(seller.city || "").trim();
+    const categories = Array.isArray(seller.categories) ? seller.categories : [];
+    
+    if (!email || !mobile || !firmName || !managerName || categories.length === 0 || !city) {
       alert("Please fill all required fields");
       return;
     }
-    if (!/\S+@\S+\.\S+/.test(String(seller.email || ""))) {
+    if (!/\S+@\S+\.\S+/.test(email)) {
       alert("Please enter a valid email");
       return;
     }
 
-    const profile = seller;
+    const profile = { ...seller, email, mobile, firmName, managerName, city };
     if (!session?.token) {
       navigate("/buyer/login");
       return;
