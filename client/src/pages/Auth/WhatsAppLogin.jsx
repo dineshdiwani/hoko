@@ -64,8 +64,7 @@ export default function WhatsAppLogin() {
           sellerProfile: user.sellerProfile
         });
         
-        // Redirect based on roles - prioritize seller if has profile, else buyer
-        const hasSellerProfile = user.sellerProfile?.firmName && user.sellerProfile?.managerName;
+        // Redirect based on roles
         const hasBothRoles = user.roles?.seller && user.roles?.buyer;
         
         if (hasBothRoles) {
