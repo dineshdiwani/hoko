@@ -185,7 +185,7 @@ const handleSubmit = () => {
       return;
     }
 
-    const profile = {
+const profile = {
       email,
       mobile,
       firmName,
@@ -199,16 +199,15 @@ const handleSubmit = () => {
       taxId: seller.taxId
     };
     
+    console.log("Sending to server:", profile);
+    
     if (!session?.token) {
       navigate("/buyer/login");
       return;
     }
 
     api
-      .post("/seller/onboard", {
-        ...profile,
-        city: profile.city
-      })
+      .post("/seller/onboard", profile)
       .then(async (res) => {
         setSellerDashboardCategories(profile.categories || []);
         const switchRes = await api.post("/auth/switch-role", {

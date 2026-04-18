@@ -360,8 +360,7 @@ router.post("/onboard", auth, async (req, res) => {
   const firmNameValue = String(firmName || "").trim();
   const managerNameValue = String(managerName || "").trim();
 
-  if (
-    !req.user?.email ||
+if (
     !mobileValue ||
     !cityValue ||
     !firmNameValue ||
@@ -377,8 +376,9 @@ router.post("/onboard", auth, async (req, res) => {
     return res.status(400).json({ message: "Missing required fields" });
   }
 
-  const update = {
+const update = {
     mobile: mobileValue,
+    email: String(req.body.email || req.user?.email || "").trim(),
     "sellerProfile.businessName": String(businessName || "").trim(),
     "sellerProfile.registrationDetails": String(registrationDetails || "").trim(),
     "sellerProfile.businessAddress": String(businessAddress || "").trim(),
