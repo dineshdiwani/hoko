@@ -164,13 +164,15 @@ function buildConsentPromptMessage() {
 
 function buildUpdatesConfirmationMessage() {
   return [
-    "🔥 Welcome to HOKO!",
+    "Updates are enabled for this WhatsApp number.",
     "",
-    "You'll now get instant updates on your posted requirements.",
+    "You will get WhatsApp alerts when sellers respond to your requirements.",
     "",
-    "Check your dashboard for seller responses.",
+    "Post or check requirements here:",
     "",
-    "Ready to post your first requirement? Click: hoko.in"
+    "https://hoko.in/buyer/requirement/new",
+    "",
+    "If you also want seller flow, reply SELLER."
   ].join("\n");
 }
 
@@ -967,21 +969,33 @@ router.post("/webhook", async (req, res) => {
     const consentKey = getConsentStateKey(event.mobileE164);
     const currentConsentState = consentState.get(consentKey);
     let consentHandled = false;
+    const updateIntent = containsUpdateKeyword(event.text);
+
+    if (updateIntent) {
+      let buyerConsentContact = buyerContact;
+      let sellerConsentContact = sellerContact;
+
+      if (!buyerConsentContact && !sellerConsentContact) {
+        buyerConsentContact = await ensureBuyerProspect(event.mobileE164);
+      }
+
+      if (buyerConsentContact) {
+        await applyConsentConfirmed(buyerConsentContact, "buyer", event);
+      } else if (sellerConsentContact) {
+        await applyConsentConfirmed(sellerConsentContact, "seller", event);
+      }
+
+      consentState.delete(consentKey);
+      await sendWhatsAppMessage({
+        to: event.mobileE164,
+        body: buildUpdatesConfirmationMessage()
+      });
+      continue;
+    }
 
     if (!sellerContact && !buyerContact) {
       await ensureBuyerProspect(event.mobileE164);
       notifyWhatsAppInteraction(event.mobileE164, "", event.text || "");
-      
-      // Handle "Send updates on my post" - user wants WhatsApp updates
-      if (containsUpdateKeyword(event.text)) {
-        await applyConsentConfirmed(await WhatsAppBuyerContact.findOne({ mobileE164: event.mobileE164 }), "buyer", event);
-        
-        await sendWhatsAppMessage({
-          to: event.mobileE164,
-          body: buildUpdatesConfirmationMessage()
-        });
-        continue;
-      }
       
       // New user - show greeting and handle BUYER/SELLER directly
       if (BUYER_WORDS.has(normalizedInbound) || normalizedInbound === "buy" || normalizedInbound === "1" || normalizedInbound === "buyer") {
@@ -1050,17 +1064,6 @@ router.post("/webhook", async (req, res) => {
 
     // Handle role selection for opted-in contacts
     if (currentConsentState?.step === CONSENT_STATES.AWAITING_ROLE) {
-      // Handle "Send updates on my post" for opted-in users
-      if (containsUpdateKeyword(event.text)) {
-        await applyConsentConfirmed(buyerContact || sellerContact, buyerContact ? "buyer" : "seller", event);
-        
-        await sendWhatsAppMessage({
-          to: event.mobileE164,
-          body: buildUpdatesConfirmationMessage()
-        });
-        continue;
-      }
-      
       if (BUYER_WORDS.has(normalizedInbound) || normalizedInbound === "buy" || normalizedInbound === "1") {
         consentState.delete(consentKey);
         
@@ -1432,5 +1435,4 @@ router.post("/webhook", async (req, res) => {
 
 module.exports = router;
 module.exports.notifyMatchingSellers = notifyMatchingSellers;
-
 
