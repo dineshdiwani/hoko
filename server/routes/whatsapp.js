@@ -33,7 +33,17 @@ const GREETING_WORDS = new Set(["hi", "hii", "hello", "hey", "start", "menu"]);
 const BUYER_WORDS = new Set(["buyer", "buy", "i want to buy", "want to buy", "purchase"]);
 const SELLER_WORDS = new Set(["seller", "sell", "i want to sell", "want to sell", "sell"]);
 const SKIP_WORDS = new Set(["skip", "na", "none", "no", "-"]);
-const UPDATE_WORDS = new Set(["send updates on my post", "update on post", "get updates", "enable updates", "whatsapp updates", "updates on my post"]);
+const UPDATE_WORDS = new Set([
+  "send updates on my post", "send updates", "get updates", "enable updates", 
+  "whatsapp updates", "updates on my post", "updates on post", 
+  "get whatsapp updates", "enable whatsapp", "i want updates", "want updates"
+]);
+
+// Helper to check if message contains any update keyword
+function containsUpdateKeyword(text) {
+  const normalized = String(text || "").trim().toLowerCase();
+  return Array.from(UPDATE_WORDS).some(keyword => normalized.includes(keyword));
+}
 
 const consentState = new Map();
 
@@ -963,7 +973,7 @@ router.post("/webhook", async (req, res) => {
       notifyWhatsAppInteraction(event.mobileE164, "", event.text || "");
       
       // Handle "Send updates on my post" - user wants WhatsApp updates
-      if (UPDATE_WORDS.has(normalizedInbound)) {
+      if (containsUpdateKeyword(event.text)) {
         await applyConsentConfirmed(await WhatsAppBuyerContact.findOne({ mobileE164: event.mobileE164 }), "buyer", event);
         
         await sendWhatsAppMessage({
@@ -1041,7 +1051,7 @@ router.post("/webhook", async (req, res) => {
     // Handle role selection for opted-in contacts
     if (currentConsentState?.step === CONSENT_STATES.AWAITING_ROLE) {
       // Handle "Send updates on my post" for opted-in users
-      if (UPDATE_WORDS.has(normalizedInbound)) {
+      if (containsUpdateKeyword(event.text)) {
         await applyConsentConfirmed(buyerContact || sellerContact, buyerContact ? "buyer" : "seller", event);
         
         await sendWhatsAppMessage({
