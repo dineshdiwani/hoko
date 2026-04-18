@@ -495,9 +495,8 @@ export default function SellerDashboard() {
       return; // Skip for normal email login users
     }
     
-    // Show success message and prompt for registration
+    // Show prompt for registration
     setTimeout(() => {
-      alert("Your offer has been submitted successfully!");
       console.log("[SellerDashboard] Showing registration prompt");
       const wantsToRegister = confirm(
         "Complete your seller profile to get better visibility and manage offers?"
