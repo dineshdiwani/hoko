@@ -26,6 +26,7 @@ export default function SellerRegister() {
     taxId: "",
     city: "",
     categories: [],
+    whatsappConsent: false
   });
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -172,12 +173,17 @@ const handleSubmit = () => {
     const managerName = String(seller.managerName || "").trim();
     const city = String(seller.city || "").trim();
     const categories = seller.categories || [];
+    const whatsappConsent = seller.whatsappConsent || false;
     
     console.log("Submitting - email:", email, "mobile:", mobile, "firmName:", firmName, "managerName:", managerName, "city:", city, "categories:", categories);
     
     if (!email || !mobile || !firmName || !managerName || categories.length === 0 || !city) {
       console.log("Validation failed - missing fields");
       alert("Please fill all required fields");
+      return;
+    }
+    if (!whatsappConsent) {
+      alert("Please accept WhatsApp notifications to receive updates");
       return;
     }
     if (!/\S+@\S+\.\S+/.test(email)) {
@@ -196,7 +202,8 @@ const profile = {
       businessAddress: seller.businessAddress,
       ownerName: seller.ownerName,
       website: seller.website,
-      taxId: seller.taxId
+      taxId: seller.taxId,
+      whatsappConsent: whatsappConsent
     };
     
     console.log("Sending to server:", profile);
@@ -422,7 +429,7 @@ const switchRes = await api.post("/auth/switch-role", {
                 }
               />
 
-              <input
+<input
                 className="w-full border p-2 rounded"
                 placeholder="Tax Identification Number"
                 value={seller.taxId}
@@ -430,6 +437,23 @@ const switchRes = await api.post("/auth/switch-role", {
                   setSeller({ ...seller, taxId: e.target.value })
                 }
               />
+
+              <div className="md:col-span-2">
+                <label className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer ${submitted && !seller.whatsappConsent ? "border-red-500" : "border-gray-300"}`}>
+                  <input
+                    type="checkbox"
+                    checked={seller.whatsappConsent}
+                    onChange={(e) =>
+                      setSeller({ ...seller, whatsappConsent: e.target.checked })
+                    }
+                    className="mt-1 w-5 h-5"
+                    required
+                  />
+                  <span className="text-sm text-gray-700">
+                    I agree to receive updates and notifications on <strong>WhatsApp</strong> for new buyer requirements, offers, and important updates.
+                  </span>
+                </label>
+              </div>
             </div>
 
             <button

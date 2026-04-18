@@ -10,8 +10,9 @@ const WhatsAppBuyerLead = require("../models/WhatsAppBuyerLead");
 const WhatsAppContact = require("../models/WhatsAppContact");
 const WhatsAppBuyerContact = require("../models/WhatsAppBuyerContact");
 const OptedInSeller = require("../models/OptedInSeller");
+const User = require("../models/User");
 const { sendWhatsAppMessage } = require("../utils/sendWhatsApp");
-const { sendViaGupshupTemplate, sendViaWapiTemplate } = require("../utils/sendWhatsApp");
+const { sendViaGupshupTemplate } = require("../utils/sendWhatsApp");
 const { resolvePublicAppUrl } = require("../utils/publicAppUrl");
 const WhatsAppTemplateRegistry = require("../models/WhatsAppTemplateRegistry");
 const PlatformSettings = require("../models/PlatformSettings");
@@ -449,22 +450,14 @@ async function sendSellerRequirementInvite(to, requirementId, product, city, qua
     const languageCode = String(templateConfig.language || "en").trim();
     const parameters = [product, city, quantity, String(requirementId)];
 
-    const result = provider === "gupshup"
-      ? await sendViaGupshupTemplate({
-          to,
-          templateId,
-          templateName: templateConfig.templateName,
-          languageCode,
-          parameters,
-          buttonUrl: String(requirementId)
-        })
-      : await sendViaWapiTemplate({
-          to,
-          templateName: templateConfig.templateName,
-          languageCode,
-          parameters,
-          buttonUrl: String(requirementId)
-        });
+    const result = await sendViaGupshupTemplate({
+      to,
+      templateId,
+      templateName: templateConfig.templateName,
+      languageCode,
+      parameters,
+      buttonUrl: String(requirementId)
+    });
 
     console.log(`[Seller Invite] Sent to ${to}, providerMessageId: ${result?.providerMessageId}, deepLink: ${deepLink}`);
     return { ok: true, providerMessageId: result?.providerMessageId, deepLink };
@@ -483,13 +476,47 @@ async function notifyMatchingSellers(requirement) {
 
   const results = { optedIn: [], registered: [], failed: [] };
 
+  // Notify opted-in sellers (existing behavior)
   const optedInSellers = await OptedInSeller.find({
     city,
     status: "active",
     ...(category ? { categories: category } : {})
   }).lean();
 
+  // Also notify registered sellers who gave WhatsApp consent
+  const registeredSellers = await User.find({
+    "roles.seller": true,
+    "sellerProfile.isActive": { $ne: false },
+    "sellerSettings.whatsappConsent": true,
+    ...(category ? { "sellerProfile.categories": { $in: [category] } } : {}),
+    mobile: { $exists: true, $ne: "" }
+  }).select("mobile").lean();
+
+  // Get unique mobile numbers to notify
+  const allSellerMobiles = new Set();
+  const sellersToNotify = [];
+
+  // Add opted-in sellers
   for (const seller of optedInSellers) {
+    if (seller.mobileE164 && !allSellerMobiles.has(seller.mobileE164)) {
+      allSellerMobiles.add(seller.mobileE164);
+      sellersToNotify.push({ mobileE164: seller.mobileE164, source: "optedIn" });
+    }
+  }
+
+  // Add registered sellers with consent
+  for (const seller of registeredSellers) {
+    const mobileE164 = seller.mobile?.startsWith("+") ? seller.mobile : seller.mobile ? `+91${seller.mobile}` : null;
+    if (mobileE164 && !allSellerMobiles.has(mobileE164)) {
+      allSellerMobiles.add(mobileE164);
+      sellersToNotify.push({ mobileE164, source: "registered" });
+    }
+  }
+
+  console.log(`[Seller Notify] Notifying ${optedInSellers.length} opted-in + ${registeredSellers.length} registered = ${sellersToNotify.length} total sellers for requirement ${requirementId}`);
+
+  // Send notifications to all sellers
+  for (const seller of sellersToNotify) {
     const sendResult = await sendSellerRequirementInvite(
       seller.mobileE164,
       requirementId,
@@ -516,17 +543,17 @@ async function notifyMatchingSellers(requirement) {
     });
 
     if (sendResult.ok) {
-      results.optedIn.push(seller.mobileE164);
-      await OptedInSeller.findByIdAndUpdate(seller._id, {
-        $set: { lastNotifiedAt: new Date() },
-        $inc: { totalNotificationsSent: 1 }
-      });
+      if (seller.source === "optedIn") {
+        results.optedIn.push(seller.mobileE164);
+      } else {
+        results.registered.push(seller.mobileE164);
+      }
     } else {
       results.failed.push(seller.mobileE164);
     }
   }
 
-  console.log(`[Seller Notify] Notified ${results.optedIn.length} opted-in sellers for requirement ${requirementId}`);
+  console.log(`[Seller Notify] Results - OptedIn: ${results.optedIn.length}, Registered: ${results.registered.length}, Failed: ${results.failed.length}`);
   return results;
 }
 
@@ -716,20 +743,13 @@ async function sendBuyerInviteTemplate(to, tempRequirementId, mobile) {
     const languageCode = String(templateConfig.language || "en").trim();
     const parameters = [deepLink];
 
-    const result = provider === "gupshup"
-      ? await sendViaGupshupTemplate({
-          to,
-          templateId,
-          templateName: templateConfig.templateName,
-          languageCode,
-          parameters
-        })
-      : await sendViaWapiTemplate({
-          to,
-          templateName: templateConfig.templateName,
-          languageCode,
-          parameters
-        });
+    const result = await sendViaGupshupTemplate({
+      to,
+      templateId,
+      templateName: templateConfig.templateName,
+      languageCode,
+      parameters
+    });
 
     console.log(`[Buyer Invite] Sent to ${to}, providerMessageId: ${result?.providerMessageId}`);
     return { ok: true, providerMessageId: result?.providerMessageId, deepLink };

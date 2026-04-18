@@ -4,8 +4,9 @@ const DummyRequirement = require("../models/DummyRequirement");
 const Requirement = require("../models/Requirement");
 const OptedInSeller = require("../models/OptedInSeller");
 const WhatsAppContact = require("../models/WhatsAppContact");
+const User = require("../models/User");
 const WhatsAppTemplateRegistry = require("../models/WhatsAppTemplateRegistry");
-const { sendWhatsAppMessage, sendViaWapiTemplate, sendViaGupshupTemplate } = require("../utils/sendWhatsApp");
+const { sendWhatsAppMessage, sendViaGupshupTemplate } = require("../utils/sendWhatsApp");
 const { resolvePublicAppUrl } = require("../utils/publicAppUrl");
 
 function randomInt(min, max) {
@@ -1550,15 +1551,6 @@ async function sendTemplateToSellers(sellers, dummies, city, provider) {
             parameters: params,
             buttonUrl: deeplink
           });
-        } else {
-          await sendViaWapiTemplate({
-            to: seller.mobileE164,
-            templateId: templateConfig.templateId,
-            templateName: templateConfig.templateName,
-            languageCode: templateConfig.language || "en",
-            parameters: params,
-            buttonUrl: deeplink
-          });
         }
         console.log(`[DummyReq] Template sent to ${seller.mobileE164} for ${dummy.product}`);
       } catch (err) {
@@ -1579,16 +1571,45 @@ async function sendToSellers(dummies) {
   }
   
   for (const [city, cityDummies] of Object.entries(cityToDummies)) {
-    const sellers = await WhatsAppContact.find({
+    // Get opted-in contacts (existing behavior)
+    const optedInSellers = await WhatsAppContact.find({
       city: { $regex: new RegExp(city, "i") },
       optInStatus: "opted_in",
       active: { $ne: false },
       unsubscribedAt: { $exists: false }
     }).select("mobileE164").limit(50);
     
-    if (!sellers.length) continue;
+    // Get registered sellers from User collection (only those who gave WhatsApp consent)
+    const registeredSellers = await User.find({
+      "roles.seller": true,
+      "sellerProfile.isActive": { $ne: false },
+      "sellerSettings.whatsappConsent": true,
+      mobile: { $exists: true }
+    }).select("mobile").lean();
     
-    await sendTemplateToSellers(sellers, cityDummies, city, provider);
+    // Combine and dedupe
+    const allSellerMobiles = new Set();
+    const allSellers = [];
+    
+    for (const s of optedInSellers) {
+      if (s.mobileE164 && !allSellerMobiles.has(s.mobileE164)) {
+        allSellerMobiles.add(s.mobileE164);
+        allSellers.push({ mobileE164: s.mobileE164 });
+      }
+    }
+    for (const s of registeredSellers) {
+      const mobileE164 = s.mobile?.startsWith("+") ? s.mobile : s.mobile ? `+91${s.mobile}` : null;
+      if (mobileE164 && !allSellerMobiles.has(mobileE164)) {
+        allSellerMobiles.add(mobileE164);
+        allSellers.push({ mobileE164 });
+      }
+    }
+    
+    console.log(`[DummyReq] Sending to ${optedInSellers.length} opted-in + ${registeredSellers.length} registered = ${allSellers.length} total sellers for city ${city}`);
+    
+    if (!allSellers.length) continue;
+    
+    await sendTemplateToSellers(allSellers, cityDummies, city, provider);
     
     await DummyRequirement.updateMany(
       { _id: { $in: cityDummies.map(d => d._id) } },

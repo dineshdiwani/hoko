@@ -120,10 +120,12 @@ const userSchema = new mongoose.Schema(
       ]
     },
 
-    sellerSettings: {
+sellerSettings: {
       notificationsLeads: { type: Boolean, default: true },
       notificationsAuction: { type: Boolean, default: true },
-      notificationsOffers: { type: Boolean, default: true }
+      notificationsOffers: { type: Boolean, default: true },
+      whatsappConsent: { type: Boolean, default: false },
+      whatsappConsentAt: { type: Date }
     }
   },
   { timestamps: true }

@@ -27,8 +27,6 @@ const { setOtp, verifyOtp } = require("../utils/otpStore");
 const { sendOtpEmail } = require("../utils/sendEmail");
 const {
   normalizeE164,
-  fetchWapiApprovedTemplates,
-  sendViaWapiTemplate,
   fetchGupshupApprovedTemplates,
   sendViaGupshupTemplate
 } = require("../utils/sendWhatsApp");
@@ -1567,15 +1565,12 @@ router.get("/whatsapp/campaign-runs", adminAuth, requireAdminPermission("campaig
 
 router.get("/whatsapp/templates", adminAuth, requireAdminPermission("campaigns.read"), async (req, res) => {
   const provider = String(process.env.WHATSAPP_PROVIDER || "mock").trim().toLowerCase();
-  if (!["wapi", "gupshup"].includes(provider)) {
-    return res.status(400).json({ message: "Approved templates are only enabled for WAPI or Gupshup provider" });
+  if (!["gupshup", "meta"].includes(provider)) {
+    return res.status(400).json({ message: "Approved templates are only enabled for Gupshup provider" });
   }
 
   try {
-    const templates =
-      provider === "gupshup"
-        ? await fetchGupshupApprovedTemplates()
-        : await fetchWapiApprovedTemplates();
+    const templates = await fetchGupshupApprovedTemplates();
     return res.json({
       provider,
       count: templates.length,
@@ -1584,10 +1579,7 @@ router.get("/whatsapp/templates", adminAuth, requireAdminPermission("campaigns.r
   } catch (err) {
     return res.status(502).json({
       message:
-        err?.message ||
-        (provider === "gupshup"
-          ? "Failed to fetch approved templates from Gupshup"
-          : "Failed to fetch approved templates from WAPI BSP")
+        err?.message || "Failed to fetch approved templates from Gupshup"
     });
   }
 });
@@ -1598,15 +1590,12 @@ router.post(
   requireAdminPermission("campaigns.manage"),
   async (req, res) => {
     const provider = String(process.env.WHATSAPP_PROVIDER || "mock").trim().toLowerCase();
-    if (!["wapi", "gupshup"].includes(provider)) {
-      return res.status(400).json({ message: "Template sync is only enabled for WAPI or Gupshup provider" });
+    if (!["gupshup", "meta"].includes(provider)) {
+      return res.status(400).json({ message: "Template sync is only enabled for Gupshup provider" });
     }
 
     try {
-      const templates =
-        provider === "gupshup"
-          ? await fetchGupshupApprovedTemplates()
-          : await fetchWapiApprovedTemplates();
+      const templates = await fetchGupshupApprovedTemplates();
 
       let inserted = 0;
       let updated = 0;
@@ -1915,9 +1904,9 @@ router.post("/whatsapp/template-send", adminAuth, requireAdminPermission("campai
     if (!eligibility.ok) {
       reason = eligibility.reason;
     } else {
-      attempted += 1;
+attempted += 1;
       try {
-        const sendResult = await (provider === "gupshup" ? sendViaGupshupTemplate : sendViaWapiTemplate)({
+        const sendResult = await sendViaGupshupTemplate({
           to: mobileE164,
           templateId: resolvedTemplateId,
           templateName: resolvedTemplateName,
@@ -2228,10 +2217,10 @@ router.post("/whatsapp/resend", adminAuth, requireAdminPermission("campaigns.man
 
   if (channels.whatsapp && templateConfigId) {
     if (channels.email) {
-      return res.status(400).json({ message: "Template auto mode currently supports WhatsApp channel only" });
+return res.status(400).json({ message: "Template auto mode currently supports WhatsApp channel only" });
     }
-    if (!["wapi", "gupshup"].includes(provider)) {
-      return res.status(400).json({ message: "Template sending is only enabled for WAPI or Gupshup provider" });
+    if (!["gupshup", "meta"].includes(provider)) {
+      return res.status(400).json({ message: "Template sending is only enabled for Gupshup provider" });
     }
 
     const templateConfig = await WhatsAppTemplateRegistry.findById(templateConfigId).lean();
@@ -2280,7 +2269,7 @@ router.post("/whatsapp/resend", adminAuth, requireAdminPermission("campaigns.man
             String(requirement.quantity || "") + " " + String(requirement.type || "pcs"),
             String(requirement._id)
           ];
-          const sendResult = await (provider === "gupshup" ? sendViaGupshupTemplate : sendViaWapiTemplate)({
+          const sendResult = await sendViaGupshupTemplate({
             to: mobileE164,
             templateId: String(templateConfig.templateId || "").trim(),
             templateName: String(templateConfig.templateName || "").trim(),
@@ -2846,13 +2835,6 @@ router.post("/opted-in-sellers/campaign/send", adminAuth, requireAdminPermission
         result = await sendViaGupshupTemplate({
           to: seller.mobileE164,
           templateId: String(templateConfig.templateId || "").trim(),
-          templateName: templateConfig.templateName,
-          languageCode: String(templateConfig.language || "en").trim(),
-          parameters
-        });
-      } else if (provider === "wapi") {
-        result = await sendViaWapiTemplate({
-          to: seller.mobileE164,
           templateName: templateConfig.templateName,
           languageCode: String(templateConfig.language || "en").trim(),
           parameters

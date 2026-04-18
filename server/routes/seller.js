@@ -16,6 +16,7 @@ const OptedInSeller = require("../models/OptedInSeller");
 const WhatsAppOTP = require("../models/WhatsAppOTP");
 const auth = require("../middleware/auth");
 const sellerOnly = require("../middleware/sellerOnly");
+const { otpSendLimiter, otpVerifyLimiter } = require("../middleware/rateLimit");
 const sendPush = require("../utils/sendPush");
 const { sendAdminEventEmail, sendEmailToRecipient } = require("../utils/sendEmail");
 const { getModerationRules, checkTextForFlags } = require("../utils/moderation");
@@ -24,7 +25,7 @@ const {
   serializeNotification
 } = require("../utils/notifications");
 const { normalizeRequirementAttachmentsForResponse } = require("../utils/attachments");
-const { normalizeE164, sendViaGupshupTemplate, sendViaWapiTemplate, sendWhatsAppMessage } = require("../utils/sendWhatsApp");
+const { normalizeE164, sendViaGupshupTemplate, sendWhatsAppMessage } = require("../utils/sendWhatsApp");
 const { notifyNewOffer, notifyReverseAuction } = require("../services/adminNotifications");
 const WhatsAppTemplateRegistry = require("../models/WhatsAppTemplateRegistry");
 
@@ -76,28 +77,20 @@ async function sendWhatsAppTemplate({ to, templateKey, parameters = [], buttonUr
   
   const provider = String(process.env.WHATSAPP_PROVIDER || "mock").trim().toLowerCase();
   
-  try {
-    let result;
-    if (provider === "gupshup") {
-      result = await sendViaGupshupTemplate({
-        to,
-        templateId: String(templateConfig.templateId || "").trim(),
-        templateName: templateConfig.templateName,
-        languageCode: String(templateConfig.language || "en").trim(),
-        parameters,
-        buttonUrl
-      });
-    } else if (provider === "wapi") {
-      result = await sendViaWapiTemplate({
-        to,
-        templateName: templateConfig.templateName,
-        languageCode: String(templateConfig.language || "en").trim(),
-        parameters,
-        buttonUrl
-      });
-    } else {
-      result = { providerMessageId: `mock_${Date.now()}` };
-    }
+try {
+      let result;
+      if (provider === "gupshup") {
+        result = await sendViaGupshupTemplate({
+          to,
+          templateId: String(templateConfig.templateId || "").trim(),
+          templateName: templateConfig.templateName,
+          languageCode: String(templateConfig.language || "en").trim(),
+          parameters,
+          buttonUrl
+        });
+      } else {
+        result = { providerMessageId: `mock_${Date.now()}` };
+      }
     
     console.log(`[WhatsApp] Sent ${templateKey} to ${to}, result:`, result?.providerMessageId || "ok");
     return result;
@@ -354,6 +347,7 @@ router.post("/onboard", auth, async (req, res) => {
     website,
     taxId,
     city,
+    whatsappConsent
   } = req.body || {};
   const mobileValue = String(mobile || "").trim();
   const cityValue = String(city || "").trim();
@@ -387,7 +381,11 @@ const update = {
     "sellerProfile.categories": normalizedCategories,
     "sellerProfile.website": String(website || "").trim(),
     "sellerProfile.taxId": String(taxId || "").trim(),
-    city: cityValue
+    city: cityValue,
+    ...(whatsappConsent === true ? {
+      "sellerSettings.whatsappConsent": true,
+      "sellerSettings.whatsappConsentAt": new Date()
+    } : {})
   };
 
   const user = await User.findByIdAndUpdate(
@@ -1257,7 +1255,7 @@ function generateOTP() {
 }
 
 // Check if user exists and return token without OTP
-router.post("/otp/check-user", async (req, res) => {
+router.post("/otp/check-user", otpSendLimiter, async (req, res) => {
   const { mobile } = req.body;
   
   if (!mobile) {
@@ -1319,7 +1317,7 @@ router.post("/otp/check-user", async (req, res) => {
   });
 });
 
-router.post("/otp/request", async (req, res) => {
+router.post("/otp/request", otpSendLimiter, async (req, res) => {
   const { mobile } = req.body;
   
   if (!mobile) {
@@ -1351,7 +1349,7 @@ router.post("/otp/request", async (req, res) => {
   res.json({ success: true, message: "OTP sent to WhatsApp" });
 });
 
-router.post("/otp/verify", async (req, res) => {
+router.post("/otp/verify", otpVerifyLimiter, async (req, res) => {
   const { mobile, otp } = req.body;
   
   if (!mobile || !otp) {

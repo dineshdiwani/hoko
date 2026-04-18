@@ -34,10 +34,11 @@ const { sendAdminEventEmail, sendEmailToRecipient } = require("../utils/sendEmai
 const { triggerWhatsAppCampaignForRequirement } = require("../services/whatsAppCampaign");
 const { notifyMatchingSellers } = require("./whatsapp");
 const { notifyNewRequirement, notifyNewOffer } = require("../services/adminNotifications");
-const { sendViaGupshupTemplate, sendViaWapiTemplate } = require("../utils/sendWhatsApp");
+const { sendViaGupshupTemplate } = require("../utils/sendWhatsApp");
 const { resolvePublicAppUrl } = require("../utils/publicAppUrl");
 const auth = require("../middleware/auth");
 const buyerOnly = require("../middleware/buyerOnly");
+const { otpSendLimiter, otpVerifyLimiter } = require("../middleware/rateLimit");
 
 const uploadDir = path.join(__dirname, "../uploads/requirements");
 if (!fs.existsSync(uploadDir)) {
@@ -329,8 +330,8 @@ async function findOrCreateSoftUserByMobile(mobileE164, city = "user_default") {
 }
 
 async function sendRequirementAckTemplate(mobileE164, requirementId) {
-  const provider = resolveWhatsAppProvider();
-  if (!["gupshup", "wapi"].includes(provider)) {
+  const provider = String(process.env.WHATSAPP_PROVIDER || "mock").trim().toLowerCase();
+  if (!["gupshup", "meta"].includes(provider)) {
     console.log(`[Requirement Ack] Provider ${provider} not supported`);
     return { ok: false, reason: "unsupported_provider" };
   }
@@ -353,20 +354,13 @@ async function sendRequirementAckTemplate(mobileE164, requirementId) {
     const displayId = String(requirementId).slice(-6).toUpperCase();
     const parameters = [displayId];
 
-    const result = provider === "gupshup"
-      ? await sendViaGupshupTemplate({
-          to: mobileE164,
-          templateId,
-          templateName: templateConfig.templateName,
-          languageCode,
-          parameters
-        })
-      : await sendViaWapiTemplate({
-          to: mobileE164,
-          templateName: templateConfig.templateName,
-          languageCode,
-          parameters
-        });
+    const result = await sendViaGupshupTemplate({
+      to: mobileE164,
+      templateId,
+      templateName: templateConfig.templateName,
+      languageCode,
+      parameters
+    });
 
     await WhatsAppDeliveryLog.create({
       requirementId: null,
@@ -723,7 +717,7 @@ async function sendRequirementConfirmationviaWhatsApp(mobileE164, requirement, p
   }
 }
 
-router.post("/requirement/request-otp", async (req, res) => {
+router.post("/requirement/request-otp", otpSendLimiter, async (req, res) => {
   const { mobile, product, city } = req.body;
   
   if (!mobile) {
@@ -765,7 +759,7 @@ router.post("/requirement/request-otp", async (req, res) => {
   });
 });
 
-router.post("/requirement/verify-otp", async (req, res) => {
+router.post("/requirement/verify-otp", otpVerifyLimiter, async (req, res) => {
   const { mobile, otp, requirementData } = req.body;
   
   if (!mobile || !otp) {
