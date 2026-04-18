@@ -228,6 +228,11 @@ export default function RequirementForm({ isPublic = false }) {
       setForm((prev) => ({ ...prev, mobile: mobileFromUrl }));
     }
     
+    // If logged in via email, pre-fill mobile from session if available
+    if (session?.mobile && isPublic) {
+      setForm((prev) => ({ ...prev, mobile: session.mobile.replace("+", "") }));
+    }
+    
     fetchMobileFromRef();
   }, [tempRequirementRef, isPublic]);
 
@@ -726,20 +731,25 @@ export default function RequirementForm({ isPublic = false }) {
             </h2>
 
         <div className="grid gap-3 md:grid-cols-2">
-        {/* Mobile - auto-filled from WhatsApp */}
-        <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Mobile Number (auto-verified via WhatsApp)
-          </label>
-          <input
-            name="mobile"
-            type="tel"
-            value={form.mobile}
-            readOnly={true}
-            className="w-full px-3 py-2 border rounded-xl text-sm bg-gray-50"
-            required
-          />
-        </div>
+          {/* Mobile - auto-filled from WhatsApp or editable for email login */}
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {session?.mobile ? "Mobile Number (verified)" : "Mobile Number"}
+            </label>
+            <input
+              name="mobile"
+              type="tel"
+              value={form.mobile}
+              readOnly={Boolean(session?.mobile)}
+              onChange={(e) => setForm({...form, mobile: e.target.value})}
+              placeholder={session?.mobile ? "" : "Enter your mobile number"}
+              className={`w-full px-3 py-2 border rounded-xl text-sm ${session?.mobile ? "bg-gray-50" : ""}`}
+              required
+            />
+            {!session?.mobile && (
+              <p className="text-xs text-gray-500 mt-1">Required for posting requirement</p>
+            )}
+          </div>
 
         {/* Product */}
         <input
