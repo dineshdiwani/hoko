@@ -41,9 +41,12 @@ function gracefulShutdown(signal) {
   console.log(`\n[${signal}] Received shutdown signal. Closing server gracefully...`);
   server.close(() => {
     console.log("HTTP server closed.");
-    mongoose.connection.close(false, () => {
+    mongoose.connection.close().then(() => {
       console.log("MongoDB connection closed.");
       process.exit(0);
+    }).catch((err) => {
+      console.error("MongoDB close error:", err);
+      process.exit(1);
     });
   });
   setTimeout(() => {
