@@ -85,6 +85,7 @@ export default function RequirementForm({ isPublic = false }) {
   const [verifyingOtp, setVerifyingOtp] = useState(false);
   const [postData, setPostData] = useState(null);
   const maxImageBytes = 100 * 1024;
+  const [whatsappVerifyOpen, setWhatsappVerifyOpen] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [cameraError, setCameraError] = useState("");
   const videoRef = useRef(null);
@@ -527,6 +528,13 @@ export default function RequirementForm({ isPublic = false }) {
         unit: payload.type
       });
 
+      // For logged-in users (from email login), show WhatsApp verify popup
+      if (isPublic && session?.token) {
+        setWhatsappVerifyOpen(true);
+        return;
+      }
+
+      // For non-public or not logged in
       if (isPublic) {
         const session = getSession();
         if (session?.mobile) {
@@ -1115,6 +1123,36 @@ export default function RequirementForm({ isPublic = false }) {
             <p className="text-xs text-gray-500 text-center mt-4">
               Didn't receive OTP? Check your WhatsApp messages.
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* WhatsApp Verify Popup */}
+      {whatsappVerifyOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full text-center">
+            <h3 className="text-xl font-bold mb-4">Get Updates on WhatsApp</h3>
+            <p className="text-gray-600 mb-6">
+              Send "Hi" on WhatsApp to receive instant notifications when sellers respond to your requirement.
+            </p>
+            <button
+              onClick={() => {
+                const waLink = `https://wa.me/918079060554?text=${encodeURIComponent("Hi")}`;
+                window.open(waLink, "_blank");
+              }}
+              className="w-full bg-green-500 text-white py-3 rounded-lg font-semibold mb-3 hover:bg-green-600"
+            >
+              📱 Send "Hi" on WhatsApp
+            </button>
+            <button
+              onClick={() => {
+                setWhatsappVerifyOpen(false);
+                navigate("/buyer/dashboard?tab=myposts", { replace: true });
+              }}
+              className="w-full border border-gray-300 py-2 rounded-lg text-gray-600 hover:bg-gray-50"
+            >
+              Skip - Go to My Posts
+            </button>
           </div>
         </div>
       )}
