@@ -28,6 +28,7 @@ export default function WhatsAppLogin() {
   const requestOtp = async () => {
     const mobileNum = mobile || mobileFromUrl;
     if (!mobileNum) return;
+    console.log("[WhatsAppLogin] Requesting OTP for mobile:", mobileNum);
     setLoading(true);
     setOtpError("");
     
@@ -58,7 +59,7 @@ export default function WhatsAppLogin() {
     }
   };
 
-  const verifyOtp = async () => {
+const verifyOtp = async () => {
     if (otp.length !== 4) {
       setOtpError("Please enter 4-digit OTP");
       return;
@@ -66,49 +67,12 @@ export default function WhatsAppLogin() {
     setOtpError("");
     setLoading(true);
     try {
-      const mobileNum = "+" + mobile.replace(/\D/g, "");
+      console.log("[WhatsAppLogin] Verifying OTP for mobile:", mobile);
       const res = await api.post("/seller/otp/verify", {
-        mobile: mobileNum,
+        mobile: "+" + mobile,
         otp: otp
-      }, { timeout: 10000 });
-      
-      if (res.data?.success) {
-        const user = res.data.user || {};
-        console.log("OTP verified, user:", user, "token:", res.data.token ? "yes" : "no");
-        
-        if (catsFromUrl) {
-          localStorage.setItem("whatsapp_seller_cats", catsFromUrl);
-        }
-        if (cityFromUrl) {
-          localStorage.setItem("whatsapp_seller_city", cityFromUrl);
-        }
-        
-        if (res.data.token && res.data.user) {
-          const dashParams = new URLSearchParams();
-          if (cityFromUrl) dashParams.set("city", cityFromUrl);
-          
-          // Check if user already has complete seller profile
-          const hasSellerProfile = user.sellerProfile?.firmName && user.sellerProfile?.managerName;
-          const hasSellerRole = user.roles?.seller;
-          
-          // Set flag only if new WhatsApp login
-          if (!hasSellerProfile) {
-            localStorage.setItem("whatsapp_login", "true");
-          }
-          localStorage.removeItem("whatsapp_seller_mobile");
-          
-          await setSession({
-            _id: user._id,
-            role: user.role || "seller",
-            roles: user.roles || { seller: true, buyer: true },
-            email: user.email || "",
-            city: cityFromUrl || user.city || "",
-            name: user.name || "Seller",
-            preferredCurrency: user.preferredCurrency || "INR",
-            mobile: user.mobile || mobile,
-            token: res.data.token,
-            sellerProfile: user.sellerProfile
-          });
+      });
+      console.log("[WhatsAppLogin] Verify response:", res.data);
           
           // Redirect based on registration status
           if (hasSellerProfile && hasSellerRole) {
@@ -127,6 +91,7 @@ export default function WhatsAppLogin() {
         throw new Error(res.data?.message || "Verification failed");
       }
     } catch (err) {
+      console.log("[WhatsAppLogin] Verify error:", err?.response?.data || err?.message);
       if (err.code === 'ECONNABORTED') {
         setOtpError("Request timed out. Please try again.");
       } else {
