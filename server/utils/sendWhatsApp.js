@@ -154,6 +154,7 @@ function extractTemplateRows(data) {
 }
 
 
+  function extractTemplateParameterCount(template) {
   const raw =
     template?.bodyParamsCount ??
     template?.body_params_count ??
