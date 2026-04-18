@@ -31,6 +31,7 @@ const {
 } = require("../utils/attachments");
 const sendPush = require("../utils/sendPush");
 const { sendAdminEventEmail, sendEmailToRecipient } = require("../utils/sendEmail");
+const { sendOtpSms } = require("../utils/sendSms");
 const { triggerWhatsAppCampaignForRequirement } = require("../services/whatsAppCampaign");
 const { notifyMatchingSellers } = require("./whatsapp");
 const { notifyNewRequirement, notifyNewOffer } = require("../services/adminNotifications");
@@ -670,15 +671,25 @@ async function sendOTPviaWhatsApp(mobileE164, otp, product, city) {
     "HOKO - India's B2B Marketplace"
   ].filter(Boolean).join("\n");
 
+  // Try WhatsApp first
   try {
     await sendWhatsAppMessage({
       to: mobileE164,
       body: message
     });
-    return { ok: true };
+    return { ok: true, method: "whatsapp" };
   } catch (err) {
     console.error("[OTP] WhatsApp send error:", err.message);
-    return { ok: false, error: err.message };
+    
+    // Fallback to SMS if WhatsApp fails
+    try {
+      const mobileNumber = mobileE164.replace(/\+/g, "");
+      await sendOtpSms({ mobile: mobileNumber, otp });
+      return { ok: true, method: "sms" };
+    } catch (smsErr) {
+      console.error("[OTP] SMS fallback error:", smsErr.message);
+      return { ok: false, error: smsErr.message };
+    }
   }
 }
 
@@ -754,7 +765,7 @@ router.post("/requirement/request-otp", otpSendLimiter, async (req, res) => {
 
   res.json({ 
     success: true, 
-    message: "OTP sent to WhatsApp",
+    message: sendResult.method === "sms" ? "OTP sent via SMS" : "OTP sent to WhatsApp",
     expiresIn: 300
   });
 });
