@@ -87,8 +87,14 @@ export default function WhatsAppLogin() {
           const dashParams = new URLSearchParams();
           if (cityFromUrl) dashParams.set("city", cityFromUrl);
           
-          // Set flag to indicate WhatsApp login
-          localStorage.setItem("whatsapp_login", "true");
+          // Check if user already has complete seller profile
+          const hasSellerProfile = user.sellerProfile?.firmName && user.sellerProfile?.managerName;
+          const hasSellerRole = user.roles?.seller;
+          
+          // Set flag only if new WhatsApp login
+          if (!hasSellerProfile) {
+            localStorage.setItem("whatsapp_login", "true");
+          }
           localStorage.removeItem("whatsapp_seller_mobile");
           
           await setSession({
@@ -100,10 +106,21 @@ export default function WhatsAppLogin() {
             name: user.name || "Seller",
             preferredCurrency: user.preferredCurrency || "INR",
             mobile: user.mobile || mobile,
-            token: res.data.token
+            token: res.data.token,
+            sellerProfile: user.sellerProfile
           });
-          console.log("Session set, redirecting to /seller/dashboard?city=" + cityFromUrl);
-          window.location.href = `/seller/dashboard?${dashParams.toString()}`;
+          
+          // Redirect based on registration status
+          if (hasSellerProfile && hasSellerRole) {
+            // Already registered as seller - go to seller dashboard
+            window.location.href = `/seller/dashboard?${dashParams.toString()}`;
+          } else if (user.roles?.buyer && !hasSellerRole) {
+            // Only buyer - go to buyer dashboard
+            window.location.href = "/buyer/dashboard";
+          } else {
+            // New seller or incomplete profile - go to seller dashboard
+            window.location.href = `/seller/dashboard?${dashParams.toString()}`;
+          }
           return;
         }
       } else {
