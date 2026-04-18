@@ -206,11 +206,28 @@ const profile = {
       return;
     }
 
-    api
+api
       .post("/seller/onboard", profile)
       .then(async (res) => {
         setSellerDashboardCategories(profile.categories || []);
-        const switchRes = await api.post("/auth/switch-role", {
+        
+        // Skip switch-role for WhatsApp login users - they already have seller role
+        const isWhatsAppLogin = localStorage.getItem("whatsapp_login") === "true";
+        
+        if (isWhatsAppLogin) {
+          // Update session with new data but keep existing token
+          setSession({
+            ...session,
+            city: res.data.city,
+            name: res.data?.sellerProfile?.businessName || res.data?.sellerProfile?.firmName || "Seller",
+            sellerProfile: res.data.sellerProfile
+          });
+          localStorage.removeItem("whatsapp_login");
+          navigate(postLoginRedirect);
+          return;
+        }
+        
+const switchRes = await api.post("/auth/switch-role", {
           role: "seller"
         });
         const userEmail = switchRes.data.user.email;
