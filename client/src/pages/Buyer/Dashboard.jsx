@@ -45,16 +45,27 @@ function readBuyerDashboardState() {
   }
 }
 
+function normalizeDashboardTab(value) {
+  const raw = String(value || "").trim().toLowerCase();
+  if (raw === "posts" || raw === "myposts" || raw === "my-posts") return "posts";
+  if (raw === "city" || raw === "citydashboard" || raw === "city-dashboard") return "city";
+  if (raw === "offers" || raw === "received-offers" || raw === "receivedoffers") return "offers";
+  return "";
+}
+
 export default function BuyerDashboard() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const requestedTab = normalizeDashboardTab(searchParams.get("tab"));
   const highlightId = searchParams.get("highlight") || "";
   const [sessionVersion, setSessionVersion] = useState(0);
   const [refreshToken, setRefreshToken] = useState(0);
   const session = getSession();
   const persistedState = readBuyerDashboardState();
 
-  const [activeTab, setActiveTab] = useState(persistedState.activeTab);
+  const [activeTab, setActiveTab] = useState(
+    requestedTab || persistedState.activeTab
+  );
   const [city, setCity] = useState(session?.city || persistedState.city || "");
   const [selectedCategory, setSelectedCategory] = useState(
     persistedState.selectedCategory || "all"
@@ -141,6 +152,11 @@ export default function BuyerDashboard() {
       return () => clearTimeout(timer);
     }
   }, [highlightId]);
+
+  useEffect(() => {
+    if (!requestedTab) return;
+    setActiveTab(requestedTab);
+  }, [requestedTab]);
 
   function handleNotificationClick(notification) {
     if (!notification) return;

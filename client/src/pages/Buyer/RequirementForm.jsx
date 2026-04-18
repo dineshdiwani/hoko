@@ -39,6 +39,28 @@ function saveLastRequirementPrefs({ city, category, unit }) {
   } catch {}
 }
 
+function buildBuyerUpdatesWaLink(rawLink, messageText) {
+  const message = String(messageText || "").trim();
+  const encodedMessage = encodeURIComponent(message);
+  const fallback = `https://wa.me/918079060554?text=${encodedMessage}`;
+  const input = String(rawLink || "").trim();
+  if (!input) return fallback;
+
+  if (/^\d{8,20}$/.test(input)) {
+    return `https://wa.me/${input}?text=${encodedMessage}`;
+  }
+
+  try {
+    const parsed = new URL(input);
+    if (!parsed.searchParams.has("text")) {
+      parsed.searchParams.set("text", message);
+    }
+    return parsed.toString();
+  } catch {
+    return fallback;
+  }
+}
+
 export default function RequirementForm({ isPublic = false }) {
   const navigate = useNavigate();
   const { id: requirementId } = useParams();
@@ -104,6 +126,16 @@ export default function RequirementForm({ isPublic = false }) {
     "litre",
     "service"
   ]);
+  const buyerUpdatesMessage = "Send updates on my post";
+  const buyerUpdatesWaLink = useMemo(
+    () =>
+      buildBuyerUpdatesWaLink(
+        import.meta.env.VITE_WHATSAPP_UPDATES_WA_ME_LINK ||
+          import.meta.env.VITE_WHATSAPP_CONSENT_WA_ME_LINK,
+        buyerUpdatesMessage
+      ),
+    [buyerUpdatesMessage]
+  );
   const categoryOptions = useMemo(() => {
     const currentCategory = String(form.category || "").trim();
     if (!currentCategory) return categories;
@@ -684,8 +716,8 @@ export default function RequirementForm({ isPublic = false }) {
           // New user - redirect to login page
           navigate("/buyer/login?redirect=/buyer/dashboard&newUser=true", { replace: true });
         } else {
-          // Already logged in - go to dashboard on myposts tab
-          navigate(`/buyer/dashboard?tab=myposts&highlight=${requirementId || ""}`, { replace: true });
+          // Already logged in - go to dashboard on My Posts tab
+          navigate(`/buyer/dashboard?tab=posts&highlight=${requirementId || ""}`, { replace: true });
         }
       } else {
         throw new Error(verifyRes.data?.message || "Invalid OTP");
@@ -1138,19 +1170,18 @@ export default function RequirementForm({ isPublic = false }) {
             </p>
             <button
               onClick={() => {
-                const waLink = `https://wa.me/918079060554?text=${encodeURIComponent("Send updates on my post")}`;
-                window.open(waLink, "_blank");
+                window.open(buyerUpdatesWaLink, "_blank", "noopener,noreferrer");
                 setWhatsappVerifyOpen(false);
-                navigate("/buyer/dashboard?tab=myposts", { replace: true });
+                navigate("/buyer/dashboard?tab=posts", { replace: true });
               }}
               className="w-full bg-green-500 text-white py-3 rounded-lg font-semibold mb-3 hover:bg-green-600"
             >
-              📱 Enable WhatsApp Updates
+              Enable WhatsApp Updates
             </button>
             <button
               onClick={() => {
                 setWhatsappVerifyOpen(false);
-                navigate("/buyer/dashboard?tab=myposts", { replace: true });
+                navigate("/buyer/dashboard?tab=posts", { replace: true });
               }}
               className="w-full border border-gray-300 py-2 rounded-lg text-gray-600 hover:bg-gray-50"
             >
