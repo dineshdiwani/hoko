@@ -21,9 +21,70 @@ export default function WhatsAppLogin() {
   useEffect(() => {
     console.log("[WhatsAppLogin] useEffect: mobileFromUrl=", mobileFromUrl, "mobile=", mobile);
     if (mobileFromUrl) {
-      requestOtp();
+      checkUserAndLogin();
     }
   }, [mobileFromUrl]);
+
+  const checkUserAndLogin = async () => {
+    const mobileNum = mobile || mobileFromUrl;
+    if (!mobileNum) return;
+    
+    console.log("[WhatsAppLogin] Checking if user is registered:", mobileNum);
+    setLoading(true);
+    
+    try {
+      // Check if user exists and has seller profile
+      const res = await api.post("/seller/otp/check-user", {
+        mobile: "+" + mobileNum.replace(/\D/g, "")
+      }, { timeout: 10000 });
+      
+      console.log("[WhatsAppLogin] Check user response:", res.data);
+      
+      if (res.data?.exists && res.data?.user) {
+        // User exists - check if has seller profile
+        const user = res.data.user;
+        const hasSellerProfile = user.sellerProfile?.firmName && user.sellerProfile?.managerName;
+        const hasSellerRole = user.roles?.seller;
+        
+        console.log("[WhatsAppLogin] User exists, hasSellerProfile:", hasSellerProfile, "hasSellerRole:", hasSellerRole);
+        
+        // Set session and redirect
+        localStorage.removeItem("whatsapp_seller_mobile");
+        
+        await setSession({
+          _id: user._id,
+          role: user.role || "seller",
+          roles: user.roles || { seller: true, buyer: true },
+          email: user.email || "",
+          city: user.city || "",
+          name: user.name || "Seller",
+          preferredCurrency: user.preferredCurrency || "INR",
+          mobile: user.mobile,
+          token: res.data.token,
+          sellerProfile: user.sellerProfile
+        });
+        
+        // Redirect based on registration status
+        if (hasSellerProfile && hasSellerRole) {
+          window.location.href = "/seller/dashboard";
+        } else if (user.roles?.buyer && !hasSellerRole) {
+          window.location.href = "/buyer/dashboard";
+        } else {
+          window.location.href = "/seller/dashboard";
+        }
+        return;
+      }
+      
+      // User doesn't exist - proceed to OTP
+      console.log("[WhatsAppLogin] User not found, sending OTP");
+      requestOtp();
+      
+    } catch (err) {
+      console.log("[WhatsAppLogin] Check user error:", err?.response?.data || err?.message);
+      // If check fails, proceed to OTP
+      requestOtp();
+    }
+  };
 
   const requestOtp = async () => {
     const mobileNum = mobile || mobileFromUrl;

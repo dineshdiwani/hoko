@@ -1256,6 +1256,49 @@ function generateOTP() {
   return String(Math.floor(1000 + Math.random() * 9000));
 }
 
+// Check if user exists and return token without OTP
+router.post("/otp/check-user", async (req, res) => {
+  const { mobile } = req.body;
+  
+  if (!mobile) {
+    return res.status(400).json({ message: "Mobile number is required" });
+  }
+  
+  const mobileE164 = normalizeE164(mobile);
+  const user = await User.findOne({ mobile: mobileE164 });
+  
+  if (!user) {
+    return res.json({ exists: false, user: null });
+  }
+  
+  // Check if user has seller role
+  if (!user.roles?.seller) {
+    return res.json({ exists: true, user, token: null });
+  }
+  
+  // Generate token for existing seller
+  const token = jwt.sign(
+    { id: user._id, role: "seller", tokenVersion: user.tokenVersion || 0 },
+    process.env.JWT_SECRET,
+    { expiresIn: "7d" }
+  );
+  
+  res.json({
+    exists: true,
+    user: {
+      _id: user._id,
+      email: user.email,
+      role: user.role,
+      roles: user.roles,
+      city: user.city,
+      sellerProfile: user.sellerProfile,
+      preferredCurrency: user.preferredCurrency || "INR",
+      mobile: user.mobile
+    },
+    token
+  });
+});
+
 router.post("/otp/request", async (req, res) => {
   const { mobile } = req.body;
   
