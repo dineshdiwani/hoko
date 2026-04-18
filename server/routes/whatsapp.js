@@ -166,13 +166,7 @@ function buildUpdatesConfirmationMessage() {
   return [
     "Updates are enabled for this WhatsApp number.",
     "",
-    "You will get WhatsApp alerts when sellers respond to your requirements.",
-    "",
-    "Post or check requirements here:",
-    "",
-    "https://hoko.in/buyer/requirement/new",
-    "",
-    "If you also want seller flow, reply SELLER."
+    "You will get WhatsApp alerts when sellers respond to your requirements."
   ].join("\n");
 }
 
