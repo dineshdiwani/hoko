@@ -64,10 +64,16 @@ export default function WhatsAppLogin() {
           sellerProfile: user.sellerProfile
         });
         
-        // Redirect based on registration status
-        if (hasSellerProfile && hasSellerRole) {
+        // Redirect based on roles - prioritize seller if has profile, else buyer
+        const hasSellerProfile = user.sellerProfile?.firmName && user.sellerProfile?.managerName;
+        const hasBothRoles = user.roles?.seller && user.roles?.buyer;
+        
+        if (hasBothRoles) {
+          // User has both roles - go to seller dashboard (can switch to buyer from there)
           window.location.href = "/seller/dashboard";
-        } else if (user.roles?.buyer && !hasSellerRole) {
+        } else if (user.roles?.seller) {
+          window.location.href = "/seller/dashboard";
+        } else if (user.roles?.buyer) {
           window.location.href = "/buyer/dashboard";
         } else {
           window.location.href = "/seller/dashboard";
