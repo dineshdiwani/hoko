@@ -487,6 +487,14 @@ export default function SellerDashboard() {
         String(req._id) === String(requirementId) ? { ...req, myOffer: true } : req
       )
     );
+    
+    // Prompt to complete seller registration
+    const wantsToRegister = confirm(
+      "Offer submitted! Complete your seller profile to get better visibility and manage offers?"
+    );
+    if (wantsToRegister) {
+      navigate("/seller/register");
+    }
   };
 
   async function handleDeleteOffer(requirementId) {
