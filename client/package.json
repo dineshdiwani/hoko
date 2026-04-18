@@ -7,9 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "android:sync": "npm run build && npx cap sync android",
-    "android:open": "npx cap open android",
-    "android:run": "npm run android:sync && npx cap run android"
+    "android:sync": "vite build && node node_modules/@capacitor/cli/bin/capacitor sync android",
+    "android:open": "node node_modules/@capacitor/cli/bin/capacitor open android",
+    "android:run": "vite build && node node_modules/@capacitor/cli/bin/capacitor run android"
   },
   "dependencies": {
     "@capacitor/android": "^8.2.0",
@@ -22,7 +22,7 @@
     "axios": "^1.6.0",
     "d3-path": "^3.1.0",
     "dom-helpers": "^5.2.1",
-    "internmap": "^2.0.3",
+    "internmap": "^2.0.0",
     "jspdf": "^2.5.2",
     "jspdf-autotable": "^3.8.4",
     "prop-types": "^15.8.1",
@@ -33,7 +33,7 @@
     "socket.io-client": "^4.7.2",
     "xlsx": "^0.18.5"
   },
-  "devDependencies": {
+"devDependencies": {
     "autoprefixer": "^10.4.24",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
