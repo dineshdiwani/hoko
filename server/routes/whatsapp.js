@@ -598,24 +598,44 @@ function normalizeCityName(city) {
 }
 
 async function sendSellerRequirementInvite(to, requirementId, product, city, quantity) {
+  const provider = resolveWhatsAppProvider();
+  if (!["gupshup", "meta"].includes(provider)) {
+    console.log(`[Seller Invite] Provider ${provider} not supported for template send`);
+    return { ok: false, reason: "unsupported_provider" };
+  }
+
   const deepLink = buildSellerDeepLink(requirementId);
 
-  const message = [
-    `📦 New Requirement in ${city || "your city"}`,
-    "",
-    `Product: ${product || "N/A"}`,
-    `Quantity: ${quantity || "N/A"}`,
-    `ID: ${requirementId}`,
-    "",
-    "Submit your offer:",
-    deepLink,
-    "",
-    "Reply HELP for assistance."
-  ].join("\n");
+  const templateConfig = await WhatsAppTemplateRegistry.findOne({
+    key: "seller_new_requirement_invite_v2",
+    isActive: true
+  }).lean();
 
-  const result = await sendWhatsAppMessage({ to, body: message });
-  console.log(`[Seller Invite] Sent to ${to}, providerMessageId: ${result?.providerMessageId}, deepLink: ${deepLink}`);
-  return { ok: result?.ok, providerMessageId: result?.providerMessageId, deepLink };
+  if (!templateConfig) {
+    console.warn("[Seller Invite] Template config not found for seller_new_requirement_invite_v2");
+    return { ok: false, reason: "template_not_configured" };
+  }
+
+  try {
+    const templateId = String(templateConfig.templateId || "").trim();
+    const languageCode = String(templateConfig.language || "en").trim();
+    const parameters = [product, city, quantity, String(requirementId)];
+
+    const result = await sendViaGupshupTemplate({
+      to,
+      templateId,
+      templateName: templateConfig.templateName,
+      languageCode,
+      parameters,
+      buttonUrl: String(requirementId)
+    });
+
+    console.log(`[Seller Invite] Sent to ${to}, providerMessageId: ${result?.providerMessageId}, deepLink: ${deepLink}`);
+    return { ok: true, providerMessageId: result?.providerMessageId, deepLink };
+  } catch (err) {
+    console.error(`[Seller Invite] Failed to send to ${to}:`, err?.message || err);
+    return { ok: false, reason: err?.message || "send_failed" };
+  }
 }
 
 async function notifyMatchingSellers(requirement) {
@@ -814,29 +834,50 @@ function resolveWhatsAppProvider() {
 }
 
 async function sendBuyerInviteTemplate(to, tempRequirementId, mobile) {
+  const provider = resolveWhatsAppProvider();
+  if (!["gupshup", "meta"].includes(provider)) {
+    console.log(`[Buyer Invite] Provider ${provider} not supported for template send`);
+    return { ok: false, reason: "unsupported_provider" };
+  }
+
   const mobileParam = mobile || to.replace("+", "");
   const deepLink = resolveTrackedLink("/buyer/requirement/new", {
     ref: tempRequirementId,
     mobile: mobileParam,
     src: "wa",
-    campaign: "buyer_invite",
+    campaign: "buyer_invite_template",
     step: "post_requirement"
   });
 
-  const message = [
-    "Welcome to Hoko! 🎯",
-    "",
-    "Post your requirement and receive verified offers from sellers.",
-    "",
-    "Click here to start:",
-    deepLink,
-    "",
-    "Need help? Reply HELP."
-  ].join("\n");
+  const templateConfig = await WhatsAppTemplateRegistry.findOne({
+    key: "buyer_invite_post_requirement",
+    isActive: true
+  }).lean();
 
-  const result = await sendWhatsAppMessage({ to, body: message });
-  console.log(`[Buyer Invite] Sent to ${to}, providerMessageId: ${result?.providerMessageId}`);
-  return { ok: result?.ok, providerMessageId: result?.providerMessageId, deepLink };
+  if (!templateConfig) {
+    console.warn("[Buyer Invite] Template config not found for buyer_invite_post_requirement_v2");
+    return { ok: false, reason: "template_not_configured" };
+  }
+
+  try {
+    const templateId = String(templateConfig.templateId || "").trim();
+    const languageCode = String(templateConfig.language || "en").trim();
+    const parameters = [deepLink];
+
+    const result = await sendViaGupshupTemplate({
+      to,
+      templateId,
+      templateName: templateConfig.templateName,
+      languageCode,
+      parameters
+    });
+
+    console.log(`[Buyer Invite] Sent to ${to}, providerMessageId: ${result?.providerMessageId}`);
+    return { ok: true, providerMessageId: result?.providerMessageId, deepLink };
+  } catch (err) {
+    console.error(`[Buyer Invite] Failed to send to ${to}:`, err?.message || err);
+    return { ok: false, reason: err?.message || "send_failed" };
+  }
 }
 
 async function createTempRequirementAndSendInvite(mobileE164) {
