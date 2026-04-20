@@ -256,9 +256,15 @@ function buildRoleSelectionMessage() {
 
 function buildWelcomeMessage() {
   return [
-    "Welcome to Hoko.",
-    "Get verified business demand and supply in one platform.",
-    "Reply BUYER or SELLER."
+    "🔥 Welcome to Hoko",
+    "India's smart way to buy & sell 😎",
+    "",
+    "🛒 Want to BUY? → Get multiple offers from sellers",
+    "🏪 Want to SELL? → Get real buyer requirements",
+    "",
+    "👉 Reply with, If you are a",
+    "1️⃣ BUYER",
+    "2️⃣ SELLER"
   ].join("\n");
 }
 
