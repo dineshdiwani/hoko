@@ -382,6 +382,7 @@ const [cities, setCities] = useState([]);
   }
 
   function handleGoogleLogin(credential) {
+    console.log("[GoogleLogin] credential received, length:", credential?.length, "prefix:", credential?.substring(0, 20));
     const selectedCity = cityRef.current || city;
     const hasAcceptedTerms =
       acceptedTermsRef.current || acceptedTerms;
@@ -491,6 +492,8 @@ const [cities, setCities] = useState([]);
           err?.response?.data?.error ||
           err?.message ||
           "Google login failed.";
+        const debug = err?.response?.data?.debug;
+        console.error("[GoogleLogin] error:", message, "debug:", debug);
         if (
           isSeller &&
           (message ===
@@ -501,7 +504,7 @@ const [cities, setCities] = useState([]);
           navigate("/seller/register", { replace: true });
           return;
         }
-        alert(message);
+        alert(message + (debug ? `\n\nDebug: token aud=${debug.tokenAud}, expected=${debug.expected}, error=${debug.error}` : ""));
       })
       .finally(() => setGoogleLoading(false));
   }

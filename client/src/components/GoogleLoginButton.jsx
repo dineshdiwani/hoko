@@ -19,14 +19,13 @@ function parseGoogleClientIds() {
   return unique;
 }
 
-function isCancellationLikeError(error) {
+function isUserCancellation(error) {
   const message = String(error?.message || error || "").toLowerCase();
   return (
-    message.includes("cancelled by user") ||
-    message.includes("canceled by user") ||
-    message.includes("cancelled") ||
-    message.includes("canceled") ||
-    message.includes("activity is cancelled")
+    message === "cancelled by user" ||
+    message === "canceled by user" ||
+    message === "user cancelled" ||
+    message === "user canceled"
   );
 }
 
@@ -35,7 +34,12 @@ async function tryNativeGoogleLogin(options) {
     provider: "google",
     options
   });
-  return response?.provider === "google" ? response?.result?.idToken : null;
+  console.log("[GoogleLogin] raw response:", JSON.stringify(response, null, 2));
+  if (response?.provider !== "google") return null;
+  const result = response?.result || {};
+  const idToken = result.idToken || result.authentication?.idToken || null;
+  console.log("[GoogleLogin] extracted idToken:", idToken ? idToken.substring(0, 30) + "..." : "NULL");
+  return idToken;
 }
 
 export default function GoogleLoginButton({
@@ -233,7 +237,8 @@ export default function GoogleLoginButton({
       }
       onSuccessRef.current?.(credential);
     } catch (error) {
-      if (isCancellationLikeError(error)) {
+      console.error("[GoogleLogin] native sign-in error:", error?.message || error);
+      if (isUserCancellation(error)) {
         const nextError = new Error(
           "Google Sign-In was cancelled. Please try again."
         );
