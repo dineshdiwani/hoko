@@ -315,6 +315,9 @@ router.post("/google", async (req, res) => {
         .json({ message: "Google login not configured" });
     }
 
+    const decoded = decodeJwtPayload(credential);
+    console.log("[Google Login] token aud:", decoded?.aud, "| token azp:", decoded?.azp, "| accepted:", googleClientIds.join(", "));
+
     const client = getGoogleClient();
     if (!client) {
       return res.status(500).json({
@@ -329,6 +332,7 @@ router.post("/google", async (req, res) => {
         audience: googleClientIds.length === 1 ? googleClientIds[0] : googleClientIds
       });
       payload = ticket.getPayload();
+      console.log("[Google Login] token verified OK. email:", payload?.email, "aud:", payload?.aud);
     } catch (err) {
       const decoded = decodeJwtPayload(credential);
       const attemptedAudiences = googleClientIds.join(", ");
@@ -337,11 +341,16 @@ router.post("/google", async (req, res) => {
         err?.message || err,
         "| token aud:",
         decoded?.aud || "unknown",
+        "| token azp:",
+        decoded?.azp || "unknown",
+        "| token iss:",
+        decoded?.iss || "unknown",
         "| expected audience(s):",
         attemptedAudiences
       );
       return res.status(401).json({
-        message: "Invalid Google token or client ID mismatch"
+        message: "Invalid Google token or client ID mismatch",
+        debug: { tokenAud: decoded?.aud, tokenAzp: decoded?.azp, expected: attemptedAudiences, error: err?.message }
       });
     }
 

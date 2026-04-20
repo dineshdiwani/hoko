@@ -54,7 +54,7 @@ export default function GoogleLoginButton({
   const buttonHostRef = useRef(null);
   const onSuccessRef = useRef(onSuccess);
   const onErrorRef = useRef(onError);
-  const isNativeRuntime = isNativeAppRuntime();
+  const useNativeGoogleLogin = false;
   const [scriptLoaded, setScriptLoaded] = useState(false);
   const [googleReady, setGoogleReady] = useState(false);
   const [initializing, setInitializing] = useState(false);
@@ -165,7 +165,7 @@ export default function GoogleLoginButton({
   }, []);
 
   useEffect(() => {
-    if (isNativeRuntime) {
+    if (useNativeGoogleLogin) {
       initializeNativeGoogle().then((ready) => {
         setScriptLoaded(Boolean(ready));
       });
@@ -197,10 +197,10 @@ export default function GoogleLoginButton({
     script.onerror = () =>
       onErrorRef.current?.(new Error("Failed to load Google script"));
     document.body.appendChild(script);
-  }, [initializeNativeGoogle, isNativeRuntime]);
+  }, [initializeNativeGoogle, useNativeGoogleLogin]);
 
   useEffect(() => {
-    if (isNativeRuntime) return;
+    if (useNativeGoogleLogin) return;
     if (!scriptLoaded) return;
     if (!initializeGoogle()) return;
 
@@ -215,7 +215,7 @@ export default function GoogleLoginButton({
     return () => {
       window.google?.accounts?.id?.cancel();
     };
-  }, [scriptLoaded, initializeGoogle, renderGoogleButton, disabled, isNativeRuntime]);
+  }, [scriptLoaded, initializeGoogle, renderGoogleButton, disabled, useNativeGoogleLogin]);
 
   const signInWithNativeGoogle = useCallback(async () => {
     if (!googleReady) {
@@ -262,7 +262,7 @@ export default function GoogleLoginButton({
   return (
     <div className={`w-full mt-3 relative ${disabled ? "opacity-70" : ""}`}>
       <div className="relative w-full">
-        {isNativeRuntime ? (
+        {useNativeGoogleLogin ? (
           <button
             type="button"
             onClick={disabled ? () => onDisabledClick?.() : signInWithNativeGoogle}
@@ -301,7 +301,7 @@ export default function GoogleLoginButton({
           className={`w-full ${disabled ? "pointer-events-none" : ""}`}
         />
         )}
-        {!isNativeRuntime && !googleReady && (
+        {!useNativeGoogleLogin && !googleReady && (
           <button
             type="button"
             onClick={() =>
