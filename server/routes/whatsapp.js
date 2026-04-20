@@ -9,12 +9,9 @@ const WhatsAppLead = require("../models/WhatsAppLead");
 const WhatsAppBuyerLead = require("../models/WhatsAppBuyerLead");
 const WhatsAppContact = require("../models/WhatsAppContact");
 const WhatsAppBuyerContact = require("../models/WhatsAppBuyerContact");
-const WhatsAppConversationState = require("../models/WhatsAppConversationState");
-const WhatsAppFunnelEvent = require("../models/WhatsAppFunnelEvent");
 const OptedInSeller = require("../models/OptedInSeller");
-const User = require("../models/User");
 const { sendWhatsAppMessage } = require("../utils/sendWhatsApp");
-const { sendViaGupshupTemplate } = require("../utils/sendWhatsApp");
+const { sendViaGupshupTemplate, sendViaWapiTemplate } = require("../utils/sendWhatsApp");
 const { resolvePublicAppUrl } = require("../utils/publicAppUrl");
 const WhatsAppTemplateRegistry = require("../models/WhatsAppTemplateRegistry");
 const PlatformSettings = require("../models/PlatformSettings");
@@ -35,142 +32,8 @@ const GREETING_WORDS = new Set(["hi", "hii", "hello", "hey", "start", "menu"]);
 const BUYER_WORDS = new Set(["buyer", "buy", "i want to buy", "want to buy", "purchase"]);
 const SELLER_WORDS = new Set(["seller", "sell", "i want to sell", "want to sell", "sell"]);
 const SKIP_WORDS = new Set(["skip", "na", "none", "no", "-"]);
-const UPDATE_WORDS = new Set([
-  "send updates on my post", "send updates", "get updates", "enable updates", 
-  "whatsapp updates", "updates on my post", "updates on post", 
-  "get whatsapp updates", "enable whatsapp", "i want updates", "want updates"
-]);
 
-// Helper to check if message contains any update keyword
-function containsUpdateKeyword(text) {
-  const normalized = String(text || "").trim().toLowerCase();
-  return Array.from(UPDATE_WORDS).some(keyword => normalized.includes(keyword));
-}
-
-const CONVERSATION_TTL_MS = 24 * 60 * 60 * 1000;
-
-async function logFunnelEvent({
-  mobileE164,
-  direction = "system",
-  eventType,
-  campaign = "",
-  step = "",
-  provider = "",
-  providerMessageId = "",
-  status = "",
-  metadata = {}
-}) {
-  if (!mobileE164 || !eventType) return;
-  try {
-    await WhatsAppFunnelEvent.create({
-      mobileE164,
-      direction,
-      eventType,
-      campaign,
-      step,
-      provider,
-      providerMessageId,
-      status,
-      metadata
-    });
-  } catch (err) {
-    console.warn("[WhatsApp Funnel] log failed", err?.message || err);
-  }
-}
-
-function resolveTrackedLink(pathname, params = {}) {
-  const base = resolvePublicAppUrl();
-  const url = new URL(pathname, base);
-  Object.entries(params).forEach(([key, value]) => {
-    if (value === undefined || value === null) return;
-    const text = String(value).trim();
-    if (!text) return;
-    url.searchParams.set(key, text);
-  });
-  return url.toString();
-}
-
-function buildBuyerAppLink(mobileE164, campaign = "wa_inbound", step = "buyer_role") {
-  return resolveTrackedLink("/buyer/requirement/new", {
-    mobile: String(mobileE164 || "").replace(/[^\d]/g, ""),
-    src: "wa",
-    campaign,
-    step
-  });
-}
-
-function buildSellerAppLink(mobileE164, campaign = "wa_inbound", step = "seller_role") {
-  return resolveTrackedLink("/seller/login", {
-    mobile: String(mobileE164 || "").replace(/[^\d]/g, ""),
-    ref: "wa",
-    src: "wa",
-    campaign,
-    step
-  });
-}
-
-async function loadConversationState(mobileE164) {
-  if (!mobileE164) return null;
-  const now = new Date();
-  const state = await WhatsAppConversationState.findOne({ mobileE164 }).lean();
-  if (!state) return null;
-  if (state.expiresAt && new Date(state.expiresAt).getTime() < now.getTime()) {
-    await WhatsAppConversationState.deleteOne({ mobileE164 });
-    return null;
-  }
-  return state;
-}
-
-async function saveConversationState(mobileE164, payload = {}) {
-  if (!mobileE164) return;
-  const now = new Date();
-  const expiresAt = new Date(now.getTime() + CONVERSATION_TTL_MS);
-  await WhatsAppConversationState.findOneAndUpdate(
-    { mobileE164 },
-    {
-      $set: {
-        mobileE164,
-        stage: String(payload.stage || "awaiting_role"),
-        provider: String(payload.provider || "unknown"),
-        lastInboundText: String(payload.lastInboundText || ""),
-        lastIntent: String(payload.lastIntent || ""),
-        context: payload.context && typeof payload.context === "object" ? payload.context : {},
-        expiresAt
-      }
-    },
-    { upsert: true, new: true, setDefaultsOnInsert: true }
-  );
-}
-
-async function clearConversationState(mobileE164) {
-  if (!mobileE164) return;
-  await WhatsAppConversationState.deleteOne({ mobileE164 });
-}
-
-async function sendFlowMessage({
-  to,
-  body,
-  campaign = "",
-  step = "",
-  metadata = {}
-}) {
-  const result = await sendWhatsAppMessage({ to, body });
-  await logFunnelEvent({
-    mobileE164: to,
-    direction: "outbound",
-    eventType: "message_sent",
-    campaign,
-    step,
-    provider: resolveWhatsAppProvider(),
-    providerMessageId: String(result?.providerMessageId || ""),
-    status: result?.ok ? "sent" : "failed",
-    metadata: {
-      bodyPreview: String(body || "").slice(0, 140),
-      ...metadata
-    }
-  });
-  return result;
-}
+const consentState = new Map();
 
 const CONSENT_STATES = {
   PENDING: "pending_consent",
@@ -246,11 +109,16 @@ function parseCategorySelection(input, adminCategories = []) {
   };
 }
 
+function getConsentStateKey(mobileE164) {
+  return `consent:${mobileE164}`;
+}
+
 function buildRoleSelectionMessage() {
   return [
-    "Choose your role to continue.",
-    "Reply BUYER to post requirements.",
-    "Reply SELLER to receive buyer leads."
+    "No problem!",
+    "",
+    "🛒 Reply BUYER → To post your requirement",
+    "🏪 Reply SELLER → To receive buyer requirements"
   ].join("\n");
 }
 
@@ -270,43 +138,15 @@ function buildWelcomeMessage() {
 
 function buildConsentPromptMessage() {
   return [
-    "WhatsApp updates are enabled for this number.",
-    "To continue, choose your role in Hoko.",
-    "Reply BUYER or SELLER."
-  ].join("\n");
-}
-
-function buildConsentConfirmedMessage() {
-  return [
-    "Role confirmed.",
-    "Use the app to complete your workflow quickly.",
-    "Reply BUYER or SELLER if you want to switch role."
-  ].join("\n");
-}
-
-function buildUpdatesConfirmationMessage() {
-  return [
-    "Updates are enabled for this WhatsApp number.",
-    "You will get WhatsApp alerts when sellers respond to your requirements."
-  ].join("\n");
-}
-
-function buildGenericHelpMessage() {
-  return [
-    "Hoko assistant is ready.",
-    "Use WhatsApp for alerts and open the app for actions.",
-    "Reply BUYER or SELLER."
-  ].join("\n");
-}
-
-function buildUnknownIntentGreetingMessage(receivedText) {
-  const truncated = String(receivedText || "").length > 60
-    ? String(receivedText).slice(0, 57) + "..."
-    : String(receivedText || "");
-  return [
-    `Message received: ${truncated}`,
-    "To continue in Hoko, choose your role.",
-    "Reply BUYER or SELLER."
+    "🔥 Welcome to Hoko",
+    "India's smart way to buy & sell 😎",
+    "",
+    "🛒 Want to BUY? → Get multiple offers from sellers",
+    "🏪 Want to SELL? → Get real buyer requirements",
+    "",
+    "👉 Reply with, If you are a",
+    "1️⃣ BUYER",
+    "2️⃣ SELLER"
   ].join("\n");
 }
 
@@ -405,14 +245,8 @@ async function sendBuyerInviteLink(mobileE164) {
     { upsert: true, new: true, setDefaultsOnInsert: true }
   );
   
-  const mobileParam = mobileE164.replace("+", "");
-  return resolveTrackedLink("/buyer/requirement/new", {
-    ref: tempReq._id.toString(),
-    mobile: mobileParam,
-    src: "wa",
-    campaign: "buyer_invite",
-    step: "post_requirement"
-  });
+  const appBase = resolvePublicAppUrl();
+  return `${appBase}/buyer/requirement/new?ref=${tempReq._id.toString()}`;
 }
 
 async function sendBuyerRequirementInvite(mobileE164) {
@@ -425,8 +259,7 @@ async function sendBuyerRequirementInvite(mobileE164) {
     { upsert: true, new: true, setDefaultsOnInsert: true }
   );
   
-  const mobileParam = mobileE164.replace("+", "");
-  return await sendBuyerInviteTemplate(mobileE164, tempReq._id.toString(), mobileParam);
+  return await sendBuyerInviteTemplate(mobileE164, tempReq._id.toString());
 }
 
 async function createBuyerLeadAndSendConfirmation(mobileE164, product, city, provider = "whatsapp") {
@@ -464,16 +297,8 @@ async function createBuyerLeadAndSendConfirmation(mobileE164, product, city, pro
     { upsert: true, new: true, setDefaultsOnInsert: true }
   );
   
-  const mobileParam = mobileE164.replace("+", "");
-  const deepLink = resolveTrackedLink("/buyer/requirement/new", {
-    ref: tempReq._id.toString(),
-    mobile: mobileParam,
-    product: encodeURIComponent(product || ""),
-    city: encodeURIComponent(city || ""),
-    src: "wa",
-    campaign: "buyer_welcome",
-    step: "post_requirement"
-  });
+  const appBase = resolvePublicAppUrl();
+  const deepLink = `${appBase}/buyer/requirement/new?ref=${tempReq._id.toString()}&product=${encodeURIComponent(product || "")}&city=${encodeURIComponent(city || "")}`;
   
   const message = buildBuyerConfirmationMessage(product, city, requirementId, deepLink);
   await sendWhatsAppMessage({
@@ -519,14 +344,8 @@ function scheduleBuyerReminder(mobileE164, product) {
       const tempReq = await TempRequirement.findById(lead.tempRequirementId);
       if (!tempReq) return;
       
-      const deepLink = resolveTrackedLink("/buyer/requirement/new", {
-        ref: tempReq._id.toString(),
-        product: encodeURIComponent(lead.product || ""),
-        city: encodeURIComponent(lead.city || ""),
-        src: "wa",
-        campaign: "buyer_reminder",
-        step: "10min_reminder"
-      });
+      const appBase = resolvePublicAppUrl();
+      const deepLink = `${appBase}/buyer/requirement/new?ref=${tempReq._id.toString()}&product=${encodeURIComponent(lead.product || "")}&city=${encodeURIComponent(lead.city || "")}`;
       
       const message = buildReminderMessage(lead.product, deepLink);
       await sendWhatsAppMessage({
@@ -588,15 +407,14 @@ async function sendSellerInviteLink(mobileE164, city, categories = []) {
     { upsert: true, new: true }
   );
   
-  return resolveTrackedLink("/seller/login", {
-    mobile: mobileE164.replace("+", ""),
-    city,
-    cats: categories.length > 0 ? categories.join(",") : "",
-    ref: "wa",
-    src: "wa",
-    campaign: "seller_optin",
-    step: "login"
-  });
+  const appBase = resolvePublicAppUrl();
+  const params = new URLSearchParams();
+  params.set("mobile", mobileE164.replace("+", ""));
+  if (city) params.set("city", city);
+  if (categories.length > 0) params.set("cats", categories.join(","));
+  params.set("ref", "wa");
+  
+  return `${appBase}/seller/login?${params.toString()}`;
 }
 
 function normalizeCityName(city) {
@@ -627,14 +445,22 @@ async function sendSellerRequirementInvite(to, requirementId, product, city, qua
     const languageCode = String(templateConfig.language || "en").trim();
     const parameters = [product, city, quantity, String(requirementId)];
 
-    const result = await sendViaGupshupTemplate({
-      to,
-      templateId,
-      templateName: templateConfig.templateName,
-      languageCode,
-      parameters,
-      buttonUrl: String(requirementId)
-    });
+    const result = provider === "gupshup"
+      ? await sendViaGupshupTemplate({
+          to,
+          templateId,
+          templateName: templateConfig.templateName,
+          languageCode,
+          parameters,
+          buttonUrl: String(requirementId)
+        })
+      : await sendViaWapiTemplate({
+          to,
+          templateName: templateConfig.templateName,
+          languageCode,
+          parameters,
+          buttonUrl: String(requirementId)
+        });
 
     console.log(`[Seller Invite] Sent to ${to}, providerMessageId: ${result?.providerMessageId}, deepLink: ${deepLink}`);
     return { ok: true, providerMessageId: result?.providerMessageId, deepLink };
@@ -653,47 +479,13 @@ async function notifyMatchingSellers(requirement) {
 
   const results = { optedIn: [], registered: [], failed: [] };
 
-  // Notify opted-in sellers (existing behavior)
   const optedInSellers = await OptedInSeller.find({
     city,
     status: "active",
     ...(category ? { categories: category } : {})
   }).lean();
 
-  // Also notify registered sellers who gave WhatsApp consent
-  const registeredSellers = await User.find({
-    "roles.seller": true,
-    "sellerProfile.isActive": { $ne: false },
-    "sellerSettings.whatsappConsent": true,
-    ...(category ? { "sellerProfile.categories": { $in: [category] } } : {}),
-    mobile: { $exists: true, $ne: "" }
-  }).select("mobile").lean();
-
-  // Get unique mobile numbers to notify
-  const allSellerMobiles = new Set();
-  const sellersToNotify = [];
-
-  // Add opted-in sellers
   for (const seller of optedInSellers) {
-    if (seller.mobileE164 && !allSellerMobiles.has(seller.mobileE164)) {
-      allSellerMobiles.add(seller.mobileE164);
-      sellersToNotify.push({ mobileE164: seller.mobileE164, source: "optedIn" });
-    }
-  }
-
-  // Add registered sellers with consent
-  for (const seller of registeredSellers) {
-    const mobileE164 = seller.mobile?.startsWith("+") ? seller.mobile : seller.mobile ? `+91${seller.mobile}` : null;
-    if (mobileE164 && !allSellerMobiles.has(mobileE164)) {
-      allSellerMobiles.add(mobileE164);
-      sellersToNotify.push({ mobileE164, source: "registered" });
-    }
-  }
-
-  console.log(`[Seller Notify] Notifying ${optedInSellers.length} opted-in + ${registeredSellers.length} registered = ${sellersToNotify.length} total sellers for requirement ${requirementId}`);
-
-  // Send notifications to all sellers
-  for (const seller of sellersToNotify) {
     const sendResult = await sendSellerRequirementInvite(
       seller.mobileE164,
       requirementId,
@@ -720,17 +512,17 @@ async function notifyMatchingSellers(requirement) {
     });
 
     if (sendResult.ok) {
-      if (seller.source === "optedIn") {
-        results.optedIn.push(seller.mobileE164);
-      } else {
-        results.registered.push(seller.mobileE164);
-      }
+      results.optedIn.push(seller.mobileE164);
+      await OptedInSeller.findByIdAndUpdate(seller._id, {
+        $set: { lastNotifiedAt: new Date() },
+        $inc: { totalNotificationsSent: 1 }
+      });
     } else {
       results.failed.push(seller.mobileE164);
     }
   }
 
-  console.log(`[Seller Notify] Results - OptedIn: ${results.optedIn.length}, Registered: ${results.registered.length}, Failed: ${results.failed.length}`);
+  console.log(`[Seller Notify] Notified ${results.optedIn.length} opted-in sellers for requirement ${requirementId}`);
   return results;
 }
 
@@ -742,12 +534,8 @@ function firstNonEmpty(values) {
 }
 
 function buildSellerDeepLink(requirementId) {
-  const requirementToken = encodeURIComponent(String(requirementId || "").trim());
-  return resolveTrackedLink(`/seller/deeplink/${requirementToken}`, {
-    src: "wa",
-    campaign: "seller_requirement_alert",
-    step: "open_requirement"
-  });
+  const appBase = resolvePublicAppUrl();
+  return `${appBase}/seller/deeplink/${encodeURIComponent(String(requirementId || "").trim())}`;
 }
 
 function buildRequirementLabel(requirement) {
@@ -833,27 +621,80 @@ function normalizeInboundText(value) {
   return String(value || "").trim().toLowerCase();
 }
 
+function buildConsentPromptMessage() {
+  return [
+    "🔥 Welcome to Hoko",
+    "India's smart way to buy & sell 😎",
+    "",
+    "🛒 Want to BUY? → Get multiple offers from sellers",
+    "🏪 Want to SELL? → Get real buyer requirements",
+    "",
+    "👉 Reply with, If you are a",
+    "1️⃣ BUYER",
+    "2️⃣ SELLER"
+  ].join("\n");
+}
 
+function buildConsentConfirmedMessage() {
+  return [
+    "🔥 Welcome to Hoko",
+    "India's smart way to buy & sell 😎",
+    "",
+    "🛒 Want to BUY? → Get multiple offers from sellers",
+    "🏪 Want to SELL? → Get real buyer requirements",
+    "",
+    "👉 Reply with, If you are a",
+    "1️⃣ BUYER",
+    "2️⃣ SELLER"
+  ].join("\n");
+}
+
+function buildGenericHelpMessage() {
+  return [
+    "🔥 Welcome to Hoko",
+    "India's smart way to buy & sell 😎",
+    "",
+    "🛒 Want to BUY? → Get multiple offers from sellers",
+    "🏪 Want to SELL? → Get real buyer requirements",
+    "",
+    "👉 Reply with, If you are a",
+    "1️⃣ BUYER",
+    "2️⃣ SELLER"
+  ].join("\n");
+}
+
+function buildUnknownIntentGreetingMessage(receivedText) {
+  const truncated = receivedText.length > 50 
+    ? receivedText.substring(0, 47) + "..." 
+    : receivedText;
+  return [
+    "🔥 Welcome to Hoko",
+    "India's smart way to buy & sell 😎",
+    "",
+    `📩 We received: "${truncated}"`,
+    "",
+    "🛒 Want to BUY? → Get multiple offers from sellers",
+    "🏪 Want to SELL? → Get real buyer requirements",
+    "",
+    "👉 Reply with, If you are a",
+    "1️⃣ BUYER",
+    "2️⃣ SELLER"
+  ].join("\n");
+}
 
 function resolveWhatsAppProvider() {
   return String(process.env.WHATSAPP_PROVIDER || "mock").trim().toLowerCase();
 }
 
-async function sendBuyerInviteTemplate(to, tempRequirementId, mobile) {
+async function sendBuyerInviteTemplate(to, tempRequirementId) {
   const provider = resolveWhatsAppProvider();
   if (!["gupshup", "meta"].includes(provider)) {
     console.log(`[Buyer Invite] Provider ${provider} not supported for template send`);
     return { ok: false, reason: "unsupported_provider" };
   }
 
-  const mobileParam = mobile || to.replace("+", "");
-  const deepLink = resolveTrackedLink("/buyer/requirement/new", {
-    ref: tempRequirementId,
-    mobile: mobileParam,
-    src: "wa",
-    campaign: "buyer_invite_template",
-    step: "post_requirement"
-  });
+  const appBase = resolvePublicAppUrl();
+  const deepLink = `${appBase}/buyer/requirement/new?ref=${tempRequirementId}`;
 
   const templateConfig = await WhatsAppTemplateRegistry.findOne({
     key: "buyer_invite_post_requirement",
@@ -870,13 +711,20 @@ async function sendBuyerInviteTemplate(to, tempRequirementId, mobile) {
     const languageCode = String(templateConfig.language || "en").trim();
     const parameters = [deepLink];
 
-    const result = await sendViaGupshupTemplate({
-      to,
-      templateId,
-      templateName: templateConfig.templateName,
-      languageCode,
-      parameters
-    });
+    const result = provider === "gupshup"
+      ? await sendViaGupshupTemplate({
+          to,
+          templateId,
+          templateName: templateConfig.templateName,
+          languageCode,
+          parameters
+        })
+      : await sendViaWapiTemplate({
+          to,
+          templateName: templateConfig.templateName,
+          languageCode,
+          parameters
+        });
 
     console.log(`[Buyer Invite] Sent to ${to}, providerMessageId: ${result?.providerMessageId}`);
     return { ok: true, providerMessageId: result?.providerMessageId, deepLink };
@@ -919,7 +767,7 @@ async function createTempRequirementAndSendInvite(mobileE164) {
     }
   );
 
-  const sendResult = await sendBuyerInviteTemplate(mobileE164, tempReq._id.toString(), mobileE164.replace("+", ""));
+  const sendResult = await sendBuyerInviteTemplate(mobileE164, tempReq._id.toString());
 
   await WhatsAppDeliveryLog.create({
     requirementId: null,
@@ -1065,169 +913,62 @@ router.post("/webhook", async (req, res) => {
   }
 
   for (const event of events) {
-    await logFunnelEvent({
-      mobileE164: event.mobileE164,
-      direction: "inbound",
-      eventType: "message_received",
-      campaign: "wa_inbound",
-      step: "incoming",
-      provider: event.provider || "",
-      providerMessageId: String(event.providerMessageId || ""),
-      status: "received",
-      metadata: { text: String(event.text || "").slice(0, 200) }
-    });
-
     const normalizedInbound = normalizeInboundText(event.text);
     const consentConfirmed = CONSENT_CONFIRM_WORDS.has(normalizedInbound);
     const { sellerContact, buyerContact } = await loadContactByMobile(event.mobileE164);
-    const currentConsentState = await loadConversationState(event.mobileE164);
+    const consentKey = getConsentStateKey(event.mobileE164);
+    const currentConsentState = consentState.get(consentKey);
     let consentHandled = false;
-    const updateIntent = containsUpdateKeyword(event.text);
-    const isBuyerIntent =
-      BUYER_WORDS.has(normalizedInbound) ||
-      normalizedInbound === "buy" ||
-      normalizedInbound === "buyer" ||
-      normalizedInbound === "1";
-    const isSellerIntent =
-      SELLER_WORDS.has(normalizedInbound) ||
-      normalizedInbound === "sell" ||
-      normalizedInbound === "seller" ||
-      normalizedInbound === "2";
-
-    if (updateIntent) {
-      let buyerConsentContact = buyerContact;
-      let sellerConsentContact = sellerContact;
-
-      if (!buyerConsentContact && !sellerConsentContact) {
-        buyerConsentContact = await ensureBuyerProspect(event.mobileE164);
-      }
-
-      if (buyerConsentContact) {
-        await applyConsentConfirmed(buyerConsentContact, "buyer", event);
-      } else if (sellerConsentContact) {
-        await applyConsentConfirmed(sellerConsentContact, "seller", event);
-      }
-
-      await clearConversationState(event.mobileE164);
-      await sendFlowMessage({
-        to: event.mobileE164,
-        body: buildUpdatesConfirmationMessage(),
-        campaign: "wa_consent",
-        step: "updates_enabled"
-      });
-      continue;
-    }
-
-    if (isBuyerIntent) {
-      const buyerProspect = buyerContact || (await ensureBuyerProspect(event.mobileE164));
-      await applyConsentConfirmed(buyerProspect, "buyer", event);
-      await clearConversationState(event.mobileE164);
-      const buyerLink = buildBuyerAppLink(event.mobileE164, "wa_inbound", "buyer_role");
-      await sendFlowMessage({
-        to: event.mobileE164,
-        body: [
-          "Buyer mode selected.",
-          "Post your requirement in Hoko and receive verified offers.",
-          `Open app: ${buyerLink}`
-        ].join("\n"),
-        campaign: "wa_inbound",
-        step: "buyer_role_cta",
-        metadata: { deepLink: buyerLink }
-      });
-      continue;
-    }
-
-    if (isSellerIntent) {
-      const buyerProspect = buyerContact || (await ensureBuyerProspect(event.mobileE164));
-      await applyConsentConfirmed(buyerProspect, "buyer", event);
-      await clearConversationState(event.mobileE164);
-      const sellerLink = buildSellerAppLink(event.mobileE164, "wa_inbound", "seller_role");
-      await sendFlowMessage({
-        to: event.mobileE164,
-        body: [
-          "Seller mode selected.",
-          "Open Hoko to receive qualified buyer leads and submit offers.",
-          `Open app: ${sellerLink}`
-        ].join("\n"),
-        campaign: "wa_inbound",
-        step: "seller_role_cta",
-        metadata: { deepLink: sellerLink }
-      });
-      continue;
-    }
-
-    if (GREETING_WORDS.has(normalizedInbound) || !normalizedInbound) {
-      await saveConversationState(event.mobileE164, {
-        stage: "awaiting_role",
-        provider: event.provider,
-        lastInboundText: event.text,
-        lastIntent: "role_prompt",
-        context: {}
-      });
-      await sendFlowMessage({
-        to: event.mobileE164,
-        body: buildConsentPromptMessage(),
-        campaign: "wa_inbound",
-        step: "role_prompt"
-      });
-      continue;
-    }
 
     if (!sellerContact && !buyerContact) {
       await ensureBuyerProspect(event.mobileE164);
       notifyWhatsAppInteraction(event.mobileE164, "", event.text || "");
-
-      if (isBuyerIntent) {
-        const buyerProspect = await WhatsAppBuyerContact.findOne({ mobileE164: event.mobileE164 });
-        await applyConsentConfirmed(buyerProspect, "buyer", event);
-        await saveConversationState(event.mobileE164, {
-          stage: "awaiting_role",
-          provider: event.provider,
-          lastInboundText: event.text,
-          lastIntent: "buyer_product",
-          context: { product: "" }
-        });
-        const buyerLink = buildBuyerAppLink(event.mobileE164, "wa_inbound", "new_buyer");
-        await sendFlowMessage({
-          to: event.mobileE164,
-          body: [
-            "Buyer mode selected.",
-            "Post your requirement in Hoko and receive verified offers.",
-            `Open app: ${buyerLink}`
-          ].join("\n"),
-          campaign: "wa_inbound",
-          step: "new_buyer_cta",
-          metadata: { deepLink: buyerLink }
-        });
-        continue;
-      }
-
-      if (isSellerIntent) {
+      
+      // New user - show greeting and handle BUYER/SELLER directly
+      if (BUYER_WORDS.has(normalizedInbound) || normalizedInbound === "buy" || normalizedInbound === "1" || normalizedInbound === "buyer") {
         await applyConsentConfirmed(await WhatsAppBuyerContact.findOne({ mobileE164: event.mobileE164 }), "buyer", event);
-        const sellerContactLocal = await WhatsAppContact.findOne({ mobileE164: event.mobileE164 });
-        if (sellerContactLocal) {
-          await applyConsentConfirmed(sellerContactLocal, "seller", event);
-        }
-        const sellerLink = buildSellerAppLink(event.mobileE164, "wa_inbound", "new_seller");
-        await sendFlowMessage({
+        
+        // NEW BUYER FLOW: Ask what they need first
+        consentState.set(consentKey, { 
+          step: CONSENT_STATES.AWAITING_BUYER_PRODUCT, 
+          mobileE164: event.mobileE164 
+        });
+        
+        await sendWhatsAppMessage({
           to: event.mobileE164,
           body: [
-            "Seller mode selected.",
-            "Open Hoko to receive qualified buyer leads and submit offers.",
-            `Open app: ${sellerLink}`
-          ].join("\n"),
-          campaign: "wa_inbound",
-          step: "new_seller_cta",
-          metadata: { deepLink: sellerLink }
+            "🛒 You're a BUYER on HOKO!",
+            "",
+            "✅ Quick question: What do you need today?",
+            "",
+            "E.g., 'AC repair', 'LED TV', 'Cement bags', 'Office furniture'",
+            "",
+            "Just describe what you're looking for! 😊"
+          ].join("\n")
         });
         continue;
       }
-
-      await sendFlowMessage({
+      
+      if (SELLER_WORDS.has(normalizedInbound) || normalizedInbound === "sell" || normalizedInbound === "2" || normalizedInbound === "seller") {
+        consentState.set(consentKey, { step: CONSENT_STATES.AWAITING_SELLER_CITY, mobileE164: event.mobileE164 });
+        await applyConsentConfirmed(await WhatsAppBuyerContact.findOne({ mobileE164: event.mobileE164 }), "buyer", event);
+        await sendWhatsAppMessage({
+          to: event.mobileE164,
+          body: [
+            "🏪 You're a SELLER on HOKO!",
+            "",
+            "✅ Quick question: Which city do you operate in? 📍",
+            "",
+            "E.g., Mumbai, Delhi, Bangalore, Pune..."
+          ].join("\n")
+        });
+        continue;
+      }
+      
+      // Default - show greeting
+      await sendWhatsAppMessage({
         to: event.mobileE164,
-        body: buildGenericHelpMessage(),
-        campaign: "wa_inbound",
-        step: "generic_help"
+        body: buildGenericHelpMessage()
       });
       continue;
     }
@@ -1236,6 +977,7 @@ router.post("/webhook", async (req, res) => {
     const latestBuyerContact =
       buyerContact || (await WhatsAppBuyerContact.findOne({ mobileE164: event.mobileE164 }));
 
+    // Existing users - auto-confirm consent and handle BUYER/SELLER
     if (latestSellerContact?.optInStatus !== "opted_in") {
       await applyConsentConfirmed(latestSellerContact, "seller", event);
     }
@@ -1247,183 +989,169 @@ router.post("/webhook", async (req, res) => {
       continue;
     }
 
+    // Handle role selection for opted-in contacts
     if (currentConsentState?.step === CONSENT_STATES.AWAITING_ROLE) {
-      if (isBuyerIntent) {
-        await clearConversationState(event.mobileE164);
-        const buyerLink = buildBuyerAppLink(event.mobileE164, "wa_inbound", "buyer_role");
-        await sendFlowMessage({
+      if (BUYER_WORDS.has(normalizedInbound) || normalizedInbound === "buy" || normalizedInbound === "1") {
+        consentState.delete(consentKey);
+        
+        consentState.set(consentKey, { 
+          step: CONSENT_STATES.AWAITING_BUYER_PRODUCT, 
+          mobileE164: event.mobileE164 
+        });
+        
+        await sendWhatsAppMessage({
           to: event.mobileE164,
           body: [
-            "Buyer mode selected.",
-            "Post your requirement in Hoko and receive verified offers.",
-            `Open app: ${buyerLink}`
-          ].join("\n"),
-          campaign: "wa_inbound",
-          step: "buyer_role_cta",
-          metadata: { deepLink: buyerLink }
+            "🛒 You're a BUYER on HOKO!",
+            "",
+            "✅ Quick question: What do you need today?",
+            "",
+            "E.g., 'AC repair', 'LED TV', 'Cement bags', 'Office furniture'"
+          ].join("\n")
         });
         continue;
       }
-
-      if (isSellerIntent) {
-        await clearConversationState(event.mobileE164);
-        const sellerLink = buildSellerAppLink(event.mobileE164, "wa_inbound", "seller_role");
-        await sendFlowMessage({
+      
+      if (SELLER_WORDS.has(normalizedInbound) || normalizedInbound === "sell" || normalizedInbound === "2") {
+        consentState.delete(consentKey);
+        consentState.set(consentKey, { step: CONSENT_STATES.AWAITING_SELLER_CITY, mobileE164: event.mobileE164 });
+        await sendWhatsAppMessage({
           to: event.mobileE164,
           body: [
-            "Seller mode selected.",
-            "Open Hoko to receive qualified buyer leads and submit offers.",
-            `Open app: ${sellerLink}`
-          ].join("\n"),
-          campaign: "wa_inbound",
-          step: "seller_role_cta",
-          metadata: { deepLink: sellerLink }
+            "🏪 You're a SELLER on HOKO!",
+            "",
+            "✅ Quick question: Which city do you operate in? 📍"
+          ].join("\n")
         });
         continue;
       }
-
-      await sendFlowMessage({
+      
+      await sendWhatsAppMessage({
         to: event.mobileE164,
-        body: "Reply BUYER or SELLER to continue.",
-        campaign: "wa_inbound",
-        step: "role_prompt"
+        body: "Please reply BUYER or SELLER to continue."
       });
       continue;
     }
 
+    // NEW: Handle buyer product input (Step 1 of buyer flow)
     if (currentConsentState?.step === CONSENT_STATES.AWAITING_BUYER_PRODUCT) {
       const product = String(event.text || "").trim();
-
+      
       if (!product || product.length < 2) {
-        await sendFlowMessage({
+        await sendWhatsAppMessage({
           to: event.mobileE164,
-          body: "Describe what you need (e.g., Split AC, Cement bags).",
-          campaign: "wa_buyer_flow",
-          step: "product_prompt"
+          body: [
+            "Please describe what you need 😊",
+            "",
+            "E.g., 'Split AC', 'Cement bags', 'Office chair', 'Laptop'"
+          ].join("\n")
         });
         continue;
       }
-
-      await saveConversationState(event.mobileE164, {
-        stage: "awaiting_role",
-        provider: event.provider,
-        lastInboundText: event.text,
-        lastIntent: "buyer_city",
-        context: { product }
+      
+      // Move to city step
+      consentState.set(consentKey, { 
+        step: CONSENT_STATES.AWAITING_BUYER_CITY, 
+        mobileE164: event.mobileE164,
+        product: product
       });
-
-      await sendFlowMessage({
+      
+      await sendWhatsAppMessage({
         to: event.mobileE164,
         body: [
-          `Product: ${product}`,
-          "Which city are you in?",
-          "Reply BUYER or SELLER to switch role."
-        ].join("\n"),
-        campaign: "wa_buyer_flow",
-        step: "city_prompt"
+          "✅ Got it!",
+          "",
+          `📦 Looking for: ${product}`,
+          "",
+          "📍 Next: Which city are you in?",
+          "",
+          "E.g., Mumbai, Delhi, Bangalore..."
+        ].join("\n")
       });
       continue;
     }
 
+    // NEW: Handle buyer city input (Step 2 of buyer flow)
     if (currentConsentState?.step === CONSENT_STATES.AWAITING_BUYER_CITY) {
-      const product = currentConsentState?.context?.product || currentConsentState?.product || "";
+      const product = currentConsentState?.product || "";
       const inboundText = String(event.text || "").trim();
       const cities = await getCitiesFromSettings();
       const inputCity = normalizeCityName(inboundText);
       const matchedCity = cities.find(c => normalizeCityName(c) === inputCity);
       const cityToSave = matchedCity || inboundText;
-
+      
       if (!inboundText || inboundText.length < 2) {
-        await sendFlowMessage({
+        await sendWhatsAppMessage({
           to: event.mobileE164,
-          body: "Share your city name (e.g., Mumbai, Delhi, Bangalore).",
-          campaign: "wa_buyer_flow",
-          step: "city_prompt"
+          body: "Please share your city name (e.g., Mumbai, Delhi, Bangalore)"
         });
         continue;
       }
-
+      
+      // Create buyer lead and send confirmation
       try {
         const result = await createBuyerLeadAndSendConfirmation(event.mobileE164, product, cityToSave, event.provider);
         console.log(`[Buyer Lead] Created for ${event.mobileE164}: ${product} in ${cityToSave}`);
+        
+        // Schedule reminder if they don't click
         scheduleBuyerReminder(event.mobileE164, product);
+        
         console.log(`[Buyer Flow] Completed for ${event.mobileE164}, reminder scheduled`);
       } catch (err) {
         console.error(`[Buyer Flow] Error for ${event.mobileE164}:`, err.message);
-        await sendFlowMessage({
+        await sendWhatsAppMessage({
           to: event.mobileE164,
-          body: "Thanks. We'll get back to you soon. Check the app for updates.",
-          campaign: "wa_buyer_flow",
-          step: "error_fallback"
+          body: "Thanks! We'll get back to you soon. Check the app for updates."
         });
       }
-
-      await clearConversationState(event.mobileE164);
+      
+      consentState.delete(consentKey);
       continue;
     }
 
+    // Handle seller city input after role selection
     if (currentConsentState?.step === CONSENT_STATES.AWAITING_SELLER_CITY) {
       const inboundText = String(event.text || "").trim();
-      const selectedCategories = currentConsentState?.context?.categories || currentConsentState?.categories || [];
-      const categoriesDisplay = currentConsentState?.context?.categoriesDisplay || currentConsentState?.categoriesDisplay || selectedCategories.join(", ");
-
       if (!inboundText) {
-        await sendFlowMessage({
+        await sendWhatsAppMessage({
           to: event.mobileE164,
-          body: "Share your city name.",
-          campaign: "wa_seller_flow",
-          step: "city_prompt"
+          body: "Please share your city name."
         });
         continue;
       }
-
       const citiesData = await PlatformSettings.findOne({ key: "cities" }).lean();
       const cities = citiesData?.value || [];
       const inputCity = normalizeCityName(inboundText);
       const matchedCity = cities.find(c => normalizeCityName(c) === inputCity);
       const cityToSave = matchedCity || inboundText;
-
-      const loginLink = await sendSellerInviteLink(event.mobileE164, cityToSave, selectedCategories);
-
-      await sendFlowMessage({
-        to: event.mobileE164,
-        body: [
-          "Seller confirmed.",
-          `City: ${cityToSave}. Categories: ${categoriesDisplay}`,
-          `Open app: ${loginLink}`
-        ].join("\n"),
-        campaign: "wa_seller_flow",
-        step: "seller_confirmed",
-        metadata: { deepLink: loginLink }
+      
+      // Ask for category selection
+      consentState.set(consentKey, { 
+        step: CONSENT_STATES.AWAITING_SELLER_CATEGORIES, 
+        mobileE164: event.mobileE164,
+        city: cityToSave 
       });
-
-      setTimeout(async () => {
-        try {
-          await sendToNewSellerWithCategories(event.mobileE164, cityToSave, { whatsappCategories: selectedCategories, platformCategories: selectedCategories });
-          console.log(`[Seller OptIn] Sent requirements to ${event.mobileE164} after delay`);
-        } catch (err) {
-          console.log("[DummyReq] Delayed error:", err.message);
-        }
-      }, 2 * 60 * 1000 + Math.random() * 60 * 1000);
-
-      await clearConversationState(event.mobileE164);
-      console.log(`[Seller OptIn] ${event.mobileE164} - City: ${cityToSave}, Categories: ${selectedCategories.join(", ")}`);
+      const categoryMessage = await buildCategorySelectionMessage();
+      await sendWhatsAppMessage({
+        to: event.mobileE164,
+        body: categoryMessage
+      });
       continue;
     }
-
+    
+    // Handle seller categories input
     if (currentConsentState?.step === CONSENT_STATES.AWAITING_SELLER_CATEGORIES) {
       const inboundText = String(event.text || "").trim();
-
+      const cityToSave = currentConsentState?.city || "Unknown";
+      
       if (!inboundText) {
-        await sendFlowMessage({
+        await sendWhatsAppMessage({
           to: event.mobileE164,
-          body: "Select categories using numbers (e.g., 1,3,5).",
-          campaign: "wa_seller_flow",
-          step: "category_prompt"
+          body: "Please select categories using numbers (e.g., 1,3,5)"
         });
         continue;
       }
-
+      
       let adminCategories = [];
       try {
         const settings = await PlatformSettings.findOne().lean();
@@ -1431,96 +1159,76 @@ router.post("/webhook", async (req, res) => {
       } catch (err) {
         console.log("[WhatsApp] Error fetching categories:", err.message);
       }
-
+      
       const parsed = parseCategorySelection(inboundText, adminCategories);
-
+      
       if (parsed.whatsappCategories.length === 0) {
-        await sendFlowMessage({
+        await sendWhatsAppMessage({
           to: event.mobileE164,
-          body: "Invalid selection. Pick from the list (e.g., 1,3,5 or 0 for all).",
-          campaign: "wa_seller_flow",
-          step: "category_invalid"
+          body: "Invalid selection. Please select from the numbers listed (e.g., 1,3,5 or 0 for all)"
         });
         continue;
       }
-
-      await saveConversationState(event.mobileE164, {
-        stage: "awaiting_role",
-        provider: event.provider,
-        lastInboundText: event.text,
-        lastIntent: "seller_city",
-        context: { categories: parsed.platformCategories, categoriesDisplay: parsed.whatsappCategories.join(", ") }
+      
+      const loginLink = await sendSellerInviteLink(event.mobileE164, cityToSave, parsed.platformCategories);
+      await sendWhatsAppMessage({
+        to: event.mobileE164,
+        body: buildConsentConfirmedSellerMessage(cityToSave, parsed.whatsappCategories, loginLink)
       });
+      
+      // Schedule dummy requirements with 2-3 min delay
+      setTimeout(async () => {
+        try {
+          await sendToNewSellerWithCategories(event.mobileE164, cityToSave, parsed);
+          console.log(`[Seller OptIn] Sent requirements to ${event.mobileE164} after delay`);
+        } catch (err) {
+          console.log("[DummyReq] Delayed error:", err.message);
+        }
+      }, 2 * 60 * 1000 + Math.random() * 60 * 1000);
+      
+      consentState.delete(consentKey);
+      console.log(`[Seller OptIn] ${event.mobileE164} - City: ${cityToSave}, Categories: ${parsed.whatsappCategories.join(", ")}`);
+      continue;
+    }
 
-      await sendFlowMessage({
+    // Handle BUYER/SELLER for opted-in users - NEW BUYER FLOW
+    if (BUYER_WORDS.has(normalizedInbound) || normalizedInbound === "buy" || normalizedInbound === "1" || normalizedInbound === "buyer") {
+      consentState.set(consentKey, { 
+        step: CONSENT_STATES.AWAITING_BUYER_PRODUCT, 
+        mobileE164: event.mobileE164 
+      });
+      
+      await sendWhatsAppMessage({
         to: event.mobileE164,
         body: [
-          `Selected: ${parsed.whatsappCategories.join(", ")}`,
-          "Which city do you operate in?"
-        ].join("\n"),
-        campaign: "wa_seller_flow",
-        step: "city_prompt"
+          "🛒 You're a BUYER on HOKO!",
+          "",
+          "✅ Quick question: What do you need today?",
+          "",
+          "E.g., 'AC repair', 'LED TV', 'Cement bags', 'Office furniture'"
+        ].join("\n")
+      });
+      continue;
+    }
+    
+    if (SELLER_WORDS.has(normalizedInbound) || normalizedInbound === "sell" || normalizedInbound === "2" || normalizedInbound === "seller") {
+      consentState.set(consentKey, { step: CONSENT_STATES.AWAITING_SELLER_CITY, mobileE164: event.mobileE164 });
+      await sendWhatsAppMessage({
+        to: event.mobileE164,
+        body: [
+          "🏪 You're a SELLER on HOKO!",
+          "",
+          "✅ Quick question: Which city do you operate in? 📍"
+        ].join("\n")
       });
       continue;
     }
 
-    if (isBuyerIntent) {
-      await saveConversationState(event.mobileE164, {
-        stage: "awaiting_role",
-        provider: event.provider,
-        lastInboundText: event.text,
-        lastIntent: "buyer_product",
-        context: {}
-      });
-      const buyerLink = buildBuyerAppLink(event.mobileE164, "wa_inbound", "buyer_role");
-      await sendFlowMessage({
-        to: event.mobileE164,
-        body: [
-          "Buyer mode selected.",
-          "Post your requirement in Hoko and receive verified offers.",
-          `Open app: ${buyerLink}`
-        ].join("\n"),
-        campaign: "wa_inbound",
-        step: "buyer_role_cta",
-        metadata: { deepLink: buyerLink }
-      });
-      continue;
-    }
-
-    if (isSellerIntent) {
-      await saveConversationState(event.mobileE164, {
-        stage: "awaiting_role",
-        provider: event.provider,
-        lastInboundText: event.text,
-        lastIntent: "seller_categories",
-        context: {}
-      });
-      const categoryMessage = await buildCategorySelectionMessage();
-      await sendFlowMessage({
-        to: event.mobileE164,
-        body: [
-          "Seller mode selected.",
-          categoryMessage
-        ].join("\n"),
-        campaign: "wa_inbound",
-        step: "seller_category_prompt"
-      });
-      continue;
-    }
-
+    // Always acknowledge simple greetings so users do not see a silent chat.
     if (GREETING_WORDS.has(normalizedInbound)) {
-      await saveConversationState(event.mobileE164, {
-        stage: "awaiting_role",
-        provider: event.provider,
-        lastInboundText: event.text,
-        lastIntent: "greeting",
-        context: {}
-      });
-      await sendFlowMessage({
+      await sendWhatsAppMessage({
         to: event.mobileE164,
-        body: buildWelcomeMessage(),
-        campaign: "wa_inbound",
-        step: "welcome"
+        body: buildWelcomeMessage()
       });
       continue;
     }
@@ -1608,28 +1316,16 @@ router.post("/webhook", async (req, res) => {
         intent.kind === "register" && registerPayload?.isStructured
           ? buildRegisterConfirmationMessage(requirement, deepLink, registerPayload)
           : buildReplyMessage(intent.kind, requirement, deepLink);
-      await sendFlowMessage({
+      await sendWhatsAppMessage({
         to: event.mobileE164,
-        body: replyBody,
-        campaign: "wa_seller_lead",
-        step: intent.kind
+        body: replyBody
       });
     }
 
     if (!["link", "help", "register", "offer_intent"].includes(intent.kind)) {
-      await saveConversationState(event.mobileE164, {
-        stage: "awaiting_role",
-        provider: event.provider,
-        lastInboundText: event.text,
-        lastIntent: "role_prompt",
-        context: {}
-      });
-      await sendFlowMessage({
+      await sendWhatsAppMessage({
         to: event.mobileE164,
-        body: buildRoleSelectionMessage(),
-        campaign: "wa_inbound",
-        step: "role_prompt_fallback",
-        metadata: { receivedText: String(event.text || "").slice(0, 120) }
+        body: buildUnknownIntentGreetingMessage(event.text)
       });
     }
   }
@@ -1643,4 +1339,5 @@ router.post("/webhook", async (req, res) => {
 
 module.exports = router;
 module.exports.notifyMatchingSellers = notifyMatchingSellers;
+
 
