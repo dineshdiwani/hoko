@@ -33,6 +33,8 @@ export default function SellerDeepLink() {
   const navigate = useNavigate();
   const location = useLocation();
   const { requirementId } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [preview, setPreview] = useState(null);
@@ -69,6 +71,7 @@ export default function SellerDeepLink() {
   const [showRegistration, setShowRegistration] = useState(false); // Show registration after OTP verification
   const [registrationData, setRegistrationData] = useState({}); // Store registration form data
   
+  const params = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const mobileFromUrl = String(params.get("mobile") || "").replace(/^\+/, "");
   const cityFromUrl = String(params.get("city") || "").trim();
   const catsFromUrl = String(params.get("cats") || "").trim();
@@ -76,7 +79,6 @@ export default function SellerDeepLink() {
   const autoSubmitTriedRef = useRef(false);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
-  const params = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const packedData = useMemo(() => {
     const raw = String(params.get("pd") || params.get("data") || "").trim();
     if (!raw) return {};
