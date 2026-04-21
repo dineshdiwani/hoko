@@ -771,7 +771,7 @@ useEffect(() => {
 
             <form
               id="buyer-requirement-form"
-              onSubmit={isLoggedIn ? handleSubmit : (e) => { e.preventDefault(); if (isPublic) { handlePublicSubmit(e); } else { navigate("/buyer/login?redirect=/buyer/requirement/new"); } }}
+              onSubmit={isLoggedIn ? handleSubmit : handlePublicSubmit}
               className={`w-full bg-white rounded-2xl shadow p-4 pb-24 md:pb-4 ${
                 submitted ? "form-submitted" : ""
               }`}
