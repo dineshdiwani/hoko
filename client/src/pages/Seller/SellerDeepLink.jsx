@@ -351,19 +351,29 @@ export default function SellerDeepLink() {
         setOtpStep(false);
         setOtpValue("");
 
-        // After verification, redirect to seller registration
+        // Check if user already has seller profile
+        const sellerProfile = res.data.user?.sellerProfile || {};
+        const hasSellerProfile = sellerProfile?.firmName || sellerProfile?.businessName;
+
+        // After verification, decide next step
         if (pendingOfferPayload) {
-          // Store offer data temporarily and redirect to registration
-          localStorage.setItem("pending_seller_offer_data", JSON.stringify({
-            requirementId: requirementIdValue,
-            price: pendingOfferPayload.price,
-            message: pendingOfferPayload.message,
-            deliveryTime: pendingOfferPayload.deliveryTime,
-            paymentTerms: pendingOfferPayload.paymentTerms
-          }));
-          setPendingOfferPayload(null);
-          // Redirect to registration with return param
-          navigate(`/seller/register?returnTo=/seller/deeplink/${requirementIdValue}`, { replace: true });
+          if (hasSellerProfile) {
+            // Already registered as seller - submit offer directly
+            const payload = pendingOfferPayload;
+            setPendingOfferPayload(null);
+            await submitOffer(payload, { isAuto: true });
+          } else {
+            // First time seller - show registration form
+            localStorage.setItem("pending_seller_offer_data", JSON.stringify({
+              requirementId: requirementIdValue,
+              price: pendingOfferPayload.price,
+              message: pendingOfferPayload.message,
+              deliveryTime: pendingOfferPayload.deliveryTime,
+              paymentTerms: pendingOfferPayload.paymentTerms
+            }));
+            setPendingOfferPayload(null);
+            navigate(`/seller/register?returnTo=/seller/deeplink/${requirementIdValue}`, { replace: true });
+          }
         } else {
           // No pending offer - go to dashboard
           const dashboardParams = new URLSearchParams();
@@ -590,29 +600,35 @@ export default function SellerDeepLink() {
       return;
     }
 
+    // Validate required fields
+    const mobile = String(form.mobile || "").trim();
+    const sellerName = String(form.sellerName || "").trim();
+    const sellerCity = String(form.sellerCity || "").trim();
+    if (!mobile) {
+      alert("Please enter your WhatsApp number.");
+      return;
+    }
+    if (!sellerName) {
+      alert("Please enter your name.");
+      return;
+    }
+    if (!sellerCity) {
+      alert("Please select your city.");
+      return;
+    }
+
+    // For WhatsApp users - ALWAYS require OTP and registration first
+    if (mobileFromUrl || mobile) {
+      setPendingOfferPayload(payload);
+      requestOtp();
+      return;
+    }
+
+    // For regular logged in users
     const session = getSession();
     const canBecomeSeller = Boolean(session?.token && session?.roles?.seller);
-
-    // If NOT logged in, trigger OTP verification first
-    if (!session?.token || !canBecomeSeller) {
-      const mobile = String(form.mobile || "").trim();
-      const sellerName = String(form.sellerName || "").trim();
-      const sellerCity = String(form.sellerCity || "").trim();
-      if (!mobile) {
-        alert("Please enter your WhatsApp number.");
-        return;
-      }
-      if (!sellerName) {
-        alert("Please enter your name.");
-        return;
-      }
-      if (!sellerCity) {
-        alert("Please select your city.");
-        return;
-      }
-      // Store pending offer for submission after OTP verification
+    if (!canBecomeSeller) {
       setPendingOfferPayload(payload);
-      // Trigger OTP flow
       requestOtp();
       return;
     }
