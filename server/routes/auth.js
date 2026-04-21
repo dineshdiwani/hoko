@@ -145,7 +145,26 @@ function queueAdminNewUserEmail({ user, loginMethod, requestedRole }) {
 
 /* -------- LOGIN (SEND OTP) -------- */
 router.post("/login", otpSendLimiter, async (req, res) => {
-  const { email, role, city } = req.body || {};
+  const { email, role, city, mobile } = req.body || {};
+  
+  if (mobile) {
+    const mobileE164 = normalizeE164(mobile);
+    if (!mobileE164) {
+      return res.status(400).json({ message: "Invalid mobile number" });
+    }
+    let user = await User.findOne({ mobile: mobileE164 });
+    if (!user) {
+      return res.status(404).json({ message: "No account found with this mobile. Please register first." });
+    }
+    const otp = generateOtp();
+    const sendResult = await sendOTPviaWhatsApp(mobileE164, otp, "login", user.city);
+    if (!sendResult.ok) {
+      return res.status(500).json({ message: "Failed to send OTP. Please try again." });
+    }
+    setOtp(`login:${mobileE164}`, otp, OTP_TTL_MS);
+    return res.json({ success: true, method: "whatsapp", mobile: mobileE164 });
+  }
+  
   const normalizedEmail = normalizeEmail(email);
   const normalizedRole = role === "seller" ? "seller" : "buyer";
 
@@ -209,6 +228,61 @@ router.post("/login", otpSendLimiter, async (req, res) => {
 router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
   const { email, otp, role, city, acceptTerms, mobile } = req.body || {};
   const normalizedEmail = normalizeEmail(email);
+  
+  if (mobile) {
+    const mobileE164 = normalizeE164(mobile);
+    if (!mobileE164 || !otp) {
+      return res.status(400).json({ message: "Missing mobile or OTP" });
+    }
+    
+    const otpKey = `login:${mobileE164}`;
+    const otpResult = verifyOtp(otpKey, otp, OTP_MAX_ATTEMPTS);
+    if (!otpResult.ok) {
+      const message = otpResult.reason === "expired" ? "OTP expired" : otpResult.reason === "locked" ? "Too many attempts" : "Invalid OTP";
+      return res.status(otpResult.reason === "locked" ? 429 : 401).json({ message });
+    }
+    
+    let user = await User.findOne({ mobile: mobileE164 });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    const normalizedRole = role === "seller" ? "seller" : "buyer";
+    if (normalizedRole === "seller") {
+      const hasSellerProfile = Boolean(user.roles?.seller) || Boolean(user.sellerProfile?.businessName) || Boolean(user.sellerProfile?.firmName);
+      if (!hasSellerProfile) {
+        return res.status(403).json({ message: "Complete seller registration before login" });
+      }
+    }
+    
+    if (city) {
+      user.city = city;
+      await user.save();
+    }
+    
+    const token = jwt.sign(
+      { id: user._id, role: normalizedRole, tokenVersion: user.tokenVersion || 0 },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+    
+    const mergeResult = await mergeSoftUserRequirements(user._id, mobileE164);
+    return res.json({
+      success: true,
+      user: {
+        _id: user._id,
+        email: user.email,
+        role: normalizedRole,
+        roles: user.roles,
+        city: user.city,
+        name: user.name,
+        preferredCurrency: user.preferredCurrency || "INR",
+        mobile: user.mobile
+      },
+      token,
+      merge: mergeResult.merged ? mergeResult : undefined
+    });
+  }
 
   if (!normalizedEmail || !otp) {
     return res.status(400).json({ message: "Missing data" });
