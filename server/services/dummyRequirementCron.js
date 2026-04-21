@@ -1681,8 +1681,10 @@ async function sendToNewSellerWithCategories(mobileE164, city, categoryData) {
   }
   
   if (!dummies.length) {
-    console.log(`[DummyReq] No matching requirements for ${mobileE164}`);
-    return;
+    console.log(`[DummyReq] No matching requirements for ${mobileE164}, generating new ones...`);
+    // Generate dummy requirements if none found
+    const generated = await generateDummyRequirements(2);
+    dummies.push(...generated);
   }
   
   const provider = "gupshup";
