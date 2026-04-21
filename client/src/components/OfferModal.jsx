@@ -226,7 +226,7 @@ export default function OfferModal({
     setCameraOpen(false);
   }
 
-  const submitOffer = async () => {
+const submitOffer = async () => {
     if (!price) {
       alert("Please enter price");
       return;
@@ -239,6 +239,25 @@ export default function OfferModal({
       Number(price) >= currentLowestPrice
     ) {
       alert("Price must be lower than current lowest price");
+      return;
+    }
+
+    // Check if seller has completed registration
+    const session = JSON.parse(localStorage.getItem("hoko_session") || "null");
+    const hasSellerProfile = session?.sellerProfile?.firmName && session?.sellerProfile?.managerName;
+    const isWhatsAppUser = localStorage.getItem("whatsapp_login") === "true";
+
+    // For WhatsApp sellers without profile - redirect to registration first
+    if (isWhatsAppUser && !hasSellerProfile) {
+      alert("Please complete your seller registration first.");
+      localStorage.setItem("pending_offer_data", JSON.stringify({
+        requirementId: requirementId,
+        price: Number(price),
+        message: note,
+        deliveryTime: deliveryTime,
+        paymentTerms: paymentTerms
+      }));
+      window.location.href = "/seller/register?returnTo=/seller/dashboard";
       return;
     }
 
@@ -266,14 +285,14 @@ export default function OfferModal({
       });
       setOfferAttachments(nextAttachments);
       setFile(null);
-} catch (err) {
+    } catch (err) {
       alert(
         err?.response?.data?.message || "Failed to submit offer. Try again."
       );
       return;
     }
-    
-    // Show registration prompt instead of success message
+
+    alert("Offer submitted successfully!");
     if (typeof onSubmitted === "function") {
       onSubmitted(requirementId);
     }

@@ -344,43 +344,12 @@ export default function SellerDeepLink() {
           mobile: res.data.user.mobile || mobileFromUrl,
           token: res.data.token
         });
-        setForm((prev) => ({
-          ...prev,
-          sellerCity: cityFromUrl || res.data.user.city || ""
-        }));
         setOtpStep(false);
         setOtpValue("");
 
-        // Check if user already has seller profile
-        const sellerProfile = res.data.user?.sellerProfile || {};
-        const hasSellerProfile = sellerProfile?.firmName || sellerProfile?.businessName;
-
-        // After verification, decide next step
-        if (pendingOfferPayload) {
-          if (hasSellerProfile) {
-            // Already registered as seller - submit offer directly
-            const payload = pendingOfferPayload;
-            setPendingOfferPayload(null);
-            await submitOffer(payload, { isAuto: true });
-          } else {
-            // First time seller - show registration form
-            localStorage.setItem("pending_seller_offer_data", JSON.stringify({
-              requirementId: requirementIdValue,
-              price: pendingOfferPayload.price,
-              message: pendingOfferPayload.message,
-              deliveryTime: pendingOfferPayload.deliveryTime,
-              paymentTerms: pendingOfferPayload.paymentTerms
-            }));
-            setPendingOfferPayload(null);
-            navigate(`/seller/register?returnTo=/seller/deeplink/${requirementIdValue}`, { replace: true });
-          }
-        } else {
-          // No pending offer - go to dashboard
-          const dashboardParams = new URLSearchParams();
-          if (requirementIdValue) dashboardParams.set("openRequirement", requirementIdValue);
-          if (cityFromUrl) dashboardParams.set("city", cityFromUrl);
-          navigate(`/seller/dashboard?${dashboardParams.toString()}`, { replace: true });
-        }
+        // After OTP verification, go to seller dashboard
+        // Offer submission + registration will happen on dashboard
+        navigate("/seller/dashboard", { replace: true });
       } else {
         throw new Error(res.data?.message || "Verification failed");
       }
@@ -392,22 +361,23 @@ export default function SellerDeepLink() {
 useEffect(() => {
     const session = getSession();
 
-    // For sellers coming from WhatsApp - DON'T redirect to login
-    // Let them stay on offer page and verify OTP when they submit
+    // For sellers coming from WhatsApp - store params and redirect
     if (mobileFromUrl) {
-      // Store WhatsApp params for later use
+      // Store WhatsApp params for later use on dashboard
       localStorage.setItem("whatsapp_seller_mobile", mobileFromUrl);
-      localStorage.setItem("whatsapp_seller_city", cityFromUrl);
-      localStorage.setItem("whatsapp_seller_cats", catsFromUrl);
-      localStorage.setItem("whatsapp_seller_ref", requirementIdValue || "");
+      localStorage.setItem("whatsapp_login", "true");
+      if (cityFromUrl) localStorage.setItem("whatsapp_seller_city", cityFromUrl);
+      if (catsFromUrl) localStorage.setItem("whatsapp_seller_cats", catsFromUrl);
+      if (requirementIdValue) localStorage.setItem("whatsapp_seller_ref", requirementIdValue);
 
-      // If there's a session, validate it's still valid
-      if (session?.token) {
-        api.get("/seller/profile").catch(() => {
-          // Session expired or invalid - clear it so OTP is required
-          clearSession();
-        });
+      // If already logged in as seller - go directly to dashboard
+      if (session?.token && session?.roles?.seller) {
+        navigate("/seller/dashboard", { replace: true });
+        return;
       }
+
+      // Not logged in - show OTP popup immediately
+      requestOtp();
     }
 
     if (session?.token && session?.roles?.seller) {
