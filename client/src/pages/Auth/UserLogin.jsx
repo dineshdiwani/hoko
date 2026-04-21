@@ -128,11 +128,11 @@ export default function UserLogin({ role = "buyer" }) {
     sendWhatsAppOtp();
   }, [mobileFromUrl, step, acceptedTerms, city, cityFromUrl, currentRole, isSeller]);
 
-  // WhatsApp bypass: redirect to dashboard with OTP popup (seller only)
+  // WhatsApp seller login: store params and show OTP on this page
   useEffect(() => {
-    if (!isSeller || !isFromUrl || !mobileFromUrl) return;
+    if (!isSeller || !mobileFromUrl) return;
     
-    // Store WhatsApp params
+    // Store WhatsApp params for after login
     if (catsFromUrl) {
       localStorage.setItem("whatsapp_seller_cats", catsFromUrl);
     }
@@ -140,12 +140,11 @@ export default function UserLogin({ role = "buyer" }) {
       localStorage.setItem("whatsapp_seller_city", cityFromUrl);
     }
     localStorage.setItem("whatsapp_seller_mobile", mobileFromUrl);
+    localStorage.setItem("whatsapp_login", "true");
     
-    // Redirect to dashboard - it will show OTP popup
-    const dashParams = new URLSearchParams();
-    if (cityFromUrl) dashParams.set("city", cityFromUrl);
-    navigate(`/seller/dashboard?${dashParams.toString()}`, { replace: true });
-  }, [isSeller, isFromUrl, mobileFromUrl, cityFromUrl, catsFromUrl, navigate]);
+    // DON'T redirect to dashboard - let OTP show on this page
+    // After OTP verification, user will be redirected to dashboard
+  }, [isSeller, mobileFromUrl, cityFromUrl, catsFromUrl]);
 
   useEffect(() => {
     fetchOptions()
