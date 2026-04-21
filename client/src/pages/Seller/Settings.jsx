@@ -187,9 +187,7 @@ export default function SellerSettings() {
     }));
   };
 
-  const rawCategoryOptions = categories.length
-    ? categories
-    : ["Electronics", "Grocery", "Services", "Construction"];
+  const rawCategoryOptions = categories;
   const categoryOptions = [...rawCategoryOptions, ...(profile.categories || [])]
     .map((option) => {
       const rawLabel = getCategoryLabel(option);
@@ -383,10 +381,7 @@ export default function SellerSettings() {
                   className="w-full border rounded-xl px-4 py-3"
                 >
                   <option value="">Select city</option>
-                  {(cities.length
-                    ? cities
-                    : ["Mumbai", "Delhi", "Bangalore", "Chennai", "Hyderabad", "Pune"]
-                  ).map((c) => (
+                  {cities.map((c) => (
                     <option key={c} value={c}>
                       {c}
                     </option>

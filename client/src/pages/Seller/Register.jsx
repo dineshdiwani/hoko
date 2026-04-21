@@ -47,13 +47,7 @@ export default function SellerRegister() {
 
   const [cities, setCities] = useState([]);
 
-  const [categories, setCategories] = useState([
-    "Electronics",
-    "Grocery",
-    "Services",
-    "Construction",
-    "Hardware"
-  ]);
+  const [categories, setCategories] = useState([]);
   const resolveCityValue = (value, cityList, fallback = "") => {
     const raw = String(value || fallback || "").trim();
     if (!raw) return "";

@@ -114,18 +114,8 @@ export default function RequirementForm({ isPublic = false }) {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const [cities, setCities] = useState([]);
-  const [categories, setCategories] = useState([
-    "electronics",
-    "grocery",
-    "services",
-    "construction"
-  ]);
-  const [units, setUnits] = useState([
-    "pcs",
-    "kg",
-    "litre",
-    "service"
-  ]);
+  const [categories, setCategories] = useState([]);
+  const [units, setUnits] = useState([]);
   const buyerUpdatesMessage = "Send updates on my post";
   const buyerUpdatesWaLink = useMemo(
     () =>
