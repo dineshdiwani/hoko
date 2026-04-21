@@ -315,7 +315,7 @@ async function findOrCreateSoftUserByMobile(mobileE164, city = "user_default") {
       { email: { $exists: false } },
       { email: "" }
     ]
-  }).lean();
+  });
 
   if (existingSoftUser) {
     return { user: existingSoftUser, created: false };
