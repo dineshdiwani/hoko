@@ -33,8 +33,6 @@ export default function SellerDeepLink() {
   const navigate = useNavigate();
   const location = useLocation();
   const { requirementId } = useParams();
-  const location = useLocation();
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [preview, setPreview] = useState(null);
