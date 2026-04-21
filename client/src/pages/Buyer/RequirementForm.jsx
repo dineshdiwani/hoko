@@ -677,7 +677,7 @@ useEffect(() => {
     }
   }
 
-async function handleOtpVerify() {
+  async function handleOtpVerify() {
     if (otpValue.length !== 4) {
       setOtpError("Please enter 4-digit OTP");
       return;
@@ -693,7 +693,7 @@ async function handleOtpVerify() {
         requirementData: postData
       });
 
-      if (verifyRes.data?.success) {
+if (verifyRes.data?.success) {
         setOtpStep(false);
         setSubmitted(true);
         setOtpValue("");
@@ -701,8 +701,12 @@ async function handleOtpVerify() {
         alert("Requirement submitted successfully!");
         
         const { token, user, requirementId } = verifyRes.data;
+        
+        // If user was not logged in before (new user), redirect to login
+        // Otherwise go to dashboard
         const wasLoggedInBefore = session?.token;
         
+        // If token returned, save the session (for next time login)
         if (token && user) {
           setSession({
             _id: user._id,
@@ -718,8 +722,19 @@ async function handleOtpVerify() {
         }
         
         if (!wasLoggedInBefore) {
+          // New user - redirect to login page
           navigate("/buyer/login?redirect=/buyer/dashboard&newUser=true", { replace: true });
         } else {
+          // Already logged in - go to dashboard on My Posts tab
+          navigate(`/buyer/dashboard?tab=posts&highlight=${requirementId || ""}`, { replace: true });
+        }
+      }
+        
+        if (!wasLoggedInBefore) {
+          // New user - redirect to login page
+          navigate("/buyer/login?redirect=/buyer/dashboard&newUser=true", { replace: true });
+        } else {
+          // Already logged in - go to dashboard on My Posts tab
           navigate(`/buyer/dashboard?tab=posts&highlight=${requirementId || ""}`, { replace: true });
         }
       } else {
