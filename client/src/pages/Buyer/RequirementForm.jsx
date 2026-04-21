@@ -698,6 +698,8 @@ useEffect(() => {
         setSubmitted(true);
         setOtpValue("");
         
+        alert("Requirement submitted successfully!");
+        
         const { token, user, requirementId } = verifyRes.data;
         
         // If user was not logged in before (new user), redirect to login
