@@ -98,7 +98,35 @@ export default function UserLogin({ role = "buyer" }) {
     }
   }, [navigate, redirect, currentRole, searchParams, isSeller]);
 
-  // WhatsApp bypass: redirect to dashboard with OTP popup
+  // WhatsApp login: auto-send OTP when mobile in URL (for both buyer and seller)
+  useEffect(() => {
+    if (!mobileFromUrl || step !== "LOGIN") return;
+
+    if (!acceptedTerms) {
+      setAcceptedTerms(true);
+    }
+
+    const sendWhatsAppOtp = async () => {
+      try {
+        const res = await api.post("/auth/login", {
+          mobile: mobileFromUrl,
+          role: currentRole,
+          city: city || cityFromUrl
+        });
+        if (res.data?.success) {
+          setMobile(mobileFromUrl);
+          setStep("OTP");
+          alert("OTP sent via WhatsApp to " + mobileFromUrl);
+        }
+      } catch (err) {
+        console.error("WhatsApp OTP send error:", err?.response?.data || err?.message);
+      }
+    };
+
+    sendWhatsAppOtp();
+  }, [mobileFromUrl, step, acceptedTerms, city, cityFromUrl, currentRole]);
+
+  // WhatsApp bypass: redirect to dashboard with OTP popup (seller only)
   useEffect(() => {
     if (!isSeller || !isFromUrl || !mobileFromUrl) return;
     

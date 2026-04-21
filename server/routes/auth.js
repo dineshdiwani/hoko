@@ -155,7 +155,12 @@ router.post("/login", otpSendLimiter, async (req, res) => {
     }
     let user = await User.findOne({ mobile: mobileE164 });
     if (!user) {
-      return res.status(404).json({ message: "No account found with this mobile. Please register first." });
+      user = await User.create({
+        mobile: mobileE164,
+        city: city || "user_default",
+        roles: { buyer: true, seller: false, admin: false },
+        name: "WhatsApp User"
+      });
     }
     const otp = generateOtp();
     const sendResult = await sendOTPviaWhatsApp(mobileE164, otp, "login", user.city);
