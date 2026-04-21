@@ -347,9 +347,8 @@ export default function SellerDeepLink() {
         setOtpStep(false);
         setOtpValue("");
 
-        // After OTP verification, go to seller dashboard
-        // Offer submission + registration will happen on dashboard
-        navigate("/seller/dashboard", { replace: true });
+        // Stay on this page - show the offer form for the requirement
+        // Don't redirect to dashboard
       } else {
         throw new Error(res.data?.message || "Verification failed");
       }
