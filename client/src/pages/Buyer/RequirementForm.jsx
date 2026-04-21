@@ -553,24 +553,9 @@ useEffect(() => {
         unit: payload.type
       });
 
-      // For logged-in users, show popup only when mobile/email/consent is incomplete.
+      // For logged-in users, navigate to dashboard
       if (session?.token) {
-        try {
-          const profileRes = await api.get("/buyer/profile");
-          const profile = profileRes?.data || {};
-          const hasEmail = Boolean(
-            String(profile.email || session?.email || "").trim()
-          );
-          const hasMobile = Boolean(
-            String(profile.mobile || session?.mobile || form.mobile || "").trim()
-          );
-          const isWhatsAppOptedIn = profile?.whatsappUpdatesOptedIn === true;
-          if (hasEmail && hasMobile && isWhatsAppOptedIn) {
-            navigate("/buyer/dashboard?tab=posts", { replace: true });
-            return;
-          }
-        } catch {}
-        setWhatsappVerifyOpen(true);
+        navigate("/buyer/dashboard?tab=posts", { replace: true });
         return;
       }
 
@@ -1165,37 +1150,6 @@ useEffect(() => {
             <p className="text-xs text-gray-500 text-center mt-4">
               Didn't receive OTP? Check your WhatsApp messages.
             </p>
-          </div>
-        </div>
-      )}
-
-      {/* WhatsApp Verify Popup */}
-      {whatsappVerifyOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full text-center">
-            <h3 className="text-xl font-bold mb-4">Get WhatsApp Updates on Your Post</h3>
-            <p className="text-gray-600 mb-6">
-              Get instant notifications when sellers send you quotes. Click below to enable WhatsApp updates.
-            </p>
-            <button
-              onClick={() => {
-                window.open(buyerUpdatesWaLink, "_blank", "noopener,noreferrer");
-                setWhatsappVerifyOpen(false);
-                navigate("/buyer/dashboard?tab=posts", { replace: true });
-              }}
-              className="w-full bg-green-500 text-white py-3 rounded-lg font-semibold mb-3 hover:bg-green-600"
-            >
-              Enable WhatsApp Updates
-            </button>
-            <button
-              onClick={() => {
-                setWhatsappVerifyOpen(false);
-                navigate("/buyer/dashboard?tab=posts", { replace: true });
-              }}
-              className="w-full border border-gray-300 py-2 rounded-lg text-gray-600 hover:bg-gray-50"
-            >
-              Maybe Later
-            </button>
           </div>
         </div>
       )}
