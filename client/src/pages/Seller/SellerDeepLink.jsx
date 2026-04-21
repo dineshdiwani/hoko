@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import api from "../../services/api";
-import { getSession, setSession } from "../../services/storage";
+import { getSession, setSession, clearSession } from "../../services/storage";
 import { fetchOptions } from "../../services/options";
 
 const PENDING_OFFER_KEY = "pending_seller_offer_intent";
@@ -389,20 +389,27 @@ export default function SellerDeepLink() {
     }
   };
 
-  useEffect(() => {
+useEffect(() => {
     const session = getSession();
 
     // For sellers coming from WhatsApp - DON'T redirect to login
     // Let them stay on offer page and verify OTP when they submit
-    if (mobileFromUrl && !session?.token) {
+    if (mobileFromUrl) {
       // Store WhatsApp params for later use
       localStorage.setItem("whatsapp_seller_mobile", mobileFromUrl);
       localStorage.setItem("whatsapp_seller_city", cityFromUrl);
       localStorage.setItem("whatsapp_seller_cats", catsFromUrl);
       localStorage.setItem("whatsapp_seller_ref", requirementIdValue || "");
-      // Don't redirect - let user fill form and verify on submit
+
+      // If there's a session, validate it's still valid
+      if (session?.token) {
+        api.get("/seller/profile").catch(() => {
+          // Session expired or invalid - clear it so OTP is required
+          clearSession();
+        });
+      }
     }
-    
+
     if (session?.token && session?.roles?.seller) {
       if (session?.city && !form.sellerCity) {
         setForm((prev) => ({ ...prev, sellerCity: session.city }));
@@ -602,10 +609,12 @@ export default function SellerDeepLink() {
 
     // Check if seller is already logged in
     const session = getSession();
-    const canBecomeSeller = Boolean(session?.token && session?.roles?.seller);
+    console.log("[SellerDeepLink] handleSubmit session:", session);
+    const hasValidSession = Boolean(session?.token && session.token.length > 10 && session?.roles?.seller);
+    console.log("[SellerDeepLink] hasValidSession:", hasValidSession);
 
     // If logged in as seller - submit directly, no OTP
-    if (canBecomeSeller) {
+    if (hasValidSession) {
       submitOffer(payload);
       return;
     }
