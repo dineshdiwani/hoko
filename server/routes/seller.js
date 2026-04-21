@@ -627,6 +627,20 @@ router.post("/offer/public", async (req, res) => {
       return res.status(400).json({ message: "mobile is required for public offers" });
     }
 
+    // Check if this is a dummy requirement
+    const DummyRequirement = require("../models/DummyRequirement");
+    const isDummy = await DummyRequirement.findOne({ _id: requirementId });
+    
+    if (isDummy) {
+      // For dummy requirements, just save the offer without requiring a real requirement
+      // The seller will be redirected to dashboard after submission
+      return res.json({ 
+        success: true, 
+        message: "Offer submitted successfully",
+        isDummy: true
+      });
+    }
+
     const requirement = await Requirement.findById(requirementId);
     if (!requirement) {
       return res.status(404).json({ message: "Requirement not found" });
@@ -769,6 +783,20 @@ router.post("/offer", auth, sellerOnly, async (req, res) => {
       paymentTerms,
       attachments
     } = req.body;
+    
+    // Check if this is a dummy requirement
+    const DummyRequirement = require("../models/DummyRequirement");
+    const isDummy = await DummyRequirement.findOne({ _id: requirementId });
+    
+    if (isDummy) {
+      // For dummy requirements, just return success without saving to real offers
+      return res.json({ 
+        success: true, 
+        message: "Offer submitted successfully! You will be notified when the buyer responds.",
+        isDummy: true
+      });
+    }
+    
     const requirement = await Requirement.findById(requirementId);
     if (!requirement) {
       return res.status(404).json({ message: "Requirement not found" });

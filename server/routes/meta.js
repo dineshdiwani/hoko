@@ -57,7 +57,8 @@ router.get("/requirement-preview/:requirementId", async (req, res) => {
     return res.status(400).json({ message: "Requirement ID required" });
   }
   try {
-    const requirement = await Requirement.findOne({
+    // First check real requirements
+    let requirement = await Requirement.findOne({
       _id: requirementId,
       "moderation.removed": { $ne: true }
     })
@@ -65,6 +66,28 @@ router.get("/requirement-preview/:requirementId", async (req, res) => {
         "_id city category productName product makeBrand brand typeModel quantity type unit details description offerInvitedFrom attachments createdAt"
       )
       .lean();
+
+    // If not found in real requirements, check dummy requirements
+    if (!requirement) {
+      const DummyRequirement = require("../models/DummyRequirement");
+      const dummy = await DummyRequirement.findOne({ _id: requirementId }).lean();
+      if (dummy) {
+        requirement = {
+          _id: dummy._id,
+          city: dummy.city,
+          category: dummy.category,
+          productName: dummy.product,
+          product: dummy.product,
+          quantity: dummy.quantity,
+          unit: dummy.unit,
+          type: dummy.unit,
+          details: dummy.details || "",
+          offerInvitedFrom: "anywhere",
+          createdAt: dummy.createdAt,
+          isDummy: true
+        };
+      }
+    }
 
     if (!requirement) {
       return res.status(404).json({ message: "Requirement not found" });
