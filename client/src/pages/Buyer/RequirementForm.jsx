@@ -116,6 +116,8 @@ export default function RequirementForm({ isPublic = false }) {
   const [cities, setCities] = useState([]);
   const [categories, setCategories] = useState([]);
   const [units, setUnits] = useState([]);
+
+  
   const buyerUpdatesMessage = "Send updates on my post";
   const buyerUpdatesWaLink = useMemo(
     () =>
@@ -172,9 +174,10 @@ export default function RequirementForm({ isPublic = false }) {
     });
   }, [categories, form.category]);
 
-  useEffect(() => {
+useEffect(() => {
     fetchOptions()
       .then((data) => {
+        console.log("[RequirementForm] fetchOptions data:", JSON.stringify(data));
         const defaults = data?.defaults || {};
         if (Array.isArray(data.cities) && data.cities.length) {
           setCities(data.cities);
