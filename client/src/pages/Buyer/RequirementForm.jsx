@@ -640,11 +640,15 @@ useEffect(() => {
 
       setPostData(payload);
 
+      console.log("[handlePublicSubmit] Calling request-otp API with:", { mobile: form.mobile, product: form.product, city: form.city });
+      
       const otpRes = await api.post("/buyer/requirement/request-otp", {
         mobile: form.mobile,
         product: form.product,
         city: form.city
       });
+
+      console.log("[handlePublicSubmit] OTP response:", otpRes.data);
 
       if (otpRes.data?.success) {
         setOtpStep(true);
