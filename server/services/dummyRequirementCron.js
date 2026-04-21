@@ -1495,8 +1495,7 @@ async function generateDummyRequirements(count = 3) {
   return generated;
 }
 
-async function buildDummyRequirementMessage(dummies, sellerCity) {
-  const baseUrl = await resolvePublicAppUrl();
+async function buildDummyRequirementMessage(dummies, sellerCity, mobileParam = "") {
   const lines = [
     "🛒 *New Buyer Requirements*",
     "",
@@ -1505,7 +1504,7 @@ async function buildDummyRequirementMessage(dummies, sellerCity) {
     ),
     "",
     "To submit your best offer:",
-    `${baseUrl}/seller/deeplink/auto-${Date.now()}`
+    `https://hokoapp.in/seller/deeplink/${dummies[0]?._id || "auto"}${mobileParam}`
   ];
   return lines.join("\n");
 }
@@ -1518,9 +1517,10 @@ async function sendTemplateToSellers(sellers, dummies, city, provider) {
 
   if (!templateConfig) {
     console.warn("[DummyReq] Template not found, falling back to text");
-    const message = await buildDummyRequirementMessage(dummies, city);
     for (const seller of sellers) {
       try {
+        const mobileParam = seller.mobileE164 ? `?mobile=${encodeURIComponent(seller.mobileE164.replace("+", ""))}` : "";
+        const message = await buildDummyRequirementMessage(dummies, city, mobileParam);
         await sendWhatsAppMessage({ to: seller.mobileE164, body: message });
       } catch (err) {
         console.log("[DummyReq] Failed:", err.message);
@@ -1530,16 +1530,19 @@ async function sendTemplateToSellers(sellers, dummies, city, provider) {
   }
 
   for (const dummy of dummies) {
-    const requirementId = dummy.realRequirementId ? String(dummy.realRequirementId) : "demo";
-    const deeplink = `${process.env.CLIENT_URL || "https://hoko.app"}/seller/deeplink/${requirementId}`;
+    const requirementId = dummy.realRequirementId ? String(dummy.realRequirementId) : String(dummy._id);
+    const deeplink = `https://hokoapp.in/seller/deeplink/${requirementId}`;
 
     for (const seller of sellers) {
       try {
+        // Add mobile parameter to deeplink for OTP flow
+        const mobileParam = seller.mobileE164 ? `?mobile=${encodeURIComponent(seller.mobileE164.replace("+", ""))}` : "";
+        const sellerDeepLink = `${deeplink}${mobileParam}`;
         const params = [
           String(dummy.product || ""),
           String(dummy.city || ""),
           String(`${dummy.quantity} ${dummy.unit}` || ""),
-          deeplink
+          sellerDeepLink
         ];
 
         if (provider === "gupshup") {
@@ -1549,7 +1552,7 @@ async function sendTemplateToSellers(sellers, dummies, city, provider) {
             templateName: templateConfig.templateName,
             languageCode: templateConfig.language || "en",
             parameters: params,
-            buttonUrl: deeplink
+            buttonUrl: sellerDeepLink
           });
         }
         console.log(`[DummyReq] Template sent to ${seller.mobileE164} for ${dummy.product}`);
@@ -1686,7 +1689,8 @@ async function sendToNewSellerWithCategories(mobileE164, city, categoryData) {
   
   for (const dummy of dummies) {
     const requirementId = dummy.realRequirementId ? dummy.realRequirementId.toString() : dummy._id.toString();
-    const deepLink = `https://hokoapp.in/seller/deeplink/${requirementId}`;
+    const mobileParam = mobileE164 ? `?mobile=${encodeURIComponent(mobileE164.replace("+", ""))}` : "";
+    const deepLink = `https://hokoapp.in/seller/deeplink/${requirementId}${mobileParam}`;
     
     let message;
     if (hasOfferAnywhere && dummy.category) {
