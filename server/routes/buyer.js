@@ -1649,6 +1649,46 @@ router.post("/profile", auth, buyerOnly, async (req, res) => {
     await req.user.save();
   } catch (err) {
     if (err.code === 11000 && err.keyPattern?.email) {
+      const existingEmailUser = await User.findOne({ email: email, _id: { $ne: req.user._id } });
+      if (existingEmailUser) {
+        const requirementsMerged = await Requirement.updateMany(
+          { buyerId: req.user._id },
+          { $set: { buyerId: existingEmailUser._id } }
+        );
+        await TempRequirement.updateMany(
+          { userId: req.user._id },
+          { $set: { userId: existingEmailUser._id } }
+        );
+        existingEmailUser.mobile = req.user.mobile || existingEmailUser.mobile;
+        if (existingEmailUser.city && !existingEmailUser.city.trim()) {
+          existingEmailUser.city = req.user.city;
+        }
+        if (!existingEmailUser.roles?.buyer) {
+          existingEmailUser.roles = { ...existingEmailUser.roles, buyer: true };
+        }
+        await existingEmailUser.save();
+        await User.findByIdAndDelete(req.user._id);
+        console.log(`[Account Merge] Merged new user ${req.user._id} into existing email user ${existingEmailUser._id}, ${requirementsMerged.modifiedCount} requirements`);
+        const token = jwt.sign(
+          { id: existingEmailUser._id, role: "buyer", tokenVersion: existingEmailUser.tokenVersion || 0 },
+          process.env.JWT_SECRET,
+          { expiresIn: "7d" }
+        );
+        return res.json({
+          merged: true,
+          message: "Account merged! Your posts and offers have been transferred.",
+          token,
+          user: {
+            _id: existingEmailUser._id,
+            email: existingEmailUser.email,
+            role: existingEmailUser.role,
+            roles: existingEmailUser.roles,
+            city: existingEmailUser.city,
+            preferredCurrency: existingEmailUser.preferredCurrency || "INR",
+            mobile: existingEmailUser.mobile
+          }
+        });
+      }
       return res.status(400).json({ message: "This email is already registered. Please use a different email." });
     }
     throw err;
