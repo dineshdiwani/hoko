@@ -965,19 +965,10 @@ router.post("/webhook", async (req, res) => {
         continue;
       }
       
-      // Greeting - show welcome message
-      if (GREETING_WORDS.has(normalizedInbound)) {
-        await sendWhatsAppMessage({
-          to: event.mobileE164,
-          body: buildWelcomeMessage()
-        });
-        continue;
-      }
-      
-      // Default - show welcome message
+      // Default - show greeting
       await sendWhatsAppMessage({
         to: event.mobileE164,
-        body: buildWelcomeMessage()
+        body: buildGenericHelpMessage()
       });
       continue;
     }
