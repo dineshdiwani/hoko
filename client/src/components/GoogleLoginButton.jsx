@@ -25,7 +25,9 @@ function isUserCancellation(error) {
     message === "cancelled by user" ||
     message === "canceled by user" ||
     message === "user cancelled" ||
-    message === "user canceled"
+    message === "user canceled" ||
+    message.includes("cancelled") ||
+    message.includes("canceled")
   );
 }
 
@@ -54,7 +56,7 @@ export default function GoogleLoginButton({
   const buttonHostRef = useRef(null);
   const onSuccessRef = useRef(onSuccess);
   const onErrorRef = useRef(onError);
-  const useNativeGoogleLogin = false;
+  const useNativeGoogleLogin = isNativeAppRuntime();
   const [scriptLoaded, setScriptLoaded] = useState(false);
   const [googleReady, setGoogleReady] = useState(false);
   const [initializing, setInitializing] = useState(false);

@@ -4,7 +4,7 @@ let optionsCache = null;
 let optionsCacheTime = 0;
 const CACHE_DURATION = 5 * 60 * 1000;
 
-export async function fetchOptions(forceRefresh = false) {
+export async function fetchOptions(forceRefresh = true) {
   const now = Date.now();
   if (!forceRefresh && optionsCache && (now - optionsCacheTime) < CACHE_DURATION) {
     return optionsCache;
