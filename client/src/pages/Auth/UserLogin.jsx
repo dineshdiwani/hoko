@@ -560,8 +560,29 @@ export default function UserLogin({ role = "buyer" }) {
               <h1 className="text-2xl font-bold text-center text-gray-800 mb-1">
                 {isFromRequirement ? "One step away!" : "Login"}
               </h1>
+
+              <a
+                href="https://wa.me/919887482058?text=Hi"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-3.5 rounded-xl bg-[#25D366] hover:bg-[#20BD5A] text-white font-semibold flex items-center justify-center gap-2 mb-4"
+              >
+                <svg viewBox="0 0 48 48" className="h-5 w-5" fill="white">
+                  <path d="M40.8 7.2c-4.5-4.5-10.5-7-17-7-.8 0-1.6.1-2.4.2-2.2.4-4.2 1.4-5.8 3l-3.2 3.2c-.4.4-.7 1-.8 1.6l-1 8.4c-.1.5 0 1 .2 1.5.2.5.6 1 1 1.3l13.8 9.2c.5.3 1.1.5 1.6.5h.2l8.6-.8c.8-.1 1.5-.5 2-1.2.6-.8.7-1.8.4-2.7L43 12c-.1-.8-.4-1.5-1-2.2-.5-.6-1.2-1.2-2.2-1.6zm-3 14.2l-9.5 1c-.7.1-1.4-.1-2-.5L15.5 18.5l2.8-2.6c.4-.4.9-.7 1.5-.8l7.2-.8c.5 0 1-.2 1.4-.5l3-2.6c2.4-1.8 5.4-2.3 8.2-1.3.7.2 1.4.6 1.9 1.2l2.6 3.2c.4.5.5 1.2.4 1.8z"/>
+                </svg>
+                <span>Send "Hi" on WhatsApp to post requirement</span>
+              </a>
+
+              <div className="my-3 flex items-center gap-3">
+                <div className="h-px flex-1 bg-slate-200" />
+                <span className="text-xs font-semibold tracking-wide text-slate-500">
+                  OR
+                </span>
+                <div className="h-px flex-1 bg-slate-200" />
+              </div>
+
               <p className="text-center text-gray-500 mb-4">
-                {isFromRequirement ? "Login to see seller responses" : "Continue with email OTP"}
+                Sign in with email
               </p>
 
               {step === "LOGIN" && (
@@ -642,28 +663,9 @@ export default function UserLogin({ role = "buyer" }) {
                   <div className="h-px flex-1 bg-slate-200" />
                 </div>
 
-                <div className="grid gap-3">
-                <label className="block text-sm font-medium mb-1 text-gray-700">
-                  Mobile (via WhatsApp)
-                </label>
-                <input
-                  type="tel"
-                  value={mobile}
-                  onChange={(e) => setMobile(e.target.value.replace(/\D/g, ""))}
-                  placeholder="919887482058"
-                  className="w-full border border-gray-300 rounded-xl px-4 py-3"
-                />
-
-                <div className="relative flex items-center">
-                  <div className="flex-1 border-t border-gray-300"></div>
-                  <span className="flex-shrink-0 px-3 text-xs text-gray-500">or</span>
-                  <div className="flex-1 border-t border-gray-300"></div>
-                </div>
-
                 <label className="block text-sm font-medium mb-1 text-gray-700">
                   Email
                 </label>
-                </div>
                 <input
                   type="email"
                   value={email}
@@ -677,7 +679,7 @@ export default function UserLogin({ role = "buyer" }) {
                   disabled={otpLoading}
                   className="w-full py-3 rounded-xl btn-brand font-semibold"
                 >
-                  {otpLoading ? "Sending OTP..." : "Send OTP (Email or WhatsApp)"}
+                  {otpLoading ? "Sending OTP..." : "Send OTP to Email"}
                 </button>
 
                 <div className="mt-3 flex items-start gap-2 text-sm text-gray-600">

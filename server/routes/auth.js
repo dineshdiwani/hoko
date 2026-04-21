@@ -11,6 +11,7 @@ const {
   otpVerifyLimiter
 } = require("../middleware/rateLimit");
 const { notifyNewBuyer, notifyNewSeller } = require("../services/adminNotifications");
+const { normalizeE164 } = require("../utils/sendWhatsApp");
 
 function normalizeEmail(email) {
   return String(email || "").trim().toLowerCase();
