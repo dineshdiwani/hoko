@@ -16,9 +16,11 @@ router.get("/health", (req, res) => {
 
 router.get("/options", async (req, res) => {
   const doc = await PlatformSettings.findOne();
-  console.log("[meta/options] raw doc:", doc ? doc._id : "null");
+  console.log("[meta/options] DB doc found:", !!doc);
+  if (doc) {
+    console.log("[meta/options] doc.cities:", doc.cities?.length, "doc.categories:", doc.categories?.length, "doc.units:", doc.units?.length);
+  }
   const response = buildOptionsResponse(doc);
-  console.log("[meta/options] response keys:", Object.keys(response));
   res.json(response);
 });
 
