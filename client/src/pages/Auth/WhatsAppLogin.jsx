@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import api from "../../services/api";
-import { setSession, clearSession } from "../../services/storage";
+import { setSession } from "../../services/storage";
 
 export default function WhatsAppLogin() {
   const navigate = useNavigate();
@@ -20,13 +20,19 @@ export default function WhatsAppLogin() {
 
   useEffect(() => {
     console.log("[WhatsAppLogin] useEffect: mobileFromUrl=", mobileFromUrl);
-    if (mobileFromUrl) {
-      // Clear any existing session - always require fresh OTP
-      clearSession();
-      // Request OTP immediately
-      requestOtp();
+    if (!mobileFromUrl) return;
+    
+    // Check if already logged in
+    const existingSession = JSON.parse(localStorage.getItem("hoko_session") || "null");
+    if (existingSession?.token) {
+      // Already logged in - go directly to dashboard
+      navigate("/seller/dashboard", { replace: true });
+      return;
     }
-  }, [mobileFromUrl]);
+    
+    // Not logged in - request OTP
+    requestOtp();
+  }, [mobileFromUrl, navigate]);
 
   // Always require OTP verification - no auto-login
   const requestOtp = async () => {
