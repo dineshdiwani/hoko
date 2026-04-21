@@ -358,7 +358,9 @@ export default function SellerDeepLink() {
   };
 
 useEffect(() => {
-    // For sellers coming from WhatsApp - ALWAYS require OTP verification
+    const session = getSession();
+    
+    // For sellers coming from WhatsApp
     if (mobileFromUrl) {
       // Store WhatsApp params for later use on dashboard
       localStorage.setItem("whatsapp_seller_mobile", mobileFromUrl);
@@ -367,15 +369,20 @@ useEffect(() => {
       if (catsFromUrl) localStorage.setItem("whatsapp_seller_cats", catsFromUrl);
       if (requirementIdValue) localStorage.setItem("whatsapp_seller_ref", requirementIdValue);
 
-      // Clear any existing session - always require fresh OTP from WhatsApp link
-      clearSession();
+      // If already logged in as seller - show offer form directly (no OTP)
+      if (session?.token && session?.roles?.seller) {
+        if (session?.city && !form.sellerCity) {
+          setForm((prev) => ({ ...prev, sellerCity: session.city }));
+        }
+        return;
+      }
 
-      // Show OTP popup immediately
+      // Not logged in - show OTP popup
       requestOtp();
       return;
     }
 
-    const session = getSession();
+    // No mobile param - normal flow
     if (session?.token && session?.roles?.seller) {
       if (session?.city && !form.sellerCity) {
         setForm((prev) => ({ ...prev, sellerCity: session.city }));
