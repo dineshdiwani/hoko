@@ -361,18 +361,27 @@ export default function SellerDeepLink() {
 useEffect(() => {
     const session = getSession();
 
-    // For sellers coming from WhatsApp - store params and redirect
+    // For sellers coming from WhatsApp - store params
     if (mobileFromUrl) {
-      // Store WhatsApp params for later use on dashboard
       localStorage.setItem("whatsapp_seller_mobile", mobileFromUrl);
       localStorage.setItem("whatsapp_login", "true");
       if (cityFromUrl) localStorage.setItem("whatsapp_seller_city", cityFromUrl);
       if (catsFromUrl) localStorage.setItem("whatsapp_seller_cats", catsFromUrl);
       if (requirementIdValue) localStorage.setItem("whatsapp_seller_ref", requirementIdValue);
 
-      // If already logged in as seller - go directly to dashboard
-      if (session?.token && session?.roles?.seller) {
-        navigate("/seller/dashboard", { replace: true });
+      // Validate session with server - clear if invalid/expired
+      if (session?.token) {
+        api.get("/seller/profile", { timeout: 5000 })
+          .then(() => {
+            // Session is valid - go to dashboard
+            navigate("/seller/dashboard", { replace: true });
+          })
+          .catch((err) => {
+            // Session expired or invalid - clear it, show OTP
+            console.log("[SellerDeepLink] Session invalid:", err?.response?.status);
+            clearSession();
+            requestOtp();
+          });
         return;
       }
 
