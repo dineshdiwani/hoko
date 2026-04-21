@@ -362,11 +362,18 @@ useEffect(() => {
     
     // For sellers coming from WhatsApp
     if (mobileFromUrl) {
-      // Store WhatsApp params for later use on dashboard
+      // Store WhatsApp params for later use on registration/dashboard
       localStorage.setItem("whatsapp_seller_mobile", mobileFromUrl);
+      localStorage.setItem("whatsapp_mobile", mobileFromUrl); // For registration form
       localStorage.setItem("whatsapp_login", "true");
-      if (cityFromUrl) localStorage.setItem("whatsapp_seller_city", cityFromUrl);
-      if (catsFromUrl) localStorage.setItem("whatsapp_seller_cats", catsFromUrl);
+      if (cityFromUrl) {
+        localStorage.setItem("whatsapp_seller_city", cityFromUrl);
+        localStorage.setItem("whatsapp_city", cityFromUrl); // For registration form
+      }
+      if (catsFromUrl) {
+        localStorage.setItem("whatsapp_seller_cats", catsFromUrl);
+        localStorage.setItem("whatsapp_categories", catsFromUrl); // For registration form
+      }
       if (requirementIdValue) localStorage.setItem("whatsapp_seller_ref", requirementIdValue);
 
       // If already logged in as seller - show offer form directly (no OTP)
