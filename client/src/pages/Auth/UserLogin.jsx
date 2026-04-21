@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { getSession, setSession } from "../../services/storage";
+import { getSession, setSession, clearSession } from "../../services/storage";
 import { fetchOptions } from "../../services/options";
 import api from "../../services/api";
 import GoogleLoginButton from "../../components/GoogleLoginButton";
@@ -86,6 +86,9 @@ export default function UserLogin({ role = "buyer" }) {
   }, [acceptedTerms]);
 
   useEffect(() => {
+    // Don't auto-redirect if coming from WhatsApp link - show OTP instead
+    if (mobileFromUrl) return;
+    
     const session = getSession();
     if (session?.role === currentRole && session?.token) {
       // Check for redirect param in URL for buyers
@@ -96,7 +99,7 @@ export default function UserLogin({ role = "buyer" }) {
         navigate(redirect, { replace: true });
       }
     }
-  }, [navigate, redirect, currentRole, searchParams, isSeller]);
+  }, [navigate, redirect, currentRole, searchParams, isSeller, mobileFromUrl]);
 
   // WhatsApp login: auto-send OTP only for buyer when mobile in URL
   // Sellers get OTP when they submit offer (not on login)
@@ -131,6 +134,11 @@ export default function UserLogin({ role = "buyer" }) {
   // WhatsApp seller login: store params and show OTP on this page
   useEffect(() => {
     if (!isSeller || !mobileFromUrl) return;
+    
+    // Clear any existing session - always require fresh OTP from WhatsApp link
+    if (typeof clearSession === "function") {
+      clearSession();
+    }
     
     // Store WhatsApp params for after login
     if (catsFromUrl) {
