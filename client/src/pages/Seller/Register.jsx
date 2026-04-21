@@ -224,8 +224,29 @@ api
             sellerProfile: res.data.sellerProfile
           });
           localStorage.removeItem("whatsapp_login");
-          alert("Registration submitted successfully!");
-          navigate("/seller/dashboard");
+          // Check for pending offer to submit
+          const pendingOfferData = localStorage.getItem("pending_seller_offer_data");
+          if (pendingOfferData) {
+            localStorage.removeItem("pending_seller_offer_data");
+            localStorage.setItem("whatsapp_seller_mobile", seller.mobile || "");
+            localStorage.setItem("whatsapp_seller_city", profile.city || "");
+            try {
+              const offer = JSON.parse(pendingOfferData);
+              // Store offer data in individual keys
+              localStorage.setItem("pending_offer_price", offer.price || "");
+              localStorage.setItem("pending_offer_message", offer.message || "");
+              localStorage.setItem("pending_offer_deliveryTime", offer.deliveryTime || "");
+              localStorage.setItem("pending_offer_paymentTerms", offer.paymentTerms || "");
+              localStorage.setItem("pending_offer_requirementId", offer.requirementId || "");
+              // Redirect to deeplink - it will auto-submit
+              navigate(`/seller/deeplink/${offer.requirementId}?autoSubmit=true&mobile=${encodeURIComponent(seller.mobile || "")}&city=${encodeURIComponent(profile.city || "")}`, { replace: true });
+            } catch {
+              navigate("/seller/dashboard");
+            }
+          } else {
+            alert("Registration submitted successfully!");
+            navigate("/seller/dashboard");
+          }
           return;
         }
         
