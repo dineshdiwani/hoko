@@ -600,7 +600,17 @@ export default function SellerDeepLink() {
       return;
     }
 
-    // Validate required fields
+    // Check if seller is already logged in
+    const session = getSession();
+    const canBecomeSeller = Boolean(session?.token && session?.roles?.seller);
+
+    // If logged in as seller - submit directly, no OTP
+    if (canBecomeSeller) {
+      submitOffer(payload);
+      return;
+    }
+
+    // Not logged in - validate required fields for OTP
     const mobile = String(form.mobile || "").trim();
     const sellerName = String(form.sellerName || "").trim();
     const sellerCity = String(form.sellerCity || "").trim();
@@ -617,23 +627,9 @@ export default function SellerDeepLink() {
       return;
     }
 
-    // For WhatsApp users - ALWAYS require OTP and registration first
-    if (mobileFromUrl || mobile) {
-      setPendingOfferPayload(payload);
-      requestOtp();
-      return;
-    }
-
-    // For regular logged in users
-    const session = getSession();
-    const canBecomeSeller = Boolean(session?.token && session?.roles?.seller);
-    if (!canBecomeSeller) {
-      setPendingOfferPayload(payload);
-      requestOtp();
-      return;
-    }
-
-    submitOffer(payload);
+    // Trigger OTP flow
+    setPendingOfferPayload(payload);
+    requestOtp();
   };
 
   async function compressImageFile(file) {
