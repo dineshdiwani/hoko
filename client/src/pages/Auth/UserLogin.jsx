@@ -562,7 +562,7 @@ export default function UserLogin({ role = "buyer" }) {
               </h1>
 
               <a
-                href="https://wa.me/919887482058?text=Hi"
+                href="https://wa.me/918079060554?text=Hi"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full py-3.5 rounded-xl bg-[#25D366] hover:bg-[#20BD5A] text-white font-semibold flex items-center justify-center gap-2 mb-4"
