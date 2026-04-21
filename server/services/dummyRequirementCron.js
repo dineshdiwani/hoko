@@ -1364,13 +1364,16 @@ async function getRecentCityCategories(days = 15) {
   return new Set(recent.map(r => `${r.city}|${r.category}|${r.product}`));
 }
 
-async function generateDummyRequirements(count = 3) {
+async function generateDummyRequirements(count = 3, targetCity = null) {
   const citiesFallback = ["Delhi", "Mumbai", "Bangalore", "Chennai", "Hyderabad", "Pune", "Kolkata", "Ahmedabad", "Surat", "Jaipur"];
   
   const cities = await getCities();
   if (!Array.isArray(cities) || cities.length === 0) {
     cities = citiesFallback;
   }
+  
+  // If target city specified, prioritize it
+  const cityPool = targetCity ? [targetCity, ...cities.slice(0, 5)] : cities;
   
   const adminCategories = await getCategories();
   const recentCombos = await getRecentCityCategories(15);
@@ -1681,9 +1684,9 @@ async function sendToNewSellerWithCategories(mobileE164, city, categoryData) {
   }
   
   if (!dummies.length) {
-    console.log(`[DummyReq] No matching requirements for ${mobileE164}, generating new ones...`);
-    // Generate dummy requirements if none found
-    const generated = await generateDummyRequirements(2);
+    console.log(`[DummyReq] No matching requirements for ${mobileE164} in city ${city}, generating new ones...`);
+    // Generate dummy requirements for this seller's city
+    const generated = await generateDummyRequirements(2, city);
     dummies.push(...generated);
   }
   
