@@ -691,10 +691,6 @@ useEffect(() => {
         
         const { token, user, requirementId } = verifyRes.data;
         
-        // If user was not logged in before (new user), redirect to login
-        // Otherwise go to dashboard
-        const wasLoggedInBefore = session?.token;
-        
         // If token returned, save the session (for next time login)
         if (token && user) {
           setSession({
@@ -709,14 +705,9 @@ useEffect(() => {
             token
           });
         }
-        
-        if (!wasLoggedInBefore) {
-          // New user - redirect to login page
-          navigate("/buyer/login?redirect=/buyer/dashboard&newUser=true", { replace: true });
-        } else {
-          // Already logged in - go to dashboard on My Posts tab
-          navigate(`/buyer/dashboard?tab=posts&highlight=${requirementId || ""}`, { replace: true });
-        }
+
+        // Go to buyer dashboard with My Posts tab
+        navigate(`/buyer/dashboard?activeTab=posts&highlight=${requirementId || ""}`, { replace: true });
       } else {
         throw new Error(verifyRes.data?.message || "Invalid OTP");
       }

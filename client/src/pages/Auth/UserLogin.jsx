@@ -98,9 +98,11 @@ export default function UserLogin({ role = "buyer" }) {
     }
   }, [navigate, redirect, currentRole, searchParams, isSeller]);
 
-  // WhatsApp login: auto-send OTP when mobile in URL (for both buyer and seller)
+  // WhatsApp login: auto-send OTP only for buyer when mobile in URL
+  // Sellers get OTP when they submit offer (not on login)
   useEffect(() => {
     if (!mobileFromUrl || step !== "LOGIN") return;
+    if (isSeller) return;
 
     if (!acceptedTerms) {
       setAcceptedTerms(true);
@@ -124,7 +126,7 @@ export default function UserLogin({ role = "buyer" }) {
     };
 
     sendWhatsAppOtp();
-  }, [mobileFromUrl, step, acceptedTerms, city, cityFromUrl, currentRole]);
+  }, [mobileFromUrl, step, acceptedTerms, city, cityFromUrl, currentRole, isSeller]);
 
   // WhatsApp bypass: redirect to dashboard with OTP popup (seller only)
   useEffect(() => {

@@ -65,6 +65,7 @@ export default function SellerDeepLink() {
   const [otpError, setOtpError] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
+  const [pendingOfferPayload, setPendingOfferPayload] = useState(null); // Stores offer to submit after OTP
   
   const mobileFromUrl = String(params.get("mobile") || "").replace(/^\+/, "");
   const cityFromUrl = String(params.get("city") || "").trim();
@@ -346,8 +347,19 @@ export default function SellerDeepLink() {
         }));
         setOtpStep(false);
         setOtpValue("");
-        // Redirect to dashboard with city
-        navigate(`/seller/dashboard?city=${encodeURIComponent(cityFromUrl || res.data.user.city || "")}`, { replace: true });
+
+        // Submit the pending offer if one exists
+        if (pendingOfferPayload) {
+          const payload = pendingOfferPayload;
+          setPendingOfferPayload(null);
+          await submitOffer(payload, { isAuto: true });
+        } else {
+          // No pending offer - go to dashboard
+          const dashboardParams = new URLSearchParams();
+          if (requirementIdValue) dashboardParams.set("openRequirement", requirementIdValue);
+          if (cityFromUrl) dashboardParams.set("city", cityFromUrl);
+          navigate(`/seller/dashboard?${dashboardParams.toString()}`, { replace: true });
+        }
       } else {
         throw new Error(res.data?.message || "Verification failed");
       }
@@ -358,25 +370,16 @@ export default function SellerDeepLink() {
 
   useEffect(() => {
     const session = getSession();
-    
-    // If user came from WhatsApp with mobile param, redirect to dashboard with OTP popup
+
+    // For sellers coming from WhatsApp - DON'T redirect to login
+    // Let them stay on offer page and verify OTP when they submit
     if (mobileFromUrl && !session?.token) {
-      // Store WhatsApp params for dashboard to use
-      // Store WhatsApp params
+      // Store WhatsApp params for later use
       localStorage.setItem("whatsapp_seller_mobile", mobileFromUrl);
       localStorage.setItem("whatsapp_seller_city", cityFromUrl);
       localStorage.setItem("whatsapp_seller_cats", catsFromUrl);
       localStorage.setItem("whatsapp_seller_ref", requirementIdValue || "");
-      
-      // Redirect to WhatsApp login - it will show OTP verification
-      const loginParams = new URLSearchParams();
-      loginParams.set("mobile", mobileFromUrl);
-      if (cityFromUrl) loginParams.set("city", cityFromUrl);
-      if (catsFromUrl) loginParams.set("cats", catsFromUrl);
-      loginParams.set("ref", "wa");
-      
-      navigate(`/seller/login?${loginParams.toString()}`, { replace: true });
-      return;
+      // Don't redirect - let user fill form and verify on submit
     }
     
     if (session?.token && session?.roles?.seller) {
@@ -550,6 +553,7 @@ export default function SellerDeepLink() {
     const session = getSession();
     const canBecomeSeller = Boolean(session?.token && session?.roles?.seller);
 
+    // If NOT logged in, trigger OTP verification first
     if (!session?.token || !canBecomeSeller) {
       const mobile = String(form.mobile || "").trim();
       const sellerName = String(form.sellerName || "").trim();
@@ -566,7 +570,10 @@ export default function SellerDeepLink() {
         alert("Please select your city.");
         return;
       }
-      submitOffer(payload);
+      // Store pending offer for submission after OTP verification
+      setPendingOfferPayload(payload);
+      // Trigger OTP flow
+      requestOtp();
       return;
     }
 
