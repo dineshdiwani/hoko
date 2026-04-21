@@ -33,6 +33,7 @@ const DEFAULT_ROLES = {
 async function mergeSoftUserRequirements(userId, mobileE164) {
   if (!userId || !mobileE164) return { merged: false };
 
+  // Merge any other soft users with the same mobile
   const softUser = await User.findOne({
     mobile: mobileE164,
     _id: { $ne: userId },
@@ -40,30 +41,58 @@ async function mergeSoftUserRequirements(userId, mobileE164) {
     $or: [{ email: { $exists: false } }, { email: "" }]
   }).lean();
 
-  if (!softUser) {
-    return { merged: false, reason: "no_soft_user" };
+  let softUserId = null;
+  if (softUser) {
+    softUserId = softUser._id;
   }
 
-  const softUserId = softUser._id;
+  // Also merge requirements from WhatsApp OTP flow that might have different buyerId
+  // Check all requirements created with this mobile number
+  const whatsappRequirements = await Requirement.find({
+    $or: [
+      { "metadata.mobile": mobileE164 },
+      { mobile: mobileE164 }
+    ],
+    buyerId: { $ne: userId }
+  });
 
-  const requirementsMerged = await Requirement.updateMany(
-    { buyerId: softUserId },
-    { $set: { buyerId: userId } }
-  );
+  let totalMerged = 0;
 
-  await TempRequirement.updateMany(
-    { userId: softUserId },
-    { $set: { userId: userId } }
-  );
+  // Merge soft user requirements
+  if (softUserId) {
+    const reqResult = await Requirement.updateMany(
+      { buyerId: softUserId },
+      { $set: { buyerId: userId } }
+    );
+    await TempRequirement.updateMany(
+      { userId: softUserId },
+      { $set: { userId: userId } }
+    );
+    await User.findByIdAndDelete(softUserId);
+    totalMerged += reqResult.modifiedCount;
+    console.log(`[Soft User Merge] Merged ${reqResult.modifiedCount} requirements from soft user ${softUserId} to ${userId}`);
+  }
 
-  await User.findByIdAndDelete(softUserId);
-
-  console.log(`[Soft User Merge] Merged ${requirementsMerged.modifiedCount} requirements from soft user ${softUserId} to ${userId}`);
+  // Merge any other requirements with same mobile
+  if (whatsappRequirements.length > 0) {
+    const result = await Requirement.updateMany(
+      {
+        $or: [
+          { "metadata.mobile": mobileE164 },
+          { mobile: mobileE164 }
+        ],
+        buyerId: { $ne: userId }
+      },
+      { $set: { buyerId: userId } }
+    );
+    totalMerged += result.modifiedCount;
+    console.log(`[Mobile Merge] Merged ${result.modifiedCount} requirements with mobile ${mobileE164} to ${userId}`);
+  }
 
   return {
-    merged: true,
-    softUserId: String(softUserId),
-    requirementsMerged: requirementsMerged.modifiedCount
+    merged: totalMerged > 0,
+    softUserId: softUserId ? String(softUserId) : null,
+    requirementsMerged: totalMerged
   };
 }
 
