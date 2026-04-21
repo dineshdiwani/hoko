@@ -876,19 +876,14 @@ useEffect(() => {
                   </button>
                 )}
               </div>
-              <button
-                onClick={() => setOtpStep(false)}
-                className="text-gray-500 text-sm hover:underline w-full text-center"
-              >
-                Cancel
-              </button>
             </div>
           </div>
         )}
         
-        {loading ? (
-          <p className="ui-body text-[var(--ui-muted)]">Loading requirement...</p>
-        ) : (
+        {!otpStep && (
+          loading ? (
+            <p className="ui-body text-[var(--ui-muted)]">Loading requirement...</p>
+          ) : (
           <div className="dashboard-panel p-4 space-y-3">
             {draftHint ? (
               <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
