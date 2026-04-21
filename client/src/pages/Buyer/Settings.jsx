@@ -204,6 +204,7 @@ export default function BuyerSettings() {
       updateSettings({ buyer: prefs });
       alert("Settings saved");
     } catch (err) {
+      console.error("[Settings] Save error:", err?.response?.data || err);
       alert(err?.response?.data?.message || "Failed to save settings");
     } finally {
       setSaving(false);

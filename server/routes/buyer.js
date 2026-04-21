@@ -1648,49 +1648,57 @@ router.post("/profile", auth, buyerOnly, async (req, res) => {
   try {
     await req.user.save();
   } catch (err) {
+    console.error("[Buyer Profile] Save error:", err.code, err.keyPattern);
     if (err.code === 11000 && err.keyPattern?.email) {
-      const existingEmailUser = await User.findOne({ email: email, _id: { $ne: req.user._id } });
-      if (existingEmailUser) {
-        const requirementsMerged = await Requirement.updateMany(
-          { buyerId: req.user._id },
-          { $set: { buyerId: existingEmailUser._id } }
-        );
-        await TempRequirement.updateMany(
-          { userId: req.user._id },
-          { $set: { userId: existingEmailUser._id } }
-        );
-        existingEmailUser.mobile = req.user.mobile || existingEmailUser.mobile;
-        if (existingEmailUser.city && !existingEmailUser.city.trim()) {
-          existingEmailUser.city = req.user.city;
-        }
-        if (!existingEmailUser.roles?.buyer) {
-          existingEmailUser.roles = { ...existingEmailUser.roles, buyer: true };
-        }
-        await existingEmailUser.save();
-        await User.findByIdAndDelete(req.user._id);
-        console.log(`[Account Merge] Merged new user ${req.user._id} into existing email user ${existingEmailUser._id}, ${requirementsMerged.modifiedCount} requirements`);
-        const token = jwt.sign(
-          { id: existingEmailUser._id, role: "buyer", tokenVersion: existingEmailUser.tokenVersion || 0 },
-          process.env.JWT_SECRET,
-          { expiresIn: "7d" }
-        );
-        return res.json({
-          merged: true,
-          message: "Account merged! Your posts and offers have been transferred.",
-          token,
-          user: {
-            _id: existingEmailUser._id,
-            email: existingEmailUser.email,
-            role: existingEmailUser.role,
-            roles: existingEmailUser.roles,
-            city: existingEmailUser.city,
-            preferredCurrency: existingEmailUser.preferredCurrency || "INR",
-            mobile: existingEmailUser.mobile
+      console.log("[Buyer Profile] Email duplicate detected, attempting merge");
+      try {
+        const existingEmailUser = await User.findOne({ email: email, _id: { $ne: req.user._id } });
+        if (existingEmailUser) {
+          console.log("[Buyer Profile] Found existing user for merge:", existingEmailUser._id);
+          const requirementsMerged = await Requirement.updateMany(
+            { buyerId: req.user._id },
+            { $set: { buyerId: existingEmailUser._id } }
+          );
+          await TempRequirement.updateMany(
+            { userId: req.user._id },
+            { $set: { userId: existingEmailUser._id } }
+          );
+          existingEmailUser.mobile = req.user.mobile || existingEmailUser.mobile;
+          if (existingEmailUser.city && !existingEmailUser.city.trim()) {
+            existingEmailUser.city = req.user.city;
           }
-        });
+          if (!existingEmailUser.roles?.buyer) {
+            existingEmailUser.roles = { ...existingEmailUser.roles, buyer: true };
+          }
+          await existingEmailUser.save();
+          await User.findByIdAndDelete(req.user._id);
+          console.log(`[Account Merge] Merged ${req.user._id} into ${existingEmailUser._id}, ${requirementsMerged.modifiedCount} requirements`);
+          const token = jwt.sign(
+            { id: existingEmailUser._id, role: "buyer", tokenVersion: existingEmailUser.tokenVersion || 0 },
+            process.env.JWT_SECRET,
+            { expiresIn: "7d" }
+          );
+          return res.json({
+            merged: true,
+            message: "Account merged! Your posts and offers have been transferred.",
+            token,
+            user: {
+              _id: existingEmailUser._id,
+              email: existingEmailUser.email,
+              role: existingEmailUser.role,
+              roles: existingEmailUser.roles,
+              city: existingEmailUser.city,
+              preferredCurrency: existingEmailUser.preferredCurrency || "INR",
+              mobile: existingEmailUser.mobile
+            }
+          });
+        }
+      } catch (mergeErr) {
+        console.error("[Account Merge] Error:", mergeErr);
       }
       return res.status(400).json({ message: "This email is already registered. Please use a different email." });
     }
+    console.error("[Buyer Profile] Unknown save error:", err);
     throw err;
   }
 
