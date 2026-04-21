@@ -729,14 +729,11 @@ async function sendRequirementConfirmationviaWhatsApp(mobileE164, requirement, p
 router.post("/requirement/request-otp", otpSendLimiter, async (req, res) => {
   const { mobile, product, city } = req.body;
   
-  console.log("[request-otp] Input mobile:", mobile, "product:", product, "city:", city);
-  
   if (!mobile) {
     return res.status(400).json({ success: false, message: "Mobile number is required" });
   }
 
   const mobileE164 = normalizeE164(mobile);
-  console.log("[request-otp] Normalized mobileE164:", mobileE164);
   
   await WhatsAppOTP.updateMany(
     { mobileE164, status: "pending" },
@@ -756,7 +753,6 @@ router.post("/requirement/request-otp", otpSendLimiter, async (req, res) => {
   });
 
   const sendResult = await sendOTPviaWhatsApp(mobileE164, otp, product, city);
-  console.log("[request-otp] sendResult:", sendResult);
 
   if (!sendResult.ok) {
     return res.status(500).json({ 
