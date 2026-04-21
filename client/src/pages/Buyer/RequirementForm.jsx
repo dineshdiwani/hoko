@@ -177,7 +177,6 @@ export default function RequirementForm({ isPublic = false }) {
 useEffect(() => {
     fetchOptions()
       .then((data) => {
-        console.log("[RequirementForm] fetchOptions data:", JSON.stringify(data));
         const defaults = data?.defaults || {};
         if (Array.isArray(data.cities) && data.cities.length) {
           setCities(data.cities);
