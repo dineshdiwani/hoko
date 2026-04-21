@@ -693,12 +693,10 @@ useEffect(() => {
         requirementData: postData
       });
 
-if (verifyRes.data?.success) {
+      if (verifyRes.data?.success) {
         setOtpStep(false);
         setSubmitted(true);
         setOtpValue("");
-        
-        alert("Requirement submitted successfully!");
         
         const { token, user, requirementId } = verifyRes.data;
         
@@ -720,15 +718,6 @@ if (verifyRes.data?.success) {
             token
           });
         }
-        
-        if (!wasLoggedInBefore) {
-          // New user - redirect to login page
-          navigate("/buyer/login?redirect=/buyer/dashboard&newUser=true", { replace: true });
-        } else {
-          // Already logged in - go to dashboard on My Posts tab
-          navigate(`/buyer/dashboard?tab=posts&highlight=${requirementId || ""}`, { replace: true });
-        }
-      }
         
         if (!wasLoggedInBefore) {
           // New user - redirect to login page
