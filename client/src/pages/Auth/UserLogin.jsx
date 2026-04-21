@@ -53,6 +53,7 @@ export default function UserLogin({ role = "buyer" }) {
 
   const [step, setStep] = useState("LOGIN");
   const [email, setEmail] = useState("");
+  const [mobile, setMobile] = useState("");
   const [otp, setOtp] = useState("");
   const [city, setCity] = useState(cityFromUrl);
   const [otpLoading, setOtpLoading] = useState(false);
@@ -63,7 +64,7 @@ export default function UserLogin({ role = "buyer" }) {
   const [submitted, setSubmitted] = useState(false);
   const [termsContent, setTermsContent] = useState(defaultTermsContent);
   const [privacyPolicyContent, setPrivacyPolicyContent] = useState(defaultPrivacyPolicyContent);
-const [cities, setCities] = useState([]);
+  const [cities, setCities] = useState([]);
 
   // Get redirect from URL param if present
   const urlRedirect = searchParams.get("redirect") || "";
@@ -169,8 +170,11 @@ const [cities, setCities] = useState([]);
   function sendLoginOtp() {
     setSubmitted(true);
 
-    if (!validEmail(email)) {
-      alert("Please enter a valid email");
+    const hasEmail = validEmail(email);
+    const hasMobile = mobile && mobile.length >= 10;
+
+    if (!hasEmail && !hasMobile) {
+      alert("Please enter either email or mobile number");
       return;
     }
 
@@ -190,6 +194,24 @@ const [cities, setCities] = useState([]);
     }
 
     setOtpLoading(true);
+    
+    if (hasMobile) {
+      api.post("/auth/login", { mobile, role: currentRole, city })
+        .then((res) => {
+          if (res.data?.success) {
+            setStep("OTP");
+            alert("OTP sent via WhatsApp to " + mobile);
+          } else {
+            alert(res.data?.message || "Failed to send OTP");
+          }
+        })
+        .catch((err) => {
+          alert(err?.response?.data?.message || "Failed to send OTP");
+        })
+        .finally(() => setOtpLoading(false));
+      return;
+    }
+
     api
       .post("/auth/login", {
         email,
@@ -620,16 +642,34 @@ const [cities, setCities] = useState([]);
                   <div className="h-px flex-1 bg-slate-200" />
                 </div>
 
+                <div className="grid gap-3">
+                <label className="block text-sm font-medium mb-1 text-gray-700">
+                  Mobile (via WhatsApp)
+                </label>
+                <input
+                  type="tel"
+                  value={mobile}
+                  onChange={(e) => setMobile(e.target.value.replace(/\D/g, ""))}
+                  placeholder="919887482058"
+                  className="w-full border border-gray-300 rounded-xl px-4 py-3"
+                />
+
+                <div className="relative flex items-center">
+                  <div className="flex-1 border-t border-gray-300"></div>
+                  <span className="flex-shrink-0 px-3 text-xs text-gray-500">or</span>
+                  <div className="flex-1 border-t border-gray-300"></div>
+                </div>
+
                 <label className="block text-sm font-medium mb-1 text-gray-700">
                   Email
                 </label>
+                </div>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
                   className="w-full border border-gray-300 rounded-xl px-4 py-3 mb-4"
-                  required
                 />
 
                 <button
@@ -637,7 +677,7 @@ const [cities, setCities] = useState([]);
                   disabled={otpLoading}
                   className="w-full py-3 rounded-xl btn-brand font-semibold"
                 >
-                  {otpLoading ? "Sending OTP..." : "Send OTP"}
+                  {otpLoading ? "Sending OTP..." : "Send OTP (Email or WhatsApp)"}
                 </button>
 
                 <div className="mt-3 flex items-start gap-2 text-sm text-gray-600">
