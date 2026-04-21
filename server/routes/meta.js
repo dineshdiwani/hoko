@@ -16,7 +16,10 @@ router.get("/health", (req, res) => {
 
 router.get("/options", async (req, res) => {
   const doc = await PlatformSettings.findOne();
-  res.json(buildOptionsResponse(doc));
+  console.log("[meta/options] raw doc:", doc ? doc._id : "null");
+  const response = buildOptionsResponse(doc);
+  console.log("[meta/options] response keys:", Object.keys(response));
+  res.json(response);
 });
 
 router.get("/requirements", async (req, res) => {
