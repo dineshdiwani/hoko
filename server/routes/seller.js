@@ -1438,7 +1438,14 @@ router.post("/otp/verify", otpVerifyLimiter, async (req, res) => {
     process.env.JWT_SECRET,
     { expiresIn: "7d" }
   );
-  
+
+  await WhatsAppOTP.findByIdAndUpdate(otpRecord._id, { 
+    $set: { status: "verified", verifiedAt: new Date() } 
+  });
+
+  const { mergeSoftUserRequirements } = require("../routes/auth");
+  const mergeResult = await mergeSoftUserRequirements(user._id, mobileE164);
+
   res.json({ 
     success: true, 
     message: "Verification successful!",
@@ -1452,7 +1459,8 @@ router.post("/otp/verify", otpVerifyLimiter, async (req, res) => {
       sellerProfile: user.sellerProfile,
       preferredCurrency: user.preferredCurrency || "INR",
       mobile: user.mobile
-    }
+    },
+    merge: mergeResult.merged ? mergeResult : undefined
   });
 });
 
