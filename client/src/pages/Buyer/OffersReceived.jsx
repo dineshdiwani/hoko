@@ -23,20 +23,30 @@ useEffect(() => {
     if (!buyerId) {
       return;
     }
-    api
+api
       .get(`/buyer/my-posts/${buyerId}`)
       .then(async (res) => {
+        const postsData = res.data || [];
+        console.log("[OffersReceived] got posts:", postsData.length);
+        
         const enriched = await Promise.all(
-          (res.data || []).map(async (post) => {
+          postsData.map(async (post) => {
             const postId = post._id || post.id;
             if (!postId) return { ...post, offerCount: 0 };
-            const offers = await api.get(`/dashboard/offers/${postId}`);
-            return { ...post, offerCount: offers.data.length };
+            try {
+              const offers = await api.get(`/dashboard/offers/${postId}`);
+              return { ...post, offerCount: offers.data?.length || 0 };
+            } catch (e) {
+              console.error("[OffersReceived] offers error for", postId, e?.response?.status);
+              return { ...post, offerCount: 0 };
+            }
           })
         );
+        console.log("[OffersReceived] enriched posts:", enriched.length);
         setPosts(enriched);
       })
-      .catch(() => {
+      .catch((err) => {
+        console.error("[OffersReceived] Error loading posts:", err?.response?.status, err?.response?.data);
         setPosts([]);
       });
   }, [buyerId, refreshToken]);
