@@ -26,14 +26,15 @@ export default function WhatsAppLogin() {
     // Check if already logged in
     const existingSession = JSON.parse(localStorage.getItem("hoko_session") || "null");
     if (existingSession?.token) {
-      // Already logged in - go directly to dashboard
-      navigate("/seller/dashboard", { replace: true });
+      // Already logged in - go to appropriate dashboard based on role
+      const redirectUrl = searchParams.get("redirect") || (existingSession?.roles?.seller ? "/seller/dashboard" : "/buyer/dashboard");
+      navigate(redirectUrl, { replace: true });
       return;
     }
     
     // Not logged in - request OTP
     requestOtp();
-  }, [mobileFromUrl, navigate]);
+  }, [mobileFromUrl, navigate, searchParams]);
 
   // Always require OTP verification - no auto-login
   const requestOtp = async () => {
@@ -115,8 +116,11 @@ export default function WhatsAppLogin() {
           sellerProfile: user.sellerProfile
         });
         
-        // Redirect based on registration status
-        if (hasSellerProfile && hasSellerRole) {
+        // Redirect based on registration status or redirect param
+        const redirectUrl = searchParams.get("redirect");
+        if (redirectUrl) {
+          window.location.href = redirectUrl;
+        } else if (hasSellerProfile && hasSellerRole) {
           window.location.href = `/seller/dashboard?${dashParams.toString()}`;
         } else if (user.roles?.buyer && !hasSellerRole) {
           window.location.href = "/buyer/dashboard";
