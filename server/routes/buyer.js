@@ -698,22 +698,16 @@ async function sendRequirementConfirmationviaWhatsApp(mobileE164, requirement, p
   )}&src=wa&campaign=buyer_requirement_confirm&step=track_offers`;
   
   const message = [
-    "✅ *Requirement Confirmed!*",
+    "✅ Requirement Confirmed!",
     "",
-    `📋 ID: HOKO-${requirement._id.toString().slice(-8).toUpperCase()}`,
     `📦 ${product || requirement.productName || requirement.product}`,
     requirement.city ? `📍 City: ${requirement.city}` : "",
     requirement.quantity ? `📊 Qty: ${requirement.quantity} ${requirement.type || ""}` : "",
     "",
     "🔥 Sellers have been notified!",
-    "⏱️ Offers expected in ~1 hour",
     "",
     "📱 Track offers & chat with sellers:",
-    deepLink,
-    "",
-    "Download HOKO App for best experience!",
-    "",
-    "HOKO - India's B2B Marketplace"
+    deepLink
   ].filter(Boolean).join("\n");
 
   try {
