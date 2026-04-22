@@ -125,7 +125,8 @@ export default function WhatsAppLogin({ extraParams = {} }) {
         } else if (user.roles?.buyer && !hasSellerRole) {
           window.location.href = "/buyer/dashboard";
         } else {
-          window.location.href = `/seller/dashboard?${dashParams.toString()}`;
+          // No seller profile - go to registration to complete profile
+          window.location.href = `/seller/register?${dashParams.toString()}`;
         }
         return;
       } else {
