@@ -1092,10 +1092,6 @@ router.post("/webhook", async (req, res) => {
         console.log(`[Buyer Flow] Completed for ${event.mobileE164}, reminder scheduled`);
       } catch (err) {
         console.error(`[Buyer Flow] Error for ${event.mobileE164}:`, err.message);
-        await sendWhatsAppMessage({
-          to: event.mobileE164,
-          body: "Thanks! We'll get back to you soon. Check the app for updates."
-        });
       }
       
       consentState.delete(consentKey);
