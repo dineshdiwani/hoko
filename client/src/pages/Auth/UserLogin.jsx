@@ -124,7 +124,7 @@ export default function UserLogin({ role = "buyer" }) {
           alert("OTP sent via WhatsApp to " + mobileFromUrl);
         }
       } catch (err) {
-        console.error("WhatsApp OTP send error:", err?.response?.data || err?.message);
+        // Silent fail - user can manually retry
       }
     };
 
@@ -443,7 +443,7 @@ export default function UserLogin({ role = "buyer" }) {
   }
 
   function handleGoogleLogin(credential) {
-    console.log("[GoogleLogin] credential received, length:", credential?.length, "prefix:", credential?.substring(0, 20));
+    
     const selectedCity = cityRef.current || city;
     const hasAcceptedTerms =
       acceptedTermsRef.current || acceptedTerms;

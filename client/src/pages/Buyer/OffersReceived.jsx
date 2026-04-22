@@ -19,7 +19,6 @@ export default function OffersReceived({
   const navigate = useNavigate();
 
 useEffect(() => {
-    console.log("[OffersReceived] buyerId:", buyerId, "session token:", session?.token ? "exists" : "missing");
     if (!buyerId) {
       return;
     }
@@ -27,7 +26,6 @@ api
       .get(`/buyer/my-posts/${buyerId}`)
       .then(async (res) => {
         const postsData = res.data || [];
-        console.log("[OffersReceived] got posts:", postsData.length);
         
         const enriched = await Promise.all(
           postsData.map(async (post) => {
@@ -37,16 +35,13 @@ api
               const offers = await api.get(`/dashboard/offers/${postId}`);
               return { ...post, offerCount: offers.data?.length || 0 };
             } catch (e) {
-              console.error("[OffersReceived] offers error for", postId, e?.response?.status);
               return { ...post, offerCount: 0 };
             }
           })
         );
-        console.log("[OffersReceived] enriched posts:", enriched.length);
         setPosts(enriched);
       })
       .catch((err) => {
-        console.error("[OffersReceived] Error loading posts:", err?.response?.status, err?.response?.data);
         setPosts([]);
       });
   }, [buyerId, refreshToken]);

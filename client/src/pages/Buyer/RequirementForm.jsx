@@ -69,15 +69,12 @@ export default function RequirementForm({ isPublic = false }) {
   const mobileFromUrl = searchParams.get("mobile") || "";
   const productFromUrl = searchParams.get("product") || "";
   const cityFromUrl = searchParams.get("city") || "";
-  console.log("[RequirementForm] rawRef:", rawRef);
   let tempRequirementRef = rawRef;
   
   const decodedRef = decodeURIComponent(rawRef);
-  console.log("[RequirementForm] decodedRef:", decodedRef);
   const idMatch = decodedRef.match(/ref=([a-f0-9]{20,24})/i);
   if (idMatch) {
     tempRequirementRef = idMatch[1];
-    console.log("[RequirementForm] Extracted ID:", tempRequirementRef);
   }
   const isEditMode = Boolean(requirementId);
   const session = getSession();
@@ -243,7 +240,6 @@ useEffect(() => {
           setForm((prev) => ({ ...prev, mobile }));
         }
       } catch (err) {
-        console.log("[RequirementForm] Could not fetch mobile from ref:", err);
         if (mobileFromUrl) {
           setForm((prev) => ({ ...prev, mobile: mobileFromUrl }));
         }
@@ -542,7 +538,6 @@ useEffect(() => {
           ...payload,
           ref: tempRequirementRef
         };
-        console.log("Public requirement payload:", publicPayload);
         await api.post("/buyer/requirement/public", publicPayload);
       } else {
         await api.post("/buyer/requirement", payload);
@@ -576,7 +571,6 @@ useEffect(() => {
         navigate("/buyer/dashboard", { replace: true });
       }
     } catch (err) {
-      console.error("Requirement submit error:", err);
       const errorMsg = err?.response?.data?.message || err?.message || "Unknown error";
       alert(
         isEditMode
@@ -640,15 +634,11 @@ useEffect(() => {
 
       setPostData(payload);
 
-      console.log("[handlePublicSubmit] Calling request-otp API with:", { mobile: form.mobile, product: form.product, city: form.city });
-      
       const otpRes = await api.post("/buyer/requirement/request-otp", {
         mobile: form.mobile,
         product: form.product,
         city: form.city
       });
-
-      console.log("[handlePublicSubmit] OTP response:", otpRes.data);
 
       if (otpRes.data?.success) {
         setOtpStep(true);
@@ -658,7 +648,6 @@ useEffect(() => {
         throw new Error(otpRes.data?.message || "Failed to send OTP");
       }
     } catch (err) {
-      console.error("Requirement submit error:", err);
       const errorMsg = err?.response?.data?.message || err?.message || "Unknown error";
       alert(`Failed to post requirement: ${errorMsg}`);
       setSubmitted(false);
@@ -710,10 +699,9 @@ useEffect(() => {
         navigate(`/buyer/dashboard?activeTab=posts&highlight=${requirementId || ""}`, { replace: true });
       } else {
         throw new Error(verifyRes.data?.message || "Invalid OTP");
-      }
-    } catch (err) {
-      console.error("OTP verify error:", err);
-      setOtpError(err?.response?.data?.message || err?.message || "Invalid OTP. Please try again.");
+}
+      } catch (err) {
+        setOtpError(err?.response?.data?.message || err?.message || "Invalid OTP. Please try again.");
     } finally {
       setVerifyingOtp(false);
     }

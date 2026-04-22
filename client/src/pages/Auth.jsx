@@ -21,7 +21,6 @@ export default function Auth() {
       });
       setStep("otp");
     } catch (err) {
-      console.error("OTP error:", err.response?.data || err.message);
       alert(
         err?.response?.data?.error ||
           err?.response?.data?.message ||

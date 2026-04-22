@@ -21,7 +21,6 @@ export default function WhatsAppLogin({ extraParams = {} }) {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   useEffect(() => {
-    console.log("[WhatsAppLogin] useEffect: mobileFromUrl=", mobileFromUrl);
     if (!mobileFromUrl) return;
     
     // Check if already logged in
@@ -41,7 +40,6 @@ export default function WhatsAppLogin({ extraParams = {} }) {
   const requestOtp = async () => {
     const mobileNum = mobile || mobileFromUrl;
     if (!mobileNum) return;
-    console.log("[WhatsAppLogin] Requesting OTP for mobile:", mobileNum);
     setLoading(true);
     setOtpError("");
     
@@ -79,13 +77,11 @@ export default function WhatsAppLogin({ extraParams = {} }) {
     }
     setOtpError("");
     setLoading(true);
-    console.log("[WhatsAppLogin] Verifying OTP, mobile:", mobile, "otp:", otp);
     try {
       const res = await api.post("/seller/otp/verify", {
         mobile: "+" + mobile,
         otp: otp
       }, { timeout: 15000 });
-      console.log("[WhatsAppLogin] Verify response:", res.data);
       
       if (res.data?.success) {
         const user = res.data.user || {};
@@ -96,7 +92,6 @@ export default function WhatsAppLogin({ extraParams = {} }) {
         // Check if user already has complete seller profile
         const hasSellerProfile = user.sellerProfile?.firmName && user.sellerProfile?.managerName;
         const hasSellerRole = user.roles?.seller;
-        console.log("[WhatsAppLogin] hasSellerProfile:", hasSellerProfile, "hasSellerRole:", hasSellerRole);
         
         // Set flag only if new WhatsApp login
         if (!hasSellerProfile) {
@@ -139,7 +134,6 @@ export default function WhatsAppLogin({ extraParams = {} }) {
         throw new Error(res.data?.message || "Verification failed");
       }
     } catch (err) {
-      console.log("[WhatsAppLogin] Verify error:", err?.response?.data || err?.message);
       const errorData = err?.response?.data;
       if (errorData?.message) {
         setOtpError(errorData.message);

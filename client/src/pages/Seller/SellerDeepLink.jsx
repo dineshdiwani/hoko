@@ -29,7 +29,6 @@ function clearPendingOfferIntent() {
 }
 
 export default function SellerDeepLink() {
-  console.log("[SellerDeepLink] Component mounted");
   const navigate = useNavigate();
   const location = useLocation();
   const { requirementId } = useParams();
@@ -270,7 +269,6 @@ export default function SellerDeepLink() {
       }));
       clearPendingOfferIntent();
       setAttachments([]);
-      console.log("[SellerDeepLink] Offer submitted successfully");
       alert(
         isAuto
           ? "Offer submitted now. Thank you."
@@ -278,8 +276,6 @@ export default function SellerDeepLink() {
       );
       navigate("/seller/dashboard", { replace: true });
     } catch (err) {
-      console.log("[SellerDeepLink] Submit error:", err);
-      console.log("[SellerDeepLink] Error response:", err?.response?.data);
       const status = err?.response?.status;
       const serverMessage = err?.response?.data?.message;
       if (serverMessage) {
@@ -431,12 +427,7 @@ useEffect(() => {
     const fullUrl = window.location.href;
     const searchParams = new URLSearchParams(window.location.search);
     const refValue = searchParams.get("ref");
-    console.log("[SellerDeepLink] Full URL:", fullUrl);
-    console.log("[SellerDeepLink] ref param:", refValue);
-    console.log("[SellerDeepLink] requirementIdValue:", requirementIdValue);
-    console.log("[SellerDeepLink] queryPostId:", queryPostId);
     if (!requirementIdValue) {
-      console.log("[SellerDeepLink] Redirecting to login - no requirementIdValue");
       navigate("/seller/login", { replace: true });
       return;
     }
@@ -599,9 +590,7 @@ useEffect(() => {
 
     // Check if seller is already logged in
     const session = getSession();
-    console.log("[SellerDeepLink] handleSubmit session:", session);
     const hasValidSession = Boolean(session?.token && session.token.length > 10 && session?.roles?.seller);
-    console.log("[SellerDeepLink] hasValidSession:", hasValidSession);
 
     // If logged in as seller - submit directly, no OTP
     if (hasValidSession) {

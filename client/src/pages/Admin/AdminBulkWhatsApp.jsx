@@ -28,7 +28,6 @@ export default function AdminBulkWhatsApp() {
       setTemplates(templatesRes.data);
       setStats(statsRes.data);
     } catch (err) {
-      console.log("Load error:", err.message);
     }
   };
 

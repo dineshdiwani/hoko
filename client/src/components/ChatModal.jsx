@@ -186,7 +186,6 @@ export default function ChatModal({
         setMessages(history.map((m) => toMessageShape(m, currentUserId)));
       } catch {
         if (!cancelled) {
-          console.warn("Chat history unavailable");
           setMessages([]);
         }
       } finally {

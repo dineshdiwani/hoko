@@ -36,11 +36,9 @@ async function tryNativeGoogleLogin(options) {
     provider: "google",
     options
   });
-  console.log("[GoogleLogin] raw response:", JSON.stringify(response, null, 2));
   if (response?.provider !== "google") return null;
   const result = response?.result || {};
   const idToken = result.idToken || result.authentication?.idToken || null;
-  console.log("[GoogleLogin] extracted idToken:", idToken ? idToken.substring(0, 30) + "..." : "NULL");
   return idToken;
 }
 
@@ -239,7 +237,6 @@ export default function GoogleLoginButton({
       }
       onSuccessRef.current?.(credential);
     } catch (error) {
-      console.error("[GoogleLogin] native sign-in error:", error?.message || error);
       if (isUserCancellation(error)) {
         const nextError = new Error(
           "Google Sign-In was cancelled. Please try again."

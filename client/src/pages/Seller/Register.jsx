@@ -171,10 +171,7 @@ const handleSubmit = () => {
     const categories = seller.categories || [];
     const whatsappConsent = seller.whatsappConsent || false;
     
-    console.log("Submitting - email:", email, "mobile:", mobile, "firmName:", firmName, "managerName:", managerName, "city:", city, "categories:", categories);
-    
     if (!email || !mobile || !firmName || !managerName || categories.length === 0 || !city) {
-      console.log("Validation failed - missing fields");
       alert("Please fill all required fields");
       return;
     }
@@ -201,8 +198,6 @@ const profile = {
       taxId: seller.taxId,
       whatsappConsent: whatsappConsent
     };
-    
-    console.log("Sending to server:", profile);
     
     if (!session?.token) {
       navigate("/buyer/login");
@@ -282,7 +277,6 @@ const switchRes = await api.post("/auth/switch-role", {
         navigate(postLoginRedirect);
       })
 .catch((err) => {
-        console.log("Registration error:", err?.response?.data || err);
         alert(
           err?.response?.data?.message ||
             "Failed to register seller."

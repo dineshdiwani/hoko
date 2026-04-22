@@ -75,7 +75,7 @@ export default function AdminOperations() {
         pendingReports: pendingReports.length
       });
     } catch (err) {
-      console.error("KPI load error:", err);
+      
     }
   }, []);
 
@@ -88,7 +88,7 @@ export default function AdminOperations() {
         serverUptime: Date.now()
       });
     } catch (err) {
-      console.error("Health check error:", err);
+      
     }
   }, [dummyReqStatus]);
 
@@ -97,7 +97,7 @@ export default function AdminOperations() {
       const res = await api.get("/dummy-requirements/status");
       setDummyReqStatus(res.data);
     } catch (err) {
-      console.error("Dummy req status error:", err);
+      
     }
   }, []);
 
@@ -106,7 +106,7 @@ export default function AdminOperations() {
       const res = await api.get("/bulk-whatsapp/stats");
       setWhatsAppStats(res.data);
     } catch (err) {
-      console.error("WhatsApp stats error:", err);
+      
     }
   }, []);
 

@@ -89,11 +89,15 @@ async function mergeSoftUserRequirements(userId, mobileE164) {
     console.log(`[Mobile Merge] Merged ${result.modifiedCount} requirements with mobile ${mobileE164} to ${userId}`);
   }
 
-  return {
+return {
     merged: totalMerged > 0,
     softUserId: softUserId ? String(softUserId) : null,
     requirementsMerged: totalMerged
   };
+}
+
+async function mergeExistingRequirements(userId, mobileE164) {
+  return mergeSoftUserRequirements(userId, mobileE164);
 }
 
 let googleClient = null;

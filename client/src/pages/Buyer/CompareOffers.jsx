@@ -159,7 +159,6 @@ export default function CompareOffers() {
       XLSX.utils.book_append_sheet(workbook, sheet, "Offer Comparison");
       XLSX.writeFile(workbook, `offer-comparison-${id}.xlsx`);
     } catch (err) {
-      console.error("XLSX download failed:", err);
       alert("Failed to download XLSX. Please try again.");
     }
   }
@@ -187,7 +186,6 @@ export default function CompareOffers() {
       });
       doc.save(`offer-comparison-${id}.pdf`);
     } catch (err) {
-      console.error("PDF download failed:", err);
       alert("Failed to download PDF. Please try again.");
     }
   }

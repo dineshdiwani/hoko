@@ -29,7 +29,7 @@ import {
   getNotificationState
 } from "../../utils/notifications";
 
-console.log("[SellerDashboard] Module loaded");
+
 
 const SELLER_DASHBOARD_STATE_KEY = "seller_dashboard_state";
 
@@ -214,12 +214,8 @@ export default function SellerDashboard() {
   };
 
   useEffect(() => {
-    console.log("[Dashboard] Mounted, session:", session ? "exists" : "null");
     if (!session?.token) {
-      console.log("[Dashboard] No token, redirecting to login");
       navigate("/seller/login");
-    } else {
-      console.log("[Dashboard] Token found, staying on dashboard");
     }
   }, [session, navigate]);
 
@@ -276,7 +272,6 @@ export default function SellerDashboard() {
         setRequirements(liveRows);
         setShowingSampleData(false);
       } catch (err) {
-        console.error(err);
         if (allowSellerSamplePosts) {
           setRequirements(buildSamplePosts());
           setShowingSampleData(true);
@@ -481,7 +476,6 @@ export default function SellerDashboard() {
     );
 
   const markOfferSubmitted = (requirementId) => {
-    console.log("[SellerDashboard] markOfferSubmitted called for:", requirementId);
     if (!requirementId) return;
     setRequirements((prev) =>
       prev.map((req) =>
@@ -500,14 +494,12 @@ export default function SellerDashboard() {
     
     // Show prompt for registration only if not registered
     setTimeout(() => {
-      console.log("[SellerDashboard] Showing offer submitted message");
       alert("Offer submitted successfully!");
       
       if (!hasSellerProfile) {
         const wantsToRegister = confirm(
           "Complete your seller profile to get better visibility and manage offers?"
         );
-        console.log("[SellerDashboard] User chose:", wantsToRegister);
         if (wantsToRegister) {
           navigate("/seller/register");
         }

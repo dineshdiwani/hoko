@@ -9,12 +9,9 @@ export default function BuyerLogin() {
   const ref = searchParams.get("ref") || "";
   const src = searchParams.get("src") || "";
   
-  console.log("[BuyerLogin] mobileFromUrl:", mobileFromUrl, "ref:", ref, "src:", src);
-  
   // If coming from WhatsApp with mobile, show WhatsApp login
   // Check both "ref=wa" and "src=wa" parameters
   const isWhatsAppUser = (ref === "wa" || src === "wa") && mobileFromUrl;
-  console.log("[BuyerLogin] isWhatsAppUser:", isWhatsAppUser);
   
   if (isWhatsAppUser) {
     // Pass ref and other params to WhatsAppLogin

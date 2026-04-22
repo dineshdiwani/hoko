@@ -252,8 +252,7 @@ export default function CityDashboard({
         }
         setRequirements(liveRows);
         setShowingSampleData(false);
-      } catch (err) {
-        console.error(err);
+} catch (err) {
         if (sampleFlagEnabled) {
           setRequirements(buildSampleRows(city));
           setShowingSampleData(true);
