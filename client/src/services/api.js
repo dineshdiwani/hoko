@@ -38,6 +38,8 @@ api.interceptors.request.use((config) => {
   const session = getSession();
   if (session?.token) {
     config.headers.Authorization = `Bearer ${session.token}`;
+  } else {
+    console.warn("[API] No auth token found, proceeding without auth");
   }
   return config;
 });
