@@ -267,23 +267,23 @@ export default function UserLogin({ role = "buyer" }) {
         }
       })
       .catch((err) => {
-          const message =
-            err?.response?.data?.error ||
-            err?.response?.data?.message ||
-            err?.message ||
-            "Failed to send OTP. Try again.";
-          if (
-            isSeller &&
-            (message ===
-              "Complete buyer login and seller registration first" ||
-              message === "Complete seller registration before login")
-          ) {
-            alert(message);
-            navigate("/seller/register");
-            return;
-          }
+        const message =
+          err?.response?.data?.error ||
+          err?.response?.data?.message ||
+          err?.message ||
+          "Failed to send OTP. Try again.";
+        if (
+          isSeller &&
+          (message ===
+            "Complete buyer login and seller registration first" ||
+            message === "Complete seller registration before login")
+        ) {
           alert(message);
-        })
+          navigate("/seller/register");
+          return;
+        }
+        alert(message);
+      })
       .finally(() => setOtpLoading(false));
   }
 
@@ -354,15 +354,20 @@ export default function UserLogin({ role = "buyer" }) {
     }
 
     setOtpLoading(true);
+    const payload = {
+      otp,
+      role: currentRole,
+      city,
+      acceptTerms: acceptedTerms
+    };
+    if (loginMethod === "whatsapp") {
+      payload.mobile = mobile;
+    } else {
+      payload.email = email;
+      payload.mobile = mobileFromUrl;
+    }
     api
-      .post("/auth/verify-otp", {
-        email,
-        otp,
-        role: currentRole,
-        city,
-        acceptTerms: acceptedTerms,
-        mobile: mobileFromUrl
-      })
+      .post("/auth/verify-otp", payload)
       .then(async (res) => {
         const user = res.data.user || {};
         const profile = isSeller ? await applySellerProfile(city) : null;
@@ -378,7 +383,7 @@ export default function UserLogin({ role = "buyer" }) {
           city: user.city || city,
           name: buildDisplayName(user, currentRole, profile),
           preferredCurrency: user.preferredCurrency || "INR",
-          mobile: user.mobile || "",
+          mobile: user.mobile || mobile || "",
           token: res.data.token
         });
 
