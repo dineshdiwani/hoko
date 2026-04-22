@@ -100,6 +100,11 @@ const requirementSchema = new mongoose.Schema(
     chatDisabled: { type: Boolean, default: false },
     chatDisabledReason: { type: String, default: "" },
 
+    mobile: {
+      type: String,
+      default: ""
+    },
+
     reverseAuction: {
       active: {
         type: Boolean,

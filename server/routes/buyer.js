@@ -533,6 +533,7 @@ router.post("/requirement/public", async (req, res) => {
     offerInvitedFrom: normalizeOfferInvitedFrom(offerInvitedFrom),
     attachments: [],
     buyerId: softUser._id,
+    mobile: softUser.mobile || "",
     moderation: flaggedReason
       ? { flagged: true, flaggedAt: new Date(), flaggedReason }
       : undefined
@@ -637,6 +638,7 @@ async function createRequirementFromOTPData(otpRecord, user) {
     offerInvitedFrom: normalizeOfferInvitedFrom(data?.offerInvitedFrom),
     attachments: data?.attachments || [],
     buyerId: softUser._id,
+    mobile: softUser.mobile || "",
     moderation: flaggedReason
       ? { flagged: true, flaggedAt: new Date(), flaggedReason }
       : undefined
@@ -937,6 +939,7 @@ router.post("/requirement", auth, buyerOnly, async (req, res) => {
     offerInvitedFrom: normalizeOfferInvitedFrom(req.body?.offerInvitedFrom),
     attachments: normalizeRequirementAttachmentValues(req.body?.attachments),
     buyerId: req.user._id,
+    mobile: req.user.mobile || "",
     moderation: flaggedReason
       ? {
           flagged: true,
@@ -2446,6 +2449,7 @@ router.post("/requirements/:id/claim", auth, buyerOnly, async (req, res) => {
       city: tempReq.city,
       category: tempReq.category,
       details: tempReq.details,
+      mobile: tempReq.mobileE164 || "",
       status: "open"
     });
     await TempRequirement.findByIdAndUpdate(requirementId, {
