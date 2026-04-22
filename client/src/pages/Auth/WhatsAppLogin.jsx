@@ -17,6 +17,7 @@ export default function WhatsAppLogin() {
   const [loading, setLoading] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
   const [mobile, setMobile] = useState(mobileFromUrl);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   useEffect(() => {
     console.log("[WhatsAppLogin] useEffect: mobileFromUrl=", mobileFromUrl);
@@ -182,10 +183,26 @@ export default function WhatsAppLogin() {
                 </div>
               )}
 
+              {/* Terms Checkbox */}
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={acceptedTerms}
+                  onChange={(e) => setAcceptedTerms(e.target.checked)}
+                  className="mt-1 w-5 h-5 text-amber-500 border-gray-300 rounded focus:ring-amber-500"
+                />
+                <span className="text-sm text-gray-600">
+                  I accept the{" "}
+                  <a href="#" className="text-amber-600 hover:underline">Terms & Conditions</a>{" "}
+                  and{" "}
+                  <a href="#" className="text-amber-600 hover:underline">Privacy Policy</a>
+                </span>
+              </label>
+
               {/* Submit Button */}
               <button
                 onClick={verifyOtp}
-                disabled={loading || otp.length !== 4}
+                disabled={loading || otp.length !== 4 || !acceptedTerms}
                 className="w-full bg-amber-500 text-white font-semibold py-4 rounded-xl hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
               >
                 {loading ? "Verifying..." : "Verify OTP"}
