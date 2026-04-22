@@ -638,7 +638,10 @@ export default function UserLogin({ role = "buyer" }) {
 
                 {/* WhatsApp Login Option */}
                 <button
-                  onClick={() => setLoginMethod("whatsapp")}
+                  onClick={() => {
+                    setLoginMethod("whatsapp");
+                    setStep("WHATSAPP_LOGIN");
+                  }}
                   className="w-full py-4 rounded-xl bg-[#25D366] hover:bg-[#20BD5A] text-white font-semibold flex items-center justify-center gap-3 mb-3"
                 >
                   <svg viewBox="0 0 48 48" className="h-6 w-6" fill="white">
@@ -655,7 +658,10 @@ export default function UserLogin({ role = "buyer" }) {
 
                 {/* Email Login Option */}
                 <button
-                  onClick={() => setLoginMethod("email")}
+                  onClick={() => {
+                    setLoginMethod("email");
+                    setStep("EMAIL_LOGIN");
+                  }}
                   className="w-full py-4 rounded-xl border-2 border-amber-500 hover:bg-amber-50 text-amber-700 font-semibold flex items-center justify-center gap-3 mb-4"
                 >
                   <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
