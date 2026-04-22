@@ -212,8 +212,12 @@ export default function UserLogin({ role = "buyer" }) {
       return;
     }
     
-    if (!city || !acceptedTerms) {
-      alert("Please select your city and accept Terms & Conditions");
+    if (!city) {
+      alert("Please select your city");
+      return;
+    }
+    if (!acceptedTerms) {
+      alert("Please accept Terms & Conditions");
       return;
     }
     
@@ -245,8 +249,12 @@ export default function UserLogin({ role = "buyer" }) {
       return;
     }
 
-    if (!city || !acceptedTerms) {
-      alert("Please select your city and accept Terms & Conditions");
+    if (!city) {
+      alert("Please select your city");
+      return;
+    }
+    if (!acceptedTerms) {
+      alert("Please accept Terms & Conditions");
       return;
     }
 
@@ -694,7 +702,7 @@ export default function UserLogin({ role = "buyer" }) {
 
                 <button
                   onClick={requestWhatsAppLogin}
-                  disabled={waLinkLoading || !mobile || mobile.length < 10}
+                  disabled={waLinkLoading}
                   className="w-full py-3 rounded-xl bg-[#25D366] hover:bg-[#20BD5A] disabled:opacity-50 text-white font-semibold"
                 >
                   {waLinkLoading ? "Generating link..." : "Open WhatsApp & Get OTP"}
@@ -737,10 +745,6 @@ export default function UserLogin({ role = "buyer" }) {
                 <GoogleLoginButton
                   disabled={googleLoading}
                   onSuccess={(credential) => {
-                    if (!city || !acceptedTerms) {
-                      alert("Please select your city and accept Terms & Conditions");
-                      return;
-                    }
                     setLoginMethod("google");
                     handleGoogleLogin(credential);
                   }}
@@ -793,7 +797,7 @@ export default function UserLogin({ role = "buyer" }) {
                     setLoginMethod("email");
                     sendLoginOtp();
                   }}
-                  disabled={otpLoading || !email}
+                  disabled={otpLoading}
                   className="w-full py-3 rounded-xl btn-brand font-semibold"
                 >
                   {otpLoading ? "Sending OTP..." : "Send OTP to Email"}
