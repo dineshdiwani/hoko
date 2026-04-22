@@ -48,7 +48,7 @@ export default function WhatsAppLogin({ extraParams = {} }) {
     try {
       const res = await api.post("/seller/otp/request", {
         mobile: "+" + mobileNum.replace(/\D/g, "")
-      }, { timeout: 10000 });
+      }, { timeout: 15000 });
       
       setResendTimer(60);
       const interval = setInterval(() => {
@@ -84,7 +84,7 @@ export default function WhatsAppLogin({ extraParams = {} }) {
       const res = await api.post("/seller/otp/verify", {
         mobile: "+" + mobile,
         otp: otp
-      });
+      }, { timeout: 15000 });
       console.log("[WhatsAppLogin] Verify response:", res.data);
       
       if (res.data?.success) {
@@ -137,7 +137,7 @@ export default function WhatsAppLogin({ extraParams = {} }) {
       const errorData = err?.response?.data;
       if (errorData?.message) {
         setOtpError(errorData.message);
-      } else if (err.code === 'ECONNABORTED') {
+      } else if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
         setOtpError("Request timed out. Please try again.");
       } else {
         setOtpError(err?.response?.data?.message || err?.message || "Invalid OTP");
