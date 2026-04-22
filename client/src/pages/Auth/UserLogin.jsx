@@ -648,10 +648,13 @@ export default function UserLogin({ role = "buyer" }) {
                 </>
               )}
 
-              {step === "WHATSAPP_LOGIN" && (
+{step === "WHATSAPP_LOGIN" && (
                 <>
                 <button
-                  onClick={() => setStep("LOGIN")}
+                  onClick={() => {
+                    setStep("LOGIN");
+                    setOtp("");
+                  }}
                   className="text-sm text-gray-500 hover:text-gray-700 mb-4"
                 >
                   ← Back
@@ -668,9 +671,28 @@ export default function UserLogin({ role = "buyer" }) {
                   className="w-full border border-gray-300 rounded-xl px-4 py-3 mb-4"
                 />
 
+                <div className="flex items-start gap-2 text-sm text-gray-600 mb-4">
+                  <input
+                    type="checkbox"
+                    checked={acceptedTerms}
+                    onChange={(e) => setAcceptedTerms(e.target.checked)}
+                    className="mt-1"
+                  />
+                  <span>
+                    I accept the{" "}
+                    <button type="button" className="text-amber-700 hover:underline" onClick={() => { setLegalModalType("terms"); setShowLegalModal(true); }}>
+                      Terms
+                    </button>
+                    {" "}and{" "}
+                    <button type="button" className="text-amber-700 hover:underline" onClick={() => { setLegalModalType("privacy"); setShowLegalModal(true); }}>
+                      Privacy Policy
+                    </button>
+                  </span>
+                </div>
+
                 <button
                   onClick={requestWhatsAppLogin}
-                  disabled={waLinkLoading || !mobile || mobile.length < 10}
+                  disabled={waLinkLoading || !mobile || mobile.length < 10 || !acceptedTerms}
                   className="w-full py-3 rounded-xl bg-[#25D366] hover:bg-[#20BD5A] disabled:opacity-50 text-white font-semibold"
                 >
                   {waLinkLoading ? "Generating link..." : "Open WhatsApp & Get OTP"}
@@ -682,10 +704,14 @@ export default function UserLogin({ role = "buyer" }) {
                 </>
               )}
 
-{step === "EMAIL_LOGIN" && (
+              {step === "EMAIL_LOGIN" && (
                 <>
                 <button
-                  onClick={() => setStep("LOGIN")}
+                  onClick={() => {
+                    setStep("LOGIN");
+                    setOtp("");
+                    setEmail("");
+                  }}
                   className="text-sm text-gray-500 hover:text-gray-700 mb-4"
                 >
                   ← Back
@@ -705,18 +731,13 @@ export default function UserLogin({ role = "buyer" }) {
                   ))}
                 </select>
 
-                {/* Google Login */}
+                {/* Google Login - Note: Use the Google login button after selecting city and accepting terms */}
                 <button
                   type="button"
                   onClick={() => {
-                    if (!city) {
-                      alert("Please select your city first.");
-                      return;
-                    }
-                    setLoginMethod("google");
-                    handleGoogleLogin(null);
+                    alert("Please use Email OTP login for now. Google login requires app update.");
                   }}
-                  className="w-full mb-4 h-[44px] rounded-xl border border-slate-300 bg-white text-sm font-semibold text-slate-600 inline-flex items-center justify-center gap-2"
+                  className="w-full mb-4 h-[44px] rounded-xl border border-slate-300 bg-white text-sm font-semibold text-slate-400 inline-flex items-center justify-center gap-2"
                 >
                   <span className="inline-flex h-5 w-5 items-center justify-center">
                     <svg viewBox="0 0 48 48" className="h-4 w-4" aria-hidden="true">
@@ -726,7 +747,7 @@ export default function UserLogin({ role = "buyer" }) {
                       <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
                     </svg>
                   </span>
-                  <span>Continue with Google</span>
+                  <span>Google (Coming Soon)</span>
                 </button>
 
                 <div className="flex items-center gap-3 my-4">
@@ -781,14 +802,21 @@ export default function UserLogin({ role = "buyer" }) {
               {step === "OTP" && (
                 <>
                 <button
-                  onClick={() => setStep(loginMethod === "whatsapp" ? "WHATSAPP_LOGIN" : "EMAIL_LOGIN")}
+                  onClick={() => {
+                    if (loginMethod === "whatsapp") {
+                      setStep("WHATSAPP_LOGIN");
+                    } else {
+                      setStep("EMAIL_LOGIN");
+                    }
+                    setOtp("");
+                  }}
                   className="text-sm text-gray-500 hover:text-gray-700 mb-4"
                 >
                   ← Back
                 </button>
 
                 <div className="text-center mb-4 p-3 bg-green-50 rounded-xl">
-                  <p className="text-sm text-gray-600">OTP sent via {loginMethod === "whatsapp" ? "WhatsApp" : "Email"} to:</p>
+                  <p className="text-sm text-gray-600">OTP sent via {loginMethod} to:</p>
                   <p className="font-semibold text-gray-800">{loginMethod === "whatsapp" ? mobile : email}</p>
                 </div>
 
