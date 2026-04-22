@@ -510,7 +510,6 @@ useEffect(() => {
     }
 
     // Check if user is logged in as seller
-    const session = getSession();
     const canBecomeSeller = Boolean(session?.token && session?.roles?.seller);
     if (!canBecomeSeller) return;
 
