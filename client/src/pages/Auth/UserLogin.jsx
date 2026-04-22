@@ -727,20 +727,6 @@ export default function UserLogin({ role = "buyer" }) {
                   ← Back
                 </button>
 
-                <label className="block text-sm font-medium mb-1 text-gray-700">
-                  City
-                </label>
-                <select
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  className="w-full border border-gray-300 rounded-xl px-4 py-3 mb-4"
-                >
-                  <option value="">Select your city</option>
-                  {cities.map((c) => (
-                    <option key={c}>{c}</option>
-                  ))}
-                </select>
-
                 {/* Google Login - always enabled */}
                 <GoogleLoginButton
                   disabled={googleLoading}
