@@ -8,15 +8,14 @@ export default function SellerLogin() {
   
   const mobileFromUrl = searchParams.get("mobile") || "";
   const ref = searchParams.get("ref") || "";
+  const src = searchParams.get("src") || "";
   
-  console.log("[SellerLogin] mobileFromUrl:", mobileFromUrl, "ref:", ref);
-  
-  // If coming from WhatsApp with mobile, show WhatsApp login
-  const isWhatsAppUser = ref === "wa" && mobileFromUrl;
-  console.log("[SellerLogin] isWhatsAppUser:", isWhatsAppUser);
+  // If coming from WhatsApp with mobile (check both ref and src)
+  const isWhatsAppUser = (ref === "wa" || src === "wa") && mobileFromUrl;
   
   if (isWhatsAppUser) {
-    return <WhatsAppLogin />;
+    // Pass extra params to WhatsAppLogin
+    return <WhatsAppLogin extraParams={{ ref, src }} />;
   }
   
   return <UserLogin role="seller" />;
