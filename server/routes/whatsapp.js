@@ -124,29 +124,29 @@ function buildRoleSelectionMessage() {
 
 function buildWelcomeMessage() {
   return [
-    "🔥 Welcome to Hoko",
-    "India's smart way to buy & sell 😎",
+    "🙏 Welcome to Hoko",
+    "India's smarter way to buy & sell.",
     "",
     "🛒 Want to BUY? → Get multiple offers from sellers",
     "🏪 Want to SELL? → Get real buyer requirements",
     "",
-    "👉 Reply with, If you are a",
-    "1️⃣ BUYER",
-    "2️⃣ SELLER"
+    "Reply with:",
+    "1️⃣ Buyer",
+    "2️⃣ Seller"
   ].join("\n");
 }
 
 function buildConsentPromptMessage() {
   return [
-    "🔥 Welcome to Hoko",
-    "India's smart way to buy & sell 😎",
+    "🙏 Welcome to Hoko",
+    "India's smarter way to buy & sell.",
     "",
     "🛒 Want to BUY? → Get multiple offers from sellers",
     "🏪 Want to SELL? → Get real buyer requirements",
     "",
-    "👉 Reply with, If you are a",
-    "1️⃣ BUYER",
-    "2️⃣ SELLER"
+    "Reply with:",
+    "1️⃣ Buyer",
+    "2️⃣ Seller"
   ].join("\n");
 }
 
@@ -623,43 +623,43 @@ function normalizeInboundText(value) {
 
 function buildConsentPromptMessage() {
   return [
-    "🔥 Welcome to Hoko",
-    "India's smart way to buy & sell 😎",
+    "🙏 Welcome to Hoko",
+    "India's smarter way to buy & sell.",
     "",
     "🛒 Want to BUY? → Get multiple offers from sellers",
     "🏪 Want to SELL? → Get real buyer requirements",
     "",
-    "👉 Reply with, If you are a",
-    "1️⃣ BUYER",
-    "2️⃣ SELLER"
+    "Reply with:",
+    "1️⃣ Buyer",
+    "2️⃣ Seller"
   ].join("\n");
 }
 
 function buildConsentConfirmedMessage() {
   return [
-    "🔥 Welcome to Hoko",
-    "India's smart way to buy & sell 😎",
+    "🙏 Welcome to Hoko",
+    "India's smarter way to buy & sell.",
     "",
     "🛒 Want to BUY? → Get multiple offers from sellers",
     "🏪 Want to SELL? → Get real buyer requirements",
     "",
-    "👉 Reply with, If you are a",
-    "1️⃣ BUYER",
-    "2️⃣ SELLER"
+    "Reply with:",
+    "1️⃣ Buyer",
+    "2️⃣ Seller"
   ].join("\n");
 }
 
 function buildGenericHelpMessage() {
   return [
-    "🔥 Welcome to Hoko",
-    "India's smart way to buy & sell 😎",
+    "🙏 Welcome to Hoko",
+    "India's smarter way to buy & sell.",
     "",
     "🛒 Want to BUY? → Get multiple offers from sellers",
     "🏪 Want to SELL? → Get real buyer requirements",
     "",
-    "👉 Reply with, If you are a",
-    "1️⃣ BUYER",
-    "2️⃣ SELLER"
+    "Reply with:",
+    "1️⃣ Buyer",
+    "2️⃣ Seller"
   ].join("\n");
 }
 
@@ -668,17 +668,17 @@ function buildUnknownIntentGreetingMessage(receivedText) {
     ? receivedText.substring(0, 47) + "..." 
     : receivedText;
   return [
-    "🔥 Welcome to Hoko",
-    "India's smart way to buy & sell 😎",
+    "🙏 Welcome to Hoko",
+    "India's smarter way to buy & sell.",
     "",
     `📩 We received: "${truncated}"`,
     "",
     "🛒 Want to BUY? → Get multiple offers from sellers",
     "🏪 Want to SELL? → Get real buyer requirements",
     "",
-    "👉 Reply with, If you are a",
-    "1️⃣ BUYER",
-    "2️⃣ SELLER"
+    "Reply with:",
+    "1️⃣ Buyer",
+    "2️⃣ Seller"
   ].join("\n");
 }
 
