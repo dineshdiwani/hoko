@@ -72,6 +72,20 @@ async function sendWhatsAppTemplate({ to, templateKey, parameters = [], buttonUr
   
   if (!templateConfig) {
     console.warn(`[WhatsApp] Template not found or inactive: ${templateKey}`);
+    if (templateKey.includes("offer") && parameters.length >= 3) {
+      const appBase = String(process.env.PUBLIC_APP_URL || "https://hokoapp.in").trim();
+      const fallbackMessage = [
+        `🔔 New offer received!`,
+        "",
+        `Product: ${parameters[1] || "Your requirement"}`,
+        `Price: Rs ${parameters[2] || "N/A"}`,
+        "",
+        `View all offers:`,
+        `${appBase}/buyer/requirement/${requirementId || ""}/offers`
+      ].join("\n");
+      const { sendWhatsAppMessage } = require("../utils/sendWhatsApp");
+      await sendWhatsAppMessage({ to, body: fallbackMessage }).catch(() => {});
+    }
     return;
   }
   
