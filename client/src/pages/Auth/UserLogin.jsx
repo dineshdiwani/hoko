@@ -61,7 +61,6 @@ export default function UserLogin({ role = "buyer" }) {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [showLegalModal, setShowLegalModal] = useState(false);
   const [legalModalType, setLegalModalType] = useState("terms");
-  const [setupModalSource, setSetupModalSource] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [termsContent, setTermsContent] = useState(defaultTermsContent);
   const [privacyPolicyContent, setPrivacyPolicyContent] = useState(defaultPrivacyPolicyContent);
@@ -209,14 +208,12 @@ export default function UserLogin({ role = "buyer" }) {
 
   async function requestWhatsAppLogin() {
     if (!mobile || mobile.length < 10) {
-      setSetupModalSource("whatsapp");
-      setCity("");
-      setAcceptedTerms(false);
+      alert("Please enter your 10-digit mobile number");
       return;
     }
     
     if (!city || !acceptedTerms) {
-      setSetupModalSource("whatsapp");
+      alert("Please select your city and accept Terms & Conditions");
       return;
     }
     
@@ -249,7 +246,7 @@ export default function UserLogin({ role = "buyer" }) {
     }
 
     if (!city || !acceptedTerms) {
-      setSetupModalSource("email");
+      alert("Please select your city and accept Terms & Conditions");
       return;
     }
 
@@ -741,7 +738,7 @@ export default function UserLogin({ role = "buyer" }) {
                   disabled={googleLoading}
                   onSuccess={(credential) => {
                     if (!city || !acceptedTerms) {
-                      setSetupModalSource("google");
+                      alert("Please select your city and accept Terms & Conditions");
                       return;
                     }
                     setLoginMethod("google");
@@ -845,77 +842,11 @@ export default function UserLogin({ role = "buyer" }) {
                   {otpLoading ? "Verifying..." : "Verify & Login"}
                 </button>
                 </>
-              )}
+)}
             </div>
           </div>
         </div>
       </div>
-
-      {setupModalSource && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white w-full max-w-md mx-4 rounded-2xl shadow-xl p-6">
-            <h2 className="text-lg font-bold mb-4">Complete Your Setup</h2>
-            
-            <label className="block text-sm font-medium mb-1 text-gray-700">
-              Select Your City
-            </label>
-            <select
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 mb-4"
-            >
-              <option value="">Select your city</option>
-              {cities.map((c) => (
-                <option key={c}>{c}</option>
-              ))}
-            </select>
-
-            <div className="flex items-start gap-2 text-sm text-gray-600 mb-4">
-              <input
-                type="checkbox"
-                checked={acceptedTerms}
-                onChange={(e) => setAcceptedTerms(e.target.checked)}
-                className="mt-1"
-              />
-              <span>
-                I accept the{" "}
-                <button type="button" className="text-amber-700 hover:underline" onClick={() => { setLegalModalType("terms"); setShowLegalModal(true); }}>
-                  Terms
-                </button>
-                {" "}and{" "}
-                <button type="button" className="text-amber-700 hover:underline" onClick={() => { setLegalModalType("privacy"); setShowLegalModal(true); }}>
-                  Privacy Policy
-                </button>
-              </span>
-            </div>
-
-            <button
-              onClick={() => {
-                if (!city) {
-                  alert("Please select your city");
-                  return;
-                }
-                if (!acceptedTerms) {
-                  alert("Please accept Terms & Conditions");
-                  return;
-                }
-                setSetupModalSource("");
-                if (setupModalSource === "whatsapp") {
-                  requestWhatsAppLogin();
-                } else if (setupModalSource === "email") {
-                  sendLoginOtp();
-                } else if (setupModalSource === "google") {
-                  // Google handled separately
-                }
-              }}
-              disabled={!city || !acceptedTerms}
-              className="w-full py-3 rounded-xl btn-brand font-semibold disabled:opacity-50"
-            >
-              Continue
-            </button>
-          </div>
-        </div>
-      )}
 
       {showLegalModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
