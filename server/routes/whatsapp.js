@@ -195,19 +195,15 @@ function buildConsentConfirmedSellerMessage(city, whatsappCategories, loginLink)
   const catList = whatsappCategories.slice(0, 3).join(", ");
   const moreCats = whatsappCategories.length > 3 ? ` +${whatsappCategories.length - 3} more` : "";
   return [
-    "✅ Perfect! You're registered as a HOKO Seller 🏪",
+    "✅ Perfect! You're SET as a HOKO Seller",
     "",
     `📍 City: ${city}`,
     `📦 Categories: ${catList}${moreCats}`,
     "",
-    "🔥 Buyers post requirements DAILY in your city!",
+    "Buyers post requirements DAILY in your city!",
     "",
     "📝 Submit your best offers directly:",
-    `👉 ${loginLink}`,
-    "",
-    "💡 Tip: First to respond gets more orders!",
-    "",
-    "Our team will verify your profile shortly."
+    `👉 ${loginLink}`
   ].join("\n");
 }
 
