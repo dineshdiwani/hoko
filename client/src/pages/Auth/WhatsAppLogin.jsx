@@ -84,9 +84,6 @@ export default function WhatsAppLogin({ extraParams = {} }) {
       const res = await api.post("/seller/otp/verify", {
         mobile: "+" + mobile,
         otp: otp
-      }).catch(err => {
-        console.error("[WhatsAppLogin] API error:", err?.response?.data || err?.message);
-        throw err;
       });
       console.log("[WhatsAppLogin] Verify response:", res.data);
       
@@ -137,7 +134,10 @@ export default function WhatsAppLogin({ extraParams = {} }) {
       }
     } catch (err) {
       console.log("[WhatsAppLogin] Verify error:", err?.response?.data || err?.message);
-      if (err.code === 'ECONNABORTED') {
+      const errorData = err?.response?.data;
+      if (errorData?.message) {
+        setOtpError(errorData.message);
+      } else if (err.code === 'ECONNABORTED') {
         setOtpError("Request timed out. Please try again.");
       } else {
         setOtpError(err?.response?.data?.message || err?.message || "Invalid OTP");
