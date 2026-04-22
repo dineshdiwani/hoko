@@ -1467,7 +1467,9 @@ router.post("/otp/verify", otpVerifyLimiter, async (req, res) => {
   });
 
   const { mergeSoftUserRequirements } = require("../routes/auth");
+  console.log("[OTP Verify] Calling mergeSoftUserRequirements for:", user._id);
   const mergeResult = await mergeSoftUserRequirements(user._id, mobileE164);
+  console.log("[OTP Verify] mergeResult:", mergeResult);
 
   console.log("[OTP Verify] Success for user:", user._id, "roles:", user.roles);
 
