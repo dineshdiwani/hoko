@@ -235,11 +235,8 @@ export default function UserLogin({ role = "buyer" }) {
   function sendLoginOtp() {
     setSubmitted(true);
 
-    const hasEmail = validEmail(email);
-    const hasMobile = mobile && mobile.length >= 10;
-
-    if (!hasEmail && !hasMobile) {
-      alert("Please enter either email or mobile number");
+    if (!validEmail(email)) {
+      alert("Please enter a valid email address");
       return;
     }
 
@@ -259,55 +256,34 @@ export default function UserLogin({ role = "buyer" }) {
     }
 
     setOtpLoading(true);
-    
-    if (hasMobile) {
-      setLoginMethod("whatsapp");
-      api.post("/auth/login", { mobile, role: currentRole, city })
-        .then((res) => {
-          if (res.data?.success) {
-            setStep("OTP");
-            alert("OTP sent via WhatsApp to " + mobile);
-          } else {
-            alert(res.data?.message || "Failed to send OTP");
-          }
-        })
-        .catch((err) => {
-          alert(err?.response?.data?.message || "Failed to send OTP");
-        })
-        .finally(() => setOtpLoading(false));
-      return;
-    }
-
     setLoginMethod("email");
-    api
-      .post("/auth/login", {
-        email,
-        role: currentRole,
-        city,
-        acceptTerms: acceptedTerms
-      })
-      .then(() => {
-        setStep("OTP");
-        alert("OTP sent to your email");
+    api.post("/auth/login", { email, role: currentRole, city, acceptTerms: acceptedTerms })
+      .then((res) => {
+        if (res.data?.success) {
+          setStep("OTP");
+          alert("OTP sent to your email");
+        } else {
+          alert(res.data?.message || "Failed to send OTP");
+        }
       })
       .catch((err) => {
-        const message =
-          err?.response?.data?.error ||
-          err?.response?.data?.message ||
-          err?.message ||
-          "Failed to send OTP. Try again.";
-        if (
-          isSeller &&
-          (message ===
-            "Complete buyer login and seller registration first" ||
-            message === "Complete seller registration before login")
-        ) {
+          const message =
+            err?.response?.data?.error ||
+            err?.response?.data?.message ||
+            err?.message ||
+            "Failed to send OTP. Try again.";
+          if (
+            isSeller &&
+            (message ===
+              "Complete buyer login and seller registration first" ||
+              message === "Complete seller registration before login")
+          ) {
+            alert(message);
+            navigate("/seller/register");
+            return;
+          }
           alert(message);
-          navigate("/seller/register");
-          return;
-        }
-        alert(message);
-      })
+        })
       .finally(() => setOtpLoading(false));
   }
 
@@ -706,7 +682,7 @@ export default function UserLogin({ role = "buyer" }) {
                 </>
               )}
 
-              {step === "EMAIL_LOGIN" && (
+{step === "EMAIL_LOGIN" && (
                 <>
                 <button
                   onClick={() => setStep("LOGIN")}
@@ -729,6 +705,36 @@ export default function UserLogin({ role = "buyer" }) {
                   ))}
                 </select>
 
+                {/* Google Login */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!city) {
+                      alert("Please select your city first.");
+                      return;
+                    }
+                    setLoginMethod("google");
+                    handleGoogleLogin(null);
+                  }}
+                  className="w-full mb-4 h-[44px] rounded-xl border border-slate-300 bg-white text-sm font-semibold text-slate-600 inline-flex items-center justify-center gap-2"
+                >
+                  <span className="inline-flex h-5 w-5 items-center justify-center">
+                    <svg viewBox="0 0 48 48" className="h-4 w-4" aria-hidden="true">
+                      <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.4 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                      <path fill="#4285F4" d="M46.98 24.55c0-1.57-.14-3.09-.4-4.55H24v9.02h12.94c-.58 2.96-2.25 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                      <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24s.92 7.54 2.56 10.78l7.97-6.19z"/>
+                      <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                    </svg>
+                  </span>
+                  <span>Continue with Google</span>
+                </button>
+
+                <div className="flex items-center gap-3 my-4">
+                  <div className="h-px flex-1 bg-slate-200" />
+                  <span className="text-xs font-semibold text-slate-400">OR</span>
+                  <div className="h-px flex-1 bg-slate-200" />
+                </div>
+
                 <label className="block text-sm font-medium mb-1 text-gray-700">
                   Email
                 </label>
@@ -740,12 +746,31 @@ export default function UserLogin({ role = "buyer" }) {
                   className="w-full border border-gray-300 rounded-xl px-4 py-3 mb-4"
                 />
 
+                <div className="flex items-start gap-2 text-sm text-gray-600 mb-4">
+                  <input
+                    type="checkbox"
+                    checked={acceptedTerms}
+                    onChange={(e) => setAcceptedTerms(e.target.checked)}
+                    className="mt-1"
+                  />
+                  <span>
+                    I accept the{" "}
+                    <button type="button" className="text-amber-700 hover:underline" onClick={() => { setLegalModalType("terms"); setShowLegalModal(true); }}>
+                      Terms
+                    </button>
+                    {" "}and{" "}
+                    <button type="button" className="text-amber-700 hover:underline" onClick={() => { setLegalModalType("privacy"); setShowLegalModal(true); }}>
+                      Privacy Policy
+                    </button>
+                  </span>
+                </div>
+
                 <button
                   onClick={() => {
                     setLoginMethod("email");
                     sendLoginOtp();
                   }}
-                  disabled={otpLoading || !email || !city}
+                  disabled={otpLoading || !email || !city || !acceptedTerms}
                   className="w-full py-3 rounded-xl btn-brand font-semibold"
                 >
                   {otpLoading ? "Sending OTP..." : "Send OTP to Email"}
@@ -753,7 +778,7 @@ export default function UserLogin({ role = "buyer" }) {
                 </>
               )}
 
-{step === "OTP" && (
+              {step === "OTP" && (
                 <>
                 <button
                   onClick={() => setStep(loginMethod === "whatsapp" ? "WHATSAPP_LOGIN" : "EMAIL_LOGIN")}
@@ -768,14 +793,14 @@ export default function UserLogin({ role = "buyer" }) {
                 </div>
 
                 <label className="block text-sm font-medium mb-1 text-gray-700">
-                  Enter OTP ({loginMethod === "whatsapp" ? "4-digit" : "6-digit"})
+                  Enter OTP
                 </label>
                 <input
                   type="text"
                   inputMode="numeric"
                   value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, loginMethod === "whatsapp" ? 4 : 6))}
-                  placeholder={loginMethod === "whatsapp" ? "4-digit OTP" : "6-digit OTP"}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  placeholder="Enter OTP"
                   className="w-full border border-gray-300 rounded-xl px-4 py-3 mb-4 text-center text-xl tracking-widest"
                 />
 
