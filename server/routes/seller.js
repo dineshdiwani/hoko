@@ -1370,6 +1370,8 @@ router.post("/otp/request", otpSendLimiter, async (req, res) => {
   const otp = generateOTP();
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
   
+  console.log("[OTP Request] Generated OTP:", otp, "for mobile:", mobileE164);
+  
   await WhatsAppOTP.create({
     mobileE164,
     otp,
@@ -1408,10 +1410,10 @@ router.post("/otp/verify", otpVerifyLimiter, async (req, res) => {
     status: "pending"
   }).sort({ createdAt: -1 });
   
-  console.log("[OTP Verify] Found record:", otpRecord ? "yes" : "no", "otp in record:", otpRecord?.otp);
+  console.log("[OTP Verify] Found record:", otpRecord ? "yes" : "no", "otp in record:", otpRecord?.otp, "user entered:", otpTrimmed);
   
   if (!otpRecord || String(otpRecord.otp).trim() !== otpTrimmed) {
-    console.log("[OTP Verify] Invalid OTP");
+    console.log("[OTP Verify] Invalid OTP - stored:", otpRecord?.otp, "entered:", otpTrimmed);
     return res.status(400).json({ success: false, message: "Invalid or expired OTP" });
   }
   
