@@ -371,6 +371,7 @@ export default function UserLogin({ role = "buyer" }) {
           city: user.city || city,
           name: buildDisplayName(user, currentRole, profile),
           preferredCurrency: user.preferredCurrency || "INR",
+          mobile: user.mobile || "",
           token: res.data.token
         });
 

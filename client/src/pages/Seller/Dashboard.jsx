@@ -936,6 +936,7 @@ export default function SellerDashboard() {
                           city: res.data.user.city,
                           name: "Buyer",
                           preferredCurrency: res.data.user.preferredCurrency,
+                          mobile: res.data.user.mobile || "",
                           token: res.data.token
                         });
                         setMenuOpen(false);

@@ -109,6 +109,7 @@ export default function BuyerDashboard() {
           city: res.data.user.city,
           name: "Buyer",
           preferredCurrency: res.data.user.preferredCurrency,
+          mobile: res.data.user.mobile || "",
           token: res.data.token
         });
         setSessionVersion((v) => v + 1);

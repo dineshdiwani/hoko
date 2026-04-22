@@ -101,6 +101,7 @@ function submitRequirement() {
             city: res.data.user.city,
             name: "Buyer",
             preferredCurrency: res.data.user.preferredCurrency,
+            mobile: res.data.user.mobile || "",
             token: res.data.token
           });
           clearSellerLoginIntent();
@@ -289,6 +290,7 @@ const startVoiceInput = async () => {
                         city: res.data.user.city,
                         name: "Buyer",
                         preferredCurrency: res.data.user.preferredCurrency,
+                        mobile: res.data.user.mobile || "",
                         token: res.data.token
                       });
                       navigate("/buyer/dashboard");

@@ -269,6 +269,7 @@ const switchRes = await api.post("/auth/switch-role", {
             "Seller",
           preferredCurrency:
             switchRes.data.user.preferredCurrency || "INR",
+          mobile: switchRes.data.user.mobile || "",
           token: switchRes.data.token
         });
         
