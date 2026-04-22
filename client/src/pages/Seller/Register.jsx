@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { fetchOptions } from "../../services/options";
 import api from "../../services/api";
 import {
@@ -10,12 +10,14 @@ import {
 
 export default function SellerRegister() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const mobileFromUrl = searchParams.get("mobile") || "";
   const session = getSession();
   const sessionCity = String(session?.city || "").trim();
 
   const [seller, setSeller] = useState({
     email: session?.email || localStorage.getItem("seller_email") || "",
-    mobile: session?.mobile || localStorage.getItem("whatsapp_mobile") || "",
+    mobile: session?.mobile || localStorage.getItem("whatsapp_mobile") || mobileFromUrl || "",
     firmName: "",
     managerName: "",
     businessName: "",

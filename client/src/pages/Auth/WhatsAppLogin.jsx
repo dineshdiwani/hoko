@@ -125,8 +125,14 @@ export default function WhatsAppLogin({ extraParams = {} }) {
         } else if (user.roles?.buyer && !hasSellerRole) {
           window.location.href = "/buyer/dashboard";
         } else {
-          // No seller profile - go to registration to complete profile
-          window.location.href = `/seller/register?${dashParams.toString()}`;
+          // No seller profile - go to registration with all params
+          const registerParams = new URLSearchParams();
+          if (cityFromUrl) registerParams.set("city", cityFromUrl);
+          if (mobile) registerParams.set("mobile", mobile);
+          if (catsFromUrl) registerParams.set("cats", catsFromUrl);
+          registerParams.set("ref", "wa");
+          registerParams.set("from", "deeplink");
+          window.location.href = `/seller/register?${registerParams.toString()}`;
         }
         return;
       } else {
