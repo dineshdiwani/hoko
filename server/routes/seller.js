@@ -1466,9 +1466,24 @@ router.post("/otp/verify", otpVerifyLimiter, async (req, res) => {
     $set: { status: "verified", verifiedAt: new Date() } 
   });
 
-  const { mergeSoftUserRequirements } = require("../routes/auth");
-  console.log("[OTP Verify] Calling mergeSoftUserRequirements for:", user._id);
-  const mergeResult = await mergeSoftUserRequirements(user._id, mobileE164);
+  // Inline merge functionality
+  console.log("[OTP Verify] Merging requirements for user:", user._id);
+  const mergeResult = { merged: false };
+  try {
+    const whatsappRequirements = await Requirement.find({
+      mobile: mobileE164,
+      buyerId: { $ne: user._id }
+    });
+    if (whatsappRequirements.length > 0) {
+      await Requirement.updateMany(
+        { mobile: mobileE164, buyerId: { $ne: user._id } },
+        { $set: { buyerId: user._id } }
+      );
+      mergeResult.merged = true;
+    }
+  } catch (e) {
+    console.log("[OTP Verify] Merge error:", e.message);
+  }
   console.log("[OTP Verify] mergeResult:", mergeResult);
 
   console.log("[OTP Verify] Success for user:", user._id, "roles:", user.roles);
