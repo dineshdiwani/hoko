@@ -18,8 +18,16 @@ export default function OffersReceived({
   const buyerId = session?._id;
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (!buyerId) return;
+useEffect(() => {
+    console.log("[OffersReceived] buyerId:", buyerId, "session token:", session?.token ? "exists" : "missing");
+    if (!buyerId) {
+      console.log("[OffersReceived] No buyerId - user may not be logged in");
+      return;
+    }
+    if (!session?.token) {
+      console.log("[OffersReceived] No session token");
+      return;
+    }
     api
       .get(`/buyer/my-posts/${buyerId}`)
       .then(async (res) => {
