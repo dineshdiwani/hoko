@@ -107,22 +107,25 @@ function BuyerOfferRouteHandler() {
   const session = getSession();
   
   useEffect(() => {
-    if (session?.token && (session.role === "buyer" || session.roles?.buyer)) {
-      localStorage.setItem("pending_buyer_requirement_ref", id);
-      navigate(`/buyer/requirement/${id}/offers`, { replace: true });
-    } else {
+    if (!session?.token) {
       localStorage.setItem("pending_buyer_requirement_ref", id);
       navigate("/buyer/login", { replace: true });
+    } else if (!(session.role === "buyer" || session.roles?.buyer)) {
+      navigate("/buyer/dashboard", { replace: true });
     }
   }, [id, session, navigate]);
   
-  return (
-    <div className="page">
-      <div className="page-shell py-10">
-        <p>Loading...</p>
+  if (!session?.token) {
+    return (
+      <div className="page">
+        <div className="page-shell py-10">
+          <p>Loading...</p>
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
+  
+  return <OfferList />;
 }
 
 function AppShell() {
