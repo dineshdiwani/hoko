@@ -341,8 +341,9 @@ export default function UserLogin({ role = "buyer" }) {
       alert("Please accept the Terms & Conditions and Privacy Policy");
       return;
     }
-    if (String(otp).trim().length !== 6) {
-      alert("Please enter a valid 6-digit OTP");
+    const otpLength = String(otp).trim().length;
+    if (otpLength !== 4 && otpLength !== 6) {
+      alert("Please enter a valid 4 or 6-digit OTP");
       return;
     }
 
@@ -702,6 +703,33 @@ export default function UserLogin({ role = "buyer" }) {
                 </div>
 
                 <label className="block text-sm font-medium mb-1 text-gray-700">
+                  Mobile Number
+                </label>
+                <input
+                  type="tel"
+                  value={mobile}
+                  onChange={(e) => setMobile(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                  placeholder="10-digit mobile number"
+                  className="w-full border border-gray-300 rounded-xl px-4 py-3 mb-2"
+                />
+
+                <button
+                  onClick={sendLoginOtp}
+                  disabled={otpLoading || !mobile || mobile.length < 10}
+                  className="w-full py-3 rounded-xl btn-brand font-semibold mb-4"
+                >
+                  {otpLoading ? "Sending OTP..." : "Send OTP via WhatsApp"}
+                </button>
+
+                <div className="my-3 flex items-center gap-3">
+                  <div className="h-px flex-1 bg-slate-200" />
+                  <span className="text-xs font-semibold tracking-wide text-slate-500">
+                    OR
+                  </span>
+                  <div className="h-px flex-1 bg-slate-200" />
+                </div>
+
+                <label className="block text-sm font-medium mb-1 text-gray-700">
                   Email
                 </label>
                 <input
@@ -714,7 +742,7 @@ export default function UserLogin({ role = "buyer" }) {
 
                 <button
                   onClick={sendLoginOtp}
-                  disabled={otpLoading}
+                  disabled={otpLoading || !email}
                   className="w-full py-3 rounded-xl btn-brand font-semibold"
                 >
                   {otpLoading ? "Sending OTP..." : "Send OTP to Email"}
