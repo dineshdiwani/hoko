@@ -1683,6 +1683,9 @@ async function sendToNewSellerWithCategories(mobileE164, city, categoryData) {
     }
   }
   
+  // Only keep 2 most random requirements
+  dummies = dummies.slice(0, 2);
+  
   if (!dummies.length) {
     console.log(`[DummyReq] No matching requirements for ${mobileE164} in city ${city}, generating new ones...`);
     // Generate dummy requirements for this seller's city

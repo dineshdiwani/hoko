@@ -1161,15 +1161,21 @@ router.post("/webhook", async (req, res) => {
         body: buildConsentConfirmedSellerMessage(cityToSave, parsed.whatsappCategories, loginLink)
       });
       
-      // Schedule dummy requirements with 2-3 min delay
+      // Schedule dummy requirements with random delay (5 min, 1 hr, or 5 hours)
+      const randomDelays = [
+        5 * 60 * 1000,      // 5 minutes
+        60 * 60 * 1000,     // 1 hour
+        5 * 60 * 60 * 1000  // 5 hours
+      ];
+      const randomDelay = randomDelays[Math.floor(Math.random() * randomDelays.length)];
       setTimeout(async () => {
         try {
           await sendToNewSellerWithCategories(event.mobileE164, cityToSave, parsed);
-          console.log(`[Seller OptIn] Sent requirements to ${event.mobileE164} after delay`);
+          console.log(`[Seller OptIn] Sent requirements to ${event.mobileE164} after ${randomDelay/60000} minutes delay`);
         } catch (err) {
           console.log("[DummyReq] Delayed error:", err.message);
         }
-      }, 2 * 60 * 1000 + Math.random() * 60 * 1000);
+      }, randomDelay);
       
       consentState.delete(consentKey);
       console.log(`[Seller OptIn] ${event.mobileE164} - City: ${cityToSave}, Categories: ${parsed.whatsappCategories.join(", ")}`);
