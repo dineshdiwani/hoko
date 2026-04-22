@@ -360,14 +360,16 @@ export default function UserLogin({ role = "buyer" }) {
       city,
       acceptTerms: acceptedTerms
     };
+    let endpoint = "/auth/verify-otp";
     if (loginMethod === "whatsapp") {
+      endpoint = "/auth/whatsapp/verify";
       payload.mobile = mobile;
     } else {
       payload.email = email;
       payload.mobile = mobileFromUrl;
     }
     api
-      .post("/auth/verify-otp", payload)
+      .post(endpoint, payload)
       .then(async (res) => {
         const user = res.data.user || {};
         const profile = isSeller ? await applySellerProfile(city) : null;

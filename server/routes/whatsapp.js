@@ -912,13 +912,11 @@ for (const event of events) {
       const session = getSession(sessionId);
       
       if (session) {
-        const otp = generateOtp();
-        setOtp("whatsapp_login", session.mobile, otp, 2 * 60 * 1000);
         markSessionVerified(sessionId);
         
         await sendWhatsAppMessage({
           to: event.mobileE164,
-          body: `🔐 Your Hoko OTP is: ${otp}\n\nValid for 2 minutes.`
+          body: `🔐 Your Hoko OTP is: ${session.otp}\n\nValid for 2 minutes.`
         });
       }
       continue;

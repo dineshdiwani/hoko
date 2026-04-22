@@ -647,7 +647,10 @@ router.post("/whatsapp/request", otpSendLimiter, async (req, res) => {
   }
   
   // Generate 4-digit OTP for WhatsApp
-  const otp = generateOtp();
+  const { generateOtp, setOtp } = require("../services/auth/otpService");
+  const otp = generateOtp(4);
+  setOtp("whatsapp_login", mobileE164, otp, 2 * 60 * 1000);
+  
   const { createLoginSession } = require("../services/auth/loginSession");
   const sessionData = createLoginSession(mobileE164, otp);
   

@@ -2,12 +2,12 @@ const crypto = require("crypto");
 
 const otpStore = new Map();
 
-const OTP_LENGTH = 6;
+const OTP_LENGTH = 4; // 4-digit for WhatsApp
 const OTP_TTL_MS = 2 * 60 * 1000;
 const OTP_MAX_ATTEMPTS = 3;
 
-function generateOtp() {
-  return String(Math.floor(Math.random() * Math.pow(10, OTP_LENGTH))).padStart(OTP_LENGTH, "0");
+function generateOtp(length = OTP_LENGTH) {
+  return String(Math.floor(Math.random() * Math.pow(10, length))).padStart(length, "0");
 }
 
 function generateOtpKey(type, identifier) {
