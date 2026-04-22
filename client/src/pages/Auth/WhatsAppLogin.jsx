@@ -3,13 +3,14 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import api from "../../services/api";
 import { setSession } from "../../services/storage";
 
-export default function WhatsAppLogin() {
+export default function WhatsAppLogin({ extraParams = {} }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   
   const mobileFromUrl = searchParams.get("mobile") || "";
   const cityFromUrl = searchParams.get("city") || "";
   const catsFromUrl = searchParams.get("cats") || "";
+  const redirectUrl = extraParams.redirect || searchParams.get("redirect") || "";
   
   const [step, setStep] = useState("ENTER_OTP");
   const [otp, setOtp] = useState("");
@@ -26,9 +27,9 @@ export default function WhatsAppLogin() {
     // Check if already logged in
     const existingSession = JSON.parse(localStorage.getItem("hoko_session") || "null");
     if (existingSession?.token) {
-      // Already logged in - go to appropriate dashboard based on role
-      const redirectUrl = searchParams.get("redirect") || (existingSession?.roles?.seller ? "/seller/dashboard" : "/buyer/dashboard");
-      navigate(redirectUrl, { replace: true });
+      // Already logged in - go to redirect param or based on role
+      const targetUrl = redirectUrl || (existingSession?.roles?.seller ? "/seller/dashboard" : "/buyer/dashboard");
+      navigate(targetUrl, { replace: true });
       return;
     }
     
@@ -117,7 +118,6 @@ export default function WhatsAppLogin() {
         });
         
         // Redirect based on registration status or redirect param
-        const redirectUrl = searchParams.get("redirect");
         if (redirectUrl) {
           window.location.href = redirectUrl;
         } else if (hasSellerProfile && hasSellerRole) {
