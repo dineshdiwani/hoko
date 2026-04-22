@@ -170,18 +170,11 @@ function buildBuyerConfirmationMessage(product, city, requirementId, deepLink) {
   return [
     "✅ Got it! Your requirement is saved 👍",
     "",
-    `📋 ID: ${requirementId || 'HOKO-REQ'}`,
     `📦 ${product}`,
     city ? `📍 City: ${city}` : "",
     "",
-    "🔥 Sellers will start sending offers soon!",
-    "",
     "📝 Complete your requirement & get offers:",
-    deepLink,
-    "",
-    "💡 Top tip: Respond to first 3 offers quickly for best deals!",
-    "",
-    "Need help? Reply HELP anytime."
+    deepLink
   ].filter(Boolean).join("\n");
 }
 
