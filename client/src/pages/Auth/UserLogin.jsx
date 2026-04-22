@@ -747,7 +747,7 @@ export default function UserLogin({ role = "buyer" }) {
                 </>
               )}
 
-              {step === "OTP" && (
+{step === "OTP" && (
                 <>
                 <button
                   onClick={() => setStep(loginMethod === "whatsapp" ? "WHATSAPP_LOGIN" : "EMAIL_LOGIN")}
@@ -779,48 +779,6 @@ export default function UserLogin({ role = "buyer" }) {
                   className="w-full py-3 rounded-xl btn-brand font-semibold"
                 >
                   {otpLoading ? "Verifying..." : "Verify & Login"}
-                </button>
-                </>
-              )}
-            </div>
-
-              {step === "OTP" && (
-                <>
-                <div className="text-center mb-4 p-3 bg-green-50 rounded-xl">
-                  <p className="text-sm text-gray-600">OTP sent via {loginMethod === "whatsapp" ? "WhatsApp" : "Email"} to:</p>
-                  <p className="font-semibold text-gray-800">{loginMethod === "whatsapp" ? mobile : email}</p>
-                </div>
-
-                <label className="block text-sm font-medium mb-1 text-gray-700">
-                  Enter OTP ({loginMethod === "whatsapp" ? "4-digit" : "6-digit"})
-                </label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, loginMethod === "whatsapp" ? 4 : 6))}
-                  placeholder={loginMethod === "whatsapp" ? "4-digit OTP" : "6-digit OTP"}
-                  className="w-full border border-gray-300 rounded-xl px-4 py-3 mb-4 text-center text-xl tracking-widest"
-                  required
-                />
-
-                <button
-                  onClick={verifyOtp}
-                  disabled={otpLoading}
-                  className="w-full py-3 rounded-xl btn-brand font-semibold"
-                >
-                  {otpLoading ? "Verifying..." : "Verify & Continue"}
-                </button>
-
-                <button
-                  onClick={() => {
-                    setStep("LOGIN");
-                    setOtp("");
-                  }}
-                  className="w-full mt-3 text-sm text-amber-700 hover:underline"
-                >
-                  Change details
                 </button>
                 </>
               )}
