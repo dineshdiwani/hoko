@@ -1394,18 +1394,19 @@ router.post("/otp/request", otpSendLimiter, async (req, res) => {
 });
 
 router.post("/otp/verify", otpVerifyLimiter, async (req, res) => {
-  const { mobile, otp } = req.body;
-  
-  if (!mobile || !otp) {
-    return res.status(400).json({ success: false, message: "Mobile and OTP are required" });
-  }
-  
-  const mobileE164 = normalizeE164(mobile);
-  const otpTrimmed = String(otp).trim();
-  
-  console.log("[OTP Verify] Checking OTP for mobile:", mobileE164, "otp:", otpTrimmed);
-  
-  const otpRecord = await WhatsAppOTP.findOne({
+  try {
+    const { mobile, otp } = req.body;
+    
+    if (!mobile || !otp) {
+      return res.status(400).json({ success: false, message: "Mobile and OTP are required" });
+    }
+    
+    const mobileE164 = normalizeE164(mobile);
+    const otpTrimmed = String(otp).trim();
+    
+    console.log("[OTP Verify] Checking OTP for mobile:", mobileE164, "otp:", otpTrimmed);
+    
+    const otpRecord = await WhatsAppOTP.findOne({
     mobileE164,
     status: "pending"
   }).sort({ createdAt: -1 });
@@ -1486,6 +1487,10 @@ router.post("/otp/verify", otpVerifyLimiter, async (req, res) => {
     },
     merge: mergeResult.merged ? mergeResult : undefined
   });
+  } catch (err) {
+    console.error("[OTP Verify] Error:", err?.message || err);
+    return res.status(500).json({ success: false, message: "Server error during verification" });
+  }
 });
 
 module.exports = router;
