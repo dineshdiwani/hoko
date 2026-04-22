@@ -1490,8 +1490,8 @@ router.post("/otp/verify", otpVerifyLimiter, async (req, res) => {
     merge: mergeResult.merged ? mergeResult : undefined
   });
   } catch (err) {
-    console.error("[OTP Verify] Error:", err?.message || err);
-    return res.status(500).json({ success: false, message: "Server error during verification" });
+    console.error("[OTP Verify] Error:", err?.message || err, err?.stack);
+    return res.status(500).json({ success: false, message: "Server error: " + (err?.message || "unknown") });
   }
 });
 
