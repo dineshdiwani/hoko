@@ -255,12 +255,12 @@ useEffect(() => {
     }
     
     // If logged in via email, pre-fill mobile from session if available
-    if (session?.mobile && isPublic) {
+    if (session?.mobile && isPublic && !form.mobile) {
       setForm((prev) => ({ ...prev, mobile: session.mobile.replace("+", "") }));
     }
     
     fetchMobileFromRef();
-  }, [tempRequirementRef, isPublic]);
+  }, [tempRequirementRef, isPublic, session?.mobile]);
 
   useEffect(() => {
     const draft = localStorage.getItem("draft_requirement_text");
