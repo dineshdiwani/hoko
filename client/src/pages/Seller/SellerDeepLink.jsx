@@ -378,9 +378,13 @@ useEffect(() => {
 
       // If already logged in as seller - show offer form directly (no OTP)
       if (session?.token && session?.roles?.seller) {
-        if (session?.city && !form.sellerCity) {
-          setForm((prev) => ({ ...prev, sellerCity: session.city }));
-        }
+        const prefilledMobile = session?.mobile || localStorage.getItem("whatsapp_seller_mobile") || localStorage.getItem("whatsapp_mobile") || "";
+        const prefilledCity = session?.city || localStorage.getItem("whatsapp_seller_city") || localStorage.getItem("whatsapp_city") || "";
+        setForm((prev) => ({
+          ...prev,
+          mobile: prev.mobile || prefilledMobile,
+          sellerCity: prev.sellerCity || prefilledCity
+        }));
         return;
       }
 
@@ -391,9 +395,13 @@ useEffect(() => {
 
     // No mobile param - normal flow
     if (session?.token && session?.roles?.seller) {
-      if (session?.city && !form.sellerCity) {
-        setForm((prev) => ({ ...prev, sellerCity: session.city }));
-      }
+      const prefilledMobile = session?.mobile || localStorage.getItem("whatsapp_seller_mobile") || localStorage.getItem("whatsapp_mobile") || "";
+      const prefilledCity = session?.city || localStorage.getItem("whatsapp_seller_city") || localStorage.getItem("whatsapp_city") || "";
+      setForm((prev) => ({
+        ...prev,
+        mobile: prev.mobile || prefilledMobile,
+        sellerCity: prev.sellerCity || prefilledCity
+      }));
     }
   }, []);
 
@@ -478,21 +486,24 @@ useEffect(() => {
     if (loading || !requirementIdValue || autoSubmitTriedRef.current) return;
 
     // Check for pending offer data from localStorage (set by SellerRegister redirect)
+    const session = getSession();
     const pendingData = localStorage.getItem("pending_seller_offer_data");
     if (pendingData) {
       localStorage.removeItem("pending_seller_offer_data");
       try {
         const pending = JSON.parse(pendingData);
         if (pending.requirementId === requirementIdValue) {
-          // Pre-fill form with pending offer data
+          // Pre-fill form with pending offer data + session data
+          const prefilledMobile = session?.mobile || localStorage.getItem("whatsapp_seller_mobile") || localStorage.getItem("whatsapp_mobile") || "";
+          const prefilledCity = session?.city || localStorage.getItem("whatsapp_seller_city") || localStorage.getItem("whatsapp_city") || "";
           setForm({
             price: String(pending.price || ""),
             message: String(pending.message || ""),
             deliveryTime: String(pending.deliveryTime || ""),
             paymentTerms: String(pending.paymentTerms || ""),
-            mobile: localStorage.getItem("whatsapp_seller_mobile") || "",
+            mobile: prefilledMobile,
             sellerName: "",
-            sellerCity: localStorage.getItem("whatsapp_seller_city") || ""
+            sellerCity: prefilledCity
           });
         }
       } catch {}
