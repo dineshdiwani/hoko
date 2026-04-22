@@ -65,6 +65,8 @@ export default function UserLogin({ role = "buyer" }) {
   const [termsContent, setTermsContent] = useState(defaultTermsContent);
   const [privacyPolicyContent, setPrivacyPolicyContent] = useState(defaultPrivacyPolicyContent);
   const [cities, setCities] = useState([]);
+  const [waLinkLoading, setWaLinkLoading] = useState(false);
+  const [loginMethod, setLoginMethod] = useState("");
 
   // Get redirect from URL param if present
   const urlRedirect = searchParams.get("redirect") || "";
@@ -204,6 +206,34 @@ export default function UserLogin({ role = "buyer" }) {
     return /\S+@\S+\.\S+/.test(String(value || ""));
   }
 
+  async function requestWhatsAppLogin() {
+    if (!city) {
+      alert("Please select your city first");
+      return;
+    }
+    if (!acceptedTerms) {
+      alert("Please accept Terms & Conditions first");
+      return;
+    }
+    
+    setWaLinkLoading(true);
+    try {
+      const res = await api.post("/auth/whatsapp/request", {
+        mobile: mobile,
+        city
+      });
+      if (res.data?.success) {
+        window.open(res.data.wa_link, "_blank");
+      } else {
+        alert(res.data?.message || "Failed to generate login link");
+      }
+    } catch (err) {
+      alert(err?.response?.data?.message || "Failed to generate login link");
+    } finally {
+      setWaLinkLoading(false);
+    }
+  }
+
   function sendLoginOtp() {
     setSubmitted(true);
 
@@ -233,6 +263,7 @@ export default function UserLogin({ role = "buyer" }) {
     setOtpLoading(true);
     
     if (hasMobile) {
+      setLoginMethod("whatsapp");
       api.post("/auth/login", { mobile, role: currentRole, city })
         .then((res) => {
           if (res.data?.success) {
@@ -249,6 +280,7 @@ export default function UserLogin({ role = "buyer" }) {
       return;
     }
 
+    setLoginMethod("email");
     api
       .post("/auth/login", {
         email,
@@ -597,20 +629,34 @@ export default function UserLogin({ role = "buyer" }) {
               }`}
             >
               <h1 className="text-2xl font-bold text-center text-gray-800 mb-1">
-                {isFromRequirement ? "One step away!" : "Login"}
+                {isFromRequirement ? "One step away!" : "Login to Hoko"}
               </h1>
 
-              <a
-                href="https://wa.me/918079060554?text=Hi"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full py-3.5 rounded-xl bg-[#25D366] hover:bg-[#20BD5A] text-white font-semibold flex items-center justify-center gap-2 mb-4"
+              <p className="text-center text-gray-500 text-sm mb-4">
+                Choose your preferred login method
+              </p>
+
+              {/* WhatsApp Login */}
+              <button
+                onClick={requestWhatsAppLogin}
+                disabled={waLinkLoading || !mobile || mobile.length < 10}
+                className="w-full py-3.5 rounded-xl bg-[#25D366] hover:bg-[#20BD5A] disabled:opacity-50 text-white font-semibold flex items-center justify-center gap-2 mb-3"
               >
                 <svg viewBox="0 0 48 48" className="h-5 w-5" fill="white">
                   <path d="M40.8 7.2c-4.5-4.5-10.5-7-17-7-.8 0-1.6.1-2.4.2-2.2.4-4.2 1.4-5.8 3l-3.2 3.2c-.4.4-.7 1-.8 1.6l-1 8.4c-.1.5 0 1 .2 1.5.2.5.6 1 1 1.3l13.8 9.2c.5.3 1.1.5 1.6.5h.2l8.6-.8c.8-.1 1.5-.5 2-1.2.6-.8.7-1.8.4-2.7L43 12c-.1-.8-.4-1.5-1-2.2-.5-.6-1.2-1.2-2.2-1.6zm-3 14.2l-9.5 1c-.7.1-1.4-.1-2-.5L15.5 18.5l2.8-2.6c.4-.4.9-.7 1.5-.8l7.2-.8c.5 0 1-.2 1.4-.5l3-2.6c2.4-1.8 5.4-2.3 8.2-1.3.7.2 1.4.6 1.9 1.2l2.6 3.2c.4.5.5 1.2.4 1.8z"/>
                 </svg>
-                <span>Send "Hi" on WhatsApp to post requirement</span>
-              </a>
+                <span>{waLinkLoading ? "Generating link..." : "Login with WhatsApp"}</span>
+              </button>
+
+              <p className="text-center text-xs text-gray-400 mb-3">
+                Click to open WhatsApp, send "LOGIN" and get OTP
+              </p>
+
+              <div className="my-3 flex items-center gap-3">
+                <div className="h-px flex-1 bg-slate-200" />
+                <span className="text-xs font-semibold tracking-wide text-slate-500">OR</span>
+                <div className="h-px flex-1 bg-slate-200" />
+              </div>
 
               <div className="my-3 flex items-center gap-3">
                 <div className="h-px flex-1 bg-slate-200" />
@@ -788,17 +834,22 @@ export default function UserLogin({ role = "buyer" }) {
 
               {step === "OTP" && (
                 <>
+                <div className="text-center mb-4 p-3 bg-green-50 rounded-xl">
+                  <p className="text-sm text-gray-600">OTP sent via {loginMethod === "whatsapp" ? "WhatsApp" : "Email"} to:</p>
+                  <p className="font-semibold text-gray-800">{loginMethod === "whatsapp" ? mobile : email}</p>
+                </div>
+
                 <label className="block text-sm font-medium mb-1 text-gray-700">
-                  Enter OTP
+                  Enter OTP ({loginMethod === "whatsapp" ? "4-digit" : "6-digit"})
                 </label>
                 <input
                   type="text"
                   inputMode="numeric"
                   pattern="[0-9]*"
                   value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
-                  placeholder="6-digit OTP"
-                  className="w-full border border-gray-300 rounded-xl px-4 py-3 mb-4"
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, loginMethod === "whatsapp" ? 4 : 6))}
+                  placeholder={loginMethod === "whatsapp" ? "4-digit OTP" : "6-digit OTP"}
+                  className="w-full border border-gray-300 rounded-xl px-4 py-3 mb-4 text-center text-xl tracking-widest"
                   required
                 />
 
@@ -811,7 +862,10 @@ export default function UserLogin({ role = "buyer" }) {
                 </button>
 
                 <button
-                  onClick={() => setStep("LOGIN")}
+                  onClick={() => {
+                    setStep("LOGIN");
+                    setOtp("");
+                  }}
                   className="w-full mt-3 text-sm text-amber-700 hover:underline"
                 >
                   Change details

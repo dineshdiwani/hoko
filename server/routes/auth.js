@@ -633,4 +633,90 @@ router.post("/switch-role", auth, async (req, res) => {
   });
 });
 
+/* -------- WHATSAPP LOGIN: Request session -------- */
+router.post("/whatsapp/request", otpSendLimiter, async (req, res) => {
+  const { mobile, city } = req.body || {};
+  
+  if (!mobile) {
+    return res.status(400).json({ message: "Mobile number required" });
+  }
+  
+  const mobileE164 = normalizeE164(mobile);
+  if (!mobileE164) {
+    return res.status(400).json({ message: "Invalid mobile number" });
+  }
+  
+  // Generate 4-digit OTP for WhatsApp
+  const otp = generateOtp();
+  const { createLoginSession } = require("../services/auth/loginSession");
+  const sessionData = createLoginSession(mobileE164, otp);
+  
+  return res.json({
+    success: true,
+    wa_link: sessionData.wa_link,
+    expires_in: sessionData.expiresIn
+  });
+});
+
+/* -------- WHATSAPP LOGIN: Verify OTP -------- */
+router.post("/whatsapp/verify", otpVerifyLimiter, async (req, res) => {
+  const { mobile, otp } = req.body || {};
+  
+  if (!mobile || !otp) {
+    return res.status(400).json({ message: "Mobile and OTP required" });
+  }
+  
+  const mobileE164 = normalizeE164(mobile);
+  if (!mobileE164) {
+    return res.status(400).json({ message: "Invalid mobile number" });
+  }
+  
+  const { verifyOtp: verifyWaOtp } = require("../services/auth/otpService");
+  const otpResult = verifyWaOtp("whatsapp_login", mobileE164, otp);
+  
+  if (!otpResult.ok) {
+    const message = otpResult.reason === "expired" ? "OTP expired" 
+      : otpResult.reason === "locked" ? "Too many attempts" 
+      : "Invalid OTP";
+    return res.status(otpResult.reason === "locked" ? 429 : 401).json({ message });
+  }
+  
+  // Find or create user
+  let user = await User.findOne({ mobile: mobileE164 });
+  if (!user) {
+    user = await User.create({
+      mobile: mobileE164,
+      city: req.body?.city || "user_default",
+      roles: { buyer: true, seller: false, admin: false },
+      name: "WhatsApp User"
+    });
+  }
+  
+  ensureRoles(user);
+  
+  const token = jwt.sign(
+    { id: user._id, role: "buyer", tokenVersion: user.tokenVersion || 0 },
+    process.env.JWT_SECRET,
+    { expiresIn: "7d" }
+  );
+  
+  const mergeResult = await mergeSoftUserRequirements(user._id, mobileE164);
+  
+  return res.json({
+    success: true,
+    user: {
+      _id: user._id,
+      email: user.email,
+      mobile: user.mobile,
+      role: "buyer",
+      roles: user.roles,
+      city: user.city,
+      name: user.name,
+      preferredCurrency: user.preferredCurrency || "INR"
+    },
+    token,
+    merge: mergeResult.merged ? mergeResult : undefined
+  });
+});
+
 module.exports = router;

@@ -901,7 +901,29 @@ router.post("/webhook", async (req, res) => {
     });
   }
 
-  for (const event of events) {
+  const { createLoginSession, getSession, markSessionVerified } = require("../services/auth/loginSession");
+const { generateOtp, setOtp } = require("../services/auth/otpService");
+
+for (const event of events) {
+    // Handle LOGIN_<session_id> for OTP delivery
+    const loginMatch = event.text && event.text.match(/^LOGIN_([a-f0-9]{32})$/i);
+    if (loginMatch) {
+      const sessionId = loginMatch[1];
+      const session = getSession(sessionId);
+      
+      if (session) {
+        const otp = generateOtp();
+        setOtp("whatsapp_login", session.mobile, otp, 2 * 60 * 1000);
+        markSessionVerified(sessionId);
+        
+        await sendWhatsAppMessage({
+          to: event.mobileE164,
+          body: `🔐 Your Hoko OTP is: ${otp}\n\nValid for 2 minutes.`
+        });
+      }
+      continue;
+    }
+
     const normalizedInbound = normalizeInboundText(event.text);
     const consentConfirmed = CONSENT_CONFIRM_WORDS.has(normalizedInbound);
     const { sellerContact, buyerContact } = await loadContactByMobile(event.mobileE164);
