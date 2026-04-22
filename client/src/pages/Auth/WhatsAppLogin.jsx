@@ -79,11 +79,14 @@ export default function WhatsAppLogin({ extraParams = {} }) {
     }
     setOtpError("");
     setLoading(true);
+    console.log("[WhatsAppLogin] Verifying OTP, mobile:", mobile, "otp:", otp);
     try {
-      console.log("[WhatsAppLogin] Verifying OTP for mobile:", mobile);
       const res = await api.post("/seller/otp/verify", {
         mobile: "+" + mobile,
         otp: otp
+      }).catch(err => {
+        console.error("[WhatsAppLogin] API error:", err?.response?.data || err?.message);
+        throw err;
       });
       console.log("[WhatsAppLogin] Verify response:", res.data);
       

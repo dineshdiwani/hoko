@@ -1401,16 +1401,22 @@ router.post("/otp/verify", otpVerifyLimiter, async (req, res) => {
   const mobileE164 = normalizeE164(mobile);
   const otpTrimmed = String(otp).trim();
   
+  console.log("[OTP Verify] Checking OTP for mobile:", mobileE164, "otp:", otpTrimmed);
+  
   const otpRecord = await WhatsAppOTP.findOne({
     mobileE164,
     status: "pending"
   }).sort({ createdAt: -1 });
   
+  console.log("[OTP Verify] Found record:", otpRecord ? "yes" : "no", "otp in record:", otpRecord?.otp);
+  
   if (!otpRecord || String(otpRecord.otp).trim() !== otpTrimmed) {
+    console.log("[OTP Verify] Invalid OTP");
     return res.status(400).json({ success: false, message: "Invalid or expired OTP" });
   }
   
   if (new Date() > otpRecord.expiresAt) {
+    console.log("[OTP Verify] OTP expired");
     await WhatsAppOTP.findByIdAndUpdate(otpRecord._id, { $set: { status: "expired" } });
     return res.status(400).json({ success: false, message: "OTP has expired. Please request a new one." });
   }
@@ -1459,6 +1465,8 @@ router.post("/otp/verify", otpVerifyLimiter, async (req, res) => {
 
   const { mergeSoftUserRequirements } = require("../routes/auth");
   const mergeResult = await mergeSoftUserRequirements(user._id, mobileE164);
+
+  console.log("[OTP Verify] Success for user:", user._id, "roles:", user.roles);
 
   res.json({ 
     success: true, 
