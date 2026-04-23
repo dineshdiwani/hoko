@@ -697,8 +697,18 @@ router.post("/whatsapp/verify", otpVerifyLimiter, async (req, res) => {
   
   ensureRoles(user);
   
+  const requestedRole = req.body?.role === "seller" ? "seller" : "buyer";
+  const normalizedRole = requestedRole;
+  
+  if (normalizedRole === "seller") {
+    const hasSellerProfile = Boolean(user.roles?.seller) || Boolean(user.sellerProfile?.businessName) || Boolean(user.sellerProfile?.firmName);
+    if (!hasSellerProfile) {
+      return res.status(403).json({ message: "Complete seller registration before login" });
+    }
+  }
+  
   const token = jwt.sign(
-    { id: user._id, role: "buyer", tokenVersion: user.tokenVersion || 0 },
+    { id: user._id, role: normalizedRole, tokenVersion: user.tokenVersion || 0 },
     process.env.JWT_SECRET,
     { expiresIn: "7d" }
   );
@@ -711,7 +721,7 @@ router.post("/whatsapp/verify", otpVerifyLimiter, async (req, res) => {
       _id: user._id,
       email: user.email,
       mobile: user.mobile,
-      role: "buyer",
+      role: normalizedRole,
       roles: user.roles,
       city: user.city,
       name: user.name,
