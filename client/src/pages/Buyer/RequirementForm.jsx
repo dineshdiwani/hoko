@@ -250,6 +250,30 @@ useEffect(() => {
       setForm((prev) => ({ ...prev, mobile: mobileFromUrl }));
     }
     
+    // Check for pending requirement from login flow
+    const pendingReq = localStorage.getItem("pending_requirement");
+    if (pendingReq && isLoggedIn) {
+      // Parse and fill form
+      try {
+        const reqData = JSON.parse(pendingReq);
+        setForm((prev) => ({
+          ...prev,
+          mobile: reqData.mobile || session?.mobile?.replace("+", "") || "",
+          city: reqData.city || prev.city,
+          category: reqData.category || prev.category,
+          product: reqData.product || prev.product,
+          makeBrand: reqData.makeBrand || prev.makeBrand,
+          typeModel: reqData.typeModel || prev.typeModel,
+          quantity: reqData.quantity || prev.quantity,
+          unit: reqData.type || prev.unit,
+          details: reqData.details || prev.details,
+        }));
+        localStorage.removeItem("pending_requirement");
+      } catch (e) {
+        console.error("Failed to parse pending requirement:", e);
+      }
+    }
+    
     // If logged in via email, pre-fill mobile from session if available
     if (session?.mobile && isPublic && !form.mobile) {
       setForm((prev) => ({ ...prev, mobile: session.mobile.replace("+", "") }));
@@ -499,6 +523,27 @@ useEffect(() => {
       return;
     }
 
+    // For not logged in users, save requirement and go to login
+    if (!isLoggedIn) {
+      localStorage.setItem("pending_requirement", JSON.stringify({
+        mobile: form.mobile,
+        city: form.city,
+        category: form.category,
+        productName: form.product,
+        product: form.product,
+        makeBrand: form.makeBrand,
+        typeModel: form.typeModel,
+        quantity: form.quantity,
+        type: form.unit,
+        details: form.details,
+        offerInvitedFrom: form.offerInvitedFrom || "city",
+        attachments: [...existingAttachments]
+      }));
+      navigate("/buyer/login?redirect=/buyer/requirement/new&tab=my");
+      return;
+    }
+
+    // For logged in users, proceed with submission
     try {
       let attachmentUrls = [];
       if (attachments.length) {

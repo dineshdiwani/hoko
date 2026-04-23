@@ -429,6 +429,15 @@ export default function UserLogin({ role = "buyer" }) {
           navigate("/seller/register", { replace: true });
           return;
         }
+        
+        // Check for pending requirement to submit
+        const pendingReq = localStorage.getItem("pending_requirement");
+        if (pendingReq && !isSeller) {
+          localStorage.removeItem("pending_requirement");
+          navigate("/buyer/requirement/new");
+          return;
+        }
+        
         const targetUrl = urlRedirect 
           ? (redirectTab ? `${urlRedirect}?tab=${redirectTab}` : urlRedirect)
           : (isSeller ? "/seller/dashboard" : "/buyer/dashboard");
