@@ -9,6 +9,18 @@ import NotificationCenter from "../../components/NotificationCenter";
 import ChatModal from "../../components/ChatModal";
 import { fetchOptions } from "../../services/options";
 import api from "../../services/api";
+
+  // Check and submit pending requirement on load
+  useEffect(() => {
+    const pendingReq = localStorage.getItem("pending_requirement");
+    if (pendingReq && session?.token) {
+      localStorage.removeItem("pending_requirement");
+      api.post("/buyer/requirement/public", JSON.parse(pendingReq))
+        .then(() => triggerRefresh())
+        .catch(console.error);
+    }
+  }, [session?.token]);
+import api from "../../services/api";
 import { markNotificationsReadByContext } from "../../services/notifications";
 import {
   getNotificationCategory,

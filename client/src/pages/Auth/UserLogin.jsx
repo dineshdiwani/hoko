@@ -803,19 +803,18 @@ function handleGoogleLogin(credential) {
                   selectedCategory: "all"
                 }));
                 
-                // Check if coming from requirement form - submit requirement then go to dashboard
+                // Check if coming from requirement form - go to dashboard with data
                 const pendingReq = localStorage.getItem("pending_requirement");
                 if (pendingReq) {
                   try {
                     const reqData = JSON.parse(pendingReq);
-                    // Use selected city from state
+                    // Update city from selection
                     reqData.city = city;
-                    const res = await api.post("/buyer/requirement/public", { ...reqData, ref: Date.now().toString(36) });
-                    console.log("Requirement submitted:", res.data);
+                    // Save with city updated
+                    localStorage.setItem("pending_requirement", JSON.stringify(reqData));
                   } catch (e) {
-                    console.error("Failed to submit:", e.response?.data || e.message);
+                    console.error("Error updating requirement:", e);
                   }
-                  localStorage.removeItem("pending_requirement");
                 }
                 
                 navigate("/buyer/dashboard?tab=my", { replace: true });
