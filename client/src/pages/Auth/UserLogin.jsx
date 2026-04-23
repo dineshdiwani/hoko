@@ -782,18 +782,22 @@ function handleGoogleLogin(credential) {
                 setShowCityModal(false);
                 
                 // Finalize session with selected city
-                setSession({
+                const finalSession = {
                   ...pendingCitySession,
                   city: city
-                });
+                };
+                setSession(finalSession);
                 
+                // Save to localStorage
+                localStorage.setItem("session", JSON.stringify(finalSession));
                 localStorage.setItem("buyer_dashboard_state", JSON.stringify({
                   activeTab: "posts",
                   city: city,
                   selectedCategory: "all"
                 }));
                 
-                navigate(redirect, { replace: true });
+                // Navigate to buyer dashboard
+                navigate("/buyer/dashboard", { replace: true });
               }}
               className="w-full py-3 rounded-xl btn-brand font-semibold"
             >
