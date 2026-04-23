@@ -797,6 +797,10 @@ function handleGoogleLogin(credential) {
                 
                 // Save to localStorage first
                 setSession(finalSession);
+                
+                // Update user profile with selected city
+                api.post("/buyer/profile", { city }).catch(() => {});
+                
                 localStorage.setItem("buyer_dashboard_state", JSON.stringify({
                   activeTab: redirectTab || "posts",
                   city: city,
