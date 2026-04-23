@@ -67,6 +67,7 @@ export default function UserLogin({ role = "buyer" }) {
   const [cities, setCities] = useState([]);
   const [waLinkLoading, setWaLinkLoading] = useState(false);
   const [loginMethod, setLoginMethod] = useState("");
+  const [googleAutoSelect, setGoogleAutoSelect] = useState(true);
 
   // Get redirect from URL param if present
   const urlRedirect = searchParams.get("redirect") || "";
@@ -78,6 +79,7 @@ export default function UserLogin({ role = "buyer" }) {
         : "/buyer/dashboard"));
   const cityRef = useRef(city);
   const acceptedTermsRef = useRef(acceptedTerms);
+  const googleClickCountRef = useRef(0);
 
   useEffect(() => {
     cityRef.current = city;
@@ -458,11 +460,17 @@ export default function UserLogin({ role = "buyer" }) {
       .finally(() => setOtpLoading(false));
   }
 
+  function startGoogleLoginAttempt(credential) {
+    googleClickCountRef.current += 1;
+    if (googleClickCountRef.current > 1) {
+      setGoogleAutoSelect(false);
+    }
+    handleGoogleLogin(credential);
+  }
+
   function handleGoogleLogin(credential) {
-    
     const selectedCity = cityRef.current || city;
-    const hasAcceptedTerms =
-      acceptedTermsRef.current || acceptedTerms;
+    const hasAcceptedTerms = acceptedTermsRef.current || acceptedTerms;
 
     if (!selectedCity) {
       alert(
@@ -730,9 +738,24 @@ export default function UserLogin({ role = "buyer" }) {
                 {/* Google Login - always enabled */}
                 <GoogleLoginButton
                   disabled={googleLoading}
+                  autoSelect={googleAutoSelect}
+                  onPreClick={() => {
+                    const selectedCity = cityRef.current || city;
+                    const hasAcceptedTerms = acceptedTermsRef.current || acceptedTerms;
+                    if (!selectedCity) {
+                      alert(isSeller ? "City missing. Please register again." : "Please select your city");
+                      if (isSeller) navigate("/seller/register");
+                      return false;
+                    }
+                    if (!hasAcceptedTerms) {
+                      alert("Please accept the Terms & Conditions and Privacy Policy");
+                      return false;
+                    }
+                    return true;
+                  }}
                   onSuccess={(credential) => {
                     setLoginMethod("google");
-                    handleGoogleLogin(credential);
+                    startGoogleLoginAttempt(credential);
                   }}
                   onError={(error) => {
                     const reason = error?.message || "Google login failed";

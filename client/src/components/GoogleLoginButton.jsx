@@ -46,7 +46,9 @@ export default function GoogleLoginButton({
   onSuccess,
   onError,
   disabled = false,
-  onDisabledClick
+  onDisabledClick,
+  onPreClick,
+  autoSelect = false
 }) {
   const googleClientIdsRef = useRef(parseGoogleClientIds());
   const activeClientIndexRef = useRef(0);
@@ -59,11 +61,32 @@ export default function GoogleLoginButton({
   const [googleReady, setGoogleReady] = useState(false);
   const [initializing, setInitializing] = useState(false);
   const [initError, setInitError] = useState("");
+const autoSelectRef = useRef(autoSelect);
 
   useEffect(() => {
     onSuccessRef.current = onSuccess;
     onErrorRef.current = onError;
   }, [onSuccess, onError]);
+
+useEffect(() => {
+    autoSelectRef.current = autoSelect;
+    if (autoSelect === false && window.google?.accounts?.id && !initializedRef.current) {
+      window.google.accounts.id.initialize({
+        client_id: googleClientIdsRef.current[0],
+        callback: (response) => {
+          if (response?.credential) {
+            onSuccessRef.current?.(response.credential);
+          } else {
+            onErrorRef.current?.(
+              response || new Error("Missing Google credential")
+            );
+          }
+        },
+        auto_select: false
+      });
+      initializedRef.current = true;
+    }
+  }, [autoSelect]);
 
   const initializeGoogle = useCallback((forcedIndex = null) => {
     const clientIds = googleClientIdsRef.current;
@@ -87,7 +110,7 @@ export default function GoogleLoginButton({
       );
     }
 
-    if (!initializedRef.current) {
+if (!initializedRef.current) {
       window.google.accounts.id.initialize({
         client_id: clientId,
         callback: (response) => {
@@ -99,7 +122,7 @@ export default function GoogleLoginButton({
             );
           }
         },
-        auto_select: false
+        auto_select: autoSelectRef.current
       });
       initializedRef.current = true;
     }
@@ -146,6 +169,14 @@ export default function GoogleLoginButton({
       setInitializing(false);
     }
   }, []);
+
+const promptGoogleLogin = useCallback(() => {
+    if (onPreClick) {
+      const canProceed = onPreClick();
+      if (canProceed === false) return;
+    }
+    window.google?.accounts?.id?.prompt();
+  }, [onPreClick]);
 
   const renderGoogleButton = useCallback(() => {
     if (buttonHostRef.current) {
@@ -199,7 +230,7 @@ export default function GoogleLoginButton({
     document.body.appendChild(script);
   }, [initializeNativeGoogle, useNativeGoogleLogin]);
 
-  useEffect(() => {
+useEffect(() => {
     if (useNativeGoogleLogin) return;
     if (!scriptLoaded) return;
     if (!initializeGoogle()) return;
@@ -215,9 +246,13 @@ export default function GoogleLoginButton({
     return () => {
       window.google?.accounts?.id?.cancel();
     };
-  }, [scriptLoaded, initializeGoogle, renderGoogleButton, disabled, useNativeGoogleLogin]);
+  }, [scriptLoaded, initializeGoogle, renderGoogleButton, disabled, useNativeGoogleLogin, autoSelect]);
 
   const signInWithNativeGoogle = useCallback(async () => {
+    if (onPreClick) {
+      const canProceed = onPreClick();
+      if (canProceed === false) return;
+    }
     if (!googleReady) {
       const initialized = await initializeNativeGoogle();
       if (!initialized) {
