@@ -89,14 +89,14 @@ const [showAppBanner, setShowAppBanner] = useState(true);
   const [showCityModal, setShowCityModal] = useState(false);
   const menuRef = useRef(null);
 
-  // Check if city selection is needed
-  const needsCitySelection = !session?.city && !persistedState.city;
+  // Show city modal if user has no city
+  const hasCity = (session?.city || "").trim() || (persistedState.city || "").trim();
   
   useEffect(() => {
-    if (needsCitySelection) {
+    if (!hasCity) {
       setShowCityModal(true);
     }
-  }, [needsCitySelection]);
+  }, [hasCity]);
 
   // Safety guard
   useEffect(() => {
