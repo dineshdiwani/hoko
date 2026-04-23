@@ -89,14 +89,15 @@ const [showAppBanner, setShowAppBanner] = useState(true);
   const [showCityModal, setShowCityModal] = useState(false);
   const menuRef = useRef(null);
 
-  // Show city modal if user has no city
-  const hasCity = (session?.city || "").trim() || (persistedState.city || "").trim();
+  // City modal: always show on first visit (user selects city)
+  const [firstVisit, setFirstVisit] = useState(true);
   
   useEffect(() => {
-    if (!hasCity) {
+    if (firstVisit) {
+      setFirstVisit(false);
       setShowCityModal(true);
     }
-  }, [hasCity]);
+  }, [firstVisit]);
 
   // Safety guard
   useEffect(() => {
@@ -368,7 +369,7 @@ const [showAppBanner, setShowAppBanner] = useState(true);
     session?.token
   ]);
 
-  useEffect(() => {
+useEffect(() => {
     fetchOptions()
       .then((data) => {
         const nextCities = Array.isArray(data?.cities) ? data.cities : [];
@@ -385,7 +386,9 @@ const [showAppBanner, setShowAppBanner] = useState(true);
             return nextCities[0];
           });
         }
-        const nextCategories = Array.isArray(data?.categories)
+      })
+      .catch(() => {});
+  }, [session?.city]);
           ? data.categories
           : [];
         setCategories(nextCategories);
