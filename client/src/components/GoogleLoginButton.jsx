@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { SocialLogin } from "@capgo/capacitor-social-login";
 import { isNativeAppRuntime } from "../utils/runtime";
 
@@ -64,21 +64,6 @@ const googleClientIdsRef = useRef(parseGoogleClientIds());
   const [initializing, setInitializing] = useState(false);
   const [initError, setInitError] = useState("");
   const autoSelectRef = useRef(autoSelect);
-
-  useImperativeHandle(null, () => ({
-    trigger: () => {
-      if (onPreClickRef.current) {
-        const canProceed = onPreClickRef.current();
-        if (canProceed === false) return false;
-      }
-      if (useNativeGoogleLogin) {
-        signInWithNativeGoogle();
-      } else {
-        promptGoogleLogin();
-      }
-      return true;
-    }
-  }), [onPreClick, useNativeGoogleLogin, signInWithNativeGoogle, promptGoogleLogin]);
 
   useEffect(() => {
     onSuccessRef.current = onSuccess;
