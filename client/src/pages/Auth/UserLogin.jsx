@@ -67,6 +67,8 @@ export default function UserLogin({ role = "buyer" }) {
   const [cities, setCities] = useState([]);
   const [waLinkLoading, setWaLinkLoading] = useState(false);
   const [loginMethod, setLoginMethod] = useState("");
+  const [showCityModal, setShowCityModal] = useState(false);
+  const [pendingCitySession, setPendingCitySession] = useState(null);
 
   const urlRedirect = searchParams.get("redirect") || "";
   
@@ -456,6 +458,34 @@ export default function UserLogin({ role = "buyer" }) {
         acceptTerms: true,
         mobile: mobileFromUrl
       })
+      .then(async (res) => {
+        const user = res.data.user || {};
+        
+        // Store session temporarily without city
+        const tempSession = {
+          _id: user._id,
+          role: currentRole,
+          roles: user.roles,
+          email: user.email,
+          city: "",
+          name: user.name || "Buyer",
+          picture: user.picture,
+          preferredCurrency: user.preferredCurrency || "INR",
+          token: res.data.token
+        };
+        
+        localStorage.setItem("seller_email", user.email || "");
+        localStorage.setItem("terms_accepted_at", new Date().toISOString());
+        
+        // Show city modal before navigating
+        setPendingCitySession(tempSession);
+        setShowCityModal(true);
+      })
+      .catch((err) => {
+        alert(err?.response?.data?.message || "Login failed");
+      })
+      .finally(() => setGoogleLoading(false));
+  }
 .then(async (res) => {
         const user = res.data.user || {};
         const profile = isSeller
@@ -827,6 +857,51 @@ export default function UserLogin({ role = "buyer" }) {
                   <p key={`legal-${index}`}>{line}</p>
                 ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      {showCityModal && pendingCitySession && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-xl p-6 mx-4">
+            <h2 className="text-xl font-bold mb-4">Select Your City</h2>
+            <p className="text-gray-600 mb-4">Please select your city to continue</p>
+            <select
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 mb-4"
+            >
+              <option value="">Select City</option>
+              {cities.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+            <button
+              onClick={() => {
+                if (!city) {
+                  alert("Please select your city");
+                  return;
+                }
+                setShowCityModal(false);
+                
+                // Finalize session with selected city
+                setSession({
+                  ...pendingCitySession,
+                  city: city
+                });
+                
+                localStorage.setItem("buyer_dashboard_state", JSON.stringify({
+                  activeTab: "posts",
+                  city: city,
+                  selectedCategory: "all"
+                }));
+                
+                navigate(redirect, { replace: true });
+              }}
+              className="w-full py-3 rounded-xl btn-brand font-semibold"
+            >
+              OK
+            </button>
           </div>
         </div>
       )}
