@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { getSession, setSession, clearSession } from "../../services/storage";
+import { getSession, setSession, updateSession, clearSession } from "../../services/storage";
 import { fetchOptions } from "../../services/options";
 import api from "../../services/api";
 import GoogleLoginButton from "../../components/GoogleLoginButton";
@@ -786,15 +786,17 @@ function handleGoogleLogin(credential) {
                   ...pendingCitySession,
                   city: city
                 };
-                setSession(finalSession);
                 
-                // Save to localStorage
+                // Save to localStorage first
                 localStorage.setItem("session", JSON.stringify(finalSession));
                 localStorage.setItem("buyer_dashboard_state", JSON.stringify({
                   activeTab: "posts",
                   city: city,
                   selectedCategory: "all"
                 }));
+                
+                // Update session in memory
+                updateSession({ city: city });
                 
                 // Navigate to buyer dashboard
                 navigate("/buyer/dashboard", { replace: true });
