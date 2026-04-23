@@ -801,8 +801,8 @@ function handleGoogleLogin(credential) {
                   // Continue anyway since we have the city in session/localStorage
                 }
                 
-                // Navigate to buyer dashboard
-                navigate("/buyer/dashboard", { replace: true });
+                // Navigate to appropriate dashboard
+                navigate(isSeller ? "/seller/dashboard" : "/buyer/dashboard", { replace: true });
               }}
               className="w-full py-3 rounded-xl btn-brand font-semibold"
             >
