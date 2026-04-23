@@ -85,8 +85,17 @@ export default function BuyerDashboard() {
   const [chatOpen, setChatOpen] = useState(false);
   const [chatSeller, setChatSeller] = useState(null);
   const [chatRequirementId, setChatRequirementId] = useState(null);
-  const [showAppBanner, setShowAppBanner] = useState(true);
+const [showAppBanner, setShowAppBanner] = useState(true);
+  const [showCityModal, setShowCityModal] = useState(false);
   const menuRef = useRef(null);
+
+  // Check if city selection is pending
+  useEffect(() => {
+    const pendingCity = localStorage.getItem("pending_city_selection");
+    if (pendingCity === "true" && !city) {
+      setShowCityModal(true);
+    }
+  }, [city]);
 
   // Safety guard
   useEffect(() => {
@@ -675,9 +684,47 @@ export default function BuyerDashboard() {
         open={chatOpen}
         onClose={() => setChatOpen(false)}
         sellerId={chatSeller?.id}
-        sellerName={chatSeller?.name || "Seller"}
+sellerName={chatSeller?.name || "Seller"}
         requirementId={chatRequirementId}
       />
+
+      {showCityModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-xl p-6 mx-4">
+            <h2 className="text-xl font-bold mb-4">Select Your City</h2>
+            <p className="text-gray-600 mb-4">Please select your city to continue</p>
+            <select
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 mb-4"
+            >
+              <option value="">Select City</option>
+              {cities.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+            <button
+              onClick={async () => {
+                if (!city) {
+                  alert("Please select your city");
+                  return;
+                }
+                setShowCityModal(false);
+                localStorage.removeItem("pending_city_selection");
+                localStorage.setItem("buyer_dashboard_state", JSON.stringify({
+                  activeTab: "posts",
+                  city: city,
+                  selectedCategory: "all"
+                }));
+                setSessionVersion((v) => v + 1);
+              }}
+              className="w-full py-3 rounded-xl btn-brand font-semibold"
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

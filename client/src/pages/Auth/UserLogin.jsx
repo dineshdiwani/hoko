@@ -454,25 +454,19 @@ export default function UserLogin({ role = "buyer" }) {
       return;
     }
 
-    const selectedCity = cityRef.current || city || cityFromUrl;
-    if (!selectedCity) {
-      alert("Please select your city");
-      return;
-    }
-
     setGoogleLoading(true);
     api
       .post("/auth/google", {
         credential,
         role: currentRole,
-        city: selectedCity,
+        city: "",
         acceptTerms: hasAcceptedTerms,
         mobile: mobileFromUrl
       })
-      .then(async (res) => {
+.then(async (res) => {
         const user = res.data.user || {};
         const profile = isSeller
-          ? await applySellerProfile(selectedCity)
+          ? await applySellerProfile(user.city || "")
           : null;
         const sellerIntent =
           localStorage.getItem("login_intent_role") === "seller";
@@ -483,14 +477,14 @@ export default function UserLogin({ role = "buyer" }) {
           role: currentRole,
           roles: user.roles,
           email: user.email,
-          city: user.city || selectedCity,
+          city: user.city || "",
           name: buildDisplayName(user, currentRole, profile),
           picture: user.picture,
           preferredCurrency: user.preferredCurrency || "INR",
           token: res.data.token
         });
 
-        localStorage.setItem("seller_email", user.email || email || "");
+        localStorage.setItem("seller_email", user.email || "");
 
         if (!(currentRole === "buyer" && sellerIntent)) {
           localStorage.removeItem("post_login_redirect");
@@ -506,7 +500,9 @@ export default function UserLogin({ role = "buyer" }) {
         if (!(currentRole === "buyer" && sellerIntent)) {
           localStorage.removeItem("login_intent_role");
         }
-        setBuyerDashboardDefaultTab(user.city || selectedCity);
+        setBuyerDashboardDefaultTab(user.city || "");
+        
+        localStorage.setItem("pending_city_selection", "true");
         
         const pendingWhatsAppData = localStorage.getItem("pending_whatsapp_offer_data");
         
@@ -706,6 +702,14 @@ export default function UserLogin({ role = "buyer" }) {
 
                 <GoogleLoginButton
                   disabled={googleLoading}
+                  onPreClick={() => {
+                    if (!acceptedTerms) {
+                      alert("Please accept the Terms & Conditions and Privacy Policy");
+                      return false;
+                    }
+                    return true;
+                  }}
+                  autoSelect={true}
                   onSuccess={(credential) => {
                     setLoginMethod("google");
                     handleGoogleLogin(credential);
@@ -734,20 +738,6 @@ export default function UserLogin({ role = "buyer" }) {
                   placeholder="you@example.com"
                   className="w-full border border-gray-300 rounded-xl px-4 py-3 mb-4"
                 />
-
-                <label className="block text-sm font-medium mb-1 text-gray-700">
-                  City
-                </label>
-                <select
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  className="w-full border border-gray-300 rounded-xl px-4 py-3 mb-4"
-                >
-                  <option value="">Select City</option>
-                  {cities.map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
 
                 <div className="flex items-start gap-2 text-sm text-gray-600 mb-4">
                   <input
