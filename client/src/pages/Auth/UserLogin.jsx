@@ -75,10 +75,8 @@ export default function UserLogin({ role = "buyer" }) {
   const loginIntentSeller = localStorage.getItem("login_intent_role") === "seller";
   
   const redirect = isSeller
-    ? (useSellerPostLoginRedirect ? postLoginRedirect : "/seller/dashboard")
-    : (urlRedirect || (loginIntentSeller
-        ? (postLoginRedirect || "/seller/register")
-        : "/buyer/dashboard"));
+    ? "/seller/dashboard"
+    : (urlRedirect || "/buyer/dashboard");
   const cityRef = useRef(city);
   const acceptedTermsRef = useRef(acceptedTerms);
 
