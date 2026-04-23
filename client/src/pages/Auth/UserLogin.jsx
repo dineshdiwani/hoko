@@ -796,15 +796,12 @@ function handleGoogleLogin(credential) {
                 };
                 
                 // Save to localStorage first
-                localStorage.setItem("session", JSON.stringify(finalSession));
+                setSession(finalSession);
                 localStorage.setItem("buyer_dashboard_state", JSON.stringify({
                   activeTab: "posts",
                   city: city,
                   selectedCategory: "all"
                 }));
-                
-                // Update session in memory
-                updateSession({ city: city });
                 
                 // Navigate to buyer dashboard
                 navigate("/buyer/dashboard", { replace: true });
