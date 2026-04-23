@@ -803,14 +803,9 @@ function handleGoogleLogin(credential) {
                   selectedCategory: "all"
                 }));
                 
-                // Check if coming from requirement form - go directly to dashboard, skip form
-                const hasPendingReq = localStorage.getItem("pending_requirement");
-                if (hasPendingReq) {
-                  localStorage.removeItem("pending_requirement");
-                  navigate("/buyer/dashboard?tab=my", { replace: true });
-                } else {
-                  navigate(urlRedirect || "/buyer/dashboard", { replace: true });
-                }
+                // Check if coming from requirement form - go directly to dashboard with my posts tab
+                localStorage.removeItem("pending_requirement");
+                navigate("/buyer/dashboard?tab=my", { replace: true });
               }}
               className="w-full py-3 rounded-xl btn-brand font-semibold"
             >

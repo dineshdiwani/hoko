@@ -501,7 +501,7 @@ useEffect(() => {
 
     // Check login - if not logged in, go to login page
     if (!isLoggedIn) {
-      navigate("/buyer/login?redirect=/buyer/dashboard");
+      navigate("/buyer/login?redirect=/buyer/dashboard?tab=my");
       return;
     }
     
