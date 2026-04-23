@@ -803,9 +803,19 @@ function handleGoogleLogin(credential) {
                   selectedCategory: "all"
                 }));
                 
-                // Check if coming from requirement form - go directly to dashboard with my posts tab
-                localStorage.removeItem("pending_requirement");
-                navigate("/buyer/dashboard?tab=my", { replace: true });
+// Check if coming from requirement form - submit requirement then go to dashboard
+        const pendingReq = localStorage.getItem("pending_requirement");
+        if (pendingReq) {
+          try {
+            const reqData = JSON.parse(pendingReq);
+            await api.post("/buyer/requirement/public", { ...reqData, ref: Date.now().toString(36) });
+          } catch (e) {
+            console.error("Failed to submit pending requirement:", e);
+          }
+          localStorage.removeItem("pending_requirement");
+        }
+        
+        navigate("/buyer/dashboard?tab=my", { replace: true });
               }}
               className="w-full py-3 rounded-xl btn-brand font-semibold"
             >

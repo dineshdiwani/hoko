@@ -499,8 +499,22 @@ useEffect(() => {
       return;
     }
 
-    // Check login - if not logged in, go to login page
+    // Check login - if not logged in, save requirement and go to login page
     if (!isLoggedIn) {
+      localStorage.setItem("pending_requirement", JSON.stringify({
+        mobile: form.mobile,
+        city: form.city,
+        category: form.category,
+        productName: form.product,
+        product: form.product,
+        makeBrand: form.makeBrand,
+        typeModel: form.typeModel,
+        quantity: form.quantity,
+        type: form.unit,
+        details: form.details,
+        offerInvitedFrom: form.offerInvitedFrom || "city",
+        attachments: [...existingAttachments]
+      }));
       navigate("/buyer/login?redirect=/buyer/dashboard?tab=my");
       return;
     }
