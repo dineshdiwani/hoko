@@ -362,7 +362,7 @@ export default function UserLogin({ role = "buyer" }) {
 
         setSession({
           _id: user._id,
-          role: currentRole,
+          role: user.role || currentRole,
           roles: user.roles,
           email: user.email || email,
           city: user.city || city,
@@ -422,13 +422,17 @@ export default function UserLogin({ role = "buyer" }) {
           return;
         }
         startNativePushRegistration();
+        if (isSeller && !sellerCapable) {
+          navigate("/seller/register", { replace: true });
+          return;
+        }
         navigate(redirect, { replace: true });
       })
       .catch((err) => {
         const message =
           err?.response?.data?.message ||
           "Invalid OTP. Please try again.";
-        if (isSeller && message === "Complete seller registration before login") {
+        if (isSeller && (message === "Complete seller registration before login" || message === "Complete seller registration before Google login")) {
           alert(message);
           navigate("/seller/register", { replace: true });
           return;
