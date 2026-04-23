@@ -708,17 +708,6 @@ export default function UserLogin({ role = "buyer" }) {
                   }}
                 />
 
-                <p className="text-xs text-gray-500 text-center mt-3">
-                  By continuing, you accept our{" "}
-                  <button type="button" className="text-amber-700 hover:underline" onClick={() => { setLegalModalType("terms"); setShowLegalModal(true); }}>
-                    Terms & Conditions
-                  </button>
-                  {" "}and{" "}
-                  <button type="button" className="text-amber-700 hover:underline" onClick={() => { setLegalModalType("privacy"); setShowLegalModal(true); }}>
-                    Privacy Policy
-                  </button>
-                </p>
-
                 <div className="flex items-center gap-3 my-4">
                   <div className="h-px flex-1 bg-slate-200" />
                   <span className="text-xs font-semibold text-slate-400">OR</span>
@@ -758,6 +747,11 @@ export default function UserLogin({ role = "buyer" }) {
                   className="w-full py-3 rounded-xl btn-brand font-semibold"
                 >
                   {otpLoading ? "Sending OTP..." : "Send OTP to Email"}
+                </button>
+              </>
+              )}
+
+              {step === "OTP" && (
                 </button>
                 </>
               )}

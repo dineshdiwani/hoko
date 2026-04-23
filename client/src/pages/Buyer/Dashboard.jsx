@@ -89,13 +89,14 @@ const [showAppBanner, setShowAppBanner] = useState(true);
   const [showCityModal, setShowCityModal] = useState(false);
   const menuRef = useRef(null);
 
-  // Check if city selection is pending
+  // Check if city selection is needed
+  const needsCitySelection = !session?.city && !persistedState.city;
+  
   useEffect(() => {
-    const pendingCity = localStorage.getItem("pending_city_selection");
-    if (pendingCity === "true" && !city) {
+    if (needsCitySelection) {
       setShowCityModal(true);
     }
-  }, [city]);
+  }, [needsCitySelection]);
 
   // Safety guard
   useEffect(() => {
