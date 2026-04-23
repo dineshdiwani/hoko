@@ -555,15 +555,7 @@ useEffect(() => {
       }
 
       // For non-logged in users, redirect to login then to my posts
-        navigate("/buyer/login?redirect=/buyer/dashboard?tab=my", { replace: true });
-      } else {
-        alert(
-          isEditMode
-            ? "Requirement updated successfully"
-            : "Requirement posted successfully"
-        );
-        navigate("/buyer/dashboard?tab=my", { replace: true });
-      }
+      navigate("/buyer/login?redirect=/buyer/dashboard?tab=my", { replace: true });
     } catch (err) {
       const errorMsg = err?.response?.data?.message || err?.message || "Unknown error";
       alert(
