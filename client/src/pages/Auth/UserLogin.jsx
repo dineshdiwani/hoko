@@ -781,7 +781,7 @@ function handleGoogleLogin(credential) {
                 <option key={c} value={c}>{c}</option>
               ))}
             </select>
-              <button
+<button
               onClick={async () => {
                 if (!city) {
                   alert("Please select your city");
@@ -803,21 +803,22 @@ function handleGoogleLogin(credential) {
                   selectedCategory: "all"
                 }));
                 
-// Check if coming from requirement form - submit requirement then go to dashboard
-        const pendingReq = localStorage.getItem("pending_requirement");
-        if (pendingReq) {
-          try {
-            const reqData = JSON.parse(pendingReq);
-            // Use selected city from state
-            reqData.city = city;
-            await api.post("/buyer/requirement/public", { ...reqData, ref: Date.now().toString(36) });
-          } catch (e) {
-            console.error("Failed to submit pending requirement:", e);
-          }
-          localStorage.removeItem("pending_requirement");
-        }
-        
-        navigate("/buyer/dashboard?tab=my", { replace: true });
+                // Check if coming from requirement form - submit requirement then go to dashboard
+                const pendingReq = localStorage.getItem("pending_requirement");
+                if (pendingReq) {
+                  try {
+                    const reqData = JSON.parse(pendingReq);
+                    // Use selected city from state
+                    reqData.city = city;
+                    const res = await api.post("/buyer/requirement/public", { ...reqData, ref: Date.now().toString(36) });
+                    console.log("Requirement submitted:", res.data);
+                  } catch (e) {
+                    console.error("Failed to submit:", e.response?.data || e.message);
+                  }
+                  localStorage.removeItem("pending_requirement");
+                }
+                
+                navigate("/buyer/dashboard?tab=my", { replace: true });
               }}
               className="w-full py-3 rounded-xl btn-brand font-semibold"
             >
