@@ -770,7 +770,7 @@ useEffect(() => {
 
             <form
               id="buyer-requirement-form"
-              onSubmit={isLoggedIn ? handleSubmit : handlePublicSubmit}
+              onSubmit={handleSubmit}
               className={`w-full bg-white rounded-2xl shadow p-4 pb-24 md:pb-4 ${
                 submitted ? "form-submitted" : ""
               }`}
