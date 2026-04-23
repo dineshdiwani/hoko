@@ -429,15 +429,9 @@ export default function UserLogin({ role = "buyer" }) {
           navigate("/seller/register", { replace: true });
           return;
         }
-        
-        // Skip requirement form - go directly to dashboard with my posts
-        if (localStorage.getItem("pending_requirement")) {
-          localStorage.removeItem("pending_requirement");
-        }
-        
         const targetUrl = urlRedirect 
           ? (redirectTab ? `${urlRedirect}?tab=${redirectTab}` : urlRedirect)
-          : (isSeller ? "/seller/dashboard" : "/buyer/dashboard?tab=my");
+          : (isSeller ? "/seller/dashboard" : "/buyer/dashboard");
         navigate(targetUrl, { replace: true });
       })
       .catch((err) => {
@@ -797,35 +791,17 @@ function handleGoogleLogin(credential) {
                 
                 // Save to localStorage first
                 setSession(finalSession);
-                
-                // Update user profile with selected city (only for buyer role)
-                try {
-                  await api.post("/buyer/profile", { city });
-                } catch (e) {
-                  console.warn("Failed to update profile city:", e);
-                }
-                
-                localStorage.setItem("buyer_dashboard_state", JSON.stringify({
+localStorage.setItem("buyer_dashboard_state", JSON.stringify({
                   activeTab: redirectTab || "posts",
                   city: city,
                   selectedCategory: "all"
                 }));
                 
-// Check if coming from requirement form - submit requirement then go to dashboard
-        const pendingReq = localStorage.getItem("pending_requirement");
-        if (pendingReq) {
-          try {
-            const reqData = JSON.parse(pendingReq);
-            // Use selected city from state
-            reqData.city = city;
-            await api.post("/buyer/requirement/public", { ...reqData, ref: Date.now().toString(36) });
-          } catch (e) {
-            console.error("Failed to submit pending requirement:", e);
-          }
-          localStorage.removeItem("pending_requirement");
-        }
-        
-        navigate("/buyer/dashboard?tab=my", { replace: true });
+                // Navigate to appropriate dashboard with tab
+                const targetUrl = urlRedirect 
+                  ? (redirectTab ? `${urlRedirect}?tab=${redirectTab}` : urlRedirect)
+                  : (isSeller ? "/seller/dashboard" : "/buyer/dashboard");
+                navigate(targetUrl, { replace: true });
               }}
               className="w-full py-3 rounded-xl btn-brand font-semibold"
             >
