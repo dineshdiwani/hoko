@@ -67,10 +67,7 @@ export default function UserLogin({ role = "buyer" }) {
   const [cities, setCities] = useState([]);
   const [waLinkLoading, setWaLinkLoading] = useState(false);
   const [loginMethod, setLoginMethod] = useState("");
-  const [showCityModal, setShowCityModal] = useState(false);
-  const [pendingLoginData, setPendingLoginData] = useState(null);
 
-  // Get redirect from URL param if present
   const urlRedirect = searchParams.get("redirect") || "";
   
   const redirect = isSeller
@@ -90,12 +87,10 @@ export default function UserLogin({ role = "buyer" }) {
   }, [acceptedTerms]);
 
   useEffect(() => {
-    // Don't auto-redirect if coming from WhatsApp link - show OTP instead
     if (mobileFromUrl) return;
     
     const session = getSession();
     if (session?.role === currentRole && session?.token) {
-      // Check for redirect param in URL for buyers
       const urlRedirect = searchParams.get("redirect");
       if (urlRedirect && !isSeller) {
         navigate(urlRedirect, { replace: true });
@@ -105,8 +100,6 @@ export default function UserLogin({ role = "buyer" }) {
     }
   }, [navigate, redirect, currentRole, searchParams, isSeller, mobileFromUrl]);
 
-  // WhatsApp login: auto-send OTP only for buyer when mobile in URL
-  // Sellers get OTP when they submit offer (not on login)
   useEffect(() => {
     if (!mobileFromUrl || step !== "LOGIN") return;
     if (isSeller) return;
@@ -128,23 +121,19 @@ export default function UserLogin({ role = "buyer" }) {
           alert("OTP sent via WhatsApp to " + mobileFromUrl);
         }
       } catch (err) {
-        // Silent fail - user can manually retry
       }
     };
 
     sendWhatsAppOtp();
   }, [mobileFromUrl, step, acceptedTerms, city, cityFromUrl, currentRole, isSeller]);
 
-  // WhatsApp seller login: store params and show OTP on this page
   useEffect(() => {
     if (!isSeller || !mobileFromUrl) return;
     
-    // Clear any existing session - always require fresh OTP from WhatsApp link
     if (typeof clearSession === "function") {
       clearSession();
     }
     
-    // Store WhatsApp params for after login
     if (catsFromUrl) {
       localStorage.setItem("whatsapp_seller_cats", catsFromUrl);
     }
@@ -153,9 +142,6 @@ export default function UserLogin({ role = "buyer" }) {
     }
     localStorage.setItem("whatsapp_seller_mobile", mobileFromUrl);
     localStorage.setItem("whatsapp_login", "true");
-    
-    // DON'T redirect to dashboard - let OTP show on this page
-    // After OTP verification, user will be redirected to dashboard
   }, [isSeller, mobileFromUrl, cityFromUrl, catsFromUrl]);
 
   useEffect(() => {
@@ -251,21 +237,18 @@ export default function UserLogin({ role = "buyer" }) {
       return;
     }
 
+    if (!city) {
+      alert("Please select your city");
+      return;
+    }
     if (!acceptedTerms) {
       alert("Please accept Terms & Conditions");
       return;
     }
 
-    const loginCity = city || cityFromUrl;
-    if (!loginCity) {
-      setPendingLoginData({ type: "email", email, role: currentRole, acceptTerms: acceptedTerms });
-      setShowCityModal(true);
-      return;
-    }
-
     setOtpLoading(true);
     setLoginMethod("email");
-    api.post("/auth/login", { email, role: currentRole, city: loginCity, acceptTerms: acceptedTerms })
+    api.post("/auth/login", { email, role: currentRole, city, acceptTerms: acceptedTerms })
       .then((res) => {
         if (res.data?.success) {
           setStep("OTP");
@@ -471,28 +454,25 @@ export default function UserLogin({ role = "buyer" }) {
       return;
     }
 
-    const loginCity = city || cityFromUrl;
-    setPendingLoginData({
-      credential,
-      role: currentRole,
-      city: loginCity,
-      acceptTerms: hasAcceptedTerms,
-      mobile: mobileFromUrl
-    });
-    
-    if (!loginCity) {
-      setShowCityModal(true);
+    const selectedCity = cityRef.current || city || cityFromUrl;
+    if (!selectedCity) {
+      alert("Please select your city");
       return;
     }
 
     setGoogleLoading(true);
-    setShowCityModal(false);
-    
-    api.post("/auth/google", { credential, role: currentRole, city: loginCity, acceptTerms: hasAcceptedTerms, mobile: mobileFromUrl })
+    api
+      .post("/auth/google", {
+        credential,
+        role: currentRole,
+        city: selectedCity,
+        acceptTerms: hasAcceptedTerms,
+        mobile: mobileFromUrl
+      })
       .then(async (res) => {
         const user = res.data.user || {};
         const profile = isSeller
-          ? await applySellerProfile(loginCity)
+          ? await applySellerProfile(selectedCity)
           : null;
         const sellerIntent =
           localStorage.getItem("login_intent_role") === "seller";
@@ -503,7 +483,7 @@ export default function UserLogin({ role = "buyer" }) {
           role: currentRole,
           roles: user.roles,
           email: user.email,
-          city: user.city || loginCity,
+          city: user.city || selectedCity,
           name: buildDisplayName(user, currentRole, profile),
           picture: user.picture,
           preferredCurrency: user.preferredCurrency || "INR",
@@ -526,7 +506,7 @@ export default function UserLogin({ role = "buyer" }) {
         if (!(currentRole === "buyer" && sellerIntent)) {
           localStorage.removeItem("login_intent_role");
         }
-        setBuyerDashboardDefaultTab(user.city || loginCity);
+        setBuyerDashboardDefaultTab(user.city || selectedCity);
         
         const pendingWhatsAppData = localStorage.getItem("pending_whatsapp_offer_data");
         
@@ -621,7 +601,6 @@ export default function UserLogin({ role = "buyer" }) {
                   Choose your login method
                 </p>
 
-                {/* WhatsApp Login Option */}
                 <button
                   onClick={() => {
                     setLoginMethod("whatsapp");
@@ -641,7 +620,6 @@ export default function UserLogin({ role = "buyer" }) {
                   <div className="h-px flex-1 bg-slate-200" />
                 </div>
 
-                {/* Email Login Option */}
                 <button
                   onClick={() => {
                     setLoginMethod("email");
@@ -726,7 +704,6 @@ export default function UserLogin({ role = "buyer" }) {
                   ← Back
                 </button>
 
-                {/* Google Login - always enabled */}
                 <GoogleLoginButton
                   disabled={googleLoading}
                   onSuccess={(credential) => {
@@ -757,6 +734,20 @@ export default function UserLogin({ role = "buyer" }) {
                   placeholder="you@example.com"
                   className="w-full border border-gray-300 rounded-xl px-4 py-3 mb-4"
                 />
+
+                <label className="block text-sm font-medium mb-1 text-gray-700">
+                  City
+                </label>
+                <select
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  className="w-full border border-gray-300 rounded-xl px-4 py-3 mb-4"
+                >
+                  <option value="">Select City</option>
+                  {cities.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
 
                 <div className="flex items-start gap-2 text-sm text-gray-600 mb-4">
                   <input
@@ -831,7 +822,7 @@ export default function UserLogin({ role = "buyer" }) {
                   {otpLoading ? "Verifying..." : "Verify & Login"}
                 </button>
                 </>
-)}
+              )}
             </div>
           </div>
         </div>
@@ -870,95 +861,5 @@ export default function UserLogin({ role = "buyer" }) {
         </div>
       )}
     </div>
-
-    {showCityModal && (
-      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-        <div className="bg-white w-full max-w-md rounded-2xl shadow-xl p-6 mx-4">
-          <h2 className="text-xl font-bold mb-4">Select Your City</h2>
-          <p className="text-gray-600 mb-4">Please select your city to continue</p>
-          <select
-            value={city}
-            onChange={(e) => setCity(e.target.value)}
-            className="w-full border border-gray-300 rounded-xl px-4 py-3 mb-4"
-          >
-            <option value="">Select City</option>
-            {cities.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
-          <button
-            onClick={() => {
-              if (!city) {
-                alert("Please select your city");
-                return;
-              }
-              const data = pendingLoginData;
-              setShowCityModal(false);
-              setPendingLoginData(null);
-              
-              if (!data) {
-                alert("Something went wrong. Please try again.");
-                return;
-              }
-              
-              if (data.credential) {
-                setGoogleLoading(true);
-                api.post("/auth/google", { credential: data.credential, role: data.role, city: city, acceptTerms: data.acceptTerms, mobile: data.mobile })
-                  .then(async (res) => {
-                    const user = res.data.user || {};
-                    const profile = isSeller ? await applySellerProfile(city) : null;
-                    const sellerIntent = localStorage.getItem("login_intent_role") === "seller";
-                    const sellerCapable = Boolean(user?.roles?.seller);
-
-                    setSession({
-                      _id: user._id,
-                      role: data.role,
-                      roles: user.roles,
-                      email: user.email,
-                      city: user.city || city,
-                      name: buildDisplayName(user, data.role, profile),
-                      picture: user.picture,
-                      preferredCurrency: user.preferredCurrency || "INR",
-                      token: res.data.token
-                    });
-
-                    localStorage.setItem("seller_email", user.email || "");
-                    localStorage.removeItem("post_login_redirect");
-                    localStorage.removeItem("post_login_redirect_source");
-                    localStorage.setItem("terms_accepted_at", new Date().toISOString());
-                    localStorage.removeItem("login_intent_role");
-                    setBuyerDashboardDefaultTab(user.city || city);
-                    startNativePushRegistration();
-                    navigate(redirect, { replace: true });
-                  })
-                  .catch((err) => {
-                    alert(err?.response?.data?.message || "Login failed");
-                  })
-                  .finally(() => setGoogleLoading(false));
-              } else {
-                setOtpLoading(true);
-                setLoginMethod("email");
-                api.post("/auth/login", { email: data.email, role: data.role, city: city, acceptTerms: data.acceptTerms })
-                  .then((res) => {
-                    if (res.data?.success) {
-                      setStep("OTP");
-                      alert("OTP sent to your email");
-                    } else {
-                      alert(res.data?.message || "Failed to send OTP");
-                    }
-                  })
-                  .catch((err) => {
-                    alert(err?.response?.data?.message || "Failed to send OTP");
-                  })
-                  .finally(() => setOtpLoading(false));
-              }
-            }}
-            className="w-full py-3 rounded-xl btn-brand font-semibold"
-          >
-            OK
-          </button>
-        </div>
-      </div>
-    )}
   );
 }
