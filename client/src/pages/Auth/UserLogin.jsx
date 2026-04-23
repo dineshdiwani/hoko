@@ -781,8 +781,8 @@ function handleGoogleLogin(credential) {
                 <option key={c} value={c}>{c}</option>
               ))}
             </select>
-            <button
-              onClick={() => {
+              <button
+              onClick={async () => {
                 if (!city) {
                   alert("Please select your city");
                   return;
@@ -802,6 +802,14 @@ function handleGoogleLogin(credential) {
                   city: city,
                   selectedCategory: "all"
                 }));
+                
+                // Update user profile with selected city
+                try {
+                  await api.post("/buyer/profile", { city: city });
+                } catch (profileError) {
+                  console.warn("Failed to update user profile with city:", profileError);
+                  // Continue anyway since we have the city in session/localStorage
+                }
                 
                 // Navigate to buyer dashboard
                 navigate("/buyer/dashboard", { replace: true });
