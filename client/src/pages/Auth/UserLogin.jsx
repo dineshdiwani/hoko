@@ -219,26 +219,8 @@ export default function UserLogin({ role = "buyer" }) {
      } finally {
        setWaLinkLoading(false);
      }
-   }
-     
-     setLoginMethod("whatsapp");
-     setWaLinkLoading(true);
-     try {
-       const res = await api.post("/auth/whatsapp/request", {
-         mobile: mobile
-       });
-       if (res.data?.success) {
-         window.open(res.data.wa_link, "_blank");
-         setStep("OTP");
-       } else {
-         alert(res.data?.message || "Failed to generate login link");
-       }
-     } catch (err) {
-       alert(err?.response?.data?.message || "Failed to generate login link");
-     } finally {
-       setWaLinkLoading(false);
-     }
-   }
+}
+      
 
   function sendLoginOtp() {
     setSubmitted(true);
