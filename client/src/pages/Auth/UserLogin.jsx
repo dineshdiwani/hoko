@@ -792,8 +792,15 @@ function handleGoogleLogin(credential) {
                 // Save to localStorage first
                 setSession(finalSession);
                 
-                // Update user profile with selected city
-                api.post("/buyer/profile", { city }).catch(() => {});
+                // Get fresh token for API call
+                const session = getSession();
+                
+                // Update user profile with selected city (wait for it)
+                try {
+                  await api.post("/buyer/profile", { city });
+                } catch (e) {
+                  console.warn("Failed to update profile city:", e.message);
+                }
                 
                 localStorage.setItem("buyer_dashboard_state", JSON.stringify({
                   activeTab: redirectTab || "posts",
