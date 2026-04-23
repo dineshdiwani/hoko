@@ -701,7 +701,7 @@ sellerName={chatSeller?.name || "Seller"}
             <h2 className="text-xl font-bold mb-4">Select Your City</h2>
             <p className="text-gray-600 mb-4">Please select your city to continue</p>
             <select
-              value={city}
+              value=""
               onChange={(e) => setCity(e.target.value)}
               className="w-full border border-gray-300 rounded-xl px-4 py-3 mb-4"
             >
