@@ -430,17 +430,14 @@ export default function UserLogin({ role = "buyer" }) {
           return;
         }
         
-        // Check for pending requirement to submit
-        const pendingReq = localStorage.getItem("pending_requirement");
-        if (pendingReq && !isSeller) {
+        // Skip requirement form - go directly to dashboard with my posts
+        if (localStorage.getItem("pending_requirement")) {
           localStorage.removeItem("pending_requirement");
-          navigate("/buyer/requirement/new");
-          return;
         }
         
         const targetUrl = urlRedirect 
           ? (redirectTab ? `${urlRedirect}?tab=${redirectTab}` : urlRedirect)
-          : (isSeller ? "/seller/dashboard" : "/buyer/dashboard");
+          : (isSeller ? "/seller/dashboard" : "/buyer/dashboard?tab=my");
         navigate(targetUrl, { replace: true });
       })
       .catch((err) => {
@@ -800,17 +797,20 @@ function handleGoogleLogin(credential) {
                 
                 // Save to localStorage first
                 setSession(finalSession);
-localStorage.setItem("buyer_dashboard_state", JSON.stringify({
+                localStorage.setItem("buyer_dashboard_state", JSON.stringify({
                   activeTab: redirectTab || "posts",
                   city: city,
                   selectedCategory: "all"
                 }));
                 
-                // Navigate to appropriate dashboard with tab
-                const targetUrl = urlRedirect 
-                  ? (redirectTab ? `${urlRedirect}?tab=${redirectTab}` : urlRedirect)
-                  : (isSeller ? "/seller/dashboard" : "/buyer/dashboard");
-                navigate(targetUrl, { replace: true });
+                // Check if coming from requirement form - go directly to dashboard, skip form
+                const hasPendingReq = localStorage.getItem("pending_requirement");
+                if (hasPendingReq) {
+                  localStorage.removeItem("pending_requirement");
+                  navigate("/buyer/dashboard?tab=my", { replace: true });
+                } else {
+                  navigate(urlRedirect || "/buyer/dashboard", { replace: true });
+                }
               }}
               className="w-full py-3 rounded-xl btn-brand font-semibold"
             >
