@@ -499,10 +499,6 @@ useEffect(() => {
       return;
     }
 
-    // Skip - redirect handled in welcome page
-      return;
-    }
-
     // Submit directly
     try {
       let attachmentUrls = [];
