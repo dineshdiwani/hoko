@@ -798,9 +798,11 @@ function handleGoogleLogin(credential) {
                 // Save to localStorage first
                 setSession(finalSession);
                 
-                // Update user profile with selected city (only for buyer)
-                if (!isSeller) {
-                  api.post("/buyer/profile", { city }).catch(() => {});
+                // Update user profile with selected city (only for buyer role)
+                try {
+                  await api.post("/buyer/profile", { city });
+                } catch (e) {
+                  console.warn("Failed to update profile city:", e);
                 }
                 
                 localStorage.setItem("buyer_dashboard_state", JSON.stringify({
