@@ -216,11 +216,10 @@ export default function UserLogin({ role = "buyer" }) {
        }
      } catch (err) {
        alert(err?.response?.data?.message || "Failed to generate login link");
-     } finally {
-       setWaLinkLoading(false);
-     }
-}
-      
+} finally {
+      setWaLinkLoading(false);
+    }
+  }
 
   function sendLoginOtp() {
     setSubmitted(true);
