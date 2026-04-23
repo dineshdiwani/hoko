@@ -196,40 +196,49 @@ export default function UserLogin({ role = "buyer" }) {
     return /\S+@\S+\.\S+/.test(String(value || ""));
   }
 
-  async function requestWhatsAppLogin() {
-    if (!mobile || mobile.length < 10) {
-      alert("Please enter your 10-digit mobile number");
-      return;
-    }
-    
-    if (!city) {
-      alert("Please select your city");
-      return;
-    }
-    if (!acceptedTerms) {
-      alert("Please accept Terms & Conditions");
-      return;
-    }
-    
-    setLoginMethod("whatsapp");
-    setWaLinkLoading(true);
-    try {
-      const res = await api.post("/auth/whatsapp/request", {
-        mobile: mobile,
-        city
-      });
-      if (res.data?.success) {
-        window.open(res.data.wa_link, "_blank");
-        setStep("OTP");
-      } else {
-        alert(res.data?.message || "Failed to generate login link");
-      }
-    } catch (err) {
-      alert(err?.response?.data?.message || "Failed to generate login link");
-    } finally {
-      setWaLinkLoading(false);
-    }
-  }
+   async function requestWhatsAppLogin() {
+     if (!mobile || mobile.length < 10) {
+       alert("Please enter your 10-digit mobile number");
+       return;
+     }
+     
+     setLoginMethod("whatsapp");
+     setWaLinkLoading(true);
+     try {
+       const res = await api.post("/auth/whatsapp/request", {
+         mobile: mobile
+       });
+       if (res.data?.success) {
+         window.open(res.data.wa_link, "_blank");
+         setStep("OTP");
+       } else {
+         alert(res.data?.message || "Failed to generate login link");
+       }
+     } catch (err) {
+       alert(err?.response?.data?.message || "Failed to generate login link");
+     } finally {
+       setWaLinkLoading(false);
+     }
+   }
+     
+     setLoginMethod("whatsapp");
+     setWaLinkLoading(true);
+     try {
+       const res = await api.post("/auth/whatsapp/request", {
+         mobile: mobile
+       });
+       if (res.data?.success) {
+         window.open(res.data.wa_link, "_blank");
+         setStep("OTP");
+       } else {
+         alert(res.data?.message || "Failed to generate login link");
+       }
+     } catch (err) {
+       alert(err?.response?.data?.message || "Failed to generate login link");
+     } finally {
+       setWaLinkLoading(false);
+     }
+   }
 
   function sendLoginOtp() {
     setSubmitted(true);
@@ -575,16 +584,10 @@ function handleGoogleLogin(credential) {
                 />
 
                 <div className="flex items-start gap-2 text-sm text-gray-600 mb-4">
-                  <input
-                    type="checkbox"
-                    checked={acceptedTerms}
-                    onChange={(e) => setAcceptedTerms(e.target.checked)}
-                    className="mt-1"
-                  />
                   <span>
-                    I accept the{" "}
+                    By continuing, you accept our{" "}
                     <button type="button" className="text-amber-700 hover:underline" onClick={() => { setLegalModalType("terms"); setShowLegalModal(true); }}>
-                      Terms
+                      Terms & Conditions
                     </button>
                     {" "}and{" "}
                     <button type="button" className="text-amber-700 hover:underline" onClick={() => { setLegalModalType("privacy"); setShowLegalModal(true); }}>
