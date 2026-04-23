@@ -485,30 +485,14 @@ export default function UserLogin({ role = "buyer" }) {
       return;
     }
 
-    proceedWithLogin(loginCity);
-  }
-
-  async function proceedWithLogin(selectedCity) {
-    const data = pendingLoginData || {
-      credential: null,
-      role: currentRole,
-      city: selectedCity,
-      acceptTerms: acceptedTermsRef.current || acceptedTerms,
-      mobile: mobileFromUrl
-    };
-    
     setGoogleLoading(true);
     setShowCityModal(false);
     
-    const loginFn = data.credential 
-      ? api.post("/auth/google", { credential: data.credential, role: data.role, city: selectedCity, acceptTerms: data.acceptTerms, mobile: data.mobile })
-      : api.post("/auth/login", { email, role: currentRole, city: selectedCity, acceptTerms: acceptedTermsRef.current || acceptedTerms });
-
-    loginFn
+    api.post("/auth/google", { credential, role: currentRole, city: loginCity, acceptTerms: hasAcceptedTerms, mobile: mobileFromUrl })
       .then(async (res) => {
         const user = res.data.user || {};
         const profile = isSeller
-          ? await applySellerProfile(selectedCity)
+          ? await applySellerProfile(loginCity)
           : null;
         const sellerIntent =
           localStorage.getItem("login_intent_role") === "seller";
@@ -519,7 +503,7 @@ export default function UserLogin({ role = "buyer" }) {
           role: currentRole,
           roles: user.roles,
           email: user.email,
-          city: user.city || (city || cityFromUrl),
+          city: user.city || loginCity,
           name: buildDisplayName(user, currentRole, profile),
           picture: user.picture,
           preferredCurrency: user.preferredCurrency || "INR",
@@ -542,7 +526,7 @@ export default function UserLogin({ role = "buyer" }) {
         if (!(currentRole === "buyer" && sellerIntent)) {
           localStorage.removeItem("login_intent_role");
         }
-        setBuyerDashboardDefaultTab(user.city || (city || cityFromUrl));
+        setBuyerDashboardDefaultTab(user.city || loginCity);
         
         const pendingWhatsAppData = localStorage.getItem("pending_whatsapp_offer_data");
         
@@ -908,8 +892,66 @@ export default function UserLogin({ role = "buyer" }) {
                 alert("Please select your city");
                 return;
               }
+              const data = pendingLoginData;
               setShowCityModal(false);
-              proceedWithLogin(city);
+              setPendingLoginData(null);
+              
+              if (!data) {
+                alert("Something went wrong. Please try again.");
+                return;
+              }
+              
+              if (data.credential) {
+                setGoogleLoading(true);
+                api.post("/auth/google", { credential: data.credential, role: data.role, city: city, acceptTerms: data.acceptTerms, mobile: data.mobile })
+                  .then(async (res) => {
+                    const user = res.data.user || {};
+                    const profile = isSeller ? await applySellerProfile(city) : null;
+                    const sellerIntent = localStorage.getItem("login_intent_role") === "seller";
+                    const sellerCapable = Boolean(user?.roles?.seller);
+
+                    setSession({
+                      _id: user._id,
+                      role: data.role,
+                      roles: user.roles,
+                      email: user.email,
+                      city: user.city || city,
+                      name: buildDisplayName(user, data.role, profile),
+                      picture: user.picture,
+                      preferredCurrency: user.preferredCurrency || "INR",
+                      token: res.data.token
+                    });
+
+                    localStorage.setItem("seller_email", user.email || "");
+                    localStorage.removeItem("post_login_redirect");
+                    localStorage.removeItem("post_login_redirect_source");
+                    localStorage.setItem("terms_accepted_at", new Date().toISOString());
+                    localStorage.removeItem("login_intent_role");
+                    setBuyerDashboardDefaultTab(user.city || city);
+                    startNativePushRegistration();
+                    navigate(redirect, { replace: true });
+                  })
+                  .catch((err) => {
+                    alert(err?.response?.data?.message || "Login failed");
+                  })
+                  .finally(() => setGoogleLoading(false));
+              } else {
+                setOtpLoading(true);
+                setLoginMethod("email");
+                api.post("/auth/login", { email: data.email, role: data.role, city: city, acceptTerms: data.acceptTerms })
+                  .then((res) => {
+                    if (res.data?.success) {
+                      setStep("OTP");
+                      alert("OTP sent to your email");
+                    } else {
+                      alert(res.data?.message || "Failed to send OTP");
+                    }
+                  })
+                  .catch((err) => {
+                    alert(err?.response?.data?.message || "Failed to send OTP");
+                  })
+                  .finally(() => setOtpLoading(false));
+              }
             }}
             className="w-full py-3 rounded-xl btn-brand font-semibold"
           >
