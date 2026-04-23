@@ -79,47 +79,12 @@ function submitRequirement() {
       return;
     }
     localStorage.setItem("draft_requirement_text", text.trim());
-    const currentSession = getSession();
     
-    // If not logged in, go to login page first (with redirect to requirement form)
-    if (!currentSession?.token) {
-      clearSellerLoginIntent();
-      navigate("/buyer/login?redirect=/buyer/requirement/new");
-      return;
-    }
-
-    // If logged in but not buyer role, switch to buyer first
-    if (currentSession.role !== "buyer" && !currentSession.roles?.buyer) {
-      api
-        .post("/auth/switch-role", { role: "buyer" })
-        .then((res) => {
-          setSession({
-            _id: res.data.user._id,
-            role: res.data.user.role,
-            roles: res.data.user.roles,
-            email: res.data.user.email,
-            city: res.data.user.city,
-            name: "Buyer",
-            preferredCurrency: res.data.user.preferredCurrency,
-            mobile: res.data.user.mobile || "",
-            token: res.data.token
-          });
-          clearSellerLoginIntent();
-          navigate("/buyer/requirement/new");
-        })
-        .catch(() => {
-          clearSellerLoginIntent();
-          navigate("/buyer/login?redirect=/buyer/requirement/new");
-        });
-      return;
-    }
-
-    // Already buyer - go to requirement form
-    clearSellerLoginIntent();
+    // Go directly to requirement form - login will be prompted after form submit
     navigate("/buyer/requirement/new");
   }
 
-const startVoiceInput = async () => {
+  const startVoiceInput = async () => {
     if (!SpeechRecognition) {
       alert("Speech recognition is not supported in this browser.");
       return;
