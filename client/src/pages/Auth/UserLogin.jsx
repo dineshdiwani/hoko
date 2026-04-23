@@ -448,7 +448,7 @@ export default function UserLogin({ role = "buyer" }) {
       .finally(() => setOtpLoading(false));
   }
 
-  function handleGoogleLogin(credential) {
+function handleGoogleLogin(credential) {
     setGoogleLoading(true);
     api
       .post("/auth/google", {
@@ -461,8 +461,8 @@ export default function UserLogin({ role = "buyer" }) {
       .then(async (res) => {
         const user = res.data.user || {};
         
-        // Store session temporarily without city
-        const tempSession = {
+        // Show city modal before continuing
+        setPendingCitySession({
           _id: user._id,
           role: currentRole,
           roles: user.roles,
@@ -472,16 +472,10 @@ export default function UserLogin({ role = "buyer" }) {
           picture: user.picture,
           preferredCurrency: user.preferredCurrency || "INR",
           token: res.data.token
-        };
-        
-        localStorage.setItem("seller_email", user.email || "");
-        localStorage.setItem("terms_accepted_at", new Date().toISOString());
-        
-        // Show city modal before navigating
-        setPendingCitySession(tempSession);
+        });
         setShowCityModal(true);
       })
-.catch((err) => {
+      .catch((err) => {
         alert(err?.response?.data?.message || "Login failed");
       })
       .finally(() => setGoogleLoading(false));
