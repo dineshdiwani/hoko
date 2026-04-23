@@ -499,6 +499,12 @@ useEffect(() => {
       return;
     }
 
+    // Check login - if not logged in, go to login page
+    if (!isLoggedIn) {
+      navigate("/buyer/login?redirect=/buyer/dashboard");
+      return;
+    }
+    
     // Submit directly
     try {
       let attachmentUrls = [];
