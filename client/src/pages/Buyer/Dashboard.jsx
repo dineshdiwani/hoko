@@ -20,7 +20,7 @@ import api from "../../services/api";
         .catch(console.error);
     }
   }, [session?.token]);
-import api from "../../services/api";
+
 import { markNotificationsReadByContext } from "../../services/notifications";
 import {
   getNotificationCategory,

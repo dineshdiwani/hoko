@@ -781,7 +781,7 @@ function handleGoogleLogin(credential) {
                 <option key={c} value={c}>{c}</option>
               ))}
             </select>
-<button
+              <button
               onClick={async () => {
                 if (!city) {
                   alert("Please select your city");
@@ -797,31 +797,27 @@ function handleGoogleLogin(credential) {
                 
                 // Save to localStorage first
                 setSession(finalSession);
-                
-                // Update user profile with selected city
-                api.post("/buyer/profile", { city }).catch(() => {});
-                
                 localStorage.setItem("buyer_dashboard_state", JSON.stringify({
                   activeTab: redirectTab || "posts",
                   city: city,
                   selectedCategory: "all"
                 }));
                 
-                // Check if coming from requirement form - go to dashboard with data
-                const pendingReq = localStorage.getItem("pending_requirement");
-                if (pendingReq) {
-                  try {
-                    const reqData = JSON.parse(pendingReq);
-                    // Update city from selection
-                    reqData.city = city;
-                    // Save with city updated
-                    localStorage.setItem("pending_requirement", JSON.stringify(reqData));
-                  } catch (e) {
-                    console.error("Error updating requirement:", e);
-                  }
-                }
-                
-                navigate("/buyer/dashboard?tab=my", { replace: true });
+// Check if coming from requirement form - submit requirement then go to dashboard
+        const pendingReq = localStorage.getItem("pending_requirement");
+        if (pendingReq) {
+          try {
+            const reqData = JSON.parse(pendingReq);
+            // Use selected city from state
+            reqData.city = city;
+            await api.post("/buyer/requirement/public", { ...reqData, ref: Date.now().toString(36) });
+          } catch (e) {
+            console.error("Failed to submit pending requirement:", e);
+          }
+          localStorage.removeItem("pending_requirement");
+        }
+        
+        navigate("/buyer/dashboard?tab=my", { replace: true });
               }}
               className="w-full py-3 rounded-xl btn-brand font-semibold"
             >
