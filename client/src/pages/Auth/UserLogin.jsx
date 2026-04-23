@@ -808,6 +808,8 @@ function handleGoogleLogin(credential) {
         if (pendingReq) {
           try {
             const reqData = JSON.parse(pendingReq);
+            // Use selected city from state
+            reqData.city = city;
             await api.post("/buyer/requirement/public", { ...reqData, ref: Date.now().toString(36) });
           } catch (e) {
             console.error("Failed to submit pending requirement:", e);
