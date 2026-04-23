@@ -717,12 +717,20 @@ sellerName={chatSeller?.name || "Seller"}
                   return;
                 }
                 setShowCityModal(false);
-                localStorage.removeItem("pending_city_selection");
+                
+                // Save to localStorage
                 localStorage.setItem("buyer_dashboard_state", JSON.stringify({
                   activeTab: "posts",
                   city: city,
                   selectedCategory: "all"
                 }));
+                
+                // Update session with selected city
+                setSession({
+                  ...session,
+                  city: city
+                });
+                
                 setSessionVersion((v) => v + 1);
               }}
               className="w-full py-3 rounded-xl btn-brand font-semibold"
