@@ -752,24 +752,25 @@ export default function UserLogin({ role = "buyer" }) {
               )}
 
               {step === "OTP" && (
-                <button
-                  onClick={() => {
-                    if (loginMethod === "whatsapp") {
-                      setStep("WHATSAPP_LOGIN");
-                    } else {
-                      setStep("EMAIL_LOGIN");
-                    }
-                    setOtp("");
-                  }}
-                  className="text-sm text-gray-500 hover:text-gray-700 mb-4"
-                >
-                  ← Back
-                </button>
+                <>
+                  <button
+                    onClick={() => {
+                      if (loginMethod === "whatsapp") {
+                        setStep("WHATSAPP_LOGIN");
+                      } else {
+                        setStep("EMAIL_LOGIN");
+                      }
+                      setOtp("");
+                    }}
+                    className="text-sm text-gray-500 hover:text-gray-700 mb-4"
+                  >
+                    ← Back
+                  </button>
 
-                <div className="text-center mb-4 p-3 bg-green-50 rounded-xl">
-                  <p className="text-sm text-gray-600">OTP sent via {loginMethod} to:</p>
-                  <p className="font-semibold text-gray-800">{loginMethod === "whatsapp" ? mobile : email}</p>
-                </div>
+                  <div className="text-center mb-4 p-3 bg-green-50 rounded-xl">
+                    <p className="text-sm text-gray-600">OTP sent via {loginMethod} to:</p>
+                    <p className="font-semibold text-gray-800">{loginMethod === "whatsapp" ? mobile : email}</p>
+                  </div>
 
                 <label className="block text-sm font-medium mb-1 text-gray-700">
                   Enter OTP
@@ -790,7 +791,7 @@ export default function UserLogin({ role = "buyer" }) {
                 >
                   {otpLoading ? "Verifying..." : "Verify & Login"}
                 </button>
-                </>
+              </>
               )}
             </div>
           </div>
