@@ -752,12 +752,6 @@ export default function UserLogin({ role = "buyer" }) {
               )}
 
               {step === "OTP" && (
-                </button>
-                </>
-              )}
-
-              {step === "OTP" && (
-                <>
                 <button
                   onClick={() => {
                     if (loginMethod === "whatsapp") {
