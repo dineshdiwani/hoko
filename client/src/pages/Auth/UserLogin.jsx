@@ -72,9 +72,11 @@ export default function UserLogin({ role = "buyer" }) {
 
   const urlRedirect = searchParams.get("redirect") || "";
   
+  const loginIntentSeller = localStorage.getItem("login_intent_role") === "seller";
+  
   const redirect = isSeller
     ? (useSellerPostLoginRedirect ? postLoginRedirect : "/seller/dashboard")
-    : (urlRedirect || (localStorage.getItem("login_intent_role") === "seller"
+    : (urlRedirect || (loginIntentSeller
         ? (postLoginRedirect || "/seller/register")
         : "/buyer/dashboard"));
   const cityRef = useRef(city);
