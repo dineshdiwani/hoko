@@ -796,10 +796,12 @@ function handleGoogleLogin(credential) {
                 const session = getSession();
                 
                 // Update user profile with selected city (wait for it)
+                console.log("Updating city to:", city);
                 try {
-                  await api.post("/buyer/profile", { city });
+                  const res = await api.post("/buyer/profile", { city });
+                  console.log("Profile update response:", res.data);
                 } catch (e) {
-                  console.warn("Failed to update profile city:", e.message);
+                  console.warn("Profile update error:", e.response?.data || e.message);
                 }
                 
                 localStorage.setItem("buyer_dashboard_state", JSON.stringify({
