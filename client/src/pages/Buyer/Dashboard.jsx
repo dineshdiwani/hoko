@@ -386,15 +386,18 @@ useEffect(() => {
             return nextCities[0];
           });
         }
-      })
+})
       .catch(() => {});
-  }, [session?.city]);
-          ? data.categories
-          : [];
+  }, [session?.city, refreshToken]);
+
+  useEffect(() => {
+    fetchOptions()
+      .then((data) => {
+        const nextCategories = Array.isArray(data?.categories) ? data.categories : [];
         setCategories(nextCategories);
       })
       .catch(() => {});
-  }, [session?.city, refreshToken]);
+  }, [refreshToken]);
 
   useEffect(() => {
     if (!session?.token) return;
