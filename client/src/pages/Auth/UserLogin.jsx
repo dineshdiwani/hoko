@@ -67,7 +67,8 @@ export default function UserLogin({ role = "buyer" }) {
   const [cities, setCities] = useState([]);
   const [waLinkLoading, setWaLinkLoading] = useState(false);
   const [loginMethod, setLoginMethod] = useState("");
-  const [googleAutoSelect, setGoogleAutoSelect] = useState(true);
+  const [showCityModal, setShowCityModal] = useState(false);
+  const [pendingLoginData, setPendingLoginData] = useState(null);
 
   // Get redirect from URL param if present
   const urlRedirect = searchParams.get("redirect") || "";
@@ -79,7 +80,6 @@ export default function UserLogin({ role = "buyer" }) {
         : "/buyer/dashboard"));
   const cityRef = useRef(city);
   const acceptedTermsRef = useRef(acceptedTerms);
-  const googleClickCountRef = useRef(0);
 
   useEffect(() => {
     cityRef.current = city;
@@ -251,18 +251,21 @@ export default function UserLogin({ role = "buyer" }) {
       return;
     }
 
-    if (!city) {
-      alert("Please select your city");
-      return;
-    }
     if (!acceptedTerms) {
       alert("Please accept Terms & Conditions");
       return;
     }
 
+    const loginCity = city || cityFromUrl;
+    if (!loginCity) {
+      setPendingLoginData({ type: "email", email, role: currentRole, acceptTerms: acceptedTerms });
+      setShowCityModal(true);
+      return;
+    }
+
     setOtpLoading(true);
     setLoginMethod("email");
-    api.post("/auth/login", { email, role: currentRole, city, acceptTerms: acceptedTerms })
+    api.post("/auth/login", { email, role: currentRole, city: loginCity, acceptTerms: acceptedTerms })
       .then((res) => {
         if (res.data?.success) {
           setStep("OTP");
@@ -460,44 +463,48 @@ export default function UserLogin({ role = "buyer" }) {
       .finally(() => setOtpLoading(false));
   }
 
-  function startGoogleLoginAttempt(credential) {
-    googleClickCountRef.current += 1;
-    if (googleClickCountRef.current > 1) {
-      setGoogleAutoSelect(false);
-    }
-    handleGoogleLogin(credential);
-  }
-
   function handleGoogleLogin(credential) {
-    const selectedCity = cityRef.current || city;
     const hasAcceptedTerms = acceptedTermsRef.current || acceptedTerms;
-
-    if (!selectedCity) {
-      alert(
-        isSeller
-          ? "City missing. Please register again."
-          : "Please select your city"
-      );
-      if (isSeller) {
-        navigate("/seller/register");
-      }
-      return;
-    }
 
     if (!hasAcceptedTerms) {
       alert("Please accept the Terms & Conditions and Privacy Policy");
       return;
     }
 
+    const loginCity = city || cityFromUrl;
+    setPendingLoginData({
+      credential,
+      role: currentRole,
+      city: loginCity,
+      acceptTerms: hasAcceptedTerms,
+      mobile: mobileFromUrl
+    });
+    
+    if (!loginCity) {
+      setShowCityModal(true);
+      return;
+    }
+
+    proceedWithLogin(loginCity);
+  }
+
+  async function proceedWithLogin(selectedCity) {
+    const data = pendingLoginData || {
+      credential: null,
+      role: currentRole,
+      city: selectedCity,
+      acceptTerms: acceptedTermsRef.current || acceptedTerms,
+      mobile: mobileFromUrl
+    };
+    
     setGoogleLoading(true);
-    api
-      .post("/auth/google", {
-        credential,
-        role: currentRole,
-        city: selectedCity,
-        acceptTerms: hasAcceptedTerms,
-        mobile: mobileFromUrl
-      })
+    setShowCityModal(false);
+    
+    const loginFn = data.credential 
+      ? api.post("/auth/google", { credential: data.credential, role: data.role, city: selectedCity, acceptTerms: data.acceptTerms, mobile: data.mobile })
+      : api.post("/auth/login", { email, role: currentRole, city: selectedCity, acceptTerms: acceptedTermsRef.current || acceptedTerms });
+
+    loginFn
       .then(async (res) => {
         const user = res.data.user || {};
         const profile = isSeller
@@ -512,7 +519,7 @@ export default function UserLogin({ role = "buyer" }) {
           role: currentRole,
           roles: user.roles,
           email: user.email,
-          city: user.city || selectedCity,
+          city: user.city || (city || cityFromUrl),
           name: buildDisplayName(user, currentRole, profile),
           picture: user.picture,
           preferredCurrency: user.preferredCurrency || "INR",
@@ -535,7 +542,7 @@ export default function UserLogin({ role = "buyer" }) {
         if (!(currentRole === "buyer" && sellerIntent)) {
           localStorage.removeItem("login_intent_role");
         }
-        setBuyerDashboardDefaultTab(user.city || selectedCity);
+        setBuyerDashboardDefaultTab(user.city || (city || cityFromUrl));
         
         const pendingWhatsAppData = localStorage.getItem("pending_whatsapp_offer_data");
         
@@ -738,24 +745,9 @@ export default function UserLogin({ role = "buyer" }) {
                 {/* Google Login - always enabled */}
                 <GoogleLoginButton
                   disabled={googleLoading}
-                  autoSelect={googleAutoSelect}
-                  onPreClick={() => {
-                    const selectedCity = cityRef.current || city;
-                    const hasAcceptedTerms = acceptedTermsRef.current || acceptedTerms;
-                    if (!selectedCity) {
-                      alert(isSeller ? "City missing. Please register again." : "Please select your city");
-                      if (isSeller) navigate("/seller/register");
-                      return false;
-                    }
-                    if (!hasAcceptedTerms) {
-                      alert("Please accept the Terms & Conditions and Privacy Policy");
-                      return false;
-                    }
-                    return true;
-                  }}
                   onSuccess={(credential) => {
                     setLoginMethod("google");
-                    startGoogleLoginAttempt(credential);
+                    handleGoogleLogin(credential);
                   }}
                   onError={(error) => {
                     const reason = error?.message || "Google login failed";
@@ -894,5 +886,37 @@ export default function UserLogin({ role = "buyer" }) {
         </div>
       )}
     </div>
+
+    {showCityModal && (
+      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+        <div className="bg-white w-full max-w-md rounded-2xl shadow-xl p-6 mx-4">
+          <h2 className="text-xl font-bold mb-4">Select Your City</h2>
+          <p className="text-gray-600 mb-4">Please select your city to continue</p>
+          <select
+            value={city}
+            onChange={(e) => setCity(e.target.value)}
+            className="w-full border border-gray-300 rounded-xl px-4 py-3 mb-4"
+          >
+            <option value="">Select City</option>
+            {cities.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+          <button
+            onClick={() => {
+              if (!city) {
+                alert("Please select your city");
+                return;
+              }
+              setShowCityModal(false);
+              proceedWithLogin(city);
+            }}
+            className="w-full py-3 rounded-xl btn-brand font-semibold"
+          >
+            OK
+          </button>
+        </div>
+      </div>
+    )}
   );
 }
