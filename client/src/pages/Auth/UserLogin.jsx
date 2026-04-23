@@ -623,6 +623,14 @@ function handleGoogleLogin(credential) {
                 <GoogleLoginButton
                   disabled={googleLoading}
                   autoSelect={true}
+                  onPreClick={() => {
+                    if (!acceptedTerms) {
+                      setLegalModalType("terms");
+                      setShowLegalModal(true);
+                      return false;
+                    }
+                    return true;
+                  }}
                   onSuccess={(credential) => {
                     setLoginMethod("google");
                     handleGoogleLogin(credential);
