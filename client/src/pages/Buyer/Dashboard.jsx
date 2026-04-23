@@ -87,17 +87,17 @@ export default function BuyerDashboard() {
   const [chatRequirementId, setChatRequirementId] = useState(null);
 const [showAppBanner, setShowAppBanner] = useState(true);
   const [showCityModal, setShowCityModal] = useState(false);
+  const [citySelected, setCitySelected] = useState(false);
   const menuRef = useRef(null);
 
-  // City modal: always show on first visit (user selects city)
-  const [firstVisit, setFirstVisit] = useState(true);
+  // City modal: show if no city saved and user hasn't selected yet
+  const noCitySaved = !session?.city || !persistedState.city;
   
   useEffect(() => {
-    if (firstVisit) {
-      setFirstVisit(false);
+    if (noCitySaved && !citySelected) {
       setShowCityModal(true);
     }
-  }, [firstVisit]);
+  }, [noCitySaved, citySelected]);
 
   // Safety guard
   useEffect(() => {
@@ -701,7 +701,7 @@ sellerName={chatSeller?.name || "Seller"}
             <h2 className="text-xl font-bold mb-4">Select Your City</h2>
             <p className="text-gray-600 mb-4">Please select your city to continue</p>
             <select
-              value=""
+              value={city}
               onChange={(e) => setCity(e.target.value)}
               className="w-full border border-gray-300 rounded-xl px-4 py-3 mb-4"
             >
@@ -717,6 +717,7 @@ sellerName={chatSeller?.name || "Seller"}
                   return;
                 }
                 setShowCityModal(false);
+                setCitySelected(true);
                 
                 // Save to localStorage
                 localStorage.setItem("buyer_dashboard_state", JSON.stringify({
