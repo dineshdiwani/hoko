@@ -554,21 +554,15 @@ useEffect(() => {
         return;
       }
 
-      // For non-public or not logged in
-      if (isPublic) {
-        const session = getSession();
-        if (session?.mobile) {
-          navigate("/buyer/dashboard", { replace: true });
-        } else {
-          navigate("/buyer/login?redirect=/buyer/dashboard", { replace: true });
-        }
+      // For non-logged in users, redirect to login then to my posts
+        navigate("/buyer/login?redirect=/buyer/dashboard?tab=my", { replace: true });
       } else {
         alert(
           isEditMode
             ? "Requirement updated successfully"
             : "Requirement posted successfully"
         );
-        navigate("/buyer/dashboard", { replace: true });
+        navigate("/buyer/dashboard?tab=my", { replace: true });
       }
     } catch (err) {
       const errorMsg = err?.response?.data?.message || err?.message || "Unknown error";

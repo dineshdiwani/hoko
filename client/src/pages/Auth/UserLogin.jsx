@@ -71,12 +71,15 @@ export default function UserLogin({ role = "buyer" }) {
   const [pendingCitySession, setPendingCitySession] = useState(null);
 
   const urlRedirect = searchParams.get("redirect") || "";
+  const redirectTab = searchParams.get("tab") || "";
   
   const loginIntentSeller = localStorage.getItem("login_intent_role") === "seller";
   
-  const redirect = isSeller
-    ? "/seller/dashboard"
-    : (urlRedirect || "/buyer/dashboard");
+  const finalRedirect = urlRedirect 
+    ? (redirectTab ? `${urlRedirect}?tab=${redirectTab}` : urlRedirect)
+    : (isSeller ? "/seller/dashboard" : "/buyer/dashboard");
+  
+  const redirect = finalRedirect;
   const cityRef = useRef(city);
   const acceptedTermsRef = useRef(acceptedTerms);
 
@@ -426,7 +429,10 @@ export default function UserLogin({ role = "buyer" }) {
           navigate("/seller/register", { replace: true });
           return;
         }
-        navigate(redirect, { replace: true });
+        const targetUrl = urlRedirect 
+          ? (redirectTab ? `${urlRedirect}?tab=${redirectTab}` : urlRedirect)
+          : (isSeller ? "/seller/dashboard" : "/buyer/dashboard");
+        navigate(targetUrl, { replace: true });
       })
       .catch((err) => {
         const message =
@@ -785,22 +791,17 @@ function handleGoogleLogin(credential) {
                 
                 // Save to localStorage first
                 setSession(finalSession);
-                localStorage.setItem("buyer_dashboard_state", JSON.stringify({
-                  activeTab: "posts",
+localStorage.setItem("buyer_dashboard_state", JSON.stringify({
+                  activeTab: redirectTab || "posts",
                   city: city,
                   selectedCategory: "all"
                 }));
                 
-                // Update user profile with selected city
-                try {
-                  await api.post("/buyer/profile", { city: city });
-                } catch (profileError) {
-                  console.warn("Failed to update user profile with city:", profileError);
-                  // Continue anyway since we have the city in session/localStorage
-                }
-                
-                // Navigate to appropriate dashboard
-                navigate(isSeller ? "/seller/dashboard" : "/buyer/dashboard", { replace: true });
+                // Navigate to appropriate dashboard with tab
+                const targetUrl = urlRedirect 
+                  ? (redirectTab ? `${urlRedirect}?tab=${redirectTab}` : urlRedirect)
+                  : (isSeller ? "/seller/dashboard" : "/buyer/dashboard");
+                navigate(targetUrl, { replace: true });
               }}
               className="w-full py-3 rounded-xl btn-brand font-semibold"
             >
