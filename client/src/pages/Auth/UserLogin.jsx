@@ -447,20 +447,13 @@ export default function UserLogin({ role = "buyer" }) {
   }
 
   function handleGoogleLogin(credential) {
-    const hasAcceptedTerms = acceptedTermsRef.current || acceptedTerms;
-
-    if (!hasAcceptedTerms) {
-      alert("Please accept the Terms & Conditions and Privacy Policy");
-      return;
-    }
-
     setGoogleLoading(true);
     api
       .post("/auth/google", {
         credential,
         role: currentRole,
         city: "",
-        acceptTerms: hasAcceptedTerms,
+        acceptTerms: true,
         mobile: mobileFromUrl
       })
 .then(async (res) => {
@@ -490,7 +483,7 @@ export default function UserLogin({ role = "buyer" }) {
           localStorage.removeItem("post_login_redirect");
           localStorage.removeItem("post_login_redirect_source");
         }
-        if (hasAcceptedTerms) {
+        if (true) {
           localStorage.setItem(
             "terms_accepted_at",
             new Date().toISOString()
@@ -702,13 +695,6 @@ export default function UserLogin({ role = "buyer" }) {
 
                 <GoogleLoginButton
                   disabled={googleLoading}
-                  onPreClick={() => {
-                    if (!acceptedTerms) {
-                      alert("Please accept the Terms & Conditions and Privacy Policy");
-                      return false;
-                    }
-                    return true;
-                  }}
                   autoSelect={true}
                   onSuccess={(credential) => {
                     setLoginMethod("google");
@@ -721,6 +707,17 @@ export default function UserLogin({ role = "buyer" }) {
                     }
                   }}
                 />
+
+                <p className="text-xs text-gray-500 text-center mt-3">
+                  By continuing, you accept our{" "}
+                  <button type="button" className="text-amber-700 hover:underline" onClick={() => { setLegalModalType("terms"); setShowLegalModal(true); }}>
+                    Terms & Conditions
+                  </button>
+                  {" "}and{" "}
+                  <button type="button" className="text-amber-700 hover:underline" onClick={() => { setLegalModalType("privacy"); setShowLegalModal(true); }}>
+                    Privacy Policy
+                  </button>
+                </p>
 
                 <div className="flex items-center gap-3 my-4">
                   <div className="h-px flex-1 bg-slate-200" />
@@ -739,17 +736,11 @@ export default function UserLogin({ role = "buyer" }) {
                   className="w-full border border-gray-300 rounded-xl px-4 py-3 mb-4"
                 />
 
-                <div className="flex items-start gap-2 text-sm text-gray-600 mb-4">
-                  <input
-                    type="checkbox"
-                    checked={acceptedTerms}
-                    onChange={(e) => setAcceptedTerms(e.target.checked)}
-                    className="mt-1"
-                  />
-                  <span>
-                    I accept the{" "}
+                <div className="text-sm text-gray-600 mb-4">
+                  <span className="text-sm">
+                    By continuing, you accept our{" "}
                     <button type="button" className="text-amber-700 hover:underline" onClick={() => { setLegalModalType("terms"); setShowLegalModal(true); }}>
-                      Terms
+                      Terms & Conditions
                     </button>
                     {" "}and{" "}
                     <button type="button" className="text-amber-700 hover:underline" onClick={() => { setLegalModalType("privacy"); setShowLegalModal(true); }}>
