@@ -904,7 +904,7 @@ router.post("/webhook", async (req, res) => {
   
   console.log("[WA WEBHOOK] Extracted events:", events.length, events.map(e => ({ text: e.text, mobile: e.mobileE164 })));
 
-  const { createLoginSession, getSession, markSessionVerified } = require("../services/auth/loginSession");
+  const { createLoginSession, getSession, getSessionByMobile, markSessionVerified } = require("../services/auth/loginSession");
 const { generateOtp, setOtp } = require("../services/auth/otpService");
 
 for (const event of events) {
