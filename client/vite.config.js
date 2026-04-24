@@ -14,5 +14,24 @@ export default defineConfig({
         secure: false
       }
     }
+  },
+  build: {
+    target: "esnext",
+    minify: "esbuild",
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ["react", "react-dom", "react-router-dom"],
+          charts: ["recharts"],
+          utils: ["axios", "socket.io-client"]
+        }
+      }
+    }
+  },
+  optimizeDeps: {
+    include: ["react", "react-dom", "react-router-dom"],
+    esbuildOptions: {
+      target: "esnext"
+    }
   }
 });

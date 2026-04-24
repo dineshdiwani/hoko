@@ -852,7 +852,12 @@ app.get("/seller/deeplink/:id", async (req, res, next) => {
 /* -------------------- CLIENT STATIC (SPA/PWA) -------------------- */
 const clientDistPath = path.resolve(__dirname, "..", "client", "dist");
 if (fs.existsSync(clientDistPath)) {
-  app.use(express.static(clientDistPath));
+  app.use(express.static(clientDistPath, {
+    maxAge: "1d",
+    etag: true,
+    lastModified: true,
+    immutable: true
+  }));
 
   app.get("*", (req, res, next) => {
     const requestPath = String(req.path || "");
