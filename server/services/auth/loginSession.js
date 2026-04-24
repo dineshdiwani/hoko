@@ -23,7 +23,7 @@ function createLoginSession(mobile, otp) {
   const key = `wa_login:${sessionId}`;
   sessionStore.set(key, session);
   
-  const waLink = `https://wa.me/918079060554?text=LOGIN_${sessionId}`;
+  const waLink = `https://wa.me/918079060554?text=SEND%20OTP`;
   
   return {
     sessionId,

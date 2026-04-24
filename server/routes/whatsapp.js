@@ -905,18 +905,19 @@ router.post("/webhook", async (req, res) => {
 const { generateOtp, setOtp } = require("../services/auth/otpService");
 
 for (const event of events) {
-    // Handle LOGIN_<session_id> for OTP delivery
-    const loginMatch = event.text && event.text.match(/^LOGIN_([a-f0-9]{32})$/i);
-    if (loginMatch) {
-      const sessionId = loginMatch[1];
-      const session = getSession(sessionId);
+    // Handle OTP trigger via mobile matching
+    const normalizedText = normalizeInboundText(event.text);
+    const isOtpTrigger = normalizedText === "send otp" || normalizedText === "otp" || normalizedText === "login" || normalizedText === "get otp" || normalizedText === "code";
+    
+    if (isOtpTrigger) {
+      const session = getSessionByMobile(event.mobileE164);
       
       if (session) {
-        markSessionVerified(sessionId);
+        markSessionVerified(session.sessionId);
         
         await sendWhatsAppMessage({
           to: event.mobileE164,
-          body: `🔐 Your Hoko OTP is: ${session.otp}\n\nValid for 2 minutes.`
+          body: `🔐 Your HOKO OTP: ${session.otp}\n\nValid for 10 mins. Don't share with anyone.`
         });
       }
       continue;
