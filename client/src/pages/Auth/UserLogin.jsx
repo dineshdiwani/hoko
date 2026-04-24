@@ -116,6 +116,8 @@ export default function UserLogin({ role = "buyer" }) {
 
     const sendWhatsAppOtp = async () => {
       try {
+        setLoginMethod("whatsapp");
+        setPendingLoginMethod("whatsapp");
         const res = await api.post("/auth/login", {
           mobile: mobileFromUrl,
           role: currentRole,
@@ -200,30 +202,31 @@ export default function UserLogin({ role = "buyer" }) {
     return /\S+@\S+\.\S+/.test(String(value || ""));
   }
 
-   async function requestWhatsAppLogin() {
-     if (!mobile || mobile.length < 10) {
-       alert("Please enter your 10-digit mobile number");
-       return;
-     }
-     
-     setLoginMethod("whatsapp");
-     setWaLinkLoading(true);
-     try {
-       const res = await api.post("/auth/whatsapp/request", {
-         mobile: mobile
-       });
-       if (res.data?.success) {
-         window.open(res.data.wa_link, "_blank");
-         setStep("OTP");
-       } else {
-         alert(res.data?.message || "Failed to generate login link");
-       }
-     } catch (err) {
-       alert(err?.response?.data?.message || "Failed to generate login link");
+async function requestWhatsAppLogin() {
+      if (!mobile || mobile.length < 10) {
+        alert("Please enter your 10-digit mobile number");
+        return;
+      }
+      
+      setLoginMethod("whatsapp");
+      setPendingLoginMethod("whatsapp");
+      setWaLinkLoading(true);
+      try {
+        const res = await api.post("/auth/whatsapp/request", {
+          mobile: mobile
+        });
+        if (res.data?.success) {
+          window.open(res.data.wa_link, "_blank");
+          setStep("OTP");
+        } else {
+          alert(res.data?.message || "Failed to generate login link");
+        }
+      } catch (err) {
+        alert(err?.response?.data?.message || "Failed to generate login link");
 } finally {
       setWaLinkLoading(false);
     }
-  }
+   }
 
   function sendLoginOtp() {
     setSubmitted(true);

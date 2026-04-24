@@ -114,6 +114,7 @@ export default function WhatsAppLogin({ extraParams = {} }) {
         localStorage.removeItem("whatsapp_seller_mobile");
         
         // Check if user needs to select city - show city modal instead of redirecting
+        // userNeedsCity is true when user has no city AND no city in URL
         const userNeedsCity = !user.city && !cityFromUrl;
         
         if (userNeedsCity) {
