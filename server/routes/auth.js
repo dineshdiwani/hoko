@@ -646,6 +646,7 @@ router.post("/whatsapp/request", otpSendLimiter, async (req, res) => {
   
   const { createLoginSession } = require("../services/auth/loginSession");
   const sessionData = createLoginSession(mobileE164, otp);
+  console.log(`[Auth] WhatsApp session created for ${mobileE164} | wa_link: ${sessionData.wa_link}`);
   
   return res.json({
     success: true,

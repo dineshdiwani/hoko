@@ -894,12 +894,15 @@ router.post("/webhook", async (req, res) => {
 
   const events = extractInboundEvents(req.body);
   if (!events.length) {
+    console.log("[WA WEBHOOK] No inbound events extracted from body:", JSON.stringify(req.body).substring(0, 500));
     return res.status(200).json({
       ok: true,
       received: 0,
       deliveryUpdates: deliveryEvents.length
     });
   }
+  
+  console.log("[WA WEBHOOK] Extracted events:", events.length, events.map(e => ({ text: e.text, mobile: e.mobileE164 })));
 
   const { createLoginSession, getSession, markSessionVerified } = require("../services/auth/loginSession");
 const { generateOtp, setOtp } = require("../services/auth/otpService");
@@ -909,8 +912,11 @@ for (const event of events) {
     const normalizedText = normalizeInboundText(event.text);
     const isOtpTrigger = normalizedText === "send otp" || normalizedText === "otp" || normalizedText === "login" || normalizedText === "get otp" || normalizedText === "code";
     
+    console.log(`[WA BOT] Received: "${event.text}" | Normalized: "${normalizedText}" | isOtpTrigger: ${isOtpTrigger} | mobile: ${event.mobileE164}`);
+    
     if (isOtpTrigger) {
       const session = getSessionByMobile(event.mobileE164);
+      console.log(`[WA BOT] Session lookup for ${event.mobileE164}:`, session ? "FOUND" : "NOT FOUND");
       
       if (session) {
         markSessionVerified(session.sessionId);
@@ -919,6 +925,7 @@ for (const event of events) {
           to: event.mobileE164,
           body: `🔐 Your HOKO OTP: ${session.otp}\n\nValid for 10 mins. Don't share with anyone.`
         });
+        console.log(`[WA BOT] OTP sent: ${session.otp}`);
       }
       continue;
     }
