@@ -3,10 +3,23 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import "./index.css";
 import { showAlert } from "./utils/dialogs";
+import { Toaster } from "sonner";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <App />
+    <Toaster 
+      position="top-center" 
+      toastOptions={{ 
+        style: { 
+          background: "#333", 
+          color: "#fff",
+          borderRadius: "8px",
+          fontSize: "14px"
+        },
+        duration: 3000
+      }}
+    />
   </React.StrictMode>
 );
 
