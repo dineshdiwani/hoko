@@ -86,12 +86,15 @@ function clearSession(sessionId) {
 }
 
 function getSessionByMobile(mobile) {
+  let latestSession = null;
   for (const [key, session] of sessionStore) {
     if (session.mobile === mobile) {
-      return session;
+      if (!latestSession || session.createdAt > latestSession.createdAt) {
+        latestSession = session;
+      }
     }
   }
-  return null;
+  return latestSession;
 }
 
 function cleanupExpiredSessions() {

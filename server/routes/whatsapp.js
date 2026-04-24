@@ -904,7 +904,7 @@ router.post("/webhook", async (req, res) => {
   
   console.log("[WA WEBHOOK] Extracted events:", events.length, events.map(e => ({ text: e.text, mobile: e.mobileE164 })));
 
-  const { createLoginSession, getSession, getSessionByMobile, markSessionVerified } = require("../services/auth/loginSession");
+  const { createLoginSession, getSession, getSessionByMobile, markSessionVerified, clearSession } = require("../services/auth/loginSession");
 const { generateOtp, setOtp } = require("../services/auth/otpService");
 
 for (const event of events) {
@@ -919,13 +919,14 @@ for (const event of events) {
       console.log(`[WA BOT] Session lookup for ${event.mobileE164}:`, session ? "FOUND" : "NOT FOUND");
       
       if (session) {
-        markSessionVerified(session.sessionId);
-        
         await sendWhatsAppMessage({
           to: event.mobileE164,
           body: `🔐 Your HOKO OTP: ${session.otp}\n\nValid for 10 mins. Don't share with anyone.`
         });
-        console.log(`[WA BOT] OTP sent: ${session.otp}`);
+        console.log(`[WA BOT] OTP sent: ${session.otp}, clearing session`);
+        
+        // Clear session after OTP sent to prevent reuse
+        clearSession(session.sessionId);
       }
       continue;
     }
