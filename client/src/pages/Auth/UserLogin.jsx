@@ -802,17 +802,21 @@ function handleGoogleLogin(credential) {
                 
                 // Get fresh token for API call
                 const session = getSession();
+                const isSellerRole = pendingCitySession?.role === "seller";
                 
                 // Update user profile with selected city (wait for it)
                 console.log("Updating city to:", city);
                 try {
-                  const res = await api.post("/buyer/profile", { city });
+                  const endpoint = isSellerRole ? "/seller/profile" : "/buyer/profile";
+                  const res = await api.post(endpoint, { city });
                   console.log("Profile update response:", res.data);
                 } catch (e) {
                   console.warn("Profile update error:", e.response?.data || e.message);
                 }
                 
-                localStorage.setItem("buyer_dashboard_state", JSON.stringify({
+                // Save dashboard state
+                const stateKey = isSellerRole ? "seller_dashboard_state" : "buyer_dashboard_state";
+                localStorage.setItem(stateKey, JSON.stringify({
                   activeTab: redirectTab || "posts",
                   city: city,
                   selectedCategory: "all"
@@ -821,7 +825,7 @@ function handleGoogleLogin(credential) {
                 // Navigate to appropriate dashboard with tab
                 const targetUrl = urlRedirect 
                   ? (redirectTab ? `${urlRedirect}?tab=${redirectTab}` : urlRedirect)
-                  : (isSeller ? "/seller/dashboard" : "/buyer/dashboard");
+                  : (isSellerRole ? "/seller/dashboard" : "/buyer/dashboard");
                 navigate(targetUrl, { replace: true });
               }}
               className="w-full py-3 rounded-xl btn-brand font-semibold"
