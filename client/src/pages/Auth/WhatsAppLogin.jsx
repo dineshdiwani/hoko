@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import api from "../../services/api";
 import { setSession } from "../../services/storage";
+import { fetchOptions } from "../../services/options";
 
 export default function WhatsAppLogin({ extraParams = {} }) {
   const navigate = useNavigate();
@@ -19,6 +20,22 @@ export default function WhatsAppLogin({ extraParams = {} }) {
   const [resendTimer, setResendTimer] = useState(0);
   const [mobile, setMobile] = useState(mobileFromUrl);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  
+  // City selection state
+  const [showCityModal, setShowCityModal] = useState(false);
+  const [pendingCitySession, setPendingCitySession] = useState(null);
+  const [city, setCity] = useState("");
+  const [cities, setCities] = useState([]);
+
+  useEffect(() => {
+    fetchOptions()
+      .then((data) => {
+        if (Array.isArray(data.cities) && data.cities.length) {
+          setCities(data.cities);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!mobileFromUrl) return;
@@ -86,9 +103,6 @@ export default function WhatsAppLogin({ extraParams = {} }) {
       if (res.data?.success) {
         const user = res.data.user || {};
         
-        const dashParams = new URLSearchParams();
-        if (cityFromUrl) dashParams.set("city", cityFromUrl);
-        
         // Check if user already has complete seller profile
         const hasSellerProfile = user.sellerProfile?.firmName && user.sellerProfile?.managerName;
         const hasSellerRole = user.roles?.seller;
@@ -99,7 +113,33 @@ export default function WhatsAppLogin({ extraParams = {} }) {
         }
         localStorage.removeItem("whatsapp_seller_mobile");
         
-        await setSession({
+        // Check if user needs to select city - show city modal instead of redirecting
+        const userNeedsCity = !user.city && !cityFromUrl;
+        
+        if (userNeedsCity) {
+          // Show city selection modal - user needs to select their city
+          setPendingCitySession({
+            _id: user._id,
+            role: user.role || "seller",
+            roles: user.roles || { seller: true, buyer: true },
+            email: user.email || "",
+            city: "",
+            name: user.name || "User",
+            preferredCurrency: user.preferredCurrency || "INR",
+            mobile: user.mobile || mobile,
+            token: res.data.token,
+            sellerProfile: user.sellerProfile
+          });
+          setShowCityModal(true);
+          setLoading(false);
+          return;
+        }
+        
+        // User has city or city from URL - set session and proceed
+        const dashParams = new URLSearchParams();
+        if (cityFromUrl) dashParams.set("city", cityFromUrl);
+        
+        setSession({
           _id: user._id,
           role: user.role || "seller",
           roles: user.roles || { seller: true, buyer: true },
@@ -122,7 +162,7 @@ export default function WhatsAppLogin({ extraParams = {} }) {
         } else {
           // No seller profile - go to registration with all params
           const registerParams = new URLSearchParams();
-          if (cityFromUrl) registerParams.set("city", cityFromUrl);
+          if (cityFromUrl || user.city) registerParams.set("city", cityFromUrl || user.city);
           if (mobile) registerParams.set("mobile", mobile);
           if (catsFromUrl) registerParams.set("cats", catsFromUrl);
           registerParams.set("ref", "wa");
@@ -233,6 +273,61 @@ export default function WhatsAppLogin({ extraParams = {} }) {
             </div>
           )}
         </div>
+
+        {/* City Selection Modal */}
+        {showCityModal && pendingCitySession && (
+          <div className="bg-white rounded-2xl shadow-xl p-6 mt-6">
+            <h2 className="text-xl font-bold mb-4">Select Your City</h2>
+            <p className="text-gray-600 mb-4">Please select your city to continue</p>
+            <select
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 mb-4"
+            >
+              <option value="">Select City</option>
+              {cities.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+            <button
+              onClick={async () => {
+                if (!city) {
+                  alert("Please select your city");
+                  return;
+                }
+                setShowCityModal(false);
+                
+                // Finalize session with selected city
+                const finalSession = {
+                  ...pendingCitySession,
+                  city: city
+                };
+                
+                // Save to localStorage
+                setSession(finalSession);
+                
+                const isSellerRole = pendingCitySession?.roles?.seller;
+                
+                // Update user profile with selected city
+                try {
+                  const endpoint = isSellerRole ? "/seller/profile" : "/buyer/profile";
+                  await api.post(endpoint, { city });
+                } catch (e) {
+                  console.warn("Profile update error:", e.response?.data || e.message);
+                }
+                
+                // Navigate to appropriate dashboard
+                const targetUrl = isSellerRole ? "/seller/dashboard" : "/buyer/dashboard";
+                const dashParams = new URLSearchParams();
+                dashParams.set("city", city);
+                navigate(`${targetUrl}?${dashParams.toString()}`, { replace: true });
+              }}
+              className="w-full bg-amber-500 text-white font-semibold py-4 rounded-xl hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            >
+              Continue
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

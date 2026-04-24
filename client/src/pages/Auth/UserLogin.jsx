@@ -352,8 +352,8 @@ export default function UserLogin({ role = "buyer" }) {
           localStorage.getItem("login_intent_role") === "seller";
         const sellerCapable = Boolean(user?.roles?.seller);
 
-        // For email OTP login, show city selection modal after OTP verification (like Google login)
-        if (pendingLoginMethod === "email") {
+        // For email and WhatsApp OTP login, show city selection modal after OTP verification
+        if (pendingLoginMethod === "email" || pendingLoginMethod === "whatsapp") {
           setPendingCitySession({
             _id: user._id,
             role: user.role || currentRole,
