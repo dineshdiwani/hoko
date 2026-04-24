@@ -121,6 +121,14 @@ router.post("/toggle", adminAuth, async (req, res) => {
     cronRunning = !cronRunning;
     restartCron();
     logActivity("toggle", `Cron ${cronRunning ? "started" : "stopped"}`);
+    
+    // Persist running state to DB
+    await PlatformSettings.findOneAndUpdate(
+      {},
+      { $set: { "dummyRequirementSettings.running": cronRunning } },
+      { upsert: true, setDefaultsOnInsert: true }
+    );
+    
     res.json({ ok: true, cronRunning });
   } catch (err) {
     console.log("[DummyReq] Toggle error:", err);
