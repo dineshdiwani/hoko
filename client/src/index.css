@@ -20,8 +20,8 @@
     --hoko-accent-2: #0f766e;
     --hoko-sand: #f8fafc;
     --hoko-brand-orange: #cc2f2f;
-    --hoko-button: #2563eb;
-    --hoko-button-hover: #1d4ed8;
+    --hoko-button: #d97706;
+    --hoko-button-hover: #b45309;
     --ui-bg: #faf7f5;
     --ui-card: #ffffff;
     --ui-border: #e7e2de;
@@ -29,8 +29,8 @@
     --ui-muted: #6b5f59;
     --ui-muted-strong: #4f463f;
     --ui-soft: #f3eeeb;
-    --ui-accent: #2563eb;
-    --ui-accent-hover: #1d4ed8;
+    --ui-accent: #d97706;
+    --ui-accent-hover: #b45309;
     --ui-accent-soft: rgba(204, 47, 47, 0.12);
     --ui-accent-border: rgba(204, 47, 47, 0.45);
     --ui-accent-ring: rgba(204, 47, 47, 0.34);
@@ -315,7 +315,7 @@
   .input {
     @apply w-full border rounded-lg px-3 py-2
            focus:ring-2 outline-none;
-    --tw-ring-color: rgba(37, 99, 235, 0.22);
+    --tw-ring-color: rgba(217, 119, 6, 0.22);
     border-color: var(--ui-field-border);
   }
 
