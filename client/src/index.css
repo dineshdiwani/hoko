@@ -294,16 +294,28 @@
 
   .card {
     @apply bg-white rounded-2xl shadow-xl p-6;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
   }
 
   .card-rich {
     @apply bg-white rounded-3xl shadow-xl border border-slate-200/70 p-6 md:p-8;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .card-rich:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.12);
   }
 
   .input {
     @apply w-full border rounded-lg px-3 py-2
            focus:ring-2 outline-none;
-    --tw-ring-color: rgba(204, 47, 47, 0.22);
+    --tw-ring-color: rgba(37, 99, 235, 0.22);
     border-color: var(--ui-field-border);
   }
 
@@ -589,6 +601,15 @@
 
   .btn-brand:hover {
     transform: translateY(-1px);
+  }
+
+  .btn-brand:active {
+    transform: scale(0.98);
+  }
+
+  .btn-brand:focus {
+    outline: 2px solid var(--hoko-button);
+    outline-offset: 2px;
   }
 
   .ui-btn-primary {
