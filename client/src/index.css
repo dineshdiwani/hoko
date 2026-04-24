@@ -20,8 +20,8 @@
     --hoko-accent-2: #0f766e;
     --hoko-sand: #f8fafc;
     --hoko-brand-orange: #cc2f2f;
-    --hoko-button: #cc2f2f;
-    --hoko-button-hover: #b72828;
+    --hoko-button: #2563eb;
+    --hoko-button-hover: #1d4ed8;
     --ui-bg: #faf7f5;
     --ui-card: #ffffff;
     --ui-border: #e7e2de;
@@ -29,8 +29,8 @@
     --ui-muted: #6b5f59;
     --ui-muted-strong: #4f463f;
     --ui-soft: #f3eeeb;
-    --ui-accent: #cc2f2f;
-    --ui-accent-hover: #b72828;
+    --ui-accent: #2563eb;
+    --ui-accent-hover: #1d4ed8;
     --ui-accent-soft: rgba(204, 47, 47, 0.12);
     --ui-accent-border: rgba(204, 47, 47, 0.45);
     --ui-accent-ring: rgba(204, 47, 47, 0.34);
