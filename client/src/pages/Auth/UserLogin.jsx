@@ -233,14 +233,9 @@ export default function UserLogin({ role = "buyer" }) {
       return;
     }
 
-    if (!acceptedTerms) {
-      alert("Please accept Terms & Conditions");
-      return;
-    }
-
     setOtpLoading(true);
     setLoginMethod("email");
-    api.post("/auth/login", { email, role: currentRole, acceptTerms: acceptedTerms })
+    api.post("/auth/login", { email, role: currentRole, acceptTerms: true })
       .then((res) => {
         if (res.data?.success) {
           setPendingLoginMethod("email");
@@ -327,10 +322,6 @@ export default function UserLogin({ role = "buyer" }) {
 
   function verifyOtp() {
     setSubmitted(true);
-    if (!acceptedTerms) {
-      alert("Please accept the Terms & Conditions and Privacy Policy");
-      return;
-    }
     const otpLength = String(otp).trim().length;
     if (otpLength !== 4 && otpLength !== 6) {
       alert("Please enter a valid 4 or 6-digit OTP");
