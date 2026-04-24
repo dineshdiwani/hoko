@@ -211,19 +211,16 @@ router.post("/login", otpSendLimiter, async (req, res) => {
     return res.status(400).json({ message: "Email required" });
   }
 
-  let user = await User.findOne({ email: normalizedEmail });
+let user = await User.findOne({ email: normalizedEmail });
   if (!user) {
-    if (!city) {
-      return res.status(400).json({ message: "City required" });
-    }
-    if (normalizedRole === "seller") {
+    if (normalizedRole === "seller" && !city) {
       return res.status(403).json({
         message: "Complete buyer login and seller registration first"
       });
     }
     user = await User.create({
       email: normalizedEmail,
-      city,
+      city: city || "",
       roles: {
         buyer: true,
         seller: normalizedRole === "seller",
@@ -236,9 +233,9 @@ router.post("/login", otpSendLimiter, async (req, res) => {
       requestedRole: normalizedRole
     });
     if (normalizedRole === "seller") {
-      notifyNewSeller(user.mobile || "", city, user.sellerProfile?.firmName || user.email, user.email);
+      notifyNewSeller(user.mobile || "", city || "", user.sellerProfile?.firmName || user.email, user.email);
     } else {
-      notifyNewBuyer(user.mobile || "", city, user.email);
+      notifyNewBuyer(user.mobile || "", city || "", user.email);
     }
   } else {
     ensureRoles(user);
@@ -350,10 +347,6 @@ router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
     return res.status(404).json({ message: "User not found" });
   }
   ensureRoles(user);
-
-  if (!city && !user.city) {
-    return res.status(400).json({ message: "City required" });
-  }
 
   if (city) {
     user.city = city;

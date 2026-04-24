@@ -69,6 +69,7 @@ export default function UserLogin({ role = "buyer" }) {
   const [loginMethod, setLoginMethod] = useState("");
   const [showCityModal, setShowCityModal] = useState(false);
   const [pendingCitySession, setPendingCitySession] = useState(null);
+  const [pendingLoginMethod, setPendingLoginMethod] = useState("");
 
   const urlRedirect = searchParams.get("redirect") || "";
   const redirectTab = searchParams.get("tab") || "";
@@ -232,10 +233,6 @@ export default function UserLogin({ role = "buyer" }) {
       return;
     }
 
-    if (!city) {
-      alert("Please select your city");
-      return;
-    }
     if (!acceptedTerms) {
       alert("Please accept Terms & Conditions");
       return;
@@ -243,9 +240,10 @@ export default function UserLogin({ role = "buyer" }) {
 
     setOtpLoading(true);
     setLoginMethod("email");
-    api.post("/auth/login", { email, role: currentRole, city, acceptTerms: acceptedTerms })
+    api.post("/auth/login", { email, role: currentRole, acceptTerms: acceptedTerms })
       .then((res) => {
         if (res.data?.success) {
+          setPendingLoginMethod("email");
           setStep("OTP");
           alert("OTP sent to your email");
         } else {
@@ -363,6 +361,25 @@ export default function UserLogin({ role = "buyer" }) {
           localStorage.getItem("login_intent_role") === "seller";
         const sellerCapable = Boolean(user?.roles?.seller);
 
+        // For email OTP login + buyer, show city selection modal after OTP verification (if no city in user record)
+        if (pendingLoginMethod === "email" && currentRole === "buyer" && !user.city) {
+          setPendingCitySession({
+            _id: user._id,
+            role: user.role || currentRole,
+            roles: user.roles,
+            email: user.email || email,
+            city: user.city || "",
+            name: buildDisplayName(user, currentRole, profile),
+            preferredCurrency: user.preferredCurrency || "INR",
+            mobile: user.mobile || mobile || "",
+            token: res.data.token
+          });
+          setShowCityModal(true);
+          setOtpLoading(false);
+          return;
+        }
+
+        // For other flows, proceed with session setup
         setSession({
           _id: user._id,
           role: user.role || currentRole,
