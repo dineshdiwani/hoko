@@ -119,10 +119,14 @@ export default function WhatsAppLogin({ extraParams = {} }) {
         
         if (userNeedsCity) {
           // Show city selection modal - user needs to select their city
+          // Preserve actual user roles, don't default to seller
+          const userRoles = user.roles || { seller: true, buyer: true };
+          const isUserSeller = userRoles?.seller === true;
+          
           setPendingCitySession({
             _id: user._id,
-            role: user.role || "seller",
-            roles: user.roles || { seller: true, buyer: true },
+            role: user.role || (isUserSeller ? "seller" : "buyer"),
+            roles: userRoles,
             email: user.email || "",
             city: "",
             name: user.name || "User",
@@ -319,7 +323,10 @@ export default function WhatsAppLogin({ extraParams = {} }) {
                 
                 // Navigate to appropriate dashboard
                 const targetUrl = isSellerRole ? "/seller/dashboard" : "/buyer/dashboard";
+                // Seller goes to posts tab, buyer goes to mypost tab
+                const tab = isSellerRole ? "posts" : "mypost";
                 const dashParams = new URLSearchParams();
+                dashParams.set("tab", tab);
                 dashParams.set("city", city);
                 navigate(`${targetUrl}?${dashParams.toString()}`, { replace: true });
               }}

@@ -47,7 +47,7 @@ function readBuyerDashboardState() {
 
 function normalizeDashboardTab(value) {
   const raw = String(value || "").trim().toLowerCase();
-  if (raw === "posts" || raw === "myposts" || raw === "my-posts") return "posts";
+  if (raw === "posts" || raw === "myposts" || raw === "my-posts" || raw === "mypost") return "posts";
   if (raw === "city" || raw === "citydashboard" || raw === "city-dashboard") return "city";
   if (raw === "offers" || raw === "received-offers" || raw === "receivedoffers") return "offers";
   return "";
