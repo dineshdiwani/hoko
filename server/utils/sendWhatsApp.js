@@ -2,9 +2,31 @@ const axios = require("axios");
 const querystring = require("querystring");
 
 function normalizeE164(value) {
-  const raw = String(value || "").replace(/[^\d+]/g, "");
+  const raw = String(value || "").replace(/[^\d]/g, "");
   if (!raw) return "";
-  return raw.startsWith("+") ? raw : `+${raw}`;
+  
+  // Already has + sign
+  if (String(value || "").startsWith("+")) {
+    return raw.startsWith("+") ? raw : `+${raw}`;
+  }
+  
+  // Handle Indian mobile numbers (10 digits starting with 6,7,8,9)
+  if (raw.length === 10 && /^[6789]/.test(raw)) {
+    return `+91${raw}`;
+  }
+  
+  // Handle numbers starting with 91 (11 digits with country code, remove leading 0)
+  if (raw.length === 11 && raw.startsWith("0")) {
+    return `+91${raw.substring(1)}`;
+  }
+  
+  // Handle 12 digits starting with 91
+  if (raw.length === 12 && raw.startsWith("91")) {
+    return `+${raw}`;
+  }
+  
+  // Default: just prepend +
+  return `+${raw}`;
 }
 
 async function sendViaMeta({ to, body }) {
