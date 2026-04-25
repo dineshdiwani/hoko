@@ -270,7 +270,7 @@ const manualCategoryOptions = useMemo(() => {
     return eligibleTemplateContacts
       .filter((contact) =>
         [
-          contact?.firmName,
+          contact?.registeredBusinessName,
           contact?.mobileE164,
           contact?.city,
           Array.isArray(contact?.categories) ? contact.categories.join(" ") : ""
@@ -818,7 +818,7 @@ const manualCategoryOptions = useMemo(() => {
       .filter((contact) => contact.dndStatus !== "dnd")
       .map((contact) => ({
         id: contact._id,
-        firmName: contact.firmName || (autoModeRecipientType === "buyer_contacts" ? "Buyer lead" : "-"),
+        registeredBusinessName: contact.registeredBusinessName || (autoModeRecipientType === "buyer_contacts" ? "Buyer lead" : "-"),
         city: contact.city || "-",
         mobileE164: contact.mobileE164,
         email: contact.email || "",
@@ -1214,7 +1214,7 @@ const manualCategoryOptions = useMemo(() => {
                 <div className="space-y-2 max-h-80 overflow-auto">
                   {contacts.slice(0, 20).map((contact) => (
                     <div key={contact._id} className="border rounded-lg p-2 text-xs text-gray-700">
-                      <div className="font-semibold">{contact.firmName || "-"} | {contact.mobileE164}</div>
+                      <div className="font-semibold">{contact.registeredBusinessName || "-"} | {contact.mobileE164}</div>
                       <div className="text-gray-500">
                         {contact.city} | {contact.email || "-"} | Categories: {(contact.categories || []).join(", ") || "-"} | Opt-in: {contact.optInStatus} | DND: {contact.dndStatus} | Unsubscribed: {contact.unsubscribedAt ? "Yes" : "No"}
                       </div>
@@ -1381,7 +1381,7 @@ const manualCategoryOptions = useMemo(() => {
                           className="mt-0.5"
                         />
                         <div>
-                          <div className="font-semibold">{contact.firmName || (templateRecipientType === "buyer_contacts" ? "Buyer lead" : "-")} | {contact.mobileE164}</div>
+                          <div className="font-semibold">{contact.registeredBusinessName || (templateRecipientType === "buyer_contacts" ? "Buyer lead" : "-")} | {contact.mobileE164}</div>
                           <div className="text-gray-500">
                             {contact.city} | {contact.email || "-"} | Categories: {(contact.categories || []).join(", ") || "-"}
                           </div>
@@ -1586,7 +1586,7 @@ const manualCategoryOptions = useMemo(() => {
                   {manualQueue.map((entry) => (
                     <div key={entry.id} className="border rounded-lg p-2 text-xs text-gray-700 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
                       <div>
-                        <div className="font-semibold">{entry.firmName} | {entry.mobileE164}</div>
+                        <div className="font-semibold">{entry.registeredBusinessName} | {entry.mobileE164}</div>
                         <div className="text-gray-500">{entry.city} | {entry.email || "-"} | Status: {entry.status}</div>
                       </div>
                       <div className="flex gap-2">

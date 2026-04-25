@@ -233,7 +233,7 @@ let user = await User.findOne({ email: normalizedEmail });
       requestedRole: normalizedRole
     });
     if (normalizedRole === "seller") {
-      notifyNewSeller(user.mobile || "", city || "", user.sellerProfile?.firmName || user.email, user.email);
+      notifyNewSeller(user.mobile || "", city || "", user.sellerProfile?.registeredBusinessName || user.email, user.email);
     } else {
       notifyNewBuyer(user.mobile || "", city || "", user.email);
     }
@@ -285,7 +285,7 @@ router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
     
     const normalizedRole = role === "seller" ? "seller" : "buyer";
     if (normalizedRole === "seller") {
-      const hasSellerProfile = Boolean(user.roles?.seller) || Boolean(user.sellerProfile?.businessName) || Boolean(user.sellerProfile?.firmName);
+const hasSellerProfile = Boolean(user.roles?.seller) || Boolean(user.sellerProfile?.registeredBusinessName);
       if (!hasSellerProfile) {
         return res.status(403).json({ message: "Complete seller registration before login" });
       }
@@ -355,8 +355,7 @@ router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
   if (normalizedRole === "seller") {
     const hasSellerProfile =
       Boolean(user.roles?.seller) ||
-      Boolean(user.sellerProfile?.businessName) ||
-      Boolean(user.sellerProfile?.firmName) ||
+      Boolean(user.sellerProfile?.registeredBusinessName) ||
       Boolean(user.sellerProfile?.taxId);
     if (!hasSellerProfile) {
       return res.status(403).json({
@@ -519,8 +518,7 @@ router.post("/google", async (req, res) => {
       if (normalizedRole === "seller") {
         const hasSellerProfile =
           Boolean(user.roles?.seller) ||
-          Boolean(user.sellerProfile?.businessName) ||
-          Boolean(user.sellerProfile?.firmName) ||
+          Boolean(user.sellerProfile?.registeredBusinessName) ||
           Boolean(user.sellerProfile?.taxId);
         if (!hasSellerProfile) {
           return res.status(403).json({
@@ -595,7 +593,7 @@ router.post("/switch-role", auth, async (req, res) => {
       String(req.user?.email || "").trim() &&
         String(req.user?.mobile || "").trim() &&
         String(req.user?.city || "").trim() &&
-        String(sellerProfile.firmName || "").trim() &&
+        String(sellerProfile.registeredBusinessName || "").trim() &&
         String(sellerProfile.managerName || "").trim() &&
         hasCategories
     );
@@ -695,7 +693,7 @@ router.post("/whatsapp/verify", otpVerifyLimiter, async (req, res) => {
   const normalizedRole = requestedRole;
   
   if (normalizedRole === "seller") {
-    const hasSellerProfile = Boolean(user.roles?.seller) || Boolean(user.sellerProfile?.businessName) || Boolean(user.sellerProfile?.firmName);
+    const hasSellerProfile = Boolean(user.roles?.seller) || Boolean(user.sellerProfile?.registeredBusinessName);
     if (!hasSellerProfile) {
       return res.status(403).json({ message: "Complete seller registration before login" });
     }

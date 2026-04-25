@@ -601,7 +601,7 @@ export default function AdminDashboard() {
       .filter((contact) => contact.dndStatus !== "dnd")
       .map((contact) => ({
         id: contact._id,
-        firmName: contact.firmName || "-",
+        registeredBusinessName: contact.registeredBusinessName || "-",
         city: contact.city || "-",
         mobileE164: contact.mobileE164,
         status: "pending",

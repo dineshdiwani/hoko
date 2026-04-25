@@ -797,17 +797,9 @@ export default function OfferList() {
               <div className="space-y-2 text-sm text-gray-700">
                 <div>
                   <span className="text-gray-500">
-                    Firm Name:
+                    Registered Business Name:
                   </span>{" "}
-                  {sellerDetails.sellerProfile?.firmName ||
-                    "-"}
-                </div>
-                <div>
-                  <span className="text-gray-500">
-                    Business Name:
-                  </span>{" "}
-                  {sellerDetails.sellerProfile?.businessName ||
-                    "-"}
+                  {sellerDetails.registeredBusinessName || "-"}
                 </div>
                 <div>
                   <span className="text-gray-500">

@@ -244,7 +244,7 @@ const submitOffer = async () => {
 
     // Check if seller has completed registration
     const session = JSON.parse(localStorage.getItem("hoko_session") || "null");
-    const hasSellerProfile = session?.sellerProfile?.firmName && session?.sellerProfile?.managerName;
+    const hasSellerProfile = session?.sellerProfile?.registeredBusinessName && session?.sellerProfile?.managerName;
     const isWhatsAppUser = localStorage.getItem("whatsapp_login") === "true";
 
     // For WhatsApp sellers without profile - redirect to registration first

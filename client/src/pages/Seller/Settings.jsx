@@ -23,14 +23,13 @@ export default function SellerSettings() {
   const [cities, setCities] = useState([]);
   const [categories, setCategories] = useState([]);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
-  const [profile, setProfile] = useState({
+const [profile, setProfile] = useState({
     email: "",
     mobile: "",
-    businessName: "",
+    registeredBusinessName: "",
     registrationDetails: "",
     businessAddress: "",
     ownerName: "",
-    firmName: "",
     city: "",
     categories: [],
     website: "",
@@ -108,15 +107,13 @@ export default function SellerSettings() {
               .map((c) => normalizeCategory(c))
               .filter(Boolean);
         const uniqueCategories = dedupeCategories(normalizedCategories);
-        setProfile({
+setProfile({
           email: res.data?.email || session?.email || "",
           mobile: res.data?.mobile || "",
-          businessName:
-            sellerProfile.businessName || sellerProfile.firmName || "",
+          registeredBusinessName: sellerProfile.registeredBusinessName || "",
           registrationDetails: sellerProfile.registrationDetails || "",
           businessAddress: sellerProfile.businessAddress || "",
           ownerName: sellerProfile.ownerName || "",
-          firmName: sellerProfile.firmName || "",
           city: res.data?.city || session?.city || "",
           categories: uniqueCategories,
           website: sellerProfile.website || "",
@@ -225,11 +222,10 @@ export default function SellerSettings() {
       await api.post("/seller/profile", {
         email: profile.email,
         mobile: profile.mobile,
-        businessName: profile.businessName,
+registeredBusinessName: profile.registeredBusinessName,
         registrationDetails: profile.registrationDetails,
         businessAddress: profile.businessAddress,
         ownerName: profile.ownerName,
-        firmName: profile.firmName || profile.businessName,
         city: profile.city,
         categories: uniqueCategories,
         website: profile.website,
@@ -319,16 +315,16 @@ export default function SellerSettings() {
               <label className="block">
                 <span className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1">
                   Business/Firm/Company Name
-                </span>
+</span>
                 <input
-                  value={profile.businessName}
+                  value={profile.registeredBusinessName}
                   onChange={(e) =>
                     setProfile({
                       ...profile,
-                      businessName: e.target.value
+                      registeredBusinessName: e.target.value
                     })
                   }
-                  placeholder="Enter business name"
+                  placeholder="Enter registered business name"
                   className="w-full border rounded-xl px-4 py-3"
                 />
               </label>

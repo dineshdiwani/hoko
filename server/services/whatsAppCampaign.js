@@ -173,8 +173,8 @@ async function upsertWhatsAppLeadContext({
         requirementId: requirement._id,
         latestCampaignRunId: campaignRunId || null,
         profile: {
-          firmName: String(contact?.firmName || "").trim(),
-          managerName: String(contact?.firmName || "").trim(),
+          registeredBusinessName: String(contact?.registeredBusinessName || "").trim(),
+          managerName: String(contact?.managerName || "").trim(),
           city: String(contact?.city || requirement?.city || "").trim(),
           category: primaryCategory || String(requirement?.category || "").trim(),
           email: String(contact?.email || "").trim()

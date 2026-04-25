@@ -667,7 +667,7 @@ export default function AdminOperations() {
                       <span className="px-2 py-0.5 bg-gray-100 text-gray-700 text-xs rounded">{offer.status}</span>
                       {offer.moderation?.removed && <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded">Removed</span>}
                     </div>
-                    <p className="text-xs text-gray-500">{offer.requirementId?.product || "N/A"} | {offer.sellerId?.sellerProfile?.firmName || "Seller"}</p>
+                    <p className="text-xs text-gray-500">{offer.requirementId?.product || "N/A"} | {offer.sellerId?.sellerProfile?.registeredBusinessName || "Seller"}</p>
                   </div>
                   {offer.moderation?.removed ? (
                     <button onClick={() => moderateOffer(offer, false)} className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-200">Restore</button>

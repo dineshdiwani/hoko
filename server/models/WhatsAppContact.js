@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const whatsAppContactSchema = new mongoose.Schema(
   {
-    firmName: {
+    registeredBusinessName: {
       type: String,
       default: ""
     },

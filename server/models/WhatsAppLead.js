@@ -22,7 +22,7 @@ const whatsAppLeadSchema = new mongoose.Schema(
       default: null
     },
     profile: {
-      firmName: { type: String, default: "" },
+      registeredBusinessName: { type: String, default: "" },
       managerName: { type: String, default: "" },
       city: { type: String, default: "" },
       category: { type: String, default: "" },

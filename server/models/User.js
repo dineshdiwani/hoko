@@ -44,12 +44,8 @@ const userSchema = new mongoose.Schema(
       admin: { type: Boolean, default: false }
     },
 
-    sellerProfile: {
-      firmName: { type: String },
-      managerName: { type: String },
-      categories: [{ type: String }],
-      approved: { type: Boolean, default: false },
-      businessName: { type: String },
+sellerProfile: {
+      registeredBusinessName: { type: String },
       registrationDetails: { type: String },
       businessAddress: { type: String },
       ownerName: { type: String },

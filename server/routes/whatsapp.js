@@ -590,7 +590,7 @@ function buildReplyMessage(intentKind, requirement, deepLink) {
 function buildRegisterConfirmationMessage(requirement, deepLink, profile) {
   const label = buildRequirementLabel(requirement);
   const profileParts = [
-    profile?.firmName ? `Firm: ${profile.firmName}` : "",
+    profile?.registeredBusinessName ? `Business: ${profile.registeredBusinessName}` : "",
     profile?.managerName ? `Manager: ${profile.managerName}` : "",
     profile?.category ? `Category: ${profile.category}` : "",
     profile?.city ? `City: ${profile.city}` : "",
@@ -1271,7 +1271,7 @@ for (const event of events) {
           ...(registerPayload?.isStructured
             ? {
                 profile: {
-                  firmName: registerPayload.firmName,
+                  registeredBusinessName: registerPayload.registeredBusinessName,
                   managerName: registerPayload.managerName,
                   category: registerPayload.category,
                   city: registerPayload.city,

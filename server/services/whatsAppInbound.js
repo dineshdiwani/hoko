@@ -104,7 +104,7 @@ function parseRegisterPayload(text) {
   if (parts.length < 6) {
     return {
       isStructured: false,
-      firmName: "",
+      registeredBusinessName: "",
       managerName: "",
       category: "",
       city: "",
@@ -114,7 +114,7 @@ function parseRegisterPayload(text) {
 
   return {
     isStructured: true,
-    firmName: parts[1] || "",
+    registeredBusinessName: parts[1] || "",
     managerName: parts[2] || "",
     category: parts[3] || "",
     city: parts[4] || "",

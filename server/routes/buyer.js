@@ -1102,16 +1102,15 @@ router.get("/my-posts/:buyerId", auth, buyerOnly, async (req, res) => {
     if (!sellersByRequirement.has(reqId)) {
       sellersByRequirement.set(reqId, new Map());
     }
-    const firmName =
-      seller?.sellerProfile?.firmName ||
-      seller?.sellerProfile?.businessName ||
+    const registeredBusinessName =
+      seller?.sellerProfile?.registeredBusinessName ||
       seller?.email ||
       "Seller";
     sellersByRequirement
       .get(reqId)
       .set(String(seller._id), {
         id: seller._id,
-        firmName
+        registeredBusinessName
       });
   });
 
@@ -2375,13 +2374,11 @@ router.get("/requirements/:id/offers", auth, buyerOnly, async (req, res) => {
   const offersData = offers.map((offer) => {
     const sellerProfile = offer.sellerId?.sellerProfile || {};
     const sellerFirm =
-      sellerProfile.firmName ||
-      sellerProfile.businessName ||
+      sellerProfile.registeredBusinessName ||
       offer.sellerId?.email ||
       "Seller";
     const sellerDetails = {
-      firmName: sellerFirm,
-      businessName: sellerProfile.businessName || sellerFirm,
+      registeredBusinessName: sellerFirm,
       ownerName: sellerProfile.ownerName || "Not provided",
       managerName: sellerProfile.managerName || "Not provided",
       email: offer.sellerId?.email || "Not provided",

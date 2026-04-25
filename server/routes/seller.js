@@ -349,13 +349,12 @@ function escapeRegex(value) {
  * Seller onboarding (first-time registration)
  */
 router.post("/onboard", auth, async (req, res) => {
-  const {
+const {
     mobile,
-    businessName,
+    registeredBusinessName,
     registrationDetails,
     businessAddress,
     ownerName,
-    firmName,
     managerName,
     categories,
     website,
@@ -365,13 +364,13 @@ router.post("/onboard", auth, async (req, res) => {
   } = req.body || {};
   const mobileValue = String(mobile || "").trim();
   const cityValue = String(city || "").trim();
-  const firmNameValue = String(firmName || "").trim();
+  const registeredBusinessNameValue = String(registeredBusinessName || "").trim();
   const managerNameValue = String(managerName || "").trim();
 
 if (
     !mobileValue ||
     !cityValue ||
-    !firmNameValue ||
+    !registeredBusinessNameValue ||
     !managerNameValue
   ) {
     return res
@@ -386,11 +385,10 @@ if (
 
 const update = {
     mobile: mobileValue,
-    "sellerProfile.businessName": String(businessName || "").trim(),
+    "sellerProfile.registeredBusinessName": registeredBusinessNameValue,
     "sellerProfile.registrationDetails": String(registrationDetails || "").trim(),
     "sellerProfile.businessAddress": String(businessAddress || "").trim(),
     "sellerProfile.ownerName": String(ownerName || "").trim(),
-    "sellerProfile.firmName": firmNameValue,
     "sellerProfile.managerName": managerNameValue,
     "sellerProfile.categories": normalizedCategories,
     "sellerProfile.website": String(website || "").trim(),
@@ -425,11 +423,10 @@ const update = {
 router.post("/profile", auth, sellerOnly, async (req, res) => {
   const {
     mobile,
-    businessName,
+    registeredBusinessName,
     registrationDetails,
     businessAddress,
     ownerName,
-    firmName,
     managerName,
     categories,
     website,
@@ -445,7 +442,7 @@ router.post("/profile", auth, sellerOnly, async (req, res) => {
     ...(typeof mobile === "string"
       ? { mobile: String(mobile).trim() }
       : {}),
-    ...(businessName ? { "sellerProfile.businessName": businessName } : {}),
+    ...(registeredBusinessName ? { "sellerProfile.registeredBusinessName": registeredBusinessName } : {}),
     ...(registrationDetails
       ? { "sellerProfile.registrationDetails": registrationDetails }
       : {}),
@@ -453,7 +450,6 @@ router.post("/profile", auth, sellerOnly, async (req, res) => {
       ? { "sellerProfile.businessAddress": businessAddress }
       : {}),
     ...(ownerName ? { "sellerProfile.ownerName": ownerName } : {}),
-    ...(firmName ? { "sellerProfile.firmName": firmName } : {}),
     ...(managerName ? { "sellerProfile.managerName": managerName } : {}),
     ...(Array.isArray(categories)
       ? { "sellerProfile.categories": normalizedCategories }
@@ -628,7 +624,7 @@ router.post("/offer/public", async (req, res) => {
       paymentTerms,
       mobile,
       email,
-      firmName,
+      registeredBusinessName,
       sellerName,
       sellerCity
     } = req.body;
@@ -719,7 +715,7 @@ router.post("/offer/public", async (req, res) => {
           note: message,
           rawMessage: message,
           sellerEmail: email,
-          sellerFirmName: firmName,
+          sellerFirmName: registeredBusinessName,
           sellerName: sellerName,
           sellerCity: sellerCityInput
         }
@@ -892,7 +888,7 @@ router.post("/offer", auth, sellerOnly, async (req, res) => {
       notifyNewOffer(
         price,
         requirement.productName || requirement.product,
-        req.user?.businessName || req.user?.name || "Seller",
+        req.user?.sellerProfile?.registeredBusinessName || req.user?.name || "Seller",
         req.user?.mobile || "",
         requirement.city,
         requirement._id
@@ -916,7 +912,7 @@ router.post("/offer", auth, sellerOnly, async (req, res) => {
 
       setImmediate(() => {
         (async () => {
-          const sellerName = String(req.user?.name || req.user?.businessName || "Seller").trim();
+          const sellerName = String(req.user?.name || req.user?.sellerProfile?.registeredBusinessName || "Seller").trim();
           const productName = String(requirement.product || requirement.productName || "your requirement").trim();
           const priceStr = String(price || "").trim();
           const requirementIdStr = String(requirement._id || "").trim();

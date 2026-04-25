@@ -458,7 +458,7 @@ export default function MyPosts({
                       }
                       className="px-2 py-1 text-xs font-bold rounded-full border border-indigo-200 text-indigo-700 hover:bg-indigo-50"
                     >
-                      {seller.firmName}
+                      {seller.registeredBusinessName}
                     </button>
                   ))}
                 </div>
@@ -704,18 +704,10 @@ export default function MyPosts({
             {!sellerLoading && sellerDetails && (
               <div className="space-y-2 text-sm text-gray-700">
                 <div>
-                  <span className="text-gray-500">
-                    Firm Name:
+<span className="text-gray-500">
+                    Registered Business Name:
                   </span>{" "}
-                  {sellerDetails.sellerProfile?.firmName ||
-                    "-"}
-                </div>
-                <div>
-                  <span className="text-gray-500">
-                    Business Name:
-                  </span>{" "}
-                  {sellerDetails.sellerProfile?.businessName ||
-                    "-"}
+                  {sellerDetails.registeredBusinessName || "-"}
                 </div>
                 <div>
                   <span className="text-gray-500">

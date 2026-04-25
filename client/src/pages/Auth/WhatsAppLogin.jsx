@@ -104,7 +104,7 @@ export default function WhatsAppLogin({ extraParams = {} }) {
         const user = res.data.user || {};
         
         // Check if user already has complete seller profile
-        const hasSellerProfile = user.sellerProfile?.firmName && user.sellerProfile?.managerName;
+        const hasSellerProfile = user.sellerProfile?.registeredBusinessName && user.sellerProfile?.managerName;
         const hasSellerRole = user.roles?.seller;
         
         // Set flag only if new WhatsApp login

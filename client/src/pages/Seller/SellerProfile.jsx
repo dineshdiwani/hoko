@@ -19,13 +19,12 @@ export default function SellerProfile() {
   const [categories, setCategories] = useState([]);
   const [currencies, setCurrencies] = useState([]);
 
-  const [profile, setProfile] = useState({
+const [profile, setProfile] = useState({
     email: "",
-    businessName: "",
+    registeredBusinessName: "",
     registrationDetails: "",
     businessAddress: "",
     ownerName: "",
-    firmName: "",
     managerName: "",
     website: "",
     taxId: "",
@@ -76,15 +75,14 @@ export default function SellerProfile() {
     api
       .get("/seller/profile")
       .then((res) => {
-        const data = res.data || {};
+const data = res.data || {};
         const sellerProfile = data.sellerProfile || {};
         setProfile({
           email: data.email || session?.email || "",
-          businessName: sellerProfile.businessName || "",
+          registeredBusinessName: sellerProfile.registeredBusinessName || "",
           registrationDetails: sellerProfile.registrationDetails || "",
           businessAddress: sellerProfile.businessAddress || "",
           ownerName: sellerProfile.ownerName || "",
-          firmName: sellerProfile.firmName || "",
           managerName: sellerProfile.managerName || "",
           website: sellerProfile.website || "",
           taxId: sellerProfile.taxId || "",
@@ -122,13 +120,12 @@ export default function SellerProfile() {
     }
     setSaving(true);
     try {
-      const res = await api.post("/seller/profile", {
+const res = await api.post("/seller/profile", {
         email: profile.email,
-        businessName: profile.businessName,
+        registeredBusinessName: profile.registeredBusinessName,
         registrationDetails: profile.registrationDetails,
         businessAddress: profile.businessAddress,
         ownerName: profile.ownerName,
-        firmName: profile.firmName,
         managerName: profile.managerName,
         website: profile.website,
         taxId: profile.taxId,
@@ -190,10 +187,10 @@ export default function SellerProfile() {
                 <label className="text-sm text-gray-600">
                   Registered Business Name
                 </label>
-                <input
-                  value={profile.businessName}
+<input
+                  value={profile.registeredBusinessName}
                   onChange={(e) =>
-                    setProfile({ ...profile, businessName: e.target.value })
+                    setProfile({ ...profile, registeredBusinessName: e.target.value })
                   }
                   className="w-full border rounded-xl px-4 py-3"
                 />
@@ -244,18 +241,7 @@ export default function SellerProfile() {
                 />
               </div>
 
-              <div>
-                <label className="text-sm text-gray-600">Brand / Firm</label>
-                <input
-                  value={profile.firmName}
-                  onChange={(e) =>
-                    setProfile({ ...profile, firmName: e.target.value })
-                  }
-                  className="w-full border rounded-xl px-4 py-3"
-                />
-              </div>
-
-              <div>
+<div>
                 <label className="text-sm text-gray-600">
                   Manager Name (Optional)
                 </label>

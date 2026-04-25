@@ -18,9 +18,8 @@ export default function SellerRegister() {
   const [seller, setSeller] = useState({
     email: session?.email || localStorage.getItem("seller_email") || "",
     mobile: session?.mobile || localStorage.getItem("whatsapp_mobile") || mobileFromUrl || "",
-    firmName: "",
+    registeredBusinessName: "",
     managerName: "",
-    businessName: "",
     registrationDetails: "",
     businessAddress: "",
     ownerName: "",
@@ -165,13 +164,13 @@ const handleSubmit = () => {
     
     const email = String(seller.email || "").trim();
     const mobile = String(seller.mobile || "").trim();
-    const firmName = String(seller.firmName || "").trim();
+    const registeredBusinessName = String(seller.registeredBusinessName || "").trim();
     const managerName = String(seller.managerName || "").trim();
     const city = String(seller.city || "").trim();
     const categories = seller.categories || [];
     const whatsappConsent = seller.whatsappConsent || false;
     
-    if (!email || !mobile || !firmName || !managerName || categories.length === 0 || !city) {
+    if (!email || !mobile || !registeredBusinessName || !managerName || categories.length === 0 || !city) {
       alert("Please fill all required fields");
       return;
     }
@@ -187,11 +186,11 @@ const handleSubmit = () => {
 const profile = {
       email,
       mobile,
-      firmName,
+      registeredBusinessName,
       managerName,
       city,
       categories,
-      businessName: seller.businessName,
+      registrationDetails: seller.registrationDetails,
       businessAddress: seller.businessAddress,
       ownerName: seller.ownerName,
       website: seller.website,
@@ -217,7 +216,7 @@ api
           setSession({
             ...session,
             city: res.data.city,
-            name: res.data?.sellerProfile?.businessName || res.data?.sellerProfile?.firmName || "Seller",
+            name: res.data?.sellerProfile?.registeredBusinessName || "Seller",
             sellerProfile: res.data.sellerProfile
           });
           localStorage.removeItem("whatsapp_login");
@@ -260,10 +259,7 @@ const switchRes = await api.post("/auth/switch-role", {
           roles: switchRes.data.user.roles,
           email: userEmail,
           city: switchRes.data.user.city,
-          name:
-            res.data?.sellerProfile?.businessName ||
-            res.data?.sellerProfile?.firmName ||
-            "Seller",
+          name: res.data?.sellerProfile?.registeredBusinessName || "Seller",
           preferredCurrency:
             switchRes.data.user.preferredCurrency || "INR",
           mobile: switchRes.data.user.mobile || "",
@@ -332,11 +328,11 @@ const switchRes = await api.post("/auth/switch-role", {
               />
 
               <input
-                className={`w-full border p-2 rounded ${submitted && !seller.firmName ? "border-red-500" : ""}`}
-                placeholder="Firm Name *"
-                value={seller.firmName}
+                className={`w-full border p-2 rounded ${submitted && !seller.registeredBusinessName ? "border-red-500" : ""}`}
+                placeholder="Registered Business Name *"
+                value={seller.registeredBusinessName}
                 onChange={(e) =>
-                  setSeller({ ...seller, firmName: e.target.value })
+                  setSeller({ ...seller, registeredBusinessName: e.target.value })
                 }
                 required
               />
@@ -424,16 +420,7 @@ const switchRes = await api.post("/auth/switch-role", {
                   setSeller({ ...seller, managerName: e.target.value })
                 }
                 required
-              />
-
-              <input
-                className="w-full border p-2 rounded"
-                placeholder="Registered Business Name"
-                value={seller.businessName}
-                onChange={(e) =>
-                  setSeller({ ...seller, businessName: e.target.value })
-                }
-              />
+/>
 
               <input
                 className="w-full border p-2 rounded"

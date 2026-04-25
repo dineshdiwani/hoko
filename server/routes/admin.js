@@ -175,7 +175,7 @@ function parseWhatsAppContactsFromWorkbook(buffer) {
 
   for (let index = 0; index < rows.length; index += 1) {
     const row = rows[index] || [];
-    const firmName = String(row[0] || "").trim();
+const registeredBusinessName = String(row[0] || "").trim();
     const city = String(row[1] || "").trim();
     const countryCodeRaw = toDigits(row[2]);
     const mobileRaw = toDigits(row[3]);
@@ -187,7 +187,7 @@ function parseWhatsAppContactsFromWorkbook(buffer) {
     const mobileE164 = normalizeE164(`${countryCodeRaw}${mobileRaw}`);
     if (!mobileE164) continue;
     contacts.push({
-      firmName,
+      registeredBusinessName,
       city,
       cityNormalized: normalizeText(city),
       countryCode: `+${countryCodeRaw}`,
@@ -847,7 +847,7 @@ router.post("/seller/approve", adminAuth, requireAdminPermission("sellers.approv
   });
 
   if (approved) {
-    notifySellerApproved(seller.mobile || "", seller.city || "", seller.sellerProfile?.firmName || "");
+    notifySellerApproved(seller.mobile || "", seller.city || "", seller.sellerProfile?.registeredBusinessName || "");
   }
 
   res.json({
@@ -1978,7 +1978,7 @@ attempted += 1;
     results.push({
       contactId: String(contact?._id || "").trim(),
       mobileE164,
-      firmName: String(contact?.firmName || "").trim(),
+      registeredBusinessName: String(contact?.registeredBusinessName || "").trim(),
       status,
       reason,
       providerMessageId

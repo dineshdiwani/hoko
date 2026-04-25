@@ -277,11 +277,10 @@ async function requestWhatsAppLogin() {
       return profile;
     }
     await api.post("/seller/profile", {
-      businessName: profile.businessName,
+      registeredBusinessName: profile.registeredBusinessName,
       registrationDetails: profile.registrationDetails,
       businessAddress: profile.businessAddress,
       ownerName: profile.ownerName,
-      firmName: profile.firmName,
       managerName: profile.managerName,
       website: profile.website,
       taxId: profile.taxId,
@@ -293,10 +292,7 @@ async function requestWhatsAppLogin() {
   function buildDisplayName(user, roleValue, profile) {
     if (roleValue === "seller") {
       return (
-        profile?.businessName ||
-        profile?.firmName ||
-        user?.name ||
-        "Seller"
+        profile?.registeredBusinessName || user?.name || "Seller"
       );
     }
     return user?.name || "Buyer";
@@ -412,7 +408,7 @@ async function requestWhatsAppLogin() {
               const data = JSON.parse(pendingWhatsAppData);
               if (data.mobile && data.sellerCity) {
                 await api.post("/seller/profile", {
-                  businessName: data.sellerName || data.mobile,
+                  registeredBusinessName: data.sellerName || data.mobile,
                   city: data.sellerCity
                 });
                 await api.post("/auth/switch-role", { role: "seller" });

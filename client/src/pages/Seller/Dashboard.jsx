@@ -490,7 +490,7 @@ export default function SellerDashboard() {
     }
     
     // Check if seller already has profile
-    const hasSellerProfile = session?.sellerProfile?.firmName && session?.sellerProfile?.managerName;
+    const hasSellerProfile = session?.sellerProfile?.registeredBusinessName && session?.sellerProfile?.managerName;
     
     // Show prompt for registration only if not registered
     setTimeout(() => {

@@ -130,7 +130,7 @@ async function flushBatch() {
   if (grouped.newSeller?.length) {
     lines.push(`NEW SELLERS: ${grouped.newSeller.length}`);
     grouped.newSeller.slice(0, 3).forEach(n => {
-      lines.push(`  +91${String(n.mobile).slice(-10)} | ${n.city || "N/A"} | ${n.firmName || "N/A"}`);
+      lines.push(`  +91${String(n.mobile).slice(-10)} | ${n.city || "N/A"} | ${n.registeredBusinessName || "N/A"}`);
     });
     if (grouped.newSeller.length > 3) {
       lines.push(`  ... and ${grouped.newSeller.length - 3} more`);
@@ -259,7 +259,7 @@ async function notifyNewBuyer(mobile, city, email) {
   }
 }
 
-async function notifyNewSeller(mobile, city, firmName, email) {
+async function notifyNewSeller(mobile, city, registeredBusinessName, email) {
   const settings = await getAdminSettings();
   if (!shouldNotify("newSeller", settings)) return;
 
@@ -268,7 +268,7 @@ async function notifyNewSeller(mobile, city, firmName, email) {
     "",
     "Mobile: +91" + String(mobile || "").slice(-10),
     "City: " + (city || "N/A"),
-    "Firm: " + (firmName || "N/A"),
+    "Business: " + (registeredBusinessName || "N/A"),
     email ? "Email: " + email : "",
     "",
     "Time: " + new Date().toLocaleString("en-IN"),
@@ -281,7 +281,7 @@ async function notifyNewSeller(mobile, city, firmName, email) {
   }
   
   if (settings.batchEnabled) {
-    addToBatch({ type: "newSeller", mobile, city, firmName, email });
+    addToBatch({ type: "newSeller", mobile, city, registeredBusinessName, email });
   }
 }
 
@@ -448,7 +448,7 @@ async function notifyModerationAlert(reason, type, itemId) {
   }
 }
 
-async function notifySellerApproved(mobile, firmName, city) {
+async function notifySellerApproved(mobile, registeredBusinessName, city) {
   const settings = await getAdminSettings();
   if (!shouldNotify("sellerApproved", settings)) return;
 
@@ -456,7 +456,7 @@ async function notifySellerApproved(mobile, firmName, city) {
     "HOKO - SELLER APPROVED",
     "",
     "Mobile: +91" + String(mobile || "").slice(-10),
-    "Firm: " + (firmName || "N/A"),
+    "Business: " + (registeredBusinessName || "N/A"),
     "City: " + (city || "N/A"),
     "",
     "Time: " + new Date().toLocaleString("en-IN"),
@@ -469,7 +469,7 @@ async function notifySellerApproved(mobile, firmName, city) {
   }
   
   if (settings.batchEnabled) {
-    addToBatch({ type: "sellerApproved", mobile, firmName, city });
+    addToBatch({ type: "sellerApproved", mobile, registeredBusinessName, city });
   }
 }
 
