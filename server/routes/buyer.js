@@ -902,6 +902,24 @@ router.post(
  * Create buyer requirement
  */
 router.post("/requirement", auth, buyerOnly, async (req, res) => {
+  const { productName, product, quantity, category, city } = req.body || {};
+
+  if (!productName && !product) {
+    return res.status(400).json({ message: "Product name is required" });
+  }
+
+  if (!quantity) {
+    return res.status(400).json({ message: "Quantity is required" });
+  }
+
+  if (!city) {
+    return res.status(400).json({ message: "City is required" });
+  }
+
+  if (!category) {
+    return res.status(400).json({ message: "Category is required" });
+  }
+
   const moderationRules = await getModerationRules();
   const textParts = [
     req.body?.productName,
