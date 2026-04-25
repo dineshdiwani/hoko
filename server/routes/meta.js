@@ -15,13 +15,14 @@ router.get("/health", (req, res) => {
 });
 
 router.get("/options", async (req, res) => {
-  const doc = await PlatformSettings.findOne();
-  console.log("[meta/options] DB doc found:", !!doc);
-  if (doc) {
-    console.log("[meta/options] doc.cities:", doc.cities?.length, "doc.categories:", doc.categories?.length, "doc.units:", doc.units?.length);
+  try {
+    const doc = await PlatformSettings.findOne();
+    const response = buildOptionsResponse(doc);
+    res.json(response);
+  } catch (err) {
+    console.error("[meta/options] Error:", err);
+    res.status(500).json({ message: "Failed to load options", cities: [], categories: [] });
   }
-  const response = buildOptionsResponse(doc);
-  res.json(response);
 });
 
 router.get("/requirements", async (req, res) => {
