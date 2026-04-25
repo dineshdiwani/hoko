@@ -993,26 +993,24 @@ router.post("/requirement", auth, buyerOnly, async (req, res) => {
       const sellerIds = await User.find(sellerQuery).distinct("_id");
       if (!sellerIds.length) return;
 
-      const notifications = await Promise.all(
-        sellerIds.map((sellerId) =>
-          Notification.create({
-            userId: sellerId,
-            fromUserId: req.user._id,
-            requirementId: requirement._id,
-            type: "new_post",
-            message: `New post in ${requirement.category || "your"} category: ${requirementName}`,
-            data: buildNotificationData("new_post", {
-              action: "open_requirement",
-              requirementId: String(requirement._id),
-              entityType: "requirement",
-              entityId: String(requirement._id),
-              category: normalizedCategory,
-              offerInvitedFrom,
-              url: "/seller/dashboard"
-            })
-          })
-        )
-      );
+      const notificationDocs = sellerIds.map((sellerId) => ({
+        userId: sellerId,
+        fromUserId: req.user._id,
+        requirementId: requirement._id,
+        type: "new_post",
+        message: `New post in ${requirement.category || "your"} category: ${requirementName}`,
+        data: buildNotificationData("new_post", {
+          action: "open_requirement",
+          requirementId: String(requirement._id),
+          entityType: "requirement",
+          entityId: String(requirement._id),
+          category: normalizedCategory,
+          offerInvitedFrom,
+          url: "/seller/dashboard"
+        })
+      }));
+
+      const notifications = await Notification.insertMany(notificationDocs);
 
       if (io) {
         notifications.forEach((notification, idx) => {
