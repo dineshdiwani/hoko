@@ -372,6 +372,9 @@ const update = {
     mobile: mobileValue,
     email: emailValue,
     city: cityValue,
+    "sellerProfile.registeredBusinessName": registeredBusinessNameValue,
+    "sellerProfile.managerName": managerNameValue,
+    "sellerProfile.categories": normalizedCategories,
     ...(whatsappConsent === true ? {
       "sellerSettings.whatsappConsent": true,
       "sellerSettings.whatsappConsentAt": new Date()
@@ -390,6 +393,7 @@ const update = {
   res.json({
     sellerProfile: user?.sellerProfile || {},
     city: user?.city,
+    email: user?.email,
     roles: user?.roles,
     termsAccepted: user?.termsAccepted
   });
