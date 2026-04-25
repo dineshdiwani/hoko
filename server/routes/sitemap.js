@@ -1,7 +1,6 @@
 const express = require("express");
 const router = express.Router();
 const Requirement = require("../models/Requirement");
-const { normalizeText } = require("../utils/textUtils");
 
 router.get("/", async (req, res) => {
   try {
