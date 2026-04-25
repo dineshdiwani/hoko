@@ -591,7 +591,7 @@ async function findOrCreateSoftUserByMobileForOtp(mobile, city) {
   return findOrCreateSoftUserByMobile(normalizeE164(mobile), city || "user_default");
 }
 
-async function createRequirementFromOTPData(otpRecord, user) {
+async function createRequirementFromOTPData(otpRecord) {
   const data = otpRecord.requirementData;
   const { user: softUser } = await findOrCreateSoftUserByMobileForOtp(
     otpRecord.mobileE164,
@@ -810,7 +810,7 @@ router.post("/requirement/verify-otp", otpVerifyLimiter, async (req, res) => {
     otpRecord.requirementData = requirementData;
     await otpRecord.save();
     
-    const result = await createRequirementFromOTPData(otpRecord, softUser);
+    const result = await createRequirementFromOTPData(otpRecord);
     requirement = result.requirement;
     softUser = result.softUser;
     tempRequirement = result.tempRequirement;
