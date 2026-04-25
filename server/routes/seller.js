@@ -333,6 +333,7 @@ function escapeRegex(value) {
 router.post("/onboard", auth, async (req, res) => {
 const {
     mobile,
+    email,
     registeredBusinessName,
     registrationDetails,
     businessAddress,
@@ -345,12 +346,14 @@ const {
     whatsappConsent
   } = req.body || {};
   const mobileValue = String(mobile || "").trim();
+  const emailValue = String(email || "").trim();
   const cityValue = String(city || "").trim();
   const registeredBusinessNameValue = String(registeredBusinessName || "").trim();
   const managerNameValue = String(managerName || "").trim();
 
 if (
     !mobileValue ||
+    !emailValue ||
     !cityValue ||
     !registeredBusinessNameValue ||
     !managerNameValue
@@ -367,14 +370,7 @@ if (
 
 const update = {
     mobile: mobileValue,
-    "sellerProfile.registeredBusinessName": registeredBusinessNameValue,
-    "sellerProfile.registrationDetails": String(registrationDetails || "").trim(),
-    "sellerProfile.businessAddress": String(businessAddress || "").trim(),
-    "sellerProfile.ownerName": String(ownerName || "").trim(),
-    "sellerProfile.managerName": managerNameValue,
-    "sellerProfile.categories": normalizedCategories,
-    "sellerProfile.website": String(website || "").trim(),
-    "sellerProfile.taxId": String(taxId || "").trim(),
+    email: emailValue,
     city: cityValue,
     ...(whatsappConsent === true ? {
       "sellerSettings.whatsappConsent": true,
