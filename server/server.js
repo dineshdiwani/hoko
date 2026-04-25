@@ -7,6 +7,21 @@ const helmet = require("helmet");
 const jwt = require("jsonwebtoken");
 const path = require("path");
 const fs = require("fs");
+
+if (process.env.SENTRY_DSN) {
+  const Sentry = require("@sentry/node");
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    integrations: [
+      new Sentry.Integrations.Http({ tracing: true }),
+      new Sentry.Integrations.Express(),
+      new Sentry.Integrations.MongoDb()
+    ],
+    tracesSampleRate: 0.1,
+    environment: process.env.NODE_ENV || "development"
+  });
+}
+
 const ChatMessage = require("./models/ChatMessage");
 const Notification = require("./models/Notification");
 const Requirement = require("./models/Requirement");
@@ -31,10 +46,18 @@ dotenv.config();
 process.on("uncaughtException", (err) => {
   console.error("UNCAUGHT EXCEPTION:", err);
   console.error("Stack:", err.stack);
+  if (process.env.SENTRY_DSN) {
+    const Sentry = require("@sentry/node");
+    Sentry.captureException(err);
+  }
 });
 
 process.on("unhandledRejection", (reason, promise) => {
   console.error("UNHANDLED REJECTION at:", promise, "reason:", reason);
+  if (process.env.SENTRY_DSN && reason instanceof Error) {
+    const Sentry = require("@sentry/node");
+    Sentry.captureException(reason);
+  }
 });
 
 function gracefulShutdown(signal) {

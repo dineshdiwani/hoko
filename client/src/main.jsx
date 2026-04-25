@@ -4,6 +4,7 @@ import App from "./App";
 import "./index.css";
 import { showAlert } from "./utils/dialogs";
 import { Toaster } from "sonner";
+import "./services/sentry";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>

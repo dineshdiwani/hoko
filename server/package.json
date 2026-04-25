@@ -8,6 +8,7 @@
     "dev": "nodemon -r dotenv/config server.js dotenv_config_path=.env.development"
   },
   "dependencies": {
+    "@sentry/node": "^10.50.0",
     "axios": "^1.6.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
