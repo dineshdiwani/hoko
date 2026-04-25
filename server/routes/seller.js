@@ -1415,16 +1415,18 @@ router.post("/otp/request", otpSendLimiter, async (req, res) => {
     source: "seller_deeplink"
   });
   
+  let whatsappSuccess = false;
   try {
     await sendWhatsAppMessage({
       to: mobileE164,
       body: `Your HOKO Seller verification code is: *${otp}*\n\nThis code expires in 10 minutes.`
     });
+    whatsappSuccess = true;
   } catch (err) {
     console.error(`[OTP Request] WhatsApp error for ${mobileE164}:`, err.message);
   }
   
-  res.json({ success: true, message: "OTP sent to WhatsApp" });
+  res.json({ success: true, message: whatsappSuccess ? "OTP sent to WhatsApp" : "OTP generated" });
 });
 
 router.post("/otp/verify", otpVerifyLimiter, async (req, res) => {
@@ -1495,10 +1497,6 @@ router.post("/otp/verify", otpVerifyLimiter, async (req, res) => {
     process.env.JWT_SECRET,
     { expiresIn: "7d" }
   );
-
-  await WhatsAppOTP.findByIdAndUpdate(otpRecord._id, { 
-    $set: { status: "verified", verifiedAt: new Date() } 
-  });
 
   // Inline merge functionality
   console.log("[OTP Verify] Merging requirements for user:", user._id);

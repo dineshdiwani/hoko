@@ -500,11 +500,6 @@ router.post("/requirement/public", async (req, res) => {
 
   const mobileE164 = tempRequirement.mobileE164;
 
-  if (new Date(tempRequirement.expiresAt) < new Date()) {
-    await TempRequirement.findByIdAndUpdate(tempRequirement._id, { $set: { status: "expired" } });
-    return res.status(410).json({ message: "Reference has expired. Please start again from WhatsApp." });
-  }
-
   const { user: softUser } = await findOrCreateSoftUserByMobile(mobileE164, city);
 
   const moderationRules = await getModerationRules();
