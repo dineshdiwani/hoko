@@ -614,6 +614,8 @@ router.get("/offer/requirement/:id", async (req, res) => {
 /**
  * Submit offer on requirement (public - for opted-in sellers)
  */
+const publicOfferRateLimit = new Map();
+
 router.post("/offer/public", async (req, res) => {
   try {
     const {
@@ -636,6 +638,45 @@ router.post("/offer/public", async (req, res) => {
     if (!mobile) {
       return res.status(400).json({ message: "mobile is required for public offers" });
     }
+
+    const mobileStr = String(mobile || "").replace(/\D/g, "").slice(-10);
+    if (mobileStr.length < 10) {
+      return res.status(400).json({ message: "Invalid mobile number" });
+    }
+
+    const mobileE164 = `+91${mobileStr}`;
+    const now = Date.now();
+    const rateLimitKey = mobileE164;
+    const rateLimitWindow = 60 * 60 * 1000;
+    const rateLimitMax = 5;
+
+    const rateLimitEntry = publicOfferRateLimit.get(rateLimitKey);
+    if (rateLimitEntry && now - rateLimitEntry.timestamp < rateLimitWindow) {
+      if (rateLimitEntry.count >= rateLimitMax) {
+        return res.status(429).json({
+          message: "Too many offers. Please try again later.",
+          retryAfter: Math.ceil((rateLimitWindow - (now - rateLimitEntry.timestamp)) / 1000)
+        });
+      }
+      rateLimitEntry.count++;
+    } else {
+      publicOfferRateLimit.set(rateLimitKey, { timestamp: now, count: 1 });
+    }
+
+    if (message && message.length > 2000) {
+      return res.status(400).json({ message: "Message too long (max 2000 characters)" });
+    }
+
+    if (price !== undefined && price !== null && price !== "" && Number(price) < 0) {
+      return res.status(400).json({ message: "Price cannot be negative" });
+    }
+
+    setTimeout(() => {
+      const entry = publicOfferRateLimit.get(rateLimitKey);
+      if (entry && now - entry.timestamp > rateLimitWindow) {
+        publicOfferRateLimit.delete(rateLimitKey);
+      }
+    }, rateLimitWindow);
 
     // Check if this is a dummy requirement
     const DummyRequirement = require("../models/DummyRequirement");
@@ -678,9 +719,6 @@ router.post("/offer/public", async (req, res) => {
           : "Offers for this post are invited only from the buyer city"
       });
     }
-
-    const mobileStr = String(mobile || "").trim();
-    const mobileE164 = mobileStr.startsWith("+") ? mobileStr : `+91${mobileStr}`;
 
     let sellerUser = null;
     const existingUser = await User.findOne({ mobile: mobileE164 }).select("_id roles").lean();
