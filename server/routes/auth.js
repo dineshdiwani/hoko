@@ -585,15 +585,21 @@ router.post("/switch-role", auth, async (req, res) => {
   if (!req.user?.roles?.[nextRole]) {
     return res.status(403).json({ message: "Role not enabled" });
   }
+  
+  let currentUser = req.user;
   if (nextRole === "seller") {
-    const sellerProfile = req.user?.sellerProfile || {};
+    currentUser = await User.findById(req.user._id).lean();
+  }
+  
+  if (nextRole === "seller") {
+    const sellerProfile = currentUser?.sellerProfile || {};
     const hasCategories =
       Array.isArray(sellerProfile.categories) &&
       sellerProfile.categories.filter((item) => String(item || "").trim()).length > 0;
-    const hasSellerProfile = Boolean(
-      String(req.user?.email || "").trim() &&
-        String(req.user?.mobile || "").trim() &&
-        String(req.user?.city || "").trim() &&
+const hasSellerProfile = Boolean(
+      String(currentUser?.email || "").trim() &&
+        String(currentUser?.mobile || "").trim() &&
+        String(currentUser?.city || "").trim() &&
         String(sellerProfile.registeredBusinessName || "").trim() &&
         String(sellerProfile.managerName || "").trim() &&
         hasCategories
@@ -614,13 +620,13 @@ router.post("/switch-role", auth, async (req, res) => {
   res.json({
     token,
     user: {
-      _id: req.user._id,
-      email: req.user.email,
+      _id: currentUser._id,
+      email: currentUser.email,
       role: nextRole,
-      roles: req.user.roles,
-      city: req.user.city,
-      preferredCurrency: req.user.preferredCurrency || "INR",
-      sellerProfile: req.user.sellerProfile
+      roles: currentUser.roles,
+      city: currentUser.city,
+      preferredCurrency: currentUser.preferredCurrency || "INR",
+      sellerProfile: currentUser.sellerProfile
     }
   });
 });
