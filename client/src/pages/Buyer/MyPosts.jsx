@@ -8,6 +8,7 @@ import {
   getAttachmentDisplayName,
   getAttachmentTypeMeta
 } from "../../utils/attachments";
+import EmptyState from "../../components/EmptyState";
 
 export default function MyPosts({
   city = "",
@@ -248,19 +249,15 @@ export default function MyPosts({
   }
 
   /* ---------------- EMPTY STATE ---------------- */
-  if (requirements.length === 0) {
+  if (requirements.length === 0 && !loading) {
     return (
-      <div className="text-center py-12">
-        <p className="text-gray-600 mb-4">
-          You haven't posted any requirements yet.
-        </p>
-        <button
-          onClick={() => navigate("/buyer/requirement/new")}
-          className="px-6 py-3 btn-brand rounded-xl font-semibold"
-        >
-          Post your first requirement
-        </button>
-      </div>
+      <EmptyState
+        icon="clipboard"
+        title="No requirements posted yet"
+        description="Start by posting your first requirement and connect with sellers across India."
+        action={() => navigate("/buyer/requirement/new")}
+        actionLabel="Post your first requirement"
+      />
     );
   }
 

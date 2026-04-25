@@ -11,6 +11,7 @@ import {
   getAttachmentTypeMeta
 } from "../../utils/attachments";
 import { markNotificationsReadByContext } from "../../services/notifications";
+import EmptyState from "../../components/EmptyState";
 
 export default function OfferList() {
   const { id } = useParams();
@@ -483,11 +484,13 @@ export default function OfferList() {
 
       {/* ================= OFFERS ================= */}
       <div className="page-shell pt-6 pb-24">
-        {offers.length === 0 && (
-          <div className="app-card-muted text-center text-gray-600">
-            No offers yet. You'll see chat options once a seller submits
-            an offer.
-          </div>
+        {offers.length === 0 && !loading && (
+          <EmptyState
+            icon="inbox"
+            title="No offers received yet"
+            description="Sellers will send you offers once they see your requirement. Share your requirement to get faster responses."
+            actionLabel="Share your requirement"
+          />
         )}
         <div className="space-y-4">
         {offers.map((offer, index) => {

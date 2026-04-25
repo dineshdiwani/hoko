@@ -8,6 +8,7 @@ import {
   getAttachmentTypeMeta
 } from "../utils/attachments";
 import { getPublicAppUrl, isNativeAppRuntime } from "../utils/runtime";
+import EmptyState from "../components/EmptyState";
 
 export default function CityDashboard({
   city,
@@ -476,12 +477,16 @@ export default function CityDashboard({
         </div>
       )}
 
-      {city && totalRequirements === 0 && (
-        <div className="text-center py-10 text-gray-500">
-          {String(city).toLowerCase() === "all"
-            ? "No requirements posted yet."
-            : `No requirements posted for ${city} yet.`}
-        </div>
+{city && totalRequirements === 0 && !loading && (
+        <EmptyState
+          icon="search"
+          title={String(city).toLowerCase() === "all" ? "No requirements found" : `No requirements in ${city}`}
+          description={String(city).toLowerCase() === "all" 
+            ? "Be the first to post a requirement and connect with sellers." 
+            : `No requirements posted for ${city} yet. Try another city or check back later.`}
+          actionLabel="Post a requirement"
+          action={() => window.location.href = "/post-requirement"}
+        />
       )}
 
       {totalRequirements > 0 && (

@@ -15,6 +15,7 @@ import OfferModal from "../../components/OfferModal";
 import ReviewModal from "../../components/ReviewModal";
 import ReportModal from "../../components/ReportModal";
 import ChatModal from "../../components/ChatModal";
+import EmptyState from "../../components/EmptyState";
 import { confirmDialog } from "../../utils/dialogs";
 import {
   extractAttachmentFileName,
@@ -1035,26 +1036,33 @@ export default function SellerDashboard() {
           )}
 
           {!loading && requirements.length === 0 && (
-            <div className="dashboard-empty text-[var(--ui-text)]">
-              No matching buyer requirements right now.
-            </div>
+            <EmptyState
+              icon="search"
+              title="No buyer requirements right now"
+              description="Check back soon! New requirements are posted daily. You can also update your categories to see more relevant posts."
+              actionLabel="Update categories"
+              action={() => navigate("/seller/profile")}
+            />
           )}
 
           {!loading && requirements.length > 0 && visibleRequirements.length === 0 && (
-            <div className="dashboard-empty text-gray-600">
-              No posts match your dashboard categories. Update them in your profile.
-            </div>
+            <EmptyState
+              icon="clipboard"
+              compact
+              title="No posts match your dashboard categories"
+              description="Update your categories in profile settings."
+            />
           )}
 
           {!loading &&
             requirements.length > 0 &&
             visibleRequirements.length > 0 &&
             filteredRequirements.length === 0 && (
-              <div className="dashboard-empty text-gray-600">
-                {activeSmartTab === "auctions"
-                  ? "No live auctions right now."
-                  : "No posts match the selected filters."}
-              </div>
+              <EmptyState
+                icon="search"
+                compact
+                title={activeSmartTab === "auctions" ? "No live auctions" : "No posts match selected filters"}
+              />
             )}
 
           <div className="dashboard-list">
