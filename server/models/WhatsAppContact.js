@@ -89,5 +89,7 @@ whatsAppContactSchema.index(
   { mobileE164: 1, cityNormalized: 1 },
   { unique: true }
 );
+whatsAppContactSchema.index({ optInStatus: 1, dndStatus: 1 });
+whatsAppContactSchema.index({ active: 1, categoriesNormalized: 1 });
 
 module.exports = mongoose.model("WhatsAppContact", whatsAppContactSchema);

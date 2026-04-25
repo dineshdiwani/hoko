@@ -57,4 +57,6 @@ const pendingOfferDraftSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+pendingOfferDraftSchema.index({ status: 1, createdAt: -1 });
+
 module.exports = mongoose.model("PendingOfferDraft", pendingOfferDraftSchema);

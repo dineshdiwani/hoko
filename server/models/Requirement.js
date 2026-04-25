@@ -175,7 +175,14 @@ requirementSchema.pre("validate", function (next) {
   } else {
     this.status = "open";
   }
-  next();
+next();
 });
+
+requirementSchema.index({ status: 1 });
+requirementSchema.index({ category: 1 });
+requirementSchema.index({ city: 1 });
+requirementSchema.index({ buyerId: 1 });
+requirementSchema.index({ status: 1, category: 1, city: 1 });
+requirementSchema.index({ expiresAt: 1 });
 
 module.exports = mongoose.model("Requirement", requirementSchema);

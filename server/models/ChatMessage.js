@@ -51,7 +51,11 @@ const ChatMessageSchema = new mongoose.Schema(
       flaggedReason: { type: String, default: "" }
     }
   },
-  { timestamps: true }
+{ timestamps: true }
 );
+
+ChatMessageSchema.index({ requirementId: 1, createdAt: -1 });
+ChatMessageSchema.index({ fromUserId: 1, toUserId: 1 });
+ChatMessageSchema.index({ isRead: 1 });
 
 module.exports = mongoose.model("ChatMessage", ChatMessageSchema);

@@ -124,7 +124,13 @@ sellerSettings: {
       whatsappConsentAt: { type: Date }
     }
   },
-  { timestamps: true }
+{ timestamps: true }
 );
+
+userSchema.index({ mobile: 1 });
+userSchema.index({ email: 1 });
+userSchema.index({ "roles.seller": 1 });
+userSchema.index({ "sellerProfile.approved": 1 });
+userSchema.index({ "sellerProfile.categories": 1 });
 
 module.exports = mongoose.model("User", userSchema);

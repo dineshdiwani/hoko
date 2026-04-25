@@ -83,7 +83,13 @@ const offerSchema = new mongoose.Schema(
       flaggedReason: { type: String, default: "" }
     }
   },
-  { timestamps: true }
+{ timestamps: true }
 );
+
+offerSchema.index({ requirementId: 1 });
+offerSchema.index({ sellerId: 1 });
+offerSchema.index({ requirementId: 1, sellerId: 1 });
+offerSchema.index({ price: 1 });
+offerSchema.index({ outcomeStatus: 1 });
 
 module.exports = mongoose.model("Offer", offerSchema);
