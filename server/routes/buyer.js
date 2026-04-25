@@ -37,6 +37,10 @@ const { notifyMatchingSellers } = require("./whatsapp");
 const { notifyNewRequirement, notifyNewOffer } = require("../services/adminNotifications");
 const { sendViaGupshupTemplate } = require("../utils/sendWhatsApp");
 const { resolvePublicAppUrl } = require("../utils/publicAppUrl");
+const { 
+  normalizeOfferInvitedFrom, 
+  getEffectiveRequirementStatus 
+} = require("../utils/sharedUtils");
 const auth = require("../middleware/auth");
 const buyerOnly = require("../middleware/buyerOnly");
 const { otpSendLimiter, otpVerifyLimiter } = require("../middleware/rateLimit");
@@ -102,22 +106,10 @@ function shouldNotifySellerEvent(userDoc, eventKey) {
   }
   return settings.notificationsOffers !== false;
 }
-function normalizeOfferInvitedFrom(value) {
-  return normalizeText(value) === "anywhere" ? "anywhere" : "city";
-}
 function normalizeRequirementStatus(value) {
-  const normalized = normalizeText(value);
+  const normalized = String(value || "").toLowerCase().trim();
   if (["closed", "fulfilled", "cancelled", "expired"].includes(normalized)) {
     return normalized;
-  }
-  return "open";
-}
-function getEffectiveRequirementStatus(requirement) {
-  const explicitStatus = normalizeRequirementStatus(requirement?.status);
-  if (explicitStatus !== "open") return explicitStatus;
-  const expiresAt = requirement?.expiresAt ? new Date(requirement.expiresAt) : null;
-  if (expiresAt && !Number.isNaN(expiresAt.getTime()) && expiresAt.getTime() <= Date.now()) {
-    return "expired";
   }
   return "open";
 }

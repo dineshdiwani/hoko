@@ -3,25 +3,10 @@ const Requirement = require("../models/Requirement");
 const Offer = require("../models/Offer");
 const auth = require("../middleware/auth");
 const { normalizeRequirementAttachmentsForResponse } = require("../utils/attachments");
+const { getEffectiveRequirementStatus } = require("../utils/sharedUtils");
 const router = express.Router();
 function escapeRegex(value) {
   return String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-function normalizeRequirementStatus(value) {
-  const normalized = String(value || "").trim().toLowerCase();
-  if (["closed", "fulfilled", "cancelled", "expired"].includes(normalized)) {
-    return normalized;
-  }
-  return "open";
-}
-function getEffectiveRequirementStatus(requirement) {
-  const explicitStatus = normalizeRequirementStatus(requirement?.status);
-  if (explicitStatus !== "open") return explicitStatus;
-  const expiresAt = requirement?.expiresAt ? new Date(requirement.expiresAt) : null;
-  if (expiresAt && !Number.isNaN(expiresAt.getTime()) && expiresAt.getTime() <= Date.now()) {
-    return "expired";
-  }
-  return "open";
 }
 
 router.get("/city/:city", auth, async (req, res) => {

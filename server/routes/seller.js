@@ -26,6 +26,7 @@ const {
 } = require("../utils/notifications");
 const { normalizeRequirementAttachmentsForResponse } = require("../utils/attachments");
 const { normalizeE164, sendViaGupshupTemplate, sendWhatsAppMessage } = require("../utils/sendWhatsApp");
+const { normalizeOfferInvitedFrom, getEffectiveRequirementStatus } = require("../utils/sharedUtils");
 const { notifyNewOffer, notifyReverseAuction } = require("../services/adminNotifications");
 const WhatsAppTemplateRegistry = require("../models/WhatsAppTemplateRegistry");
 
@@ -321,25 +322,6 @@ function cityMatches(left, right) {
   if (!a || !b) return false;
   if (a === b) return true;
   return a.includes(b) || b.includes(a);
-}
-function normalizeOfferInvitedFrom(value) {
-  return normalizeText(value) === "anywhere" ? "anywhere" : "city";
-}
-function normalizeRequirementStatus(value) {
-  const normalized = normalizeText(value);
-  if (["closed", "fulfilled", "cancelled", "expired"].includes(normalized)) {
-    return normalized;
-  }
-  return "open";
-}
-function getEffectiveRequirementStatus(requirementDoc) {
-  const explicitStatus = normalizeRequirementStatus(requirementDoc?.status);
-  if (explicitStatus !== "open") return explicitStatus;
-  const expiresAt = requirementDoc?.expiresAt ? new Date(requirementDoc.expiresAt) : null;
-  if (expiresAt && !Number.isNaN(expiresAt.getTime()) && expiresAt.getTime() <= Date.now()) {
-    return "expired";
-  }
-  return "open";
 }
 function escapeRegex(value) {
   return String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
