@@ -732,13 +732,18 @@ app.get("/uploads/requirements/:filename", auth, async (req, res) => {
     }
   }
 
-  const diskFilename =
+const diskFilename =
     resolveAttachmentFilenameOnDisk(path.join(__dirname, "uploads", "requirements"), {
       preferredFilename: resolvedFilename,
       requestedFilename: safeName,
       buyerId
     }) || path.basename(resolvedFilename);
-  const filePath = path.join(__dirname, "uploads", "requirements", diskFilename);
+
+  const baseDir = path.join(__dirname, "uploads", "requirements");
+  const filePath = path.join(baseDir, diskFilename);
+  if (!path.resolve(filePath).startsWith(path.resolve(baseDir))) {
+    return res.status(400).json({ message: "Invalid file path" });
+  }
   if (!fs.existsSync(filePath)) {
     return res.status(404).json({ message: "File not found" });
   }
@@ -777,7 +782,11 @@ app.get("/uploads/buyer-documents/:filename", auth, async (req, res) => {
     return res.status(403).json({ message: "Not allowed" });
   }
 
-  const filePath = path.join(__dirname, "uploads", "buyer-documents", safeName);
+const baseDir = path.join(__dirname, "uploads", "buyer-documents");
+  const filePath = path.join(baseDir, safeName);
+  if (!path.resolve(filePath).startsWith(path.resolve(baseDir))) {
+    return res.status(400).json({ message: "Invalid file path" });
+  }
   if (!fs.existsSync(filePath)) {
     return res.status(404).json({ message: "File not found" });
   }

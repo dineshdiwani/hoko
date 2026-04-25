@@ -9,6 +9,15 @@ function basenameSafe(value) {
   return path.basename(stripQueryAndHash(String(value || "").trim()));
 }
 
+function isPathSafe(baseDir, filename) {
+  const safeName = basenameSafe(filename);
+  if (!safeName || safeName.includes("..") || safeName.startsWith("/")) {
+    return false;
+  }
+  const fullPath = path.join(baseDir, safeName);
+  return path.resolve(fullPath).startsWith(path.resolve(baseDir));
+}
+
 function displayNameFromStoredFilename(filename) {
   const base = basenameSafe(filename);
   if (!base) return "";
