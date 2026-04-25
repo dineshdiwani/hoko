@@ -53,8 +53,10 @@ sellerProfile: {
       taxId: { type: String }
     },
 
-    termsAccepted: {
-      at: { type: Date }
+termsAccepted: {
+      at: { type: Date },
+      termsVersion: { type: String, default: "" },
+      privacyVersion: { type: String, default: "" }
     },
 
     blocked: {

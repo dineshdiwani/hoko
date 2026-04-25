@@ -51,10 +51,12 @@ const platformSettingsSchema = new mongoose.Schema(
       blockLinks: { type: Boolean, default: true }
     },
     termsAndConditions: {
-      content: { type: String, default: "" }
+      content: { type: String, default: "" },
+      version: { type: String, default: "1.0" }
     },
     privacyPolicy: {
-      content: { type: String, default: "" }
+      content: { type: String, default: "" },
+      version: { type: String, default: "1.0" }
     },
     adminNotifications: {
       enabled: { type: Boolean, default: true },

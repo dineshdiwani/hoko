@@ -377,7 +377,7 @@ const hasSellerProfile = Boolean(user.roles?.seller) || Boolean(user.sellerProfi
     user.roles.buyer = true;
   }
   if (!user.termsAccepted?.at && acceptTerms) {
-    user.termsAccepted = { at: new Date() };
+    user.termsAccepted = { at: new Date(), termsVersion: "1.0", privacyVersion: "1.0" };
   }
   await user.save();
 
@@ -399,7 +399,8 @@ const hasSellerProfile = Boolean(user.roles?.seller) || Boolean(user.sellerProfi
       city: user.city,
       preferredCurrency: user.preferredCurrency || "INR",
       sellerProfile: user.sellerProfile,
-      mobile: user.mobile
+      mobile: user.mobile,
+      termsAccepted: user.termsAccepted
     },
     merge: mergeResult.merged ? mergeResult : undefined
   });
@@ -535,7 +536,7 @@ router.post("/google", async (req, res) => {
         user.roles.buyer = true;
       }
       if (!user.termsAccepted?.at && acceptTerms) {
-        user.termsAccepted = { at: new Date() };
+        user.termsAccepted = { at: new Date(), termsVersion: "1.0", privacyVersion: "1.0" };
       }
       user.googleProfile = {
         sub,
@@ -722,6 +723,39 @@ router.post("/whatsapp/verify", otpVerifyLimiter, async (req, res) => {
     token,
     merge: mergeResult.merged ? mergeResult : undefined
   });
+});
+
+router.get("/terms-version", async (req, res) => {
+  try {
+    const PlatformSettings = require("../models/PlatformSettings");
+    const settings = await PlatformSettings.findOne({ key: "global" }).lean();
+    const termsVersion = settings?.termsAndConditions?.version || "1.0";
+    const privacyVersion = settings?.privacyPolicy?.version || "1.0";
+    res.json({ termsVersion, privacyVersion });
+  } catch {
+    res.json({ termsVersion: "1.0", privacyVersion: "1.0" });
+  }
+});
+
+router.post("/accept-terms", require("../middleware/auth"), async (req, res) => {
+  try {
+    const PlatformSettings = require("../models/PlatformSettings");
+    const settings = await PlatformSettings.findOne({ key: "global" }).lean();
+    const termsVersion = settings?.termsAndConditions?.version || "1.0";
+    const privacyVersion = settings?.privacyPolicy?.version || "1.0";
+
+    await User.findByIdAndUpdate(req.user._id, {
+      $set: {
+        "termsAccepted.at": new Date(),
+        "termsAccepted.termsVersion": termsVersion,
+        "termsAccepted.privacyVersion": privacyVersion
+      }
+    });
+
+    res.json({ success: true, termsVersion, privacyVersion });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to accept terms" });
+  }
 });
 
 module.exports = router;
