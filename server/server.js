@@ -711,6 +711,7 @@ app.use("/api/push", require("./routes/push"));
 app.use("/api/reviews", require("./routes/reviews"));
 app.use("/api/reports", require("./routes/reports"));
 app.use("/api/meta", require("./routes/meta"));
+app.use("/api/sitemap", require("./routes/sitemap"));
 app.use("/api/whatsapp", require("./routes/whatsapp"));
 app.use("/api/bulk-sms", require("./routes/bulkSms"));
 app.use("/api/dummy-requirements", require("./routes/dummyRequirementApi"));

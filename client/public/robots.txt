@@ -1,13 +1,9 @@
 User-agent: *
 Allow: /
 
-User-agent: Facebookexternalhit
-Allow: /
+# Disallow admin and API routes
+Disallow: /api/
+Disallow: /admin/
 
-User-agent: LinkedInBot
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-Sitemap: https://hokoapp.in/sitemap.xml
+# Allow crawling of public pages
+Sitemap: https://hokoapp.in/api/sitemap
