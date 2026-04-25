@@ -44,4 +44,21 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response) {
+      const { status } = error.response;
+      if (status === 401) {
+        localStorage.removeItem("hoko_session");
+        localStorage.removeItem("session");
+        window.location.href = "/login";
+      } else if (status === 403) {
+        console.warn("[API] Access denied:", error.response.data?.message);
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default api;

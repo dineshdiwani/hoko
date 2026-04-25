@@ -642,6 +642,34 @@ mongoose.connection.on("disconnected", () => {
   console.warn("MongoDB disconnected. Will attempt to reconnect...");
 });
 
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 5;
+
+mongoose.connection.on("disconnected", async () => {
+  if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+    console.error("MongoDB reconnection failed after 5 attempts. Please restart the server.");
+    return;
+  }
+  reconnectAttempts++;
+  const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
+  console.log(`MongoDB reconnection attempt ${reconnectAttempts} in ${delay}ms...`);
+  setTimeout(async () => {
+    try {
+      await mongoose.connect(process.env.MONGO_URI, {
+        serverSelectionTimeoutMS: 10000,
+        socketTimeoutMS: 45000,
+        family: 4,
+        maxPoolSize: 10,
+        minPoolSize: 2,
+      });
+      console.log("MongoDB reconnected successfully");
+      reconnectAttempts = 0;
+    } catch (err) {
+      console.error("MongoDB reconnection failed:", err.message);
+    }
+  }, delay);
+});
+
 mongoose.connection.on("reconnected", () => {
   console.log("MongoDB reconnected");
 });

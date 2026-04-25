@@ -1394,39 +1394,44 @@ router.post("/otp/check-user", otpSendLimiter, async (req, res) => {
 });
 
 router.post("/otp/request", otpSendLimiter, async (req, res) => {
-  const { mobile } = req.body;
-  
-  if (!mobile) {
-    return res.status(400).json({ message: "Mobile number is required" });
-  }
-  
-  const mobileE164 = normalizeE164(mobile);
-  const otp = generateOTP();
-  const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
-  
-  console.log("[OTP Request] Generated OTP:", otp, "for mobile:", mobileE164);
-  
-  await WhatsAppOTP.create({
-    mobileE164,
-    otp,
-    status: "pending",
-    expiresAt,
-    attempts: 0,
-    source: "seller_deeplink"
-  });
-  
-  let whatsappSuccess = false;
   try {
-    await sendWhatsAppMessage({
-      to: mobileE164,
-      body: `Your HOKO Seller verification code is: *${otp}*\n\nThis code expires in 10 minutes.`
+    const { mobile } = req.body;
+
+    if (!mobile) {
+      return res.status(400).json({ message: "Mobile number is required" });
+    }
+
+    const mobileE164 = normalizeE164(mobile);
+    const otp = generateOTP();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    console.log("[OTP Request] Generated OTP:", otp, "for mobile:", mobileE164);
+
+    await WhatsAppOTP.create({
+      mobileE164,
+      otp,
+      status: "pending",
+      expiresAt,
+      attempts: 0,
+      source: "seller_deeplink"
     });
-    whatsappSuccess = true;
+
+    let whatsappSuccess = false;
+    try {
+      await sendWhatsAppMessage({
+        to: mobileE164,
+        body: `Your HOKO Seller verification code is: *${otp}*\n\nThis code expires in 10 minutes.`
+      });
+      whatsappSuccess = true;
+    } catch (err) {
+      console.error(`[OTP Request] WhatsApp error for ${mobileE164}:`, err.message);
+    }
+
+    res.json({ success: true, message: whatsappSuccess ? "OTP sent to WhatsApp" : "OTP generated" });
   } catch (err) {
-    console.error(`[OTP Request] WhatsApp error for ${mobileE164}:`, err.message);
+    console.error("[OTP Request] Error:", err);
+    res.status(500).json({ message: "Failed to send OTP" });
   }
-  
-  res.json({ success: true, message: whatsappSuccess ? "OTP sent to WhatsApp" : "OTP generated" });
 });
 
 router.post("/otp/verify", otpVerifyLimiter, async (req, res) => {
