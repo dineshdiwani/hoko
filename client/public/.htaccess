@@ -1,0 +1,20 @@
+# Enable rewrite engine
+RewriteEngine On
+
+# Set base directory
+RewriteBase /
+
+# If it's a file or directory, serve it directly
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# For API requests, don't redirect
+RewriteCond %{REQUEST_URI} !^/api
+
+# For assets (JS, CSS, images), don't redirect if file exists
+RewriteCond %{REQUEST_URI} !^/assets
+RewriteCond %{REQUEST_URI} !^/logo\.
+RewriteCond %{REQUEST_URI} !^/favicon
+
+# Redirect all other requests to index.html
+RewriteRule ^(.*)$ /index.html [L]
