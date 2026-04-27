@@ -576,19 +576,6 @@ export default function UserLogin({ role = "buyer" }) {
                   className="w-full border border-gray-300 rounded-xl px-4 py-3 mb-4"
                 />
 
-                <div className="text-sm text-gray-600 mb-4">
-                  <span className="text-sm">
-                    By continuing, you accept our{" "}
-                    <button type="button" className="text-amber-700 hover:underline" onClick={() => { setLegalModalType("terms"); setShowLegalModal(true); }}>
-                      Terms & Conditions
-                    </button>
-                    {" "}and{" "}
-                    <button type="button" className="text-amber-700 hover:underline" onClick={() => { setLegalModalType("privacy"); setShowLegalModal(true); }}>
-                      Privacy Policy
-                    </button>
-                  </span>
-                </div>
-
                 <button
                   onClick={() => {
                     setLoginMethod("email");
@@ -704,6 +691,18 @@ export default function UserLogin({ role = "buyer" }) {
                   </div>
                 </>
               )}
+              <div className="mt-5 text-center text-sm text-gray-600">
+                <span className="text-sm">
+                  By continuing, you accept our{" "}
+                  <button type="button" className="text-amber-700 hover:underline" onClick={() => { setLegalModalType("terms"); setShowLegalModal(true); }}>
+                    Terms & Conditions
+                  </button>
+                  {" "}and{" "}
+                  <button type="button" className="text-amber-700 hover:underline" onClick={() => { setLegalModalType("privacy"); setShowLegalModal(true); }}>
+                    Privacy Policy
+                  </button>
+                </span>
+              </div>
             </div>
           </div>
         </div>
