@@ -101,11 +101,6 @@ export default function RequirementForm({ isPublic = false }) {
   const [uploading, setUploading] = useState(false);
   const [loadingRequirement, setLoadingRequirement] = useState(isEditMode);
   
-  const [otpStep, setOtpStep] = useState(false);
-  const [otpValue, setOtpValue] = useState("");
-  const [otpError, setOtpError] = useState("");
-  const [verifyingOtp, setVerifyingOtp] = useState(false);
-  const [postData, setPostData] = useState(null);
   const maxImageBytes = 100 * 1024;
   const [whatsappVerifyOpen, setWhatsappVerifyOpen] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
@@ -631,54 +626,6 @@ useEffect(() => {
     navigate("/buyer/login?redirect=/buyer/dashboard?tab=posts", { replace: true });
   }
 
-  async function handleOtpVerify() {
-    if (otpValue.length !== 4) {
-      setOtpError("Please enter 4-digit OTP");
-      return;
-    }
-
-    setVerifyingOtp(true);
-    setOtpError("");
-
-    try {
-      const verifyRes = await api.post("/buyer/requirement/verify-otp", {
-        mobile: form.mobile,
-        otp: otpValue,
-        requirementData: postData
-      });
-
-      if (verifyRes.data?.success) {
-        setOtpStep(false);
-        setSubmitted(true);
-        setOtpValue("");
-        
-        const { token, user, requirementId } = verifyRes.data;
-        
-        if (token && user) {
-          setSession({
-            _id: user._id,
-            role: user.role,
-            roles: user.roles,
-            email: user.email,
-            city: user.city,
-            name: user.name || "Buyer",
-            preferredCurrency: user.preferredCurrency || "INR",
-            mobile: user.mobile,
-            token
-          });
-        }
-
-        navigate(`/buyer/dashboard?activeTab=posts&highlight=${requirementId || ""}`, { replace: true });
-      } else {
-        throw new Error(verifyRes.data?.message || "Invalid OTP");
-      }
-    } catch (err) {
-      setOtpError(err?.response?.data?.message || err?.message || "Invalid OTP. Please try again.");
-    } finally {
-      setVerifyingOtp(false);
-    }
-  }
-
   if (loadingRequirement) {
     return (
       <div className="page">
@@ -1067,67 +1014,6 @@ useEffect(() => {
         </div>
       )}
 
-      {otpStep && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white w-full max-w-md rounded-2xl shadow-xl p-6">
-            <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <h2 className="text-xl font-bold mb-2">Verify Your Number</h2>
-              <p className="text-gray-600 text-sm">
-                OTP sent to WhatsApp at<br />
-                <span className="font-semibold">{form.mobile}</span>
-              </p>
-            </div>
-
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2 text-center">
-                Enter 4-digit OTP
-              </label>
-              <input
-                type="text"
-                maxLength={4}
-                value={otpValue}
-                onChange={(e) => setOtpValue(e.target.value.replace(/\D/g, ""))}
-                className="w-full px-4 py-3 text-center text-2xl tracking-widest border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none"
-                placeholder="_ _ _ _"
-              />
-              {otpError && (
-                <p className="text-red-500 text-sm text-center mt-2">{otpError}</p>
-              )}
-            </div>
-
-            <div className="flex flex-col gap-3">
-              <button
-                type="button"
-                onClick={handleOtpVerify}
-                disabled={verifyingOtp || otpValue.length !== 4}
-                className="w-full py-3 btn-brand rounded-xl font-semibold disabled:opacity-60"
-              >
-                {verifyingOtp ? "Verifying..." : "Verify OTP"}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setOtpStep(false);
-                  setOtpValue("");
-                  setOtpError("");
-                }}
-                className="w-full py-2 text-gray-600 text-sm"
-              >
-                Cancel
-              </button>
-            </div>
-
-            <p className="text-xs text-gray-500 text-center mt-4">
-              Didn't receive OTP? Check your WhatsApp messages.
-            </p>
-          </div>
-        </div>
-      )}
     </>
   );
 }
