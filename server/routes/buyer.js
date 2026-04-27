@@ -1420,12 +1420,13 @@ router.delete("/requirement/:id", auth, buyerOnly, async (req, res) => {
  */
 router.post("/profile/city", auth, buyerOnly, async (req, res) => {
   const { city } = req.body || {};
-  if (!city) {
+  const cityValue = String(city || "").trim();
+  if (!cityValue) {
     return res.status(400).json({ message: "City required" });
   }
-  req.user.city = city;
+  req.user.city = cityValue;
   await req.user.save();
-  res.json({ city });
+  res.json({ city: req.user.city });
 });
 
 /**

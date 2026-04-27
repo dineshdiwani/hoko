@@ -773,17 +773,30 @@ export default function UserLogin({ role = "buyer" }) {
                 // Save to localStorage first
                 setSession(finalSession);
                 
-                // Get fresh token for API call
-                const session = getSession();
                 const isSellerRole = pendingCitySession?.role === "seller";
                 
-                // Update user profile with selected city (wait for it)
+                // Update the shared user city first so profile settings pick it up as the default.
                 console.log("Updating city to:", city);
                 try {
-                  const endpoint = isSellerRole ? "/seller/profile" : "/buyer/profile";
+                  const endpoint = isSellerRole ? "/seller/profile/city" : "/buyer/profile/city";
                   const res = await api.post(endpoint, { city });
                   console.log("Profile update response:", res.data);
+                  if (res?.data?.city) {
+                    setSession({
+                      ...finalSession,
+                      city: res.data.city
+                    });
+                  }
                 } catch (e) {
+                  if (!isSellerRole) {
+                    try {
+                      await api.post("/buyer/profile", { city });
+                    } catch {}
+                  } else {
+                    try {
+                      await api.post("/seller/profile", { city });
+                    } catch {}
+                  }
                   console.warn("Profile update error:", e.response?.data || e.message);
                 }
                 

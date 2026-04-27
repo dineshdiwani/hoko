@@ -487,6 +487,27 @@ router.post("/profile", auth, sellerOnly, async (req, res) => {
 });
 
 /**
+ * Update seller city
+ */
+router.post("/profile/city", auth, sellerOnly, async (req, res) => {
+  try {
+    const { city } = req.body || {};
+    const cityValue = String(city || "").trim();
+    if (!cityValue) {
+      return res.status(400).json({ message: "City required" });
+    }
+
+    req.user.city = cityValue;
+    await req.user.save();
+
+    res.json({ city: req.user.city });
+  } catch (err) {
+    console.error("[Seller City] Update failed:", err);
+    return res.status(500).json({ message: "Failed to update seller city" });
+  }
+});
+
+/**
  * Get seller profile
  */
 router.get("/profile", auth, sellerOnly, async (req, res) => {
