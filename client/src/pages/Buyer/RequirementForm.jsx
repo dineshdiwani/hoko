@@ -605,60 +605,30 @@ useEffect(() => {
       return;
     }
 
-    try {
-      let attachmentUrls = [];
-      if (attachments.length) {
-        setUploading(true);
-        const formData = new FormData();
-        attachments.forEach((file) => {
-          formData.append("files", file);
-        });
-        const uploadRes = await api.post(
-          "/buyer/requirement/attachments",
-          formData,
-          { headers: { "Content-Type": "multipart/form-data" } }
-        );
-        attachmentUrls =
-          uploadRes?.data?.files?.map((f) => f.url) || [];
-      }
-
-      const payload = {
-        mobile: form.mobile,
-        city: form.city,
-        category: form.category,
-        productName: form.product,
-        product: form.product,
-        makeBrand: form.makeBrand,
-        typeModel: form.typeModel,
-        quantity: form.quantity,
-        type: form.unit,
-        details: form.details,
-        offerInvitedFrom: form.offerInvitedFrom || "city",
-        attachments: [...existingAttachments, ...attachmentUrls],
-        ref: tempRequirementRef
-      };
-
-      setPostData(payload);
-
-      const otpRes = await api.post("/buyer/requirement/request-otp", {
-        mobile: form.mobile,
-        product: form.product,
-        city: form.city
-      });
-
-      if (otpRes.data?.success) {
-        setOtpStep(true);
-        setSubmitted(false);
-        setUploading(false);
-      } else {
-        throw new Error(otpRes.data?.message || "Failed to send OTP");
-      }
-    } catch (err) {
-      const errorMsg = err?.response?.data?.message || err?.message || "Unknown error";
-      alert(`Failed to post requirement: ${errorMsg}`);
-      setSubmitted(false);
-      setUploading(false);
+    // If user is logged in, use handleSubmit flow
+    if (session?.token) {
+      await handleSubmit(e);
+      return;
     }
+
+    // User not logged in - redirect to login
+    // Store the requirement data in sessionStorage to be retrieved after login
+    sessionStorage.setItem("pending_requirement_data", JSON.stringify({
+      mobile: form.mobile,
+      city: form.city,
+      category: form.category,
+      productName: form.product,
+      product: form.product,
+      makeBrand: form.makeBrand,
+      typeModel: form.typeModel,
+      quantity: form.quantity,
+      unit: form.unit,
+      details: form.details,
+      offerInvitedFrom: form.offerInvitedFrom || "city",
+      ref: tempRequirementRef
+    }));
+    
+    navigate("/buyer/login?redirect=/buyer/dashboard?tab=posts", { replace: true });
   }
 
   async function handleOtpVerify() {
@@ -677,7 +647,7 @@ useEffect(() => {
         requirementData: postData
       });
 
-if (verifyRes.data?.success) {
+      if (verifyRes.data?.success) {
         setOtpStep(false);
         setSubmitted(true);
         setOtpValue("");
@@ -702,8 +672,8 @@ if (verifyRes.data?.success) {
       } else {
         throw new Error(verifyRes.data?.message || "Invalid OTP");
       }
-      } catch (err) {
-        setOtpError(err?.response?.data?.message || err?.message || "Invalid OTP. Please try again.");
+    } catch (err) {
+      setOtpError(err?.response?.data?.message || err?.message || "Invalid OTP. Please try again.");
     } finally {
       setVerifyingOtp(false);
     }

@@ -442,47 +442,41 @@ export default function UserLogin({ role = "buyer" }) {
         if (!(currentRole === "buyer" && sellerIntent)) {
           localStorage.removeItem("login_intent_role");
         }
-        setBuyerDashboardDefaultTab(user.city || city);
+setBuyerDashboardDefaultTab(user.city || city);
         
-        const pendingWhatsAppData = localStorage.getItem("pending_whatsapp_offer_data");
-        
-        if (currentRole === "buyer" && sellerIntent && !sellerCapable) {
-          if (pendingWhatsAppData) {
-            try {
-              const data = JSON.parse(pendingWhatsAppData);
-              if (data.mobile && data.sellerCity) {
-                await api.post("/seller/profile", {
-                  registeredBusinessName: data.sellerName || data.mobile,
-                  city: data.sellerCity
-                });
-                await api.post("/auth/switch-role", { role: "seller" });
-                setSession({
-                  ...JSON.parse(localStorage.getItem("session") || "{}"),
-                  role: "seller",
-                  roles: { ...(user?.roles || {}), seller: true }
-                });
-                localStorage.removeItem("pending_whatsapp_offer_data");
-                const dashboardParams = new URLSearchParams();
-                dashboardParams.set("openRequirement", data.requirementId || "");
-                if (data.sellerCity) dashboardParams.set("city", data.sellerCity);
-                navigate(`/seller/dashboard?${dashboardParams.toString()}`, { replace: true });
-                return;
-              }
-            } catch (e) {
-              console.error("[Login] Failed to auto-register seller:", e);
-            }
-          }
-          navigate("/seller/register", { replace: true });
-          return;
-        }
-        startNativePushRegistration();
-        if (isSeller && !sellerCapable) {
-          navigate("/seller/register", { replace: true });
-          return;
-        }
         const targetUrl = urlRedirect 
           ? (redirectTab ? `${urlRedirect}?tab=${redirectTab}` : urlRedirect)
           : (isSeller ? "/seller/dashboard" : "/buyer/dashboard");
+        
+        const pendingRequirementData = sessionStorage.getItem("pending_requirement_data");
+        sessionStorage.removeItem("pending_requirement_data");
+        
+        if (pendingRequirementData) {
+          try {
+            const reqData = JSON.parse(pendingRequirementData);
+            const reqPayload = {
+              mobile: reqData.mobile,
+              city: reqData.city,
+              category: reqData.category,
+              productName: reqData.productName,
+              product: reqData.product,
+              quantity: reqData.quantity,
+              type: reqData.unit,
+              details: reqData.details,
+              offerInvitedFrom: reqData.offerInvitedFrom || "city",
+              ref: reqData.ref
+            };
+            
+            const reqRes = await api.post("/buyer/requirement", reqPayload);
+            if (reqRes.data?._id) {
+              navigate(`/buyer/dashboard?activeTab=posts&highlight=${reqRes.data._id}`, { replace: true });
+              return;
+            }
+          } catch (e) {
+            console.error("[Login] Failed to post pending requirement:", e);
+          }
+        }
+        
         navigate(targetUrl, { replace: true });
       })
       .catch((err) => {
@@ -808,7 +802,35 @@ export default function UserLogin({ role = "buyer" }) {
                   selectedCategory: "all"
                 }));
                 
-                // Navigate to appropriate dashboard with tab
+                const pendingRequirementData = sessionStorage.getItem("pending_requirement_data");
+                sessionStorage.removeItem("pending_requirement_data");
+                
+                if (pendingRequirementData && !isSellerRole) {
+                  try {
+                    const reqData = JSON.parse(pendingRequirementData);
+                    const reqPayload = {
+                      mobile: reqData.mobile,
+                      city: reqData.city,
+                      category: reqData.category,
+                      productName: reqData.productName,
+                      product: reqData.product,
+                      quantity: reqData.quantity,
+                      type: reqData.unit,
+                      details: reqData.details,
+                      offerInvitedFrom: reqData.offerInvitedFrom || "city",
+                      ref: reqData.ref
+                    };
+                    
+                    const reqRes = await api.post("/buyer/requirement", reqPayload);
+                    if (reqRes.data?._id) {
+                      navigate(`/buyer/dashboard?activeTab=posts&highlight=${reqRes.data._id}`, { replace: true });
+                      return;
+                    }
+                  } catch (e) {
+                    console.error("[Login] Failed to post pending requirement:", e);
+                  }
+                }
+                
                 const targetUrl = urlRedirect 
                   ? (redirectTab ? `${urlRedirect}?tab=${redirectTab}` : urlRedirect)
                   : (isSellerRole ? "/seller/dashboard" : "/buyer/dashboard");
