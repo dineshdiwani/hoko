@@ -8,7 +8,7 @@ import {
 } from "../../services/notifications";
 import { fetchOptions } from "../../services/options";
 import { getSession, logout } from "../../services/auth";
-import { getSellerDashboardCategories, setSession } from "../../services/storage";
+import { getSellerDashboardCategories, onSessionUpdated, setSession } from "../../services/storage";
 import { generateSamplePostsForCity } from "../../services/samplePosts";
 import NotificationCenter from "../../components/NotificationCenter";
 import OfferModal from "../../components/OfferModal";
@@ -59,7 +59,7 @@ export default function SellerDashboard() {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const session = getSession();
+  const [session, setSessionState] = useState(() => getSession());
   const menuRef = useRef(null);
 
   // Handle city from URL params (from WhatsApp deep link)
@@ -95,6 +95,17 @@ export default function SellerDashboard() {
     import.meta.env.DEV;
 
   const currentUserId = session?._id || session?.id || session?.userId || null;
+
+  useEffect(() => {
+    const syncSession = () => setSessionState(getSession());
+    syncSession();
+    const unsubscribe = onSessionUpdated(syncSession);
+    window.addEventListener("storage", syncSession);
+    return () => {
+      unsubscribe();
+      window.removeEventListener("storage", syncSession);
+    };
+  }, []);
 
   const normalizeCategory = (cat) => String(cat || "").toLowerCase().trim();
   const normalizeCity = (value) => String(value || "").trim().toLowerCase();
@@ -904,6 +915,9 @@ export default function SellerDashboard() {
 
               {menuOpen && (
                 <div className="dashboard-panel absolute right-0 mt-2 w-44 overflow-hidden">
+                  <div className="px-3 py-2 text-xs text-gray-500 border-b bg-gray-50">
+                    City: {session?.city || "Not set"}
+                  </div>
                   <button
                     onClick={() => {
                       setMenuOpen(false);

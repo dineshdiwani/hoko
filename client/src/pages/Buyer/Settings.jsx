@@ -142,12 +142,18 @@ export default function BuyerSettings() {
   }
 
   async function saveSettings() {
+    const email = String(profile.email || "").trim();
+    const mobile = String(profile.mobile || "").trim();
+    if (!email && !mobile) {
+      alert("Please add an email or mobile number");
+      return;
+    }
     setSaving(true);
     try {
       const payload = {
         name: profile.name,
-        email: profile.email,
-        mobile: profile.mobile,
+        email,
+        mobile,
         city: profile.city,
         preferredCurrency: profile.preferredCurrency,
         buyerSettings: {

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { getSession, logout } from "../../services/auth";
-import { setSession, updateSession } from "../../services/storage";
+import { onSessionUpdated, setSession, updateSession } from "../../services/storage";
 import MyPosts from "./MyPosts";
 import OffersReceived from "./OffersReceived";
 import CityDashboard from "../CityDashboard";
@@ -58,9 +58,9 @@ export default function BuyerDashboard() {
   const [searchParams] = useSearchParams();
   const requestedTab = normalizeDashboardTab(searchParams.get("tab"));
   const highlightId = searchParams.get("highlight") || "";
+  const [session, setSessionState] = useState(() => getSession());
   const [sessionVersion, setSessionVersion] = useState(0);
   const [refreshToken, setRefreshToken] = useState(0);
-  const session = getSession();
   const persistedState = readBuyerDashboardState();
 
   const [activeTab, setActiveTab] = useState(
@@ -87,6 +87,17 @@ export default function BuyerDashboard() {
   const [chatRequirementId, setChatRequirementId] = useState(null);
 const [showAppBanner, setShowAppBanner] = useState(true);
   const menuRef = useRef(null);
+
+  useEffect(() => {
+    const syncSession = () => setSessionState(getSession());
+    syncSession();
+    const unsubscribe = onSessionUpdated(syncSession);
+    window.addEventListener("storage", syncSession);
+    return () => {
+      unsubscribe();
+      window.removeEventListener("storage", syncSession);
+    };
+  }, []);
 
   // Safety guard
   useEffect(() => {
@@ -528,6 +539,9 @@ useEffect(() => {
 
               {menuOpen && (
                 <div className="dashboard-panel absolute right-0 mt-2 w-44 overflow-hidden">
+                  <div className="px-3 py-2 text-xs text-gray-500 border-b bg-gray-50">
+                    City: {session?.city || "Not set"}
+                  </div>
                   <button
                     onClick={() => {
                       setMenuOpen(false);

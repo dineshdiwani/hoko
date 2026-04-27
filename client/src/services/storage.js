@@ -5,9 +5,16 @@ const SELLER_DASHBOARD_CATEGORIES_KEY =
 const SETTINGS_KEY = "hoko_settings";
 const SEEN_NOTIFICATION_IDS_KEY = "hoko_seen_notification_ids";
 const NATIVE_PUSH_TOKEN_KEY = "hoko_native_push_token";
+const SESSION_UPDATED_EVENT = "hoko_session_updated";
+
+function notifySessionUpdated() {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent(SESSION_UPDATED_EVENT));
+}
 
 export function setSession(session) {
   localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  notifySessionUpdated();
 }
 
 export function getSession() {
@@ -20,12 +27,19 @@ export function getSession() {
 
 export function clearSession() {
   localStorage.removeItem(SESSION_KEY);
+  notifySessionUpdated();
 }
 
 export function updateSession(partial) {
   const current = getSession();
   if (!current) return;
   setSession({ ...current, ...partial });
+}
+
+export function onSessionUpdated(handler) {
+  if (typeof window === "undefined") return () => {};
+  window.addEventListener(SESSION_UPDATED_EVENT, handler);
+  return () => window.removeEventListener(SESSION_UPDATED_EVENT, handler);
 }
 
 export function getSellerDashboardCategories() {
