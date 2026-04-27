@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
 import { fetchOptions } from "../../services/options";
@@ -57,6 +57,7 @@ export default function BuyerSettings() {
     id: ""
   });
   const [pushPermission, setPushPermission] = useState(() => getPushPermissionState());
+  const initialContactRef = useRef({ email: "", mobile: "" });
 
   useEffect(() => {
     if (!session?.token) {
@@ -85,6 +86,10 @@ export default function BuyerSettings() {
           roles: data.roles || { buyer: true, seller: false, admin: false },
           loginMethods: data.loginMethods || { otp: true, google: false }
         });
+        initialContactRef.current = {
+          email: String(data.email || session.email || "").trim(),
+          mobile: String(data.mobile || "").trim()
+        };
         setPrefs({
           ...DEFAULT_PREFS,
           ...(data.buyerSettings || {}),
@@ -144,16 +149,12 @@ export default function BuyerSettings() {
   async function saveSettings() {
     const email = String(profile.email || "").trim();
     const mobile = String(profile.mobile || "").trim();
-    if (!email && !mobile) {
-      alert("Please add an email or mobile number");
-      return;
-    }
     setSaving(true);
     try {
+      const initialEmail = String(initialContactRef.current.email || "").trim();
+      const initialMobile = String(initialContactRef.current.mobile || "").trim();
       const payload = {
         name: profile.name,
-        email,
-        mobile,
         city: profile.city,
         preferredCurrency: profile.preferredCurrency,
         buyerSettings: {
@@ -169,6 +170,12 @@ export default function BuyerSettings() {
           }
         }
       };
+      if (email && email !== initialEmail) {
+        payload.email = email;
+      }
+      if (mobile && mobile !== initialMobile) {
+        payload.mobile = mobile;
+      }
       const res = await api.post("/buyer/profile", payload);
       const data = res.data || {};
       
@@ -203,6 +210,10 @@ export default function BuyerSettings() {
         ...prev,
         acceptedAt: data.terms?.acceptedAt || prev.acceptedAt
       }));
+      initialContactRef.current = {
+        email: data.email || email || initialEmail,
+        mobile: data.mobile || mobile || initialMobile
+      };
       updateSession({
         name: data.name || profile.name,
         city: data.city || profile.city,

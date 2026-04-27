@@ -53,6 +53,7 @@ const [profile, setProfile] = useState({
       localStorage.getItem("terms_accepted_at") || ""
   });
   const [pushPermission, setPushPermission] = useState(() => getPushPermissionState());
+  const initialContactRef = useRef({ email: "", mobile: "" });
   const categoriesRef = useRef(null);
   const normalizeCategory = (value) =>
     String(value || "").toLowerCase().trim();
@@ -119,6 +120,10 @@ setProfile({
           website: sellerProfile.website || "",
           taxId: sellerProfile.taxId || ""
         });
+        initialContactRef.current = {
+          email: String(res.data?.email || session?.email || "").trim(),
+          mobile: String(res.data?.mobile || "").trim()
+        };
         setTerms({
           acceptedAt:
             res.data?.terms?.acceptedAt ||
@@ -208,21 +213,15 @@ setProfile({
     .filter((cat) => cat.value);
 
   const saveSettings = async () => {
-    if (!/\S+@\S+\.\S+/.test(String(profile.email || ""))) {
-      alert("Please enter a valid email");
-      return;
-    }
-    if (!String(profile.mobile || "").trim()) {
-      alert("Please enter mobile number");
-      return;
-    }
     setSaving(true);
     try {
       const uniqueCategories = dedupeCategories(profile.categories);
-      await api.post("/seller/profile", {
-        email: profile.email,
-        mobile: profile.mobile,
-registeredBusinessName: profile.registeredBusinessName,
+      const email = String(profile.email || "").trim();
+      const mobile = String(profile.mobile || "").trim();
+      const initialEmail = String(initialContactRef.current.email || "").trim();
+      const initialMobile = String(initialContactRef.current.mobile || "").trim();
+      const payload = {
+        registeredBusinessName: profile.registeredBusinessName,
         registrationDetails: profile.registrationDetails,
         businessAddress: profile.businessAddress,
         ownerName: profile.ownerName,
@@ -235,7 +234,18 @@ registeredBusinessName: profile.registeredBusinessName,
           notificationsAuction: prefs.notificationsAuction !== false,
           notificationsOffers: prefs.notificationsOffers !== false
         }
-      });
+      };
+      if (email && email !== initialEmail) {
+        if (!/\S+@\S+\.\S+/.test(email)) {
+          alert("Please enter a valid email");
+          return;
+        }
+        payload.email = email;
+      }
+      if (mobile && mobile !== initialMobile) {
+        payload.mobile = mobile;
+      }
+      await api.post("/seller/profile", payload);
       setProfile((prev) => ({ ...prev, categories: uniqueCategories }));
       setSellerDashboardCategories(uniqueCategories);
       updateSettings({ seller: prefs });
