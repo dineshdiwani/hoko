@@ -788,7 +788,7 @@ setBuyerDashboardDefaultTab(user.city || city);
                 <option key={c} value={c}>{c}</option>
               ))}
             </select>
-              <button
+<button
               onClick={async () => {
                 if (!city) {
                   alert("Please select your city");
@@ -866,9 +866,21 @@ setBuyerDashboardDefaultTab(user.city || city);
                     console.error("[Login] Failed to post pending requirement:", e);
                     sessionStorage.removeItem("pending_requirement_data");
                   }
-                } else {
-                  setShowCityModal(true);
                 }
+                
+                // Build dashboard URL with WhatsApp params
+                const whatsappCity = localStorage.getItem("whatsapp_city") || "";
+                const whatsappCats = localStorage.getItem("whatsapp_categories") || "";
+                localStorage.removeItem("whatsapp_city");
+                localStorage.removeItem("whatsapp_categories");
+                
+                const dashboardParams = new URLSearchParams();
+                if (whatsappCity) dashboardParams.set("city", whatsappCity);
+                if (whatsappCats) dashboardParams.set("cats", whatsappCats);
+                if (isSellerRole) dashboardParams.set("from", "wa");
+                
+                // Redirect to dashboard
+                navigate(`/seller/dashboard?${dashboardParams.toString()}`, { replace: true });
               }}
               className="w-full py-3 rounded-xl btn-brand font-semibold"
             >
