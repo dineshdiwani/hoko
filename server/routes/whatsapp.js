@@ -148,12 +148,8 @@ function buildWelcomeMessage() {
     "🙏 Welcome to Hoko",
     "India's smarter way to buy & sell.",
     "",
-    "🛒 Want to BUY? → Get multiple offers from sellers",
-    "🏪 Want to SELL? → Get real buyer requirements",
-    "",
-    "Reply with:",
-    "1️⃣ Buyer",
-    "2️⃣ Seller"
+    "🛒 Want to BUY? → Type BUYER",
+    "🏪 Want to SELL? → Type SELLER"
   ].join("\n");
 }
 
@@ -699,12 +695,8 @@ function buildGenericHelpMessage() {
     "🙏 Welcome to Hoko",
     "India's smarter way to buy & sell.",
     "",
-    "🛒 Want to BUY? → Get multiple offers from sellers",
-    "🏪 Want to SELL? → Get real buyer requirements",
-    "",
-    "Reply with:",
-    "1️⃣ Buyer",
-    "2️⃣ Seller"
+    "🛒 Want to BUY? → Type BUYER",
+    "🏪 Want to SELL? → Type SELLER"
   ].join("\n");
 }
 
@@ -971,7 +963,7 @@ console.log("[WA WEBHOOK] Extracted events:", events.length, events.map(e => ({ 
       notifyWhatsAppInteraction(event.mobileE164, "", event.text || "");
       
       // New user - show greeting and handle BUYER/SELLER directly
-      if (BUYER_WORDS.has(normalizedInbound) || normalizedInbound === "1") {
+      if (BUYER_WORDS.has(normalizedInbound)) {
         await applyConsentConfirmed(await WhatsAppBuyerContact.findOne({ mobileE164: event.mobileE164 }), "buyer", event);
         
         const deepLink = await sendBuyerInviteDirect(event.mobileE164);
@@ -986,23 +978,16 @@ console.log("[WA WEBHOOK] Extracted events:", events.length, events.map(e => ({ 
         continue;
       }
       
-if (SELLER_WORDS.has(normalizedInbound) || normalizedInbound === "2") {
-        await applyConsentConfirmed(await WhatsAppBuyerContact.findOne({ mobileE164: event.mobileE164 }), "buyer", event);
-        
-        const appBase = resolvePublicAppUrl();
-        const params = new URLSearchParams();
-        params.set("mobile", event.mobileE164.replace("+", ""));
-        params.set("ref", "wa");
-        const loginLink = `${appBase}/seller/login?${params.toString()}`;
-        
-        const message = buildSellerValueMessage(loginLink);
-        
+      if (SELLER_WORDS.has(normalizedInbound)) {
+        consentState.delete(consentKey);
+        consentState.set(consentKey, { 
+          step: CONSENT_STATES.AWAITING_SELLER_CITY, 
+          mobileE164: event.mobileE164 
+        });
         await sendWhatsAppMessage({
           to: event.mobileE164,
-          body: message
+          body: buildSellerCityPrompt()
         });
-        
-        consentState.delete(consentKey);
         continue;
       }
       
@@ -1018,6 +1003,9 @@ if (SELLER_WORDS.has(normalizedInbound) || normalizedInbound === "2") {
     const latestBuyerContact =
       buyerContact || (await WhatsAppBuyerContact.findOne({ mobileE164: event.mobileE164 }));
 
+    const isAwaitingCategories = currentConsentState?.step === CONSENT_STATES.AWAITING_SELLER_CATEGORIES;
+    const isAwaitingCity = currentConsentState?.step === CONSENT_STATES.AWAITING_SELLER_CITY;
+    
     // Existing users - simplified flow
     if (GREETING_WORDS.has(normalizedInbound)) {
       consentState.delete(consentKey);
@@ -1028,7 +1016,7 @@ if (SELLER_WORDS.has(normalizedInbound) || normalizedInbound === "2") {
       continue;
     }
 
-    if (BUYER_WORDS.has(normalizedInbound) || normalizedInbound === "1") {
+    if (BUYER_WORDS.has(normalizedInbound)) {
       consentState.delete(consentKey);
       const deepLink = await sendBuyerInviteDirect(event.mobileE164);
       await sendWhatsAppMessage({
@@ -1038,7 +1026,7 @@ if (SELLER_WORDS.has(normalizedInbound) || normalizedInbound === "2") {
       continue;
     }
 
-    if (SELLER_WORDS.has(normalizedInbound) || normalizedInbound === "2") {
+    if (SELLER_WORDS.has(normalizedInbound)) {
       consentState.delete(consentKey);
       consentState.set(consentKey, { 
         step: CONSENT_STATES.AWAITING_SELLER_CITY, 
@@ -1052,7 +1040,7 @@ if (SELLER_WORDS.has(normalizedInbound) || normalizedInbound === "2") {
     }
 
     // Handle seller city input
-    if (currentConsentState?.step === CONSENT_STATES.AWAITING_SELLER_CITY) {
+    if (isAwaitingCity) {
       const inboundText = String(event.text || "").trim();
       if (!inboundText || inboundText.length < 2) {
         await sendWhatsAppMessage({
