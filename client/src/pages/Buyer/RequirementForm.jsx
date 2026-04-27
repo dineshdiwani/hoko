@@ -3,7 +3,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { fetchOptions } from "../../services/options";
 import api from "../../services/api";
 import { getSession } from "../../services/auth";
-import { setSession } from "../../services/storage";
+import { setSession, updateSession } from "../../services/storage";
 import {
   getAttachmentDisplayName,
   getAttachmentTypeMeta
@@ -80,9 +80,11 @@ export default function RequirementForm({ isPublic = false }) {
   const session = getSession();
   const isLoggedIn = Boolean(session?.token);
   const sessionCity = String(session?.city || "").trim();
+  const needsProfileEmail = Boolean(session?.mobile && !session?.email);
 
   const [form, setForm] = useState({
     mobile: "",
+    email: "",
     city: cityFromUrl || "",
     category: "",
     product: productFromUrl || "",
@@ -253,6 +255,10 @@ useEffect(() => {
     // If logged in via email, pre-fill mobile from session if available
     if (session?.mobile && isPublic && !form.mobile) {
       setForm((prev) => ({ ...prev, mobile: session.mobile.replace("+", "") }));
+    }
+
+    if (session?.email) {
+      setForm((prev) => ({ ...prev, email: session.email }));
     }
     
     fetchMobileFromRef();
@@ -499,6 +505,12 @@ useEffect(() => {
       return;
     }
 
+    if (needsProfileEmail && !/\S+@\S+\.\S+/.test(String(form.email || ""))) {
+      alert("Please enter your email id");
+      setSubmitted(false);
+      return;
+    }
+
     try {
       let attachmentUrls = [];
       if (attachments.length) {
@@ -518,6 +530,7 @@ useEffect(() => {
 
       const payload = {
         mobile: form.mobile,
+        email: needsProfileEmail ? form.email : session?.email || "",
         city: form.city,
         category: form.category,
         productName: form.product,
@@ -550,6 +563,13 @@ useEffect(() => {
 
       // For logged-in users, navigate to dashboard
       if (session?.token) {
+        if (payload.email || payload.mobile) {
+          updateSession({
+            ...(payload.email ? { email: payload.email } : {}),
+            ...(payload.mobile ? { mobile: payload.mobile } : {}),
+            city: payload.city
+          });
+        }
         navigate("/buyer/dashboard?tab=posts", { replace: true });
         return;
       }
@@ -754,6 +774,26 @@ useEffect(() => {
               <p className="text-xs text-gray-500 mt-1">Required for posting requirement</p>
             )}
           </div>
+
+          {needsProfileEmail && (
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Email ID
+              </label>
+              <input
+                name="email"
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm({...form, email: e.target.value})}
+                placeholder="Enter your email id"
+                className="w-full px-3 py-2 border rounded-xl text-sm"
+                required
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                We will save this to your profile for future use.
+              </p>
+            </div>
+          )}
 
         {/* Product */}
         <input

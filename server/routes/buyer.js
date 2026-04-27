@@ -889,7 +889,7 @@ router.post(
  * Create buyer requirement
  */
 router.post("/requirement", auth, buyerOnly, async (req, res) => {
-  const { productName, product, quantity, category, city } = req.body || {};
+  const { productName, product, quantity, category, city, email, mobile } = req.body || {};
 
   if (!productName && !product) {
     return res.status(400).json({ message: "Product name is required" });
@@ -905,6 +905,26 @@ router.post("/requirement", auth, buyerOnly, async (req, res) => {
 
   if (!category) {
     return res.status(400).json({ message: "Category is required" });
+  }
+
+  if (typeof email === "string" && email.trim()) {
+    req.user.email = email.trim().toLowerCase();
+  }
+  if (typeof mobile === "string" && mobile.trim()) {
+    req.user.mobile = String(mobile).trim();
+  }
+
+  try {
+    await req.user.save();
+  } catch (err) {
+    console.error("[Buyer Requirement] Contact save failed:", err.code, err.keyPattern);
+    if (err?.code === 11000) {
+      const duplicateField = Object.keys(err?.keyPattern || {})[0] || "field";
+      return res.status(400).json({
+        message: `This ${duplicateField} is already registered. Please use a different value.`
+      });
+    }
+    return res.status(500).json({ message: "Failed to update contact details" });
   }
 
   const moderationRules = await getModerationRules();
@@ -947,7 +967,18 @@ router.post("/requirement", auth, buyerOnly, async (req, res) => {
         }
       : undefined
   });
-  res.json(mapRequirementLifecycle(requirement));
+  res.json({
+    ...mapRequirementLifecycle(requirement),
+    user: {
+      _id: req.user._id,
+      email: req.user.email || "",
+      mobile: req.user.mobile || "",
+      city: req.user.city || "",
+      preferredCurrency: req.user.preferredCurrency || "INR",
+      roles: req.user.roles || {},
+      name: req.user.name || ""
+    }
+  });
 
   const io = req.app.get("io");
   const requirementName =
