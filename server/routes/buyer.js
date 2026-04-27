@@ -865,6 +865,29 @@ router.post("/requirement/verify-otp", otpVerifyLimiter, async (req, res) => {
   });
 });
 
+router.get("/user-by-mobile", async (req, res) => {
+  const { mobile } = req.query;
+  
+  if (!mobile) {
+    return res.status(400).json({ message: "Mobile number is required" });
+  }
+  
+  const mobileE164 = normalizeE164(mobile);
+  const user = await SoftUser.findOne({ 
+    $or: [
+      { mobileE164 },
+      { mobile: mobileE164 },
+      { phone: mobileE164 }
+    ]
+  }).select("city name email mobile").lean();
+  
+  if (user) {
+    res.json({ exists: true, city: user.city, name: user.name, email: user.email, mobile: user.mobile });
+  } else {
+    res.json({ exists: false });
+  }
+});
+
 router.post("/otp/request", async (req, res) => {
   const { mobile } = req.body;
   

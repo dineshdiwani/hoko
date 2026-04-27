@@ -794,16 +794,8 @@ setBuyerDashboardDefaultTab(user.city || city);
                   console.warn("Profile update error:", e.response?.data || e.message);
                 }
                 
-                // Save dashboard state
-                const stateKey = isSellerRole ? "seller_dashboard_state" : "buyer_dashboard_state";
-                localStorage.setItem(stateKey, JSON.stringify({
-                  activeTab: redirectTab || "posts",
-                  city: city,
-                  selectedCategory: "all"
-                }));
-                
+                // Check if user has pending requirement - skip city modal
                 const pendingRequirementData = sessionStorage.getItem("pending_requirement_data");
-                sessionStorage.removeItem("pending_requirement_data");
                 
                 if (pendingRequirementData && !isSellerRole) {
                   try {
@@ -823,18 +815,22 @@ setBuyerDashboardDefaultTab(user.city || city);
                     
                     const reqRes = await api.post("/buyer/requirement", reqPayload);
                     if (reqRes.data?._id) {
+                      // Update user profile with city from requirement
+                      try {
+                        await api.post("/buyer/profile", { city: reqData.city });
+                      } catch {}
+                      
+                      sessionStorage.removeItem("pending_requirement_data");
                       navigate(`/buyer/dashboard?activeTab=posts&highlight=${reqRes.data._id}`, { replace: true });
                       return;
                     }
                   } catch (e) {
                     console.error("[Login] Failed to post pending requirement:", e);
+                    sessionStorage.removeItem("pending_requirement_data");
                   }
+                } else {
+                  setShowCityModal(true);
                 }
-                
-                const targetUrl = urlRedirect 
-                  ? (redirectTab ? `${urlRedirect}?tab=${redirectTab}` : urlRedirect)
-                  : (isSellerRole ? "/seller/dashboard" : "/buyer/dashboard");
-                navigate(targetUrl, { replace: true });
               }}
               className="w-full py-3 rounded-xl btn-brand font-semibold"
             >

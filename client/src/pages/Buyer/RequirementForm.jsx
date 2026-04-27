@@ -256,6 +256,23 @@ useEffect(() => {
       setForm((prev) => ({ ...prev, email: session.email }));
     }
     
+    // For existing users, fetch city from database using mobile
+    async function loadCityFromDatabase() {
+      const mobile = form.mobile || mobileFromUrl;
+      if (!mobile || !isPublic) return;
+      
+      try {
+        const res = await api.get(`/buyer/user-by-mobile?mobile=${encodeURIComponent(mobile)}`);
+        const userData = res?.data;
+        if (userData?.exists && userData?.city) {
+          setForm((prev) => ({ ...prev, city: userData.city }));
+        }
+      } catch (err) {
+        // User not found - new user, city stays empty
+      }
+    }
+    
+    loadCityFromDatabase();
     fetchMobileFromRef();
   }, [tempRequirementRef, isPublic, session?.mobile]);
 
