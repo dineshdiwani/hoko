@@ -12,6 +12,8 @@ export default function SellerRegister() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const mobileFromUrl = searchParams.get("mobile") || "";
+  const cityFromUrl = searchParams.get("city") || "";
+  const catsFromUrl = searchParams.get("cats") || "";
   const session = getSession();
   const sessionCity = String(session?.city || "").trim();
 
@@ -58,14 +60,14 @@ export default function SellerRegister() {
     return matched || raw;
   };
 
-  useEffect(() => {
+useEffect(() => {
     fetchOptions()
       .then((data) => {
         if (Array.isArray(data.cities) && data.cities.length) {
           setCities(data.cities);
-          const whatsappCity = localStorage.getItem("whatsapp_city");
-          const whatsappCats = localStorage.getItem("whatsapp_categories");
-          const whatsappMobile = localStorage.getItem("whatsapp_mobile");
+          const whatsappCity = localStorage.getItem("whatsapp_city") || cityFromUrl;
+          const whatsappCats = localStorage.getItem("whatsapp_categories") || catsFromUrl;
+          const whatsappMobile = localStorage.getItem("whatsapp_mobile") || mobileFromUrl;
           setSeller((prev) => {
             let next = { ...prev };
             if (whatsappCity) {
@@ -79,7 +81,8 @@ export default function SellerRegister() {
               next.mobile = whatsappMobile;
             }
             if (whatsappCats && Array.isArray(data.categories)) {
-              const selectedCats = whatsappCats.split(",").filter(c => data.categories.includes(c));
+              const catArray = whatsappCats.includes(",") ? whatsappCats.split(",") : [whatsappCats];
+              const selectedCats = catArray.filter(c => data.categories.includes(c));
               if (selectedCats.length > 0) {
                 next.categories = selectedCats;
               }
@@ -92,7 +95,7 @@ export default function SellerRegister() {
         }
       })
       .catch(() => {});
-  }, [sessionCity]);
+  }, [sessionCity, cityFromUrl, catsFromUrl, mobileFromUrl]);
 
   useEffect(() => {
     const savedEmail = localStorage.getItem("seller_email");

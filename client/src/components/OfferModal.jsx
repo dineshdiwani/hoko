@@ -240,16 +240,28 @@ const submitOffer = async () => {
     ) {
       alert("Price must be lower than current lowest price");
       return;
-    }
-
-    // Check if seller has completed registration
+}
+    
+    // Check if seller is logged in
     const session = JSON.parse(localStorage.getItem("hoko_session") || "null");
+    
+    // Not logged in - redirect to login
+    if (!session?.token) {
+      localStorage.setItem("pending_offer_data", JSON.stringify({
+        requirementId: requirementId,
+        price: Number(price),
+        message: note,
+        deliveryTime: deliveryTime,
+        paymentTerms: paymentTerms
+      }));
+      window.location.href = "/seller/login?redirect=/seller/dashboard";
+      return;
+    }
+    
+    // Logged in but no seller profile - redirect to registration
     const hasSellerProfile = session?.sellerProfile?.registeredBusinessName && session?.sellerProfile?.managerName;
-    const isWhatsAppUser = localStorage.getItem("whatsapp_login") === "true";
-
-    // For WhatsApp sellers without profile - redirect to registration first
-    if (isWhatsAppUser && !hasSellerProfile) {
-      alert("Please complete your seller registration first.");
+    
+    if (!hasSellerProfile) {
       localStorage.setItem("pending_offer_data", JSON.stringify({
         requirementId: requirementId,
         price: Number(price),

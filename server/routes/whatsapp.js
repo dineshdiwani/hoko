@@ -36,7 +36,9 @@ const consentState = new Map();
 
 const CONSENT_STATES = {
   PENDING: "pending_consent",
-  AWAITING_ROLE: "awaiting_role"
+  AWAITING_ROLE: "awaiting_role",
+  AWAITING_SELLER_CITY: "awaiting_seller_city",
+  AWAITING_SELLER_CATEGORIES: "awaiting_seller_categories"
 };
 
 async function buildCategorySelectionMessage() {
@@ -50,29 +52,54 @@ async function buildCategorySelectionMessage() {
   
   if (!adminCategories.length) {
     adminCategories = [
-      "Electronics & Appliances", "Furniture & Home", "Vehicles & Parts",
-      "Industrial Machinery", "Electrical Parts", "Construction Materials",
-      "Services & Maintenance", "Raw Materials", "Chemicals & Plastics",
-      "Packaging", "Textiles & Apparel", "Food & Agriculture",
-      "Health & Safety", "Logistics & Transport", "Business Services"
+      { name: "Electronics & Appliances", serial: 1 },
+      { name: "Furniture & Home", serial: 2 },
+      { name: "Vehicles & Parts", serial: 3 },
+      { name: "Industrial Machinery", serial: 4 },
+      { name: "Electrical Parts", serial: 5 },
+      { name: "Construction Materials", serial: 6 },
+      { name: "Services & Maintenance", serial: 7 },
+      { name: "Raw Materials", serial: 8 },
+      { name: "Chemicals & Plastics", serial: 9 },
+      { name: "Packaging", serial: 10 },
+      { name: "Textiles & Apparel", serial: 11 },
+      { name: "Food & Agriculture", serial: 12 },
+      { name: "Health & Safety", serial: 13 },
+      { name: "Logistics & Transport", serial: 14 },
+      { name: "Business Services", serial: 15 }
     ];
+  } else {
+    adminCategories = adminCategories.map((cat, idx) => ({
+      name: cat,
+      serial: idx + 1
+    }));
   }
   
-  const lines = ["Great! Select categories you deal in (send numbers):", ""];
-  adminCategories.forEach((cat, idx) => {
-    lines.push(`[${idx + 1}] ${cat}`);
+  const lines = ["📦 What do you sell? Select all that apply:", ""];
+  adminCategories.forEach((cat) => {
+    lines.push(`${cat.serial}. ${cat.name}`);
   });
-  lines.push("", "Example: Send '1,3,5' or '1' or '0' for all");
+  lines.push("", "Example: Send '1,3,5' or '0' for all");
   return lines.join("\n");
 }
 
 function parseCategorySelection(input, adminCategories = []) {
   const defaultCategories = [
-    "Electronics & Appliances", "Furniture & Home", "Vehicles & Parts",
-    "Industrial Machinery", "Electrical Parts", "Construction Materials",
-    "Services & Maintenance", "Raw Materials", "Chemicals & Plastics",
-    "Packaging", "Textiles & Apparel", "Food & Agriculture",
-    "Health & Safety", "Logistics & Transport", "Business Services"
+    { name: "Electronics & Appliances", serial: 1 },
+    { name: "Furniture & Home", serial: 2 },
+    { name: "Vehicles & Parts", serial: 3 },
+    { name: "Industrial Machinery", serial: 4 },
+    { name: "Electrical Parts", serial: 5 },
+    { name: "Construction Materials", serial: 6 },
+    { name: "Services & Maintenance", serial: 7 },
+    { name: "Raw Materials", serial: 8 },
+    { name: "Chemicals & Plastics", serial: 9 },
+    { name: "Packaging", serial: 10 },
+    { name: "Textiles & Apparel", serial: 11 },
+    { name: "Food & Agriculture", serial: 12 },
+    { name: "Health & Safety", serial: 13 },
+    { name: "Logistics & Transport", serial: 14 },
+    { name: "Business Services", serial: 15 }
   ];
   
   const categories = adminCategories.length > 0 ? adminCategories : defaultCategories;
@@ -84,15 +111,14 @@ function parseCategorySelection(input, adminCategories = []) {
   for (const num of nums) {
     if (num === 0) {
       categories.forEach(cat => {
-        selectedCategories.push(cat);
-        platformCategories.add(cat);
+        selectedCategories.push(cat.name);
+        platformCategories.add(cat.name);
       });
     } else {
-      const idx = num - 1;
-      if (idx >= 0 && idx < categories.length) {
-        const cat = categories[idx];
-        selectedCategories.push(cat);
-        platformCategories.add(cat);
+      const cat = categories.find(c => c.serial === num);
+      if (cat) {
+        selectedCategories.push(cat.name);
+        platformCategories.add(cat.name);
       }
     }
   }
@@ -209,6 +235,34 @@ function buildSellerValueMessage(loginLink) {
     loginLink,
     "",
     "💡 Fill your details and start receiving offers today!"
+  ].join("\n");
+}
+
+function buildSellerCityPrompt() {
+  return [
+    "🏪 You're a SELLER on HOKO!",
+    "",
+    "✅ Quick question: Which city do you operate in? 📍",
+    "",
+    "E.g., Mumbai, Delhi, Bangalore, Pune..."
+  ].join("\n");
+}
+
+function buildSellerConfirmationMessage(city, whatsappCategories, loginLink) {
+  const catList = whatsappCategories.slice(0, 3).join(", ");
+  const moreCats = whatsappCategories.length > 3 ? ` +${whatsappCategories.length - 3} more` : "";
+  return [
+    "✅ Perfect! You're SET as a HOKO Seller",
+    "",
+    `📍 City: ${city}`,
+    `📦 Categories: ${catList}${moreCats}`,
+    "",
+    "Buyers post requirements DAILY in your city!",
+    "",
+    "📝 Complete your registration to submit offers:",
+    `👉 ${loginLink}`,
+    "",
+    "💡 First offer submitted = highest visibility!"
   ].join("\n");
 }
 
@@ -986,14 +1040,79 @@ if (SELLER_WORDS.has(normalizedInbound) || normalizedInbound === "2") {
 
     if (SELLER_WORDS.has(normalizedInbound) || normalizedInbound === "2") {
       consentState.delete(consentKey);
+      consentState.set(consentKey, { 
+        step: CONSENT_STATES.AWAITING_SELLER_CITY, 
+        mobileE164: event.mobileE164 
+      });
+      await sendWhatsAppMessage({
+        to: event.mobileE164,
+        body: buildSellerCityPrompt()
+      });
+      continue;
+    }
+
+    // Handle seller city input
+    if (currentConsentState?.step === CONSENT_STATES.AWAITING_SELLER_CITY) {
+      const inboundText = String(event.text || "").trim();
+      if (!inboundText || inboundText.length < 2) {
+        await sendWhatsAppMessage({
+          to: event.mobileE164,
+          body: "Please share your city name (e.g., Mumbai, Delhi, Bangalore)"
+        });
+        continue;
+      }
+      
+      const citiesData = await PlatformSettings.findOne().lean();
+      const cities = citiesData?.cities || [];
+      const inputCity = normalizeCityName(inboundText);
+      const matchedCity = cities.find(c => normalizeCityName(c) === inputCity);
+      const cityToSave = matchedCity || inboundText;
+      
+      consentState.set(consentKey, { 
+        step: CONSENT_STATES.AWAITING_SELLER_CATEGORIES, 
+        mobileE164: event.mobileE164,
+        city: cityToSave 
+      });
+      
+      const categoryMessage = await buildCategorySelectionMessage();
+      await sendWhatsAppMessage({
+        to: event.mobileE164,
+        body: categoryMessage
+      });
+      continue;
+    }
+    
+    // Handle seller categories input
+    if (currentConsentState?.step === CONSENT_STATES.AWAITING_SELLER_CATEGORIES) {
+      const inboundText = String(event.text || "").trim();
+      const cityToSave = currentConsentState?.city || "";
+      
+      const citiesData = await PlatformSettings.findOne().lean();
+      const adminCategories = citiesData?.categories || [];
+      
+      const parsed = parseCategorySelection(inboundText, adminCategories);
+      
+      if (parsed.whatsappCategories.length === 0) {
+        const categoryMessage = await buildCategorySelectionMessage();
+        await sendWhatsAppMessage({
+          to: event.mobileE164,
+          body: "Invalid selection. " + categoryMessage
+        });
+        continue;
+      }
+      
+      consentState.delete(consentKey);
+      
       const appBase = resolvePublicAppUrl();
       const params = new URLSearchParams();
       params.set("mobile", event.mobileE164.replace("+", ""));
       params.set("ref", "wa");
-      const loginLink = `${appBase}/seller/login?${params.toString()}`;
+      params.set("city", cityToSave);
+      const loginLink = `${appBase}/seller/register?${params.toString()}`;
+      
       await sendWhatsAppMessage({
         to: event.mobileE164,
-        body: buildSellerValueMessage(loginLink)
+        body: buildSellerConfirmationMessage(cityToSave, parsed.whatsappCategories, loginLink)
       });
       continue;
     }

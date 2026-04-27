@@ -472,8 +472,30 @@ setBuyerDashboardDefaultTab(user.city || city);
               navigate(`/buyer/dashboard?activeTab=posts&highlight=${reqRes.data._id}`, { replace: true });
               return;
             }
-          } catch (e) {
+} catch (e) {
             console.error("[Login] Failed to post pending requirement:", e);
+          }
+        }
+        
+        const pendingOfferData = localStorage.getItem("pending_offer_data");
+        localStorage.removeItem("pending_offer_data");
+        
+        if (pendingOfferData && isSeller) {
+          try {
+            const offerData = JSON.parse(pendingOfferData);
+            const offerRes = await api.post("/seller/offer", {
+              requirementId: offerData.requirementId,
+              price: offerData.price,
+              message: offerData.message,
+              deliveryTime: offerData.deliveryTime,
+              paymentTerms: offerData.paymentTerms
+            });
+            if (offerRes.data?._id) {
+              navigate(`/seller/dashboard?highlight=${offerData.requirementId}`, { replace: true });
+              return;
+            }
+          } catch (e) {
+            console.error("[Login] Failed to submit pending offer:", e);
           }
         }
         
