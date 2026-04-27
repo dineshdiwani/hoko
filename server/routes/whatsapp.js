@@ -1005,65 +1005,58 @@ for (const event of events) {
       continue;
     }
 
-    // Handle role selection for opted-in contacts
+    // Handle role selection for opted-in contacts - simplified direct link flow
     if (currentConsentState?.step === CONSENT_STATES.AWAITING_ROLE) {
       if (BUYER_WORDS.has(normalizedInbound) || normalizedInbound === "buy" || normalizedInbound === "1") {
         consentState.delete(consentKey);
         
-        consentState.set(consentKey, { 
-          step: CONSENT_STATES.AWAITING_BUYER_PRODUCT, 
-          mobileE164: event.mobileE164 
-        });
+        const deepLink = await sendBuyerInviteDirect(event.mobileE164);
+        const message = buildBuyerConfirmationMessage(event.mobileE164, deepLink);
         
         await sendWhatsAppMessage({
           to: event.mobileE164,
-          body: [
-            "🛒 You're a BUYER on HOKO!",
-            "",
-            "✅ Quick question: What do you need today?",
-            "",
-            "E.g., 'AC repair', 'LED TV', 'Cement bags', 'Office furniture'"
-          ].join("\n")
+          body: message
         });
         continue;
       }
       
       if (SELLER_WORDS.has(normalizedInbound) || normalizedInbound === "sell" || normalizedInbound === "2") {
         consentState.delete(consentKey);
-        consentState.set(consentKey, { step: CONSENT_STATES.AWAITING_SELLER_CITY, mobileE164: event.mobileE164 });
+        
+        const appBase = resolvePublicAppUrl();
+        const params = new URLSearchParams();
+        params.set("mobile", event.mobileE164.replace("+", ""));
+        params.set("ref", "wa");
+        const loginLink = `${appBase}/seller/login?${params.toString()}`;
+        const message = buildSellerValueMessage(loginLink);
+        
         await sendWhatsAppMessage({
           to: event.mobileE164,
-          body: [
-            "🏪 You're a SELLER on HOKO!",
-            "",
-            "✅ Quick question: Which city do you operate in? 📍"
-          ].join("\n")
+          body: message
         });
         continue;
       }
       
       await sendWhatsAppMessage({
         to: event.mobileE164,
-        body: "Please reply BUYER or SELLER to continue."
+        body: buildGenericHelpMessage()
       });
       continue;
     }
 
-    // NEW: Handle buyer product input (Step 1 of buyer flow)
-    if (currentConsentState?.step === CONSENT_STATES.AWAITING_BUYER_PRODUCT) {
-      const product = String(event.text || "").trim();
+// Redirect any old intermediate states to simplified flow
+    if (currentConsentState?.step?.startsWith("awaiting_")) {
+      consentState.delete(consentKey);
       
-      if (!product || product.length < 2) {
-        await sendWhatsAppMessage({
-          to: event.mobileE164,
-          body: [
-            "Please describe what you need 😊",
-            "",
-            "E.g., 'Split AC', 'Cement bags', 'Office chair', 'Laptop'"
-          ].join("\n")
-        });
-        continue;
-      }
+      const deepLink = await sendBuyerInviteDirect(event.mobileE164);
+      const message = buildBuyerConfirmationMessage(event.mobileE164, deepLink);
+      
+      await sendWhatsAppMessage({
+        to: event.mobileE164,
+        body: message
+      });
+      continue;
+    }
       
       // Move to city step
       consentState.set(consentKey, { 
