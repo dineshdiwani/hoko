@@ -1414,6 +1414,32 @@ router.post("/otp/check-user", otpSendLimiter, async (req, res) => {
   });
 });
 
+router.get("/check-mobile", async (req, res) => {
+  const { mobile } = req.query;
+  
+  if (!mobile) {
+    return res.status(400).json({ message: "Mobile number is required" });
+  }
+  
+  const mobileE164 = normalizeE164(mobile);
+  const user = await User.findOne({ mobile: mobileE164 }).select("_id email roles sellerProfile city").lean();
+  
+  if (!user) {
+    return res.json({ exists: false });
+  }
+  
+  const hasSellerRole = Boolean(user.roles?.seller);
+  const hasSellerProfile = hasSellerRole && user.sellerProfile?.registeredBusinessName && user.sellerProfile?.managerName;
+  
+  res.json({
+    exists: true,
+    hasSellerRole,
+    hasSellerProfile,
+    city: user.city,
+    email: user.email
+  });
+});
+
 router.post("/otp/request", otpSendLimiter, async (req, res) => {
   try {
     const { mobile } = req.body;

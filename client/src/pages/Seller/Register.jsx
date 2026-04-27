@@ -95,7 +95,35 @@ useEffect(() => {
         }
       })
       .catch(() => {});
-  }, [sessionCity, cityFromUrl, catsFromUrl, mobileFromUrl]);
+}, [sessionCity, cityFromUrl, catsFromUrl, mobileFromUrl]);
+
+  // Store WhatsApp params before login check
+  useEffect(() => {
+    if (mobileFromUrl) {
+      localStorage.setItem("whatsapp_mobile", mobileFromUrl);
+    }
+    if (cityFromUrl) {
+      localStorage.setItem("whatsapp_city", cityFromUrl);
+    }
+    if (catsFromUrl) {
+      localStorage.setItem("whatsapp_categories", catsFromUrl);
+    }
+  }, [mobileFromUrl, cityFromUrl, catsFromUrl]);
+
+  // Check if existing seller - redirect to login
+  useEffect(() => {
+    if (!mobileFromUrl) return;
+    if (session?.token) return;
+    
+    api.get(`/seller/check-mobile?mobile=${mobileFromUrl}`)
+      .then(res => {
+        if (res.data?.exists) {
+          // Existing seller - store params and redirect to login
+          navigate("/seller/login", { replace: true });
+        }
+      })
+      .catch(() => {});
+  }, [mobileFromUrl, session, navigate]);
 
   useEffect(() => {
     const savedEmail = localStorage.getItem("seller_email");

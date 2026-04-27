@@ -1099,6 +1099,7 @@ console.log("[WA WEBHOOK] Extracted events:", events.length, events.map(e => ({ 
       params.set("mobile", event.mobileE164.replace("+", ""));
       params.set("ref", "wa");
       params.set("city", cityToSave);
+      params.set("cats", parsed.whatsappCategories.join(","));
       const loginLink = `${appBase}/seller/register?${params.toString()}`;
       
       await sendWhatsAppMessage({
