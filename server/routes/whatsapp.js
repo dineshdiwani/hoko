@@ -1075,8 +1075,11 @@ console.log("[WA WEBHOOK] Extracted events:", events.length, events.map(e => ({ 
       const inboundText = String(event.text || "").trim();
       const cityToSave = currentConsentState?.city || "";
       
-      const citiesData = await PlatformSettings.findOne().lean();
-      const adminCategories = citiesData?.categories || [];
+      const settings = await PlatformSettings.findOne().lean();
+      const adminCategoriesRaw = settings?.categories || [];
+      const adminCategories = adminCategoriesRaw.length > 0 
+        ? adminCategoriesRaw.map((cat, idx) => ({ name: cat, serial: idx + 1 }))
+        : [];
       
       const parsed = parseCategorySelection(inboundText, adminCategories);
       
