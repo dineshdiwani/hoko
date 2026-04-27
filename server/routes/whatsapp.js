@@ -37,11 +37,7 @@ const consentState = new Map();
 
 const CONSENT_STATES = {
   PENDING: "pending_consent",
-  AWAITING_ROLE: "awaiting_role",
-  AWAITING_BUYER_PRODUCT: "awaiting_buyer_product",
-  AWAITING_BUYER_CITY: "awaiting_buyer_city",
-  AWAITING_SELLER_CITY: "awaiting_seller_city",
-  AWAITING_SELLER_CATEGORIES: "awaiting_seller_categories"
+  AWAITING_ROLE: "awaiting_role"
 };
 
 async function buildCategorySelectionMessage() {
@@ -166,16 +162,15 @@ function buildConsentConfirmedBuyerMessage(deepLink, product, requirementId) {
   ].filter(Boolean).join("\n");
 }
 
-function buildBuyerConfirmationMessage(product, city, requirementId, deepLink) {
+function buildBuyerConfirmationMessage(mobile, deepLink) {
   return [
-    "✅ Got it! Your requirement is saved 👍",
+    "🛒 You're a BUYER on HOKO!",
     "",
-    `📦 ${product}`,
-    city ? `📍 City: ${city}` : "",
+    "📝 Post your requirement and get multiple seller offers:",
+    deepLink,
     "",
-    "📝 Complete your requirement & get offers:",
-    deepLink
-  ].filter(Boolean).join("\n");
+    "💡 Fill in your details - sellers near you will respond!"
+  ].join("\n");
 }
 
 function buildReminderMessage(product, deepLink) {
@@ -207,20 +202,14 @@ function buildConsentConfirmedSellerMessage(city, whatsappCategories, loginLink)
   ].join("\n");
 }
 
-function buildSellerValueMessage(loginLink, city) {
+function buildSellerValueMessage(loginLink) {
   return [
-    "🔥 You made a smart choice!",
+    "🏪 You're a SELLER on HOKO!",
     "",
-    "Buyers in " + (city || "your city") + " are posting requirements RIGHT NOW!",
-    "",
-    "📦 Get daily buyer requirements",
-    "💰 Submit your best prices",
-    "🏆 Win more orders",
-    "",
-    "🚀 Start now:",
+    "🚀 Create your seller account to receive buyer requirements:",
     loginLink,
     "",
-    "💡 First offer submitted = highest visibility!"
+    "💡 Fill your details and start receiving offers today!"
   ].join("\n");
 }
 
@@ -235,7 +224,21 @@ async function sendBuyerInviteLink(mobileE164) {
   );
   
   const appBase = resolvePublicAppUrl();
-  return `${appBase}/buyer/requirement/new?ref=${tempReq._id.toString()}`;
+  return `${appBase}/buyer/requirement/new?ref=${tempReq._id.toString()}&mobile=${mobileE164.replace("+", "")}`;
+}
+
+async function sendBuyerInviteDirect(mobileE164) {
+  const tempReq = await TempRequirement.findOneAndUpdate(
+    { mobileE164, status: "pending" },
+    {
+      $set: { status: "pending", source: "whatsapp_direct", templateUsed: "buyer_direct_invite" },
+      $setOnInsert: { expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) }
+    },
+    { upsert: true, new: true, setDefaultsOnInsert: true }
+  );
+  
+  const appBase = resolvePublicAppUrl();
+  return `${appBase}/buyer/requirement/new?ref=${tempReq._id.toString()}&mobile=${mobileE164.replace("+", "")}`;
 }
 
 async function sendBuyerRequirementInvite(mobileE164) {
@@ -946,40 +949,35 @@ for (const event of events) {
       if (BUYER_WORDS.has(normalizedInbound) || normalizedInbound === "buy" || normalizedInbound === "1" || normalizedInbound === "buyer") {
         await applyConsentConfirmed(await WhatsAppBuyerContact.findOne({ mobileE164: event.mobileE164 }), "buyer", event);
         
-        // NEW BUYER FLOW: Ask what they need first
-        consentState.set(consentKey, { 
-          step: CONSENT_STATES.AWAITING_BUYER_PRODUCT, 
-          mobileE164: event.mobileE164 
-        });
+        const deepLink = await sendBuyerInviteDirect(event.mobileE164);
+        const message = buildBuyerConfirmationMessage(event.mobileE164, deepLink);
         
         await sendWhatsAppMessage({
           to: event.mobileE164,
-          body: [
-            "🛒 You're a BUYER on HOKO!",
-            "",
-            "✅ Quick question: What do you need today?",
-            "",
-            "E.g., 'AC repair', 'LED TV', 'Cement bags', 'Office furniture'",
-            "",
-            "Just describe what you're looking for! 😊"
-          ].join("\n")
+          body: message
         });
+        
+        consentState.delete(consentKey);
         continue;
       }
       
       if (SELLER_WORDS.has(normalizedInbound) || normalizedInbound === "sell" || normalizedInbound === "2" || normalizedInbound === "seller") {
-        consentState.set(consentKey, { step: CONSENT_STATES.AWAITING_SELLER_CITY, mobileE164: event.mobileE164 });
         await applyConsentConfirmed(await WhatsAppBuyerContact.findOne({ mobileE164: event.mobileE164 }), "buyer", event);
+        
+        const appBase = resolvePublicAppUrl();
+        const params = new URLSearchParams();
+        params.set("mobile", event.mobileE164.replace("+", ""));
+        params.set("ref", "wa");
+        const loginLink = `${appBase}/seller/login?${params.toString()}`;
+        
+        const message = buildSellerValueMessage(loginLink);
+        
         await sendWhatsAppMessage({
           to: event.mobileE164,
-          body: [
-            "🏪 You're a SELLER on HOKO!",
-            "",
-            "✅ Quick question: Which city do you operate in? 📍",
-            "",
-            "E.g., Mumbai, Delhi, Bangalore, Pune..."
-          ].join("\n")
+          body: message
         });
+        
+        consentState.delete(consentKey);
         continue;
       }
       
