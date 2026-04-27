@@ -53,6 +53,7 @@ export default function UserLogin({ role = "buyer" }) {
 
   const [step, setStep] = useState("LOGIN");
   const [email, setEmail] = useState("");
+  const [emailOrMobile, setEmailOrMobile] = useState("");
   const [mobile, setMobile] = useState("");
   const [otp, setOtp] = useState("");
   const [city, setCity] = useState(cityFromUrl);
@@ -202,6 +203,26 @@ export default function UserLogin({ role = "buyer" }) {
     return /\S+@\S+\.\S+/.test(String(value || ""));
   }
 
+  function normalizeMobileDigits(value) {
+    return String(value || "").replace(/\D/g, "").slice(-10);
+  }
+
+  function getOtpIdentifier(value) {
+    const raw = String(value || "").trim();
+    if (!raw) return { ok: false, message: "Please enter email or 10-digit mobile number" };
+
+    if (validEmail(raw)) {
+      return { ok: true, type: "email", value: raw.toLowerCase() };
+    }
+
+    const digits = normalizeMobileDigits(raw);
+    if (/^[6-9]\d{9}$/.test(digits)) {
+      return { ok: true, type: "mobile", value: digits };
+    }
+
+    return { ok: false, message: "Enter a valid email or 10-digit mobile number" };
+  }
+
 async function requestWhatsAppLogin() {
       if (!mobile || mobile.length < 10) {
         alert("Please enter your 10-digit mobile number");
@@ -230,20 +251,28 @@ async function requestWhatsAppLogin() {
 
   function sendLoginOtp() {
     setSubmitted(true);
-
-    if (!validEmail(email)) {
-      alert("Please enter a valid email address");
+    const parsed = getOtpIdentifier(emailOrMobile);
+    if (!parsed.ok) {
+      alert(parsed.message);
       return;
     }
 
     setOtpLoading(true);
-    setLoginMethod("email");
-    api.post("/auth/login", { email, role: currentRole, acceptTerms: true })
+    setLoginMethod(parsed.type === "mobile" ? "sms" : "email");
+    const payload = { role: currentRole, acceptTerms: true };
+    if (parsed.type === "mobile") {
+      payload.mobile = parsed.value;
+      setMobile(parsed.value);
+    } else {
+      payload.email = parsed.value;
+      setEmail(parsed.value);
+    }
+    api.post("/auth/login", payload)
       .then((res) => {
         if (res.data?.success) {
-          setPendingLoginMethod("email");
+          setPendingLoginMethod(parsed.type);
           setStep("OTP");
-          alert("OTP sent to your email");
+          alert(parsed.type === "mobile" ? "OTP sent to your mobile number" : "OTP sent to your email");
         } else {
           alert(res.data?.message || "Failed to send OTP");
         }
@@ -339,8 +368,11 @@ async function requestWhatsAppLogin() {
       endpoint = "/auth/whatsapp/verify";
       payload.mobile = mobile;
     } else {
-      payload.email = email;
-      payload.mobile = mobileFromUrl;
+      if (pendingLoginMethod === "mobile" || loginMethod === "sms") {
+        payload.mobile = mobile;
+      } else {
+        payload.email = email;
+      }
     }
     api
       .post(endpoint, payload)
@@ -352,12 +384,12 @@ async function requestWhatsAppLogin() {
         const sellerCapable = Boolean(user?.roles?.seller);
 
         // For email and WhatsApp OTP login, show city selection modal after OTP verification
-        if (pendingLoginMethod === "email" || pendingLoginMethod === "whatsapp") {
+        if (pendingLoginMethod === "email" || pendingLoginMethod === "mobile" || pendingLoginMethod === "whatsapp") {
           setPendingCitySession({
             _id: user._id,
             role: user.role || currentRole,
             roles: user.roles,
-            email: user.email || email,
+            email: user.email || (pendingLoginMethod === "email" ? email : ""),
             city: user.city || "",
             name: buildDisplayName(user, currentRole, profile),
             preferredCurrency: user.preferredCurrency || "INR",
@@ -499,11 +531,11 @@ function handleGoogleLogin(credential) {
             <p className="text-slate-600 text-lg leading-relaxed">
               {isFromRequirement
                 ? "Get instant notifications when sellers respond to your requirement"
-                : "Sign in with your email and verify instantly using an OTP sent to your inbox."}
+                    : "Sign in with email or mobile number and verify instantly with OTP."}
             </p>
             <div className="mt-8 hidden lg:block">
               <div className="inline-flex items-center gap-3 rounded-full border border-slate-200 px-4 py-2 text-slate-500 text-sm">
-                Verified sellers * Live offers * Email OTP
+                Verified sellers * Live offers * OTP Login
               </div>
             </div>
           </div>
@@ -615,6 +647,7 @@ function handleGoogleLogin(credential) {
                     setStep("LOGIN");
                     setOtp("");
                     setEmail("");
+                    setEmailOrMobile("");
                   }}
                   className="text-sm text-gray-500 hover:text-gray-700 mb-4"
                 >
@@ -651,13 +684,13 @@ function handleGoogleLogin(credential) {
                 </div>
 
                 <label className="block text-sm font-medium mb-1 text-gray-700">
-                  Email
+                  Email or Mobile Number
                 </label>
                 <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
+                  type="text"
+                  value={emailOrMobile}
+                  onChange={(e) => setEmailOrMobile(e.target.value)}
+                  placeholder="you@example.com or 9876543210"
                   className="w-full border border-gray-300 rounded-xl px-4 py-3 mb-4"
                 />
 
@@ -682,7 +715,7 @@ function handleGoogleLogin(credential) {
                   disabled={otpLoading}
                   className="w-full py-3 rounded-xl btn-brand font-semibold"
                 >
-                  {otpLoading ? "Sending OTP..." : "Send OTP to Email"}
+                  {otpLoading ? "Sending OTP..." : "Send OTP"}
                 </button>
               </>
               )}
@@ -705,7 +738,9 @@ function handleGoogleLogin(credential) {
 
                   <div className="text-center mb-4 p-3 bg-green-50 rounded-xl">
                     <p className="text-sm text-gray-600">OTP sent via {loginMethod} to:</p>
-                    <p className="font-semibold text-gray-800">{loginMethod === "whatsapp" ? mobile : email}</p>
+                    <p className="font-semibold text-gray-800">
+                      {loginMethod === "whatsapp" || loginMethod === "sms" ? mobile : email}
+                    </p>
                   </div>
 
                 <label className="block text-sm font-medium mb-1 text-gray-700">

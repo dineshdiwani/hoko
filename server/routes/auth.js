@@ -12,6 +12,7 @@ const {
 } = require("../middleware/rateLimit");
 const { notifyNewBuyer, notifyNewSeller } = require("../services/adminNotifications");
 const { normalizeE164 } = require("../utils/sendWhatsApp");
+const { sendOtpSms } = require("../utils/sendSms");
 
 function normalizeEmail(email) {
   return String(email || "").trim().toLowerCase();
@@ -196,12 +197,19 @@ router.post("/login", otpSendLimiter, async (req, res) => {
       });
     }
     const otp = generateOtp();
-    const sendResult = await sendOTPviaWhatsApp(mobileE164, otp, "login", user.city);
-    if (!sendResult.ok) {
-      return res.status(500).json({ message: "Failed to send OTP. Please try again." });
+    try {
+      const mobileDigits = mobileE164.replace(/^\+/, "");
+      await sendOtpSms({ mobile: mobileDigits, otp });
+    } catch (err) {
+      console.error("OTP SMS send failed:", err.message);
+      const body = { message: "Failed to send OTP" };
+      if (process.env.NODE_ENV !== "production") {
+        body.error = err?.response || err?.message || "Unknown Fast2SMS error";
+      }
+      return res.status(500).json(body);
     }
     setOtp(`login:${mobileE164}`, otp, OTP_TTL_MS);
-    return res.json({ success: true, method: "whatsapp", mobile: mobileE164 });
+    return res.json({ success: true, method: "sms", mobile: mobileE164 });
   }
   
   const normalizedEmail = normalizeEmail(email);
