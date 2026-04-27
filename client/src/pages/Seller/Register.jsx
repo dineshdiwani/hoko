@@ -97,33 +97,41 @@ useEffect(() => {
       .catch(() => {});
 }, [sessionCity, cityFromUrl, catsFromUrl, mobileFromUrl]);
 
-  // Store WhatsApp params before login check
+  // Both new and existing sellers land on dashboard (not login/registration form)
   useEffect(() => {
-    if (mobileFromUrl) {
-      localStorage.setItem("whatsapp_mobile", mobileFromUrl);
-    }
-    if (cityFromUrl) {
-      localStorage.setItem("whatsapp_city", cityFromUrl);
-    }
-    if (catsFromUrl) {
-      localStorage.setItem("whatsapp_categories", catsFromUrl);
-    }
-  }, [mobileFromUrl, cityFromUrl, catsFromUrl]);
-
-  // Check if existing seller - redirect to login
-  useEffect(() => {
-    if (!mobileFromUrl) return;
-    if (session?.token) return;
+    // Build dashboard URL with WhatsApp params
+    const dashboardParams = new URLSearchParams();
+    if (cityFromUrl) dashboardParams.set("city", cityFromUrl);
+    if (catsFromUrl) dashboardParams.set("cats", catsFromUrl);
+    dashboardParams.set("from", "wa");
     
-    api.get(`/seller/check-mobile?mobile=${mobileFromUrl}`)
-      .then(res => {
-        if (res.data?.exists) {
-          // Existing seller - store params and redirect to login
-          navigate("/seller/login", { replace: true });
-        }
-      })
-      .catch(() => {});
-  }, [mobileFromUrl, session, navigate]);
+    const dashboardUrl = `/seller/dashboard?${dashboardParams.toString()}`;
+    
+    if (session?.token && session?.sellerProfile?.registeredBusinessName && session?.sellerProfile?.managerName) {
+      // Already logged in and registered - go directly to dashboard
+      navigate(dashboardUrl, { replace: true });
+      return;
+    }
+    
+    if (session?.token) {
+      // Logged in but not registered - store pending data and go dashboard
+      localStorage.setItem("pending_register_data", JSON.stringify({
+        city: cityFromUrl,
+        categories: catsFromUrl,
+        mobile: mobileFromUrl
+      }));
+      navigate(dashboardUrl, { replace: true });
+      return;
+    }
+    
+    // Not logged in - store params and go to login (will redirect to dashboard after login)
+    localStorage.setItem("pending_register_data", JSON.stringify({
+      city: cityFromUrl,
+      categories: catsFromUrl,
+      mobile: mobileFromUrl
+    }));
+    navigate("/seller/login", { replace: true });
+  }, [session, cityFromUrl, catsFromUrl, mobileFromUrl, navigate]);
 
   useEffect(() => {
     const savedEmail = localStorage.getItem("seller_email");

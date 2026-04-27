@@ -256,14 +256,14 @@ function buildExistingSellerMessage(city, whatsappCategories, dashboardLink) {
     "",
     "💰 Buyers post requirements DAILY - submit offers now!",
     "",
-    "👉 Login to your dashboard:",
+    "👉 Go to your dashboard:",
     `👉 ${dashboardLink}`,
     "",
     "💡 First offer = highest visibility!"
   ].join("\n");
 }
 
-function buildSellerConfirmationMessage(city, whatsappCategories, loginLink) {
+function buildSellerConfirmationMessage(city, whatsappCategories, dashboardLink) {
   const catList = whatsappCategories.slice(0, 3).join(", ");
   const moreCats = whatsappCategories.length > 3 ? ` +${whatsappCategories.length - 3} more` : "";
   return [
@@ -274,8 +274,8 @@ function buildSellerConfirmationMessage(city, whatsappCategories, loginLink) {
     "",
     "Buyers post requirements DAILY in your city!",
     "",
-    "📝 Complete your registration to submit offers:",
-    `👉 ${loginLink}`,
+    "📝 Go to dashboard to submit offers:",
+    `👉 ${dashboardLink}`,
     "",
     "💡 First offer submitted = highest visibility!"
   ].join("\n");
@@ -1125,13 +1125,23 @@ console.log("[WA WEBHOOK] Extracted events:", events.length, events.map(e => ({ 
       const isExistingSeller = existingUser && existingUser.roles?.seller;
       
       if (isExistingSeller) {
-        const loginLink = `${appBase}/seller/login?mobile=${event.mobileE164.replace("+", "")}`;
+        const dashboardParams = new URLSearchParams();
+        dashboardParams.set("mobile", event.mobileE164.replace("+", ""));
+        dashboardParams.set("city", cityToSave);
+        dashboardParams.set("cats", parsed.whatsappCategories.join(","));
+        dashboardParams.set("from", "wa");
+        const dashboardLink = `${appBase}/seller/dashboard?${dashboardParams.toString()}`;
         await sendWhatsAppMessage({
           to: event.mobileE164,
-          body: buildExistingSellerMessage(cityToSave, parsed.whatsappCategories, loginLink)
+          body: buildExistingSellerMessage(cityToSave, parsed.whatsappCategories, dashboardLink)
         });
       } else {
-        const registerLink = `${appBase}/seller/register?${params.toString()}`;
+        const dashboardParams = new URLSearchParams();
+        dashboardParams.set("mobile", event.mobileE164.replace("+", "");
+        dashboardParams.set("city", cityToSave);
+        dashboardParams.set("cats", parsed.whatsappCategories.join(","));
+        dashboardParams.set("from", "wa");
+        const registerLink = `${appBase}/seller/register?${dashboardParams.toString()}`;
         await sendWhatsAppMessage({
           to: event.mobileE164,
           body: buildSellerConfirmationMessage(cityToSave, parsed.whatsappCategories, registerLink)

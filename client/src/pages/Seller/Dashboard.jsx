@@ -62,8 +62,9 @@ export default function SellerDashboard() {
   const [session, setSessionState] = useState(() => getSession());
   const menuRef = useRef(null);
 
-  // Handle city from URL params (from WhatsApp deep link)
+  // Handle city/cats from URL params (from WhatsApp deep link)
   const cityFromUrl = searchParams.get("city") || "";
+  const catsFromUrl = searchParams.get("cats") || "";
 
   const [requirements, setRequirements] = useState([]);
   const [activeRequirement, setActiveRequirement] = useState(null);
@@ -451,6 +452,16 @@ export default function SellerDashboard() {
           ? data.categories
           : [];
         setCategories(nextCategories);
+        
+        // Apply categories from WhatsApp URL params
+        if (catsFromUrl && nextCategories.length) {
+          const catArray = catsFromUrl.includes(",") ? catsFromUrl.split(",") : [catsFromUrl];
+          const validCats = catArray.filter(c => nextCategories.includes(c.trim()));
+          if (validCats.length > 0) {
+            setDashboardCategories(validCats);
+            setSelectedCategory(validCats[0]);
+          }
+        }
       })
       .catch(() => {});
   }, []);

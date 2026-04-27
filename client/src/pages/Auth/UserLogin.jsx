@@ -481,6 +481,26 @@ setBuyerDashboardDefaultTab(user.city || city);
         const pendingOfferData = localStorage.getItem("pending_offer_data");
         localStorage.removeItem("pending_offer_data");
         
+        // Check if there's pending registration data from WhatsApp flow
+        const pendingRegisterData = localStorage.getItem("pending_register_data");
+        localStorage.removeItem("pending_register_data");
+        
+        // Build dashboard URL with any pending city/categories
+        let dashboardCity = "";
+        let dashboardCats = "";
+        if (pendingRegisterData) {
+          try {
+            const regData = JSON.parse(pendingRegisterData);
+            dashboardCity = regData.city || "";
+            dashboardCats = regData.categories || "";
+          } catch {}
+        }
+        
+        const dashboardParams = new URLSearchParams();
+        if (dashboardCity) dashboardParams.set("city", dashboardCity);
+        if (dashboardCats) dashboardParams.set("cats", dashboardCats);
+        dashboardParams.set("from", "wa");
+        
         if (pendingOfferData && isSeller) {
           try {
             const offerData = JSON.parse(pendingOfferData);
@@ -492,7 +512,7 @@ setBuyerDashboardDefaultTab(user.city || city);
               paymentTerms: offerData.paymentTerms
             });
             if (offerRes.data?._id) {
-              navigate(`/seller/dashboard?highlight=${offerData.requirementId}`, { replace: true });
+              navigate(`/seller/dashboard?${dashboardParams.toString()}&highlight=${offerData.requirementId}`, { replace: true });
               return;
             }
           } catch (e) {
@@ -500,7 +520,8 @@ setBuyerDashboardDefaultTab(user.city || city);
           }
         }
         
-        navigate(targetUrl, { replace: true });
+        // Default to dashboard for WhatsApp sellers
+        navigate(`/seller/dashboard?${dashboardParams.toString()}`, { replace: true });
       })
       .catch((err) => {
         const message =
