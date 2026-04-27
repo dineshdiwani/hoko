@@ -95,11 +95,16 @@ const [step, setStep] = useState("EMAIL_LOGIN");
     }
   }, [navigate, redirect, currentRole, searchParams, isSeller]);
 
-  useEffect(() => {
+useEffect(() => {
     fetchOptions()
       .then((data) => {
         if (Array.isArray(data.cities) && data.cities.length) {
           setCities(data.cities);
+        }
+        // Pre-select city from URL or WhatsApp params
+        const cityFromUrl = searchParams.get("city") || localStorage.getItem("whatsapp_city") || "";
+        if (cityFromUrl && data.cities.includes(cityFromUrl)) {
+          setCity(cityFromUrl);
         }
         const terms = String(
           data?.termsAndConditions?.content || ""
@@ -778,16 +783,20 @@ setBuyerDashboardDefaultTab(user.city || city);
           <div className="bg-white w-full max-w-md rounded-2xl shadow-xl p-6 mx-4">
             <h2 className="text-xl font-bold mb-4">Select Your City</h2>
             <p className="text-gray-600 mb-4">Please select your city to continue</p>
-            <select
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 mb-4"
-            >
-              <option value="">Select City</option>
-              {cities.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
+            {cities.length === 0 ? (
+              <p className="text-red-500">Loading cities...</p>
+            ) : (
+              <select
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                className="w-full border border-gray-300 rounded-xl px-4 py-3 mb-4"
+              >
+                <option value="">Select City</option>
+                {cities.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            )}
 <button
               onClick={async () => {
                 if (!city) {
