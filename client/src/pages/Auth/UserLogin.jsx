@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { getSession, setSession } from "../../services/storage";
 import { fetchOptions } from "../../services/options";
@@ -67,6 +67,10 @@ export default function UserLogin({ role = "buyer" }) {
   const [showCityModal, setShowCityModal] = useState(false);
   const [pendingCitySession, setPendingCitySession] = useState(null);
   const [pendingLoginMethod, setPendingLoginMethod] = useState("");
+  const [resendTimer, setResendTimer] = useState(0);
+  const otpInputRefs = useRef([]);
+  const otpAutoFillRef = useRef(null);
+  const webOtpAbortRef = useRef(null);
 
   const urlRedirect = searchParams.get("redirect") || "";
   const redirectTab = searchParams.get("tab") || "";
@@ -111,6 +115,68 @@ export default function UserLogin({ role = "buyer" }) {
       })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (resendTimer <= 0) return undefined;
+    const timer = window.setInterval(() => {
+      setResendTimer((prev) => {
+        if (prev <= 1) {
+          window.clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [resendTimer]);
+
+  useEffect(() => {
+    if (step !== "OTP") {
+      if (webOtpAbortRef.current) {
+        webOtpAbortRef.current.abort();
+        webOtpAbortRef.current = null;
+      }
+      return undefined;
+    }
+
+    focusOtpBox(0);
+
+    const supportsWebOtp =
+      typeof window !== "undefined" &&
+      "OTPCredential" in window &&
+      navigator.credentials &&
+      typeof navigator.credentials.get === "function";
+
+    if (!supportsWebOtp || loginMethod !== "sms") return undefined;
+
+    const controller = new AbortController();
+    webOtpAbortRef.current = controller;
+
+    navigator.credentials
+      .get({
+        otp: { transport: ["sms"] },
+        signal: controller.signal
+      })
+      .then((credential) => {
+        const code = String(credential?.code || "").replace(/\D/g, "").slice(0, 6);
+        if (code.length === 6) {
+          setOtp(code);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (webOtpAbortRef.current === controller) {
+          webOtpAbortRef.current = null;
+        }
+      });
+
+    return () => {
+      controller.abort();
+      if (webOtpAbortRef.current === controller) {
+        webOtpAbortRef.current = null;
+      }
+    };
+  }, [step, loginMethod]);
 
   useEffect(() => {
     if (!isSeller) return;
@@ -170,6 +236,8 @@ export default function UserLogin({ role = "buyer" }) {
         if (res.data?.success) {
           setPendingLoginMethod(parsed.type);
           setStep("OTP");
+          setResendTimer(60);
+          setOtp("");
           alert(parsed.type === "mobile" ? "OTP sent to your mobile number" : "OTP sent to your email");
         } else {
           alert(res.data?.message || "Failed to send OTP");
@@ -225,6 +293,58 @@ export default function UserLogin({ role = "buyer" }) {
     return user?.name || "Buyer";
   }
 
+  function setOtpBoxRef(index) {
+    return (node) => {
+      otpInputRefs.current[index] = node;
+    };
+  }
+
+  function focusOtpBox(index) {
+    window.setTimeout(() => {
+      otpInputRefs.current[index]?.focus?.();
+      otpInputRefs.current[index]?.select?.();
+    }, 0);
+  }
+
+  function normalizeOtpDigits(value) {
+    return String(value || "").replace(/\D/g, "").slice(0, 6);
+  }
+
+  function handleOtpChange(index, value) {
+    const digit = String(value || "").replace(/\D/g, "").slice(-1);
+    const digits = Array.from({ length: 6 }, (_, i) => otp[i] || "");
+    digits[index] = digit;
+    const next = digits.join("").slice(0, 6);
+    setOtp(next);
+    if (digit && index < 5) {
+      focusOtpBox(index + 1);
+    }
+  }
+
+  function handleOtpKeyDown(index, event) {
+    if (event.key === "Backspace" && !otp[index] && index > 0) {
+      focusOtpBox(index - 1);
+    }
+    if (event.key === "ArrowLeft" && index > 0) {
+      focusOtpBox(index - 1);
+    }
+    if (event.key === "ArrowRight" && index < 5) {
+      focusOtpBox(index + 1);
+    }
+  }
+
+  function handleOtpPaste(event) {
+    const pasted = normalizeOtpDigits(event.clipboardData?.getData("text"));
+    if (!pasted) return;
+    event.preventDefault();
+    setOtp(pasted);
+    if (pasted.length >= 6) {
+      focusOtpBox(5);
+      return;
+    }
+    focusOtpBox(pasted.length);
+  }
+
   function setBuyerDashboardDefaultTab(nextCity) {
     if (currentRole !== "buyer") return;
     try {
@@ -249,8 +369,8 @@ export default function UserLogin({ role = "buyer" }) {
   function verifyOtp() {
     setSubmitted(true);
     const otpLength = String(otp).trim().length;
-    if (otpLength !== 4 && otpLength !== 6) {
-      alert("Please enter a valid 4 or 6-digit OTP");
+    if (otpLength !== 6) {
+      alert("Please enter a valid 6-digit OTP");
       return;
     }
 
@@ -379,7 +499,7 @@ export default function UserLogin({ role = "buyer" }) {
       .finally(() => setOtpLoading(false));
   }
 
-function handleGoogleLogin(credential) {
+  function handleGoogleLogin(credential) {
     setGoogleLoading(true);
     api
       .post("/auth/google", {
@@ -410,6 +530,8 @@ function handleGoogleLogin(credential) {
       })
       .finally(() => setGoogleLoading(false));
   }
+
+  const otpDigits = Array.from({ length: 6 }, (_, index) => otp[index] || "");
 
   return (
     <div className="page">
@@ -510,39 +632,77 @@ function handleGoogleLogin(credential) {
                     onClick={() => {
                       setStep("EMAIL_LOGIN");
                       setOtp("");
+                      setResendTimer(0);
                     }}
                     className="text-sm text-gray-500 hover:text-gray-700 mb-4"
                   >
-                    <- Back
+                    {"<- Back"}
                   </button>
 
                   <div className="text-center mb-4 p-3 bg-green-50 rounded-xl">
-                    <p className="text-sm text-gray-600">OTP sent via {loginMethod} to:</p>
+                    <p className="text-sm text-gray-600">OTP sent via {loginMethod === "sms" ? "SMS" : "email"} to:</p>
                     <p className="font-semibold text-gray-800">
                       {loginMethod === "sms" ? mobile : email}
                     </p>
                   </div>
 
-                <label className="block text-sm font-medium mb-1 text-gray-700">
-                  Enter OTP
-                </label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                  placeholder="Enter OTP"
-                  className="w-full border border-gray-300 rounded-xl px-4 py-3 mb-4 text-center text-xl tracking-widest"
-                />
+                  <input
+                    ref={otpAutoFillRef}
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    value={otp}
+                    onChange={(e) => setOtp(normalizeOtpDigits(e.target.value))}
+                    className="sr-only absolute opacity-0 pointer-events-none"
+                    tabIndex={-1}
+                    aria-hidden="true"
+                  />
 
-                <button
-                  onClick={verifyOtp}
-                  disabled={otpLoading}
-                  className="w-full py-3 rounded-xl btn-brand font-semibold"
-                >
-                  {otpLoading ? "Verifying..." : "Verify & Login"}
-                </button>
-              </>
+                  <label className="block text-sm font-medium mb-3 text-gray-700 text-center">
+                    Enter 6-digit OTP
+                  </label>
+                  <div
+                    className="grid grid-cols-6 gap-2 mb-4"
+                    onPaste={handleOtpPaste}
+                  >
+                    {otpDigits.map((digit, index) => (
+                      <input
+                        key={`otp-${index}`}
+                        ref={setOtpBoxRef(index)}
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete={index === 0 ? "one-time-code" : "off"}
+                        value={digit}
+                        onChange={(e) => handleOtpChange(index, e.target.value)}
+                        onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                        className="h-12 rounded-xl border border-gray-300 text-center text-xl font-semibold tracking-widest focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200"
+                        maxLength={1}
+                      />
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={verifyOtp}
+                    disabled={otpLoading || otp.length !== 6}
+                    className="w-full py-3 rounded-xl btn-brand font-semibold"
+                  >
+                    {otpLoading ? "Verifying..." : "Verify & Login"}
+                  </button>
+
+                  <div className="mt-4 text-center">
+                    {resendTimer > 0 ? (
+                      <p className="text-gray-500 text-sm">Resend OTP in {resendTimer}s</p>
+                    ) : (
+                      <button
+                        onClick={sendLoginOtp}
+                        disabled={otpLoading}
+                        className="text-amber-700 text-sm font-medium hover:underline disabled:opacity-50"
+                      >
+                        Resend OTP
+                      </button>
+                    )}
+                  </div>
+                </>
               )}
             </div>
           </div>
