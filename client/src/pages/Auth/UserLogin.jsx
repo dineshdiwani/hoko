@@ -498,81 +498,24 @@ useEffect(() => {
           );
         }
 
-        if (!(currentRole === "buyer" && sellerIntent)) {
+if (!(currentRole === "buyer" && sellerIntent)) {
           localStorage.removeItem("login_intent_role");
         }
-setBuyerDashboardDefaultTab(user.city || city);
         
-        const targetUrl = urlRedirect 
-          ? (redirectTab ? `${urlRedirect}?tab=${redirectTab}` : urlRedirect)
-          : (isSeller ? "/seller/dashboard" : "/buyer/dashboard");
-        
-        const pendingRequirementData = sessionStorage.getItem("pending_requirement_data");
-        sessionStorage.removeItem("pending_requirement_data");
-        
-        if (pendingRequirementData) {
-          try {
-            const reqData = JSON.parse(pendingRequirementData);
-            const reqPayload = {
-              mobile: reqData.mobile,
-              city: reqData.city,
-              category: reqData.category,
-              productName: reqData.productName,
-              product: reqData.product,
-              quantity: reqData.quantity,
-              type: reqData.unit,
-              details: reqData.details,
-              offerInvitedFrom: reqData.offerInvitedFrom || "city",
-              ref: reqData.ref
-            };
-            
-            const reqRes = await api.post("/buyer/requirement", reqPayload);
-            if (reqRes.data?._id) {
-              navigate(`/buyer/dashboard?activeTab=posts&highlight=${reqRes.data._id}`, { replace: true });
-              return;
-            }
-} catch (e) {
-            console.error("[Login] Failed to post pending requirement:", e);
-          }
-        }
-        
-        const pendingOfferData = localStorage.getItem("pending_offer_data");
-        localStorage.removeItem("pending_offer_data");
-        
-        // Build dashboard URL with WhatsApp params or stored data
+        // Build dashboard URL with WhatsApp params
         const whatsappCity = localStorage.getItem("whatsapp_city") || "";
         const whatsappCats = localStorage.getItem("whatsapp_categories") || "";
         localStorage.removeItem("whatsapp_city");
         localStorage.removeItem("whatsapp_categories");
         
         const dashboardParams = new URLSearchParams();
-        if (whatsappCity) dashboardParams.set("city", whatsappCity);
-        if (whatsappCats) dashboardParams.set("cats", whatsappCats);
-        if (isSeller) dashboardParams.set("from", "wa");
-        if (dashboardCity) dashboardParams.set("city", dashboardCity);
-        if (dashboardCats) dashboardParams.set("cats", dashboardCats);
-        if (isSeller) dashboardParams.set("from", "wa");
-        
-        if (pendingOfferData && isSeller) {
-          try {
-            const offerData = JSON.parse(pendingOfferData);
-            const offerRes = await api.post("/seller/offer", {
-              requirementId: offerData.requirementId,
-              price: offerData.price,
-              message: offerData.message,
-              deliveryTime: offerData.deliveryTime,
-              paymentTerms: offerData.paymentTerms
-            });
-            if (offerRes.data?._id) {
-              navigate(`/seller/dashboard?${dashboardParams.toString()}&highlight=${offerData.requirementId}`, { replace: true });
-              return;
-            }
-          } catch (e) {
-            console.error("[Login] Failed to submit pending offer:", e);
-          }
+        if (isSeller) {
+          if (whatsappCity) dashboardParams.set("city", whatsappCity);
+          if (whatsappCats) dashboardParams.set("cats", whatsappCats);
+          dashboardParams.set("from", "wa");
         }
         
-        // Default to dashboard for WhatsApp sellers
+        // Default to dashboard
         navigate(`/seller/dashboard?${dashboardParams.toString()}`, { replace: true });
       })
       .catch((err) => {
