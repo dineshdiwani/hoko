@@ -1,9 +1,13 @@
 import { toast as showToast } from "sonner";
+import { buildAlertStyle } from "./alertStyles";
 
 export function showAlert(message, title = "Notice") {
   if (typeof window === "undefined") return;
-  showToast(message || "", { 
-    style: { background: "#333", color: "#fff", borderRadius: "8px" },
+  const pathname = String(window.location?.pathname || "");
+  const content =
+    title && title !== "Notice" ? `${title}: ${String(message || "")}` : String(message || "");
+  showToast(content, {
+    style: buildAlertStyle({ pathname, title, message }),
     duration: 3000
   });
 }
