@@ -27,7 +27,6 @@ const { notifyWhatsAppInteraction } = require("../services/adminNotifications");
 router.use(express.json({ limit: "1mb" }));
 router.use(express.urlencoded({ extended: false }));
 
-const CONSENT_CONFIRM_WORDS = new Set(["yes", "y", "confirm", "i agree", "agree"]);
 const GREETING_WORDS = new Set(["hi", "hii", "hello", "hey", "start", "menu"]);
 const BUYER_WORDS = new Set(["buyer", "buy", "i want to buy", "want to buy", "purchase"]);
 const SELLER_WORDS = new Set(["seller", "sell", "i want to sell", "want to sell", "sell"]);
@@ -905,48 +904,20 @@ router.post("/webhook", async (req, res) => {
     });
   }
   
-  console.log("[WA WEBHOOK] Extracted events:", events.length, events.map(e => ({ text: e.text, mobile: e.mobileE164 })));
+console.log("[WA WEBHOOK] Extracted events:", events.length, events.map(e => ({ text: e.text, mobile: e.mobileE164 })));
 
-  const { createLoginSession, getSession, getSessionByMobile, markSessionVerified, clearSession } = require("../services/auth/loginSession");
-const { generateOtp, setOtp } = require("../services/auth/otpService");
-
-for (const event of events) {
-    // Handle OTP trigger via mobile matching
-    const normalizedText = normalizeInboundText(event.text);
-    const isOtpTrigger = normalizedText === "send otp" || normalizedText === "otp" || normalizedText === "login" || normalizedText === "get otp" || normalizedText === "code";
-    
-    console.log(`[WA BOT] Received: "${event.text}" | Normalized: "${normalizedText}" | isOtpTrigger: ${isOtpTrigger} | mobile: ${event.mobileE164}`);
-    
-    if (isOtpTrigger) {
-      const session = getSessionByMobile(event.mobileE164);
-      console.log(`[WA BOT] Session lookup for ${event.mobileE164}:`, session ? "FOUND" : "NOT FOUND");
-      
-      if (session) {
-        await sendWhatsAppMessage({
-          to: event.mobileE164,
-          body: `🔐 Your HOKO OTP: ${session.otp}\n\nValid for 10 mins. Don't share with anyone.`
-        });
-        console.log(`[WA BOT] OTP sent: ${session.otp}, clearing session`);
-        
-        // Clear session after OTP sent to prevent reuse
-        clearSession(session.sessionId);
-      }
-      continue;
-    }
-
+  for (const event of events) {
     const normalizedInbound = normalizeInboundText(event.text);
-    const consentConfirmed = CONSENT_CONFIRM_WORDS.has(normalizedInbound);
     const { sellerContact, buyerContact } = await loadContactByMobile(event.mobileE164);
     const consentKey = getConsentStateKey(event.mobileE164);
     const currentConsentState = consentState.get(consentKey);
-    let consentHandled = false;
 
     if (!sellerContact && !buyerContact) {
       await ensureBuyerProspect(event.mobileE164);
       notifyWhatsAppInteraction(event.mobileE164, "", event.text || "");
       
       // New user - show greeting and handle BUYER/SELLER directly
-      if (BUYER_WORDS.has(normalizedInbound) || normalizedInbound === "buy" || normalizedInbound === "1" || normalizedInbound === "buyer") {
+      if (BUYER_WORDS.has(normalizedInbound) || normalizedInbound === "1") {
         await applyConsentConfirmed(await WhatsAppBuyerContact.findOne({ mobileE164: event.mobileE164 }), "buyer", event);
         
         const deepLink = await sendBuyerInviteDirect(event.mobileE164);
@@ -961,7 +932,7 @@ for (const event of events) {
         continue;
       }
       
-      if (SELLER_WORDS.has(normalizedInbound) || normalizedInbound === "sell" || normalizedInbound === "2" || normalizedInbound === "seller") {
+if (SELLER_WORDS.has(normalizedInbound) || normalizedInbound === "2") {
         await applyConsentConfirmed(await WhatsAppBuyerContact.findOne({ mobileE164: event.mobileE164 }), "buyer", event);
         
         const appBase = resolvePublicAppUrl();
@@ -993,58 +964,7 @@ for (const event of events) {
     const latestBuyerContact =
       buyerContact || (await WhatsAppBuyerContact.findOne({ mobileE164: event.mobileE164 }));
 
-    // Existing users - auto-confirm consent and handle BUYER/SELLER
-    if (latestSellerContact?.optInStatus !== "opted_in") {
-      await applyConsentConfirmed(latestSellerContact, "seller", event);
-    }
-    if (latestBuyerContact?.optInStatus !== "opted_in") {
-      await applyConsentConfirmed(latestBuyerContact, "buyer", event);
-    }
-
-    if (consentHandled && !consentConfirmed) {
-      continue;
-    }
-
-    // Handle role selection for opted-in contacts - simplified direct link flow
-    if (currentConsentState?.step === CONSENT_STATES.AWAITING_ROLE) {
-      if (BUYER_WORDS.has(normalizedInbound) || normalizedInbound === "buy" || normalizedInbound === "1") {
-        consentState.delete(consentKey);
-        
-        const deepLink = await sendBuyerInviteDirect(event.mobileE164);
-        const message = buildBuyerConfirmationMessage(event.mobileE164, deepLink);
-        
-        await sendWhatsAppMessage({
-          to: event.mobileE164,
-          body: message
-        });
-        continue;
-      }
-      
-      if (SELLER_WORDS.has(normalizedInbound) || normalizedInbound === "sell" || normalizedInbound === "2") {
-        consentState.delete(consentKey);
-        
-        const appBase = resolvePublicAppUrl();
-        const params = new URLSearchParams();
-        params.set("mobile", event.mobileE164.replace("+", ""));
-        params.set("ref", "wa");
-        const loginLink = `${appBase}/seller/login?${params.toString()}`;
-        const message = buildSellerValueMessage(loginLink);
-        
-        await sendWhatsAppMessage({
-          to: event.mobileE164,
-          body: message
-        });
-        continue;
-      }
-      
-      await sendWhatsAppMessage({
-        to: event.mobileE164,
-        body: buildGenericHelpMessage()
-      });
-      continue;
-}
-
-    // Always handle greetings first - so users don't get stuck in old states
+    // Existing users - simplified flow
     if (GREETING_WORDS.has(normalizedInbound)) {
       consentState.delete(consentKey);
       await sendWhatsAppMessage({
@@ -1054,86 +974,34 @@ for (const event of events) {
       continue;
     }
 
-    // Redirect any old intermediate states to simplified flow
-    if (currentConsentState?.step?.startsWith("awaiting_")) {
+    if (BUYER_WORDS.has(normalizedInbound) || normalizedInbound === "1") {
       consentState.delete(consentKey);
-      
       const deepLink = await sendBuyerInviteDirect(event.mobileE164);
-      const message = buildBuyerConfirmationMessage(event.mobileE164, deepLink);
-      
       await sendWhatsAppMessage({
         to: event.mobileE164,
-        body: message
+        body: buildBuyerConfirmationMessage(event.mobileE164, deepLink)
       });
       continue;
     }
 
-// Handle seller city input after role selection - redirect to simplified flow
-    if (currentConsentState?.step === CONSENT_STATES.AWAITING_SELLER_CITY) {
+    if (SELLER_WORDS.has(normalizedInbound) || normalizedInbound === "2") {
       consentState.delete(consentKey);
-      
       const appBase = resolvePublicAppUrl();
       const params = new URLSearchParams();
       params.set("mobile", event.mobileE164.replace("+", ""));
       params.set("ref", "wa");
       const loginLink = `${appBase}/seller/login?${params.toString()}`;
-      const message = buildSellerValueMessage(loginLink);
-      
       await sendWhatsAppMessage({
         to: event.mobileE164,
-        body: message
+        body: buildSellerValueMessage(loginLink)
       });
       continue;
     }
-    
-    // Handle seller categories input - redirect to simplified flow
-    if (currentConsentState?.step === CONSENT_STATES.AWAITING_SELLER_CATEGORIES) {
-      consentState.delete(consentKey);
-      
-      const appBase = resolvePublicAppUrl();
-      const params = new URLSearchParams();
-      params.set("mobile", event.mobileE164.replace("+", ""));
-      params.set("ref", "wa");
-      const loginLink = `${appBase}/seller/login?${params.toString()}`;
-      const message = buildSellerValueMessage(loginLink);
-      
-      await sendWhatsAppMessage({
-        to: event.mobileE164,
-        body: message
-      });
-      continue;
-}
 
-    // Handle BUYER/SELLER for opted-in users - simplified flow
-    if (BUYER_WORDS.has(normalizedInbound) || normalizedInbound === "buy" || normalizedInbound === "1" || normalizedInbound === "buyer") {
-      consentState.delete(consentKey);
-      
-      const deepLink = await sendBuyerInviteDirect(event.mobileE164);
-      const message = buildBuyerConfirmationMessage(event.mobileE164, deepLink);
-      
-      await sendWhatsAppMessage({
-        to: event.mobileE164,
-        body: message
-      });
-      continue;
-    }
-    
-    if (SELLER_WORDS.has(normalizedInbound) || normalizedInbound === "sell" || normalizedInbound === "2" || normalizedInbound === "seller") {
-      consentState.delete(consentKey);
-      
-      const appBase = resolvePublicAppUrl();
-      const params = new URLSearchParams();
-      params.set("mobile", event.mobileE164.replace("+", ""));
-      params.set("ref", "wa");
-      const loginLink = `${appBase}/seller/login?${params.toString()}`;
-      const message = buildSellerValueMessage(loginLink);
-      
-      await sendWhatsAppMessage({
-        to: event.mobileE164,
-        body: message
-      });
-      continue;
-}
+    await sendWhatsAppMessage({
+      to: event.mobileE164,
+      body: buildWelcomeMessage()
+    });
 
     const intent = classifyInboundText(event.text);
     const registerPayload = intent.kind === "register"
