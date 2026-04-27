@@ -1137,7 +1137,7 @@ if (isExistingSeller) {
         });
       } else {
         const loginParams = new URLSearchParams();
-        loginParams.set("mobile", event.mobileE164.replace("+", "");
+        loginParams.set("mobile", event.mobileE164.replace("+", ""));
         loginParams.set("city", cityToSave);
         loginParams.set("cats", parsed.whatsappCategories.join(","));
         loginParams.set("from", "wa");
