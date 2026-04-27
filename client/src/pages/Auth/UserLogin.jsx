@@ -402,6 +402,59 @@ useEffect(() => {
           localStorage.getItem("login_intent_role") === "seller";
         const sellerCapable = Boolean(user?.roles?.seller);
 
+// Check for pending requirement (from WhatsApp buyer flow)
+        const pendingRequirementData = sessionStorage.getItem("pending_requirement_data");
+        const isFromWhatsApp = localStorage.getItem("whatsapp_login") === "true";
+        
+        // For WhatsApp buyers with pending requirement, skip city modal
+        if (pendingRequirementData && !isSeller && isFromWhatsApp) {
+          // Set session first
+          setSession({
+            _id: user._id,
+            role: user.role || currentRole,
+            roles: user.roles,
+            email: user.email || email,
+            city: city, // use city from form/search params
+            name: buildDisplayName(user, currentRole, profile),
+            preferredCurrency: user.preferredCurrency || "INR",
+            mobile: user.mobile || mobile || "",
+            token: res.data.token
+          });
+          
+          // Proceed to post requirement
+          try {
+            const reqData = JSON.parse(pendingRequirementData);
+            const reqPayload = {
+              mobile: reqData.mobile,
+              city: reqData.city,
+              category: reqData.category,
+              productName: reqData.productName,
+              product: reqData.product,
+              quantity: reqData.quantity,
+              type: reqData.unit,
+              details: reqData.details,
+              offerInvitedFrom: reqData.offerInvitedFrom || "city",
+              ref: reqData.ref
+            };
+            
+            const reqRes = await api.post("/buyer/requirement", reqPayload);
+            sessionStorage.removeItem("pending_requirement_data");
+            localStorage.removeItem("whatsapp_login");
+            
+            if (reqRes.data?._id) {
+              navigate(`/buyer/dashboard?activeTab=posts&highlight=${reqRes.data._id}`, { replace: true });
+              return;
+            }
+          } catch (e) {
+            console.error("[Login] Failed to post pending requirement:", e);
+            sessionStorage.removeItem("pending_requirement_data");
+          }
+          
+          // Fallback to dashboard
+          navigate("/buyer/dashboard", { replace: true });
+          return;
+        }
+        
         if (pendingLoginMethod === "email" || pendingLoginMethod === "mobile") {
           setPendingCitySession({
             _id: user._id,
