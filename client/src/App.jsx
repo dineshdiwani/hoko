@@ -13,7 +13,6 @@ import {
 
 const BuyerWelcome = lazy(() => import("./pages/Buyer/welcome"));
 const BuyerLogin = lazy(() => import("./pages/Buyer/Login"));
-const BuyerWhatsAppLogin = lazy(() => import("./pages/Auth/BuyerWhatsAppLogin"));
 const BuyerDashboard = lazy(() => import("./pages/Buyer/Dashboard"));
 const MyPosts = lazy(() => import("./pages/Buyer/MyPosts"));
 const RequirementForm = lazy(() => import("./pages/Buyer/RequirementForm"));
@@ -301,7 +300,6 @@ function AppShell() {
 
         {/* Buyer */}
         <Route path="/buyer/login" element={<BuyerLogin />} />
-        <Route path="/buyer/whatsapp-login" element={<BuyerWhatsAppLogin />} />
         
         {/* Public post requirement routes - accessible without login */}
         <Route path="/post-requirement" element={<RequirementForm isPublic={true} />} />
