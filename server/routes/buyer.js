@@ -865,6 +865,121 @@ router.post("/requirement/verify-otp", otpVerifyLimiter, async (req, res) => {
   });
 });
 
+router.post("/otp/request", async (req, res) => {
+  const { mobile } = req.body;
+  
+  if (!mobile) {
+    return res.status(400).json({ success: false, message: "Mobile number is required" });
+  }
+
+  const mobileE164 = normalizeE164(mobile);
+  const otp = generateOTP();
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+  await WhatsAppOTP.updateMany(
+    { mobileE164, status: "pending" },
+    { $set: { status: "expired" } }
+  );
+
+  await WhatsAppOTP.create({
+    mobileE164,
+    otp,
+    expiresAt,
+    status: "pending",
+    requirementData: null,
+    provider: "whatsapp"
+  });
+
+  const sendResult = await sendOTPviaWhatsApp(mobileE164, otp);
+
+  if (!sendResult.ok) {
+    return res.status(500).json({ 
+      success: false, 
+      message: "Failed to send OTP. Please try again." 
+    });
+  }
+
+  res.json({ 
+    success: true, 
+    message: "OTP sent to WhatsApp"
+  });
+});
+
+router.post("/otp/verify", async (req, res) => {
+  const { mobile, otp } = req.body;
+  
+  if (!mobile || !otp) {
+    return res.status(400).json({ success: false, message: "Mobile and OTP are required" });
+  }
+
+  const mobileE164 = normalizeE164(mobile);
+  
+  const otpRecord = await WhatsAppOTP.findOne({
+    mobileE164,
+    otp: otp.trim(),
+    status: "pending"
+  }).sort({ createdAt: -1 });
+
+  if (!otpRecord) {
+    return res.status(400).json({ success: false, message: "Invalid or expired OTP" });
+  }
+
+  if (new Date() > otpRecord.expiresAt) {
+    await WhatsAppOTP.findByIdAndUpdate(otpRecord._id, { $set: { status: "expired" } });
+    return res.status(400).json({ success: false, message: "OTP has expired" });
+  }
+
+  if (otpRecord.attempts >= 5) {
+    await WhatsAppOTP.findByIdAndUpdate(otpRecord._id, { $set: { status: "expired" } });
+    return res.status(400).json({ success: false, message: "Too many attempts" });
+  }
+
+  await otpRecord.incrementAttempts();
+
+  await WhatsAppOTP.findByIdAndUpdate(otpRecord._id, { 
+    $set: { status: "verified", verifiedAt: new Date() } 
+  });
+
+  let softUser = await SoftUser.findOne({ mobileE164 });
+  
+  if (!softUser) {
+    softUser = await SoftUser.create({
+      mobile: mobileE164,
+      phone: mobileE164,
+      role: "buyer",
+      roles: { buyer: true },
+      mobileE164
+    });
+  } else {
+    softUser.role = "buyer";
+    if (!softUser.roles?.buyer) {
+      softUser.roles = { ...softUser.roles, buyer: true };
+    }
+    await softUser.save();
+  }
+
+  const token = jwt.sign(
+    { id: softUser._id, role: "buyer", tokenVersion: softUser.tokenVersion || 0 },
+    process.env.JWT_SECRET,
+    { expiresIn: "7d" }
+  );
+
+  res.json({ 
+    success: true, 
+    user: {
+      _id: softUser._id,
+      email: softUser.email,
+      role: softUser.role,
+      roles: softUser.roles,
+      city: softUser.city,
+      preferredCurrency: softUser.preferredCurrency || "INR",
+      mobile: softUser.mobile,
+      name: softUser.name
+    },
+    token
+  });
+});
+
 /**
  * Upload requirement attachments
  */

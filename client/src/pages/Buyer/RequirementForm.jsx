@@ -677,16 +677,13 @@ useEffect(() => {
         requirementData: postData
       });
 
-      if (verifyRes.data?.success) {
+if (verifyRes.data?.success) {
         setOtpStep(false);
         setSubmitted(true);
         setOtpValue("");
         
-        alert("Requirement submitted successfully!");
-        
         const { token, user, requirementId } = verifyRes.data;
         
-        // If token returned, save the session (for next time login)
         if (token && user) {
           setSession({
             _id: user._id,
@@ -701,11 +698,10 @@ useEffect(() => {
           });
         }
 
-        // Go to buyer dashboard with My Posts tab
         navigate(`/buyer/dashboard?activeTab=posts&highlight=${requirementId || ""}`, { replace: true });
       } else {
         throw new Error(verifyRes.data?.message || "Invalid OTP");
-}
+      }
       } catch (err) {
         setOtpError(err?.response?.data?.message || err?.message || "Invalid OTP. Please try again.");
     } finally {
