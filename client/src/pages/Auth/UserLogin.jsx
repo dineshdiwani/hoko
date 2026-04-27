@@ -778,7 +778,7 @@ setBuyerDashboardDefaultTab(user.city || city);
         </div>
       )}
 
-      {showCityModal && pendingCitySession && (
+      {showCityModal && pendingCitySession && cities.length > 0 && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white w-full max-w-md rounded-2xl shadow-xl p-6 mx-4">
             <h2 className="text-xl font-bold mb-4">Select Your City</h2>
@@ -877,6 +877,11 @@ setBuyerDashboardDefaultTab(user.city || city);
                   }
                 }
                 
+                // If no cities loaded yet, wait
+                if (cities.length === 0) {
+                  await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+                
                 // Build dashboard URL with WhatsApp params
                 const whatsappCity = localStorage.getItem("whatsapp_city") || "";
                 const whatsappCats = localStorage.getItem("whatsapp_categories") || "";
@@ -884,7 +889,7 @@ setBuyerDashboardDefaultTab(user.city || city);
                 localStorage.removeItem("whatsapp_categories");
                 
                 const dashboardParams = new URLSearchParams();
-                if (whatsappCity) dashboardParams.set("city", whatsappCity);
+                if (city) dashboardParams.set("city", city);
                 if (whatsappCats) dashboardParams.set("cats", whatsappCats);
                 if (isSellerRole) dashboardParams.set("from", "wa");
                 
