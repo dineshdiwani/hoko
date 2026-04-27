@@ -62,6 +62,7 @@ export default function BuyerDashboard() {
   const [sessionVersion, setSessionVersion] = useState(0);
   const [refreshToken, setRefreshToken] = useState(0);
   const persistedState = readBuyerDashboardState();
+  const lastSyncedProfileCityRef = useRef(String(session?.city || "").trim());
 
   const [activeTab, setActiveTab] = useState(
     requestedTab || persistedState.activeTab
@@ -98,6 +99,21 @@ const [showAppBanner, setShowAppBanner] = useState(true);
       window.removeEventListener("storage", syncSession);
     };
   }, []);
+
+  useEffect(() => {
+    const latestProfileCity = String(session?.city || "").trim();
+    if (!latestProfileCity) return;
+    setCity((prev) => {
+      const current = String(prev || "").trim();
+      const previousDefault = String(lastSyncedProfileCityRef.current || "").trim();
+      const shouldFollowDefault =
+        !current ||
+        current.toLowerCase() === "all" ||
+        current.toLowerCase() === previousDefault.toLowerCase();
+      return shouldFollowDefault ? latestProfileCity : prev;
+    });
+    lastSyncedProfileCityRef.current = latestProfileCity;
+  }, [session?.city]);
 
   // Safety guard
   useEffect(() => {
@@ -234,7 +250,6 @@ const [showAppBanner, setShowAppBanner] = useState(true);
     setActiveTab((prev) =>
       prev === "posts" || prev === "city" || prev === "offers" ? prev : "posts"
     );
-    setCity((prev) => session?.city || prev || "");
     setSelectedCategory((prev) => prev || "all");
   }, [sessionVersion, session?.token, session?.city]);
 
@@ -522,7 +537,7 @@ useEffect(() => {
               Buyer Dashboard
             </h1>
             <p className="ui-label text-gray-500">
-              {city || "Select city"}
+              {city || "Set city"}
             </p>
           </div>
 
@@ -540,7 +555,7 @@ useEffect(() => {
               {menuOpen && (
                 <div className="dashboard-panel absolute right-0 mt-2 w-44 overflow-hidden">
                   <div className="px-3 py-2 text-xs text-gray-500 border-b bg-gray-50">
-                    City: {session?.city || "Not set"}
+                    Set city: {session?.city || "Not set"}
                   </div>
                   <button
                     onClick={() => {

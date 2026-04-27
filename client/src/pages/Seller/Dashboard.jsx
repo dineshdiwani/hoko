@@ -81,7 +81,12 @@ export default function SellerDashboard() {
   const [selectedCategory, setSelectedCategory] = useState(persistedState.selectedCategory);
   const [cities, setCities] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [selectedCity, setSelectedCity] = useState(cityFromUrl || persistedState.selectedCity);
+  const [selectedCity, setSelectedCity] = useState(
+    cityFromUrl ||
+      persistedState.selectedCity ||
+      String(getSession()?.city || "").trim() ||
+      "all"
+  );
   const [activeSmartTab, setActiveSmartTab] = useState("all");
   const [chatOpen, setChatOpen] = useState(false);
   const [chatPeer, setChatPeer] = useState(null);
@@ -95,6 +100,7 @@ export default function SellerDashboard() {
     import.meta.env.DEV;
 
   const currentUserId = session?._id || session?.id || session?.userId || null;
+  const lastSyncedProfileCityRef = useRef(String(session?.city || "").trim());
 
   useEffect(() => {
     const syncSession = () => setSessionState(getSession());
@@ -106,6 +112,21 @@ export default function SellerDashboard() {
       window.removeEventListener("storage", syncSession);
     };
   }, []);
+
+  useEffect(() => {
+    const latestProfileCity = String(session?.city || "").trim();
+    if (!latestProfileCity) return;
+    setSelectedCity((prev) => {
+      const current = String(prev || "").trim();
+      const previousDefault = String(lastSyncedProfileCityRef.current || "").trim();
+      const shouldFollowDefault =
+        !current ||
+        current.toLowerCase() === "all" ||
+        current.toLowerCase() === previousDefault.toLowerCase();
+      return shouldFollowDefault ? latestProfileCity : prev;
+    });
+    lastSyncedProfileCityRef.current = latestProfileCity;
+  }, [session?.city]);
 
   const normalizeCategory = (cat) => String(cat || "").toLowerCase().trim();
   const normalizeCity = (value) => String(value || "").trim().toLowerCase();
@@ -871,20 +892,25 @@ export default function SellerDashboard() {
 
           <div className="flex items-center flex-wrap md:flex-nowrap gap-2 w-full md:w-auto">
             <div className="flex items-center flex-wrap gap-2 flex-1 min-w-0">
-            <select
-              value={selectedCity}
-              onChange={(e) => setSelectedCity(e.target.value)}
-              className="app-select ui-body w-[calc(50%-0.25rem)] md:w-auto"
-              aria-label="Filter posts by city"
-              title="Filter posts by city"
-            >
-              <option value="all">All cities</option>
-              {cities.map((city) => (
-                <option key={city} value={city}>
-                  {city}
-                </option>
-              ))}
-            </select>
+            <div className="flex flex-col gap-1">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                Set city
+              </span>
+              <select
+                value={selectedCity}
+                onChange={(e) => setSelectedCity(e.target.value)}
+                className="app-select ui-body w-[calc(50%-0.25rem)] md:w-auto"
+                aria-label="Filter posts by city"
+                title="Filter posts by city"
+              >
+                <option value="all">All cities</option>
+                {cities.map((city) => (
+                  <option key={city} value={city}>
+                    {city}
+                  </option>
+                ))}
+              </select>
+            </div>
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
@@ -916,7 +942,7 @@ export default function SellerDashboard() {
               {menuOpen && (
                 <div className="dashboard-panel absolute right-0 mt-2 w-44 overflow-hidden">
                   <div className="px-3 py-2 text-xs text-gray-500 border-b bg-gray-50">
-                    City: {session?.city || "Not set"}
+                    Set city: {session?.city || "Not set"}
                   </div>
                   <button
                     onClick={() => {
