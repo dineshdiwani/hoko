@@ -1044,6 +1044,16 @@ for (const event of events) {
       continue;
 }
 
+    // Always handle greetings first - so users don't get stuck in old states
+    if (GREETING_WORDS.has(normalizedInbound)) {
+      consentState.delete(consentKey);
+      await sendWhatsAppMessage({
+        to: event.mobileE164,
+        body: buildWelcomeMessage()
+      });
+      continue;
+    }
+
     // Redirect any old intermediate states to simplified flow
     if (currentConsentState?.step?.startsWith("awaiting_")) {
       consentState.delete(consentKey);
@@ -1124,15 +1134,6 @@ for (const event of events) {
       });
       continue;
 }
-
-    // Always acknowledge simple greetings so users do not see a silent chat.
-    if (GREETING_WORDS.has(normalizedInbound)) {
-      await sendWhatsAppMessage({
-        to: event.mobileE164,
-        body: buildWelcomeMessage()
-      });
-      continue;
-    }
 
     const intent = classifyInboundText(event.text);
     const registerPayload = intent.kind === "register"
