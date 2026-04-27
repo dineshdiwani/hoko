@@ -1137,7 +1137,7 @@ console.log("[WA WEBHOOK] Extracted events:", events.length, events.map(e => ({ 
         });
       } else {
         const dashboardParams = new URLSearchParams();
-        dashboardParams.set("mobile", event.mobileE164.replace("+", "");
+        dashboardParams.set("mobile", event.mobileE164.replace("+", ""));
         dashboardParams.set("city", cityToSave);
         dashboardParams.set("cats", parsed.whatsappCategories.join(","));
         dashboardParams.set("from", "wa");
