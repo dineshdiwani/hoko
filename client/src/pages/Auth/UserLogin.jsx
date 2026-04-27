@@ -481,25 +481,19 @@ setBuyerDashboardDefaultTab(user.city || city);
         const pendingOfferData = localStorage.getItem("pending_offer_data");
         localStorage.removeItem("pending_offer_data");
         
-        // Check if there's pending registration data from WhatsApp flow
-        const pendingRegisterData = localStorage.getItem("pending_register_data");
-        localStorage.removeItem("pending_register_data");
-        
-        // Build dashboard URL with any pending city/categories
-        let dashboardCity = "";
-        let dashboardCats = "";
-        if (pendingRegisterData) {
-          try {
-            const regData = JSON.parse(pendingRegisterData);
-            dashboardCity = regData.city || "";
-            dashboardCats = regData.categories || "";
-          } catch {}
-        }
+        // Build dashboard URL with WhatsApp params or stored data
+        const whatsappCity = localStorage.getItem("whatsapp_city") || "";
+        const whatsappCats = localStorage.getItem("whatsapp_categories") || "";
+        localStorage.removeItem("whatsapp_city");
+        localStorage.removeItem("whatsapp_categories");
         
         const dashboardParams = new URLSearchParams();
+        if (whatsappCity) dashboardParams.set("city", whatsappCity);
+        if (whatsappCats) dashboardParams.set("cats", whatsappCats);
+        if (isSeller) dashboardParams.set("from", "wa");
         if (dashboardCity) dashboardParams.set("city", dashboardCity);
         if (dashboardCats) dashboardParams.set("cats", dashboardCats);
-        dashboardParams.set("from", "wa");
+        if (isSeller) dashboardParams.set("from", "wa");
         
         if (pendingOfferData && isSeller) {
           try {

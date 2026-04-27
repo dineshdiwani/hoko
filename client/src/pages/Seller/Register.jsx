@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { fetchOptions } from "../../services/options";
 import api from "../../services/api";
 import {
@@ -9,7 +9,6 @@ import {
 } from "../../services/storage";
 
 export default function SellerRegister() {
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const mobileFromUrl = searchParams.get("mobile") || "";
   const cityFromUrl = searchParams.get("city") || "";
@@ -33,23 +32,8 @@ export default function SellerRegister() {
   });
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const postLoginRedirectRaw = String(
-    localStorage.getItem("post_login_redirect") || ""
-  ).trim();
-  const postLoginRedirectSource = String(
-    localStorage.getItem("post_login_redirect_source") || ""
-  )
-    .trim()
-    .toLowerCase();
-  const isDeepLinkRedirect = postLoginRedirectRaw.startsWith("/seller/deeplink/");
-  const postLoginRedirect =
-    postLoginRedirectRaw &&
-    (postLoginRedirectSource === "deeplink" || isDeepLinkRedirect)
-      ? postLoginRedirectRaw
-      : "/seller/dashboard";
 
   const [cities, setCities] = useState([]);
-
   const [categories, setCategories] = useState([]);
   const resolveCityValue = (value, cityList, fallback = "") => {
     const raw = String(value || fallback || "").trim();
@@ -60,7 +44,7 @@ export default function SellerRegister() {
     return matched || raw;
   };
 
-useEffect(() => {
+  useEffect(() => {
     fetchOptions()
       .then((data) => {
         if (Array.isArray(data.cities) && data.cities.length) {
@@ -95,43 +79,7 @@ useEffect(() => {
         }
       })
       .catch(() => {});
-}, [sessionCity, cityFromUrl, catsFromUrl, mobileFromUrl]);
-
-  // Both new and existing sellers land on dashboard (not login/registration form)
-  useEffect(() => {
-    // Build dashboard URL with WhatsApp params
-    const dashboardParams = new URLSearchParams();
-    if (cityFromUrl) dashboardParams.set("city", cityFromUrl);
-    if (catsFromUrl) dashboardParams.set("cats", catsFromUrl);
-    dashboardParams.set("from", "wa");
-    
-    const dashboardUrl = `/seller/dashboard?${dashboardParams.toString()}`;
-    
-    if (session?.token && session?.sellerProfile?.registeredBusinessName && session?.sellerProfile?.managerName) {
-      // Already logged in and registered - go directly to dashboard
-      navigate(dashboardUrl, { replace: true });
-      return;
-    }
-    
-    if (session?.token) {
-      // Logged in but not registered - store pending data and go dashboard
-      localStorage.setItem("pending_register_data", JSON.stringify({
-        city: cityFromUrl,
-        categories: catsFromUrl,
-        mobile: mobileFromUrl
-      }));
-      navigate(dashboardUrl, { replace: true });
-      return;
-    }
-    
-    // Not logged in - store params and go to login (will redirect to dashboard after login)
-    localStorage.setItem("pending_register_data", JSON.stringify({
-      city: cityFromUrl,
-      categories: catsFromUrl,
-      mobile: mobileFromUrl
-    }));
-    navigate("/seller/login", { replace: true });
-  }, [session, cityFromUrl, catsFromUrl, mobileFromUrl, navigate]);
+  }, [sessionCity, cityFromUrl, catsFromUrl, mobileFromUrl]);
 
   useEffect(() => {
     const savedEmail = localStorage.getItem("seller_email");
@@ -154,361 +102,216 @@ useEffect(() => {
         next.mobile = savedMobile;
       }
       
-      if (savedCity && !next.city) {
-        next.city = resolveCityValue(savedCity, cities) || savedCity;
-      } else if (prev.city || sessionCity) {
-        next.city = prev.city || resolveCityValue(sessionCity, cities);
+      if (!next.city) {
+        if (savedCity) {
+          const cityMatch = resolveCityValue(savedCity, cities);
+          next.city = cityMatch || savedCity;
+        } else if (sessionCity) {
+          const cityMatch = resolveCityValue(sessionCity, cities);
+          next.city = cityMatch || sessionCity;
+        }
       }
       
-      if (savedCats && savedCats.length > 0) {
-        next._savedCats = savedCats;
+      if (!next.categories.length && savedCats) {
+        const catArray = savedCats.includes(",") ? savedCats.split(",") : [savedCats];
+        const validCats = catArray.filter(c => categories.includes(c.trim()));
+        if (validCats.length > 0) {
+          next.categories = validCats;
+        }
       }
       
       return next;
     });
-  }, []);
+  }, [cities, categories, session, sessionCity]);
 
-  useEffect(() => {
-    if (seller._savedCats && Array.isArray(categories) && categories.length > 0) {
-      const savedCats = localStorage.getItem("whatsapp_categories") || "";
-      if (savedCats) {
-        const selectedCats = savedCats.split(",").filter(c => 
-          categories.some(cat => cat.toLowerCase() === c.toLowerCase())
-        );
-        if (selectedCats.length > 0) {
-          setSeller(prev => ({ ...prev, categories: selectedCats, _savedCats: null }));
-        }
-      }
-    }
-  }, [categories, seller._savedCats]);
-
-  useEffect(() => {
+  const toggleCategory = (cat) => {
     setSeller((prev) => ({
       ...prev,
-      city: prev.city || resolveCityValue(sessionCity, cities)
-    }));
-  }, [cities, sessionCity]);
-
-  const toggleCategory = (value) => {
-    setSeller((prev) => ({
-      ...prev,
-      categories: prev.categories.includes(value)
-        ? prev.categories.filter((c) => c !== value)
-        : [...prev.categories, value],
+      categories: prev.categories.includes(cat)
+        ? prev.categories.filter((c) => c !== cat)
+        : [...prev.categories, cat]
     }));
   };
 
-const handleSubmit = () => {
-    setSubmitted(true);
-    
-    const email = String(seller.email || "").trim();
-    const mobile = String(seller.mobile || "").trim();
-    const registeredBusinessName = String(seller.registeredBusinessName || "").trim();
-    const managerName = String(seller.managerName || "").trim();
-    const city = String(seller.city || "").trim();
-    const categories = seller.categories || [];
-    const whatsappConsent = seller.whatsappConsent || false;
-    
-    if (!email || !mobile || !registeredBusinessName || !managerName || categories.length === 0 || !city) {
-      alert("Please fill all required fields");
+  const isSelected = (cat) => seller.categories.includes(cat);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!seller.registeredBusinessName || !seller.managerName || !seller.city) {
+      alert("Please fill business name, manager name, and city");
       return;
     }
-    if (!whatsappConsent) {
-      alert("Please accept WhatsApp notifications to receive updates");
-      return;
-    }
-    if (!/\S+@\S+\.\S+/.test(email)) {
-      alert("Please enter a valid email");
+    if (seller.categories.length === 0) {
+      alert("Please select at least one category");
       return;
     }
 
-const profile = {
-      email,
-      mobile,
-      registeredBusinessName,
-      managerName,
-      city,
-      categories,
+    setSubmitted(true);
+
+    const profile = {
+      registeredBusinessName: seller.registeredBusinessName,
+      managerName: seller.managerName,
       registrationDetails: seller.registrationDetails,
       businessAddress: seller.businessAddress,
       ownerName: seller.ownerName,
       website: seller.website,
       taxId: seller.taxId,
-      whatsappConsent: whatsappConsent
+      city: seller.city,
+      categories: seller.categories,
+      email: seller.email,
+      mobile: seller.mobile,
+      whatsappConsent: seller.whatsappConsent
     };
-    
-    if (!session?.token) {
-      navigate("/buyer/login");
-      return;
-    }
 
-api
-      .post("/seller/onboard", profile)
-      .then(async (res) => {
-        setSellerDashboardCategories(profile.categories || []);
-        
-        // Skip switch-role for WhatsApp login users - they already have seller role
-        const isWhatsAppLogin = localStorage.getItem("whatsapp_login") === "true";
-        
-        if (isWhatsAppLogin) {
-          // Update session with new data but keep existing token
-          setSession({
-            ...session,
-            city: res.data.city,
-            name: res.data?.sellerProfile?.registeredBusinessName || "Seller",
-            sellerProfile: res.data.sellerProfile
-          });
-          localStorage.removeItem("whatsapp_login");
-          // Check for pending offer to submit
-          const pendingOfferData = localStorage.getItem("pending_offer_data") || localStorage.getItem("pending_seller_offer_data");
-          localStorage.removeItem("pending_offer_data");
-          localStorage.removeItem("pending_seller_offer_data");
-          if (pendingOfferData) {
-            localStorage.setItem("whatsapp_seller_mobile", seller.mobile || "");
-            localStorage.setItem("whatsapp_seller_city", profile.city || "");
-            localStorage.setItem("whatsapp_login", "true");
-            try {
-              const offer = JSON.parse(pendingOfferData);
-              // Store offer data in localStorage for auto-submit on dashboard
-              localStorage.setItem("pending_offer_price", offer.price || "");
-              localStorage.setItem("pending_offer_message", offer.message || "");
-              localStorage.setItem("pending_offer_deliveryTime", offer.deliveryTime || "");
-              localStorage.setItem("pending_offer_paymentTerms", offer.paymentTerms || "");
-              localStorage.setItem("pending_offer_requirementId", offer.requirementId || "");
-              // Redirect to dashboard - it will handle the offer submission
-              navigate("/seller/dashboard", { replace: true });
-            } catch {
-              alert("Registration submitted successfully!");
-              navigate("/seller/dashboard");
-            }
-          } else {
-            alert("Registration submitted successfully!");
-            navigate("/seller/dashboard");
-          }
-          return;
-        }
-        
-const switchRes = await api.post("/auth/switch-role", {
-          role: "seller"
-        });
-        const userEmail = switchRes.data.user.email;
-        setSession({
-          _id: switchRes.data.user._id,
-          role: switchRes.data.user.role,
-          roles: switchRes.data.user.roles,
-          email: userEmail,
-          city: switchRes.data.user.city,
-          name: res.data?.sellerProfile?.registeredBusinessName || "Seller",
-          preferredCurrency:
-            switchRes.data.user.preferredCurrency || "INR",
-          mobile: switchRes.data.user.mobile || "",
-          token: switchRes.data.token
-        });
-        
-        localStorage.setItem("seller_email", userEmail || "");
-        localStorage.removeItem("login_intent_role");
-        localStorage.removeItem("post_login_redirect");
-        localStorage.removeItem("post_login_redirect_source");
-        navigate(postLoginRedirect);
-      })
-.catch((err) => {
-        alert(
-          err?.response?.data?.message ||
-            "Failed to register seller."
-        );
+    try {
+      const res = await api.post("/seller/onboard", profile);
+      setSellerDashboardCategories(profile.categories || []);
+      setSession({
+        ...session,
+        city: res.data.city,
+        name: res.data.sellerProfile?.registeredBusinessName || "Seller",
+        sellerProfile: res.data.sellerProfile
       });
+      alert("Registration submitted successfully!");
+      window.location.href = "/seller/dashboard";
+    } catch (err) {
+      alert(err?.response?.data?.message || "Registration failed. Try again.");
+      setSubmitted(false);
+    }
   };
 
   return (
     <div className="page">
-      <div className="page-shell max-w-[1320px]">
-        <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr] items-start">
-          <div className="mt-6">
-            <h1 className="page-hero mb-4">Register as Seller</h1>
-            <p className="page-subtitle leading-relaxed">
-              Create your seller profile to receive verified buyer
-              requirements and participate in reverse auctions.
-            </p>
-            <div className="mt-8 hidden lg:block">
-              <div className="inline-flex items-center gap-3 rounded-full border border-gray-200 px-4 py-2 text-yellow-300 text-sm">
-                Verified leads * Smart matching * Fast payouts
-              </div>
-            </div>
-          </div>
-
-          <div
-            className={`bg-white p-6 rounded-2xl shadow-xl ${
-              submitted ? "form-submitted" : ""
-            }`}
-          >
-            <h2 className="text-xl font-bold mb-6">Seller Details</h2>
-
-            <div className="grid gap-3 md:grid-cols-2">
-<input
-                className={`w-full border p-2 rounded ${submitted && !seller.email ? "border-red-500" : ""}`}
-                type="email"
-                placeholder="Email *"
-                value={seller.email}
-                onChange={(e) =>
-                  setSeller({ ...seller, email: e.target.value })
-                }
-                required
-              />
-
+      <div className="page-shell pt-24 md:pt-12">
+        <div className="max-w-2xl mx-auto">
+          <h1 className="page-hero">Seller Registration</h1>
+          <form onSubmit={handleSubmit} className="ui-card mt-6 space-y-4">
+            <div>
+              <label className="ui-label">Business Name *</label>
               <input
-                className={`w-full border p-2 rounded ${submitted && !seller.mobile ? "border-red-500" : ""}`}
-                type="tel"
-                placeholder="Mobile Number *"
-                value={seller.mobile}
-                onChange={(e) =>
-                  setSeller({ ...seller, mobile: e.target.value })
-                }
-                required
-              />
-
-              <input
-                className={`w-full border p-2 rounded ${submitted && !seller.registeredBusinessName ? "border-red-500" : ""}`}
-                placeholder="Registered Business Name *"
+                className="ui-input"
                 value={seller.registeredBusinessName}
-                onChange={(e) =>
-                  setSeller({ ...seller, registeredBusinessName: e.target.value })
-                }
+                onChange={(e) => setSeller({ ...seller, registeredBusinessName: e.target.value })}
+                placeholder="ABC Traders Pvt Ltd"
                 required
               />
+            </div>
 
-{/* Category Dropdown with checkbox list */}
-              <div className="md:col-span-2">
-                <label className={`block font-medium mb-2 ${submitted && (!seller.categories || seller.categories.length === 0) ? "text-red-600" : ""}`}>
-                  Categories you deal in *
-                </label>
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setShowCategoryMenu((v) => !v)}
-                    className={`w-full border p-2 rounded text-left pr-10 relative ${submitted && (!seller.categories || seller.categories.length === 0) ? "border-red-500" : ""}`}
-                  >
-                    {seller.categories.length
-                      ? seller.categories.join(", ")
-                      : "Select categories *"}
-                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">
-                      v
-                    </span>
-                  </button>
-                  {showCategoryMenu && (
-                    <div className="absolute z-10 mt-2 w-full bg-white border rounded-xl shadow-lg max-h-56 overflow-auto">
-                      {categories.map((cat) => (
-                        <label
-                          key={cat}
-                          className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={seller.categories.includes(cat)}
-                            onChange={() => toggleCategory(cat)}
-                          />
-                          <span>{cat}</span>
-                        </label>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
+            <div>
+              <label className="ui-label">Manager/Contact Name *</label>
               <input
-                className="w-full border p-2 rounded"
-                placeholder="Business Registration Details"
-                value={seller.registrationDetails}
-                onChange={(e) =>
-                  setSeller({
-                    ...seller,
-                    registrationDetails: e.target.value
-                  })
-                }
+                className="ui-input"
+                value={seller.managerName}
+                onChange={(e) => setSeller({ ...seller, managerName: e.target.value })}
+                placeholder="Rajesh Kumar"
+                required
               />
+            </div>
 
+            <div>
+              <label className="ui-label">Mobile Number</label>
               <input
-                className="w-full border p-2 rounded"
-                placeholder="Business Address"
-                value={seller.businessAddress}
-                onChange={(e) =>
-                  setSeller({ ...seller, businessAddress: e.target.value })
-                }
+                className="ui-input"
+                value={seller.mobile}
+                onChange={(e) => setSeller({ ...seller, mobile: e.target.value })}
+                placeholder="9876543210"
               />
+            </div>
 
-<select
-                className={`w-full border p-2 rounded ${submitted && !seller.city ? "border-red-500" : ""}`}
+            <div>
+              <label className="ui-label">Email</label>
+              <input
+                className="ui-input"
+                type="email"
+                value={seller.email}
+                onChange={(e) => setSeller({ ...seller, email: e.target.value })}
+                placeholder="business@example.com"
+              />
+            </div>
+
+            <div>
+              <label className="ui-label">City *</label>
+              <select
+                className="ui-select"
                 value={seller.city}
-                onChange={(e) =>
-                  setSeller({ ...seller, city: e.target.value })
-                }
+                onChange={(e) => setSeller({ ...seller, city: e.target.value })}
                 required
               >
-                <option value="">Select City *</option>
-                {cities.map((city) => (
-                  <option key={city} value={city}>
-                    {city}
-                  </option>
+                <option value="">Select City</option>
+                {cities.map((c) => (
+                  <option key={c} value={c}>{c}</option>
                 ))}
               </select>
+            </div>
 
-              <input
-                className={`w-full border p-2 rounded ${submitted && !seller.managerName ? "border-red-500" : ""}`}
-                placeholder="Manager Name *"
-                value={seller.managerName}
-                onChange={(e) =>
-                  setSeller({ ...seller, managerName: e.target.value })
-                }
-                required
-/>
-
-              <input
-                className="w-full border p-2 rounded"
-                placeholder="Website"
-                value={seller.website}
-                onChange={(e) =>
-                  setSeller({ ...seller, website: e.target.value })
-                }
-              />
-
-<input
-                className="w-full border p-2 rounded"
-                placeholder="Tax Identification Number"
-                value={seller.taxId}
-                onChange={(e) =>
-                  setSeller({ ...seller, taxId: e.target.value })
-                }
-              />
-
-              <div className="md:col-span-2">
-                <label className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer ${submitted && !seller.whatsappConsent ? "border-red-500" : "border-gray-300"}`}>
-                  <input
-                    type="checkbox"
-                    checked={seller.whatsappConsent}
-                    onChange={(e) =>
-                      setSeller({ ...seller, whatsappConsent: e.target.checked })
-                    }
-                    className="mt-1 w-5 h-5"
-                    required
-                  />
-                  <span className="text-sm text-gray-700">
-                    I agree to receive updates and notifications on <strong>WhatsApp</strong> for new buyer requirements, offers, and important updates.
-                  </span>
-                </label>
+            <div>
+              <label className="ui-label">Categories *</label>
+              <div className="relative">
+                <button
+                  type="button"
+                  className="ui-select w-full text-left"
+                  onClick={() => setShowCategoryMenu(!showCategoryMenu)}
+                >
+                  {seller.categories.length === 0
+                    ? "Select categories..."
+                    : seller.categories.join(", ")}
+                </button>
+                {showCategoryMenu && (
+                  <div className="absolute z-10 w-full bg-white border rounded-lg shadow-lg mt-1 max-h-60 overflow-auto">
+                    {categories.map((cat) => (
+                      <label
+                        key={cat}
+                        className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected(cat)}
+                          onChange={() => toggleCategory(cat)}
+                        />
+                        {cat}
+                      </label>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
-            <button
-              onClick={handleSubmit}
-              className="mt-3 btn-brand px-6 py-2 rounded hover:bg-blue-700"
-            >
-              Register Seller
+            <div>
+              <label className="ui-label">Business Address</label>
+              <textarea
+                className="ui-textarea"
+                value={seller.businessAddress}
+                onChange={(e) => setSeller({ ...seller, businessAddress: e.target.value })}
+                placeholder="123, Industrial Area, Sector 5..."
+              />
+            </div>
+
+            <div>
+              <label className="ui-label">Website</label>
+              <input
+                className="ui-input"
+                value={seller.website}
+                onChange={(e) => setSeller({ ...seller, website: e.target.value })}
+                placeholder="www.example.com"
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="whatsappConsent"
+                checked={seller.whatsappConsent}
+                onChange={(e) => setSeller({ ...seller, whatsappConsent: e.target.checked })}
+              />
+              <label htmlFor="whatsappConsent">Receive updates via WhatsApp</label>
+            </div>
+
+            <button type="submit" disabled={submitted} className="ui-btn-primary w-full">
+              {submitted ? "Submitting..." : "Register"}
             </button>
-          </div>
+          </form>
         </div>
       </div>
-
-      
     </div>
   );
 }
-

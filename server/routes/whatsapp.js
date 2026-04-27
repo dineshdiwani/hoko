@@ -245,7 +245,7 @@ function buildSellerCityPrompt() {
   ].join("\n");
 }
 
-function buildExistingSellerMessage(city, whatsappCategories, dashboardLink) {
+function buildExistingSellerMessage(city, whatsappCategories, loginLink) {
   const catList = whatsappCategories.slice(0, 3).join(", ");
   const moreCats = whatsappCategories.length > 3 ? ` +${whatsappCategories.length - 3} more` : "";
   return [
@@ -256,14 +256,14 @@ function buildExistingSellerMessage(city, whatsappCategories, dashboardLink) {
     "",
     "💰 Buyers post requirements DAILY - submit offers now!",
     "",
-    "👉 Go to your dashboard:",
-    `👉 ${dashboardLink}`,
+    "👉 Login to your dashboard:",
+    `👉 ${loginLink}`,
     "",
     "💡 First offer = highest visibility!"
   ].join("\n");
 }
 
-function buildSellerConfirmationMessage(city, whatsappCategories, dashboardLink) {
+function buildSellerConfirmationMessage(city, whatsappCategories, loginLink) {
   const catList = whatsappCategories.slice(0, 3).join(", ");
   const moreCats = whatsappCategories.length > 3 ? ` +${whatsappCategories.length - 3} more` : "";
   return [
@@ -274,8 +274,8 @@ function buildSellerConfirmationMessage(city, whatsappCategories, dashboardLink)
     "",
     "Buyers post requirements DAILY in your city!",
     "",
-    "📝 Go to dashboard to submit offers:",
-    `👉 ${dashboardLink}`,
+    "📝 Login to submit offers:",
+    `👉 ${loginLink}`,
     "",
     "💡 First offer submitted = highest visibility!"
   ].join("\n");
@@ -1124,27 +1124,27 @@ console.log("[WA WEBHOOK] Extracted events:", events.length, events.map(e => ({ 
       const existingUser = await User.findOne({ mobile: event.mobileE164 }).select("_id roles").lean();
       const isExistingSeller = existingUser && existingUser.roles?.seller;
       
-      if (isExistingSeller) {
-        const dashboardParams = new URLSearchParams();
-        dashboardParams.set("mobile", event.mobileE164.replace("+", ""));
-        dashboardParams.set("city", cityToSave);
-        dashboardParams.set("cats", parsed.whatsappCategories.join(","));
-        dashboardParams.set("from", "wa");
-        const dashboardLink = `${appBase}/seller/dashboard?${dashboardParams.toString()}`;
+if (isExistingSeller) {
+        const loginParams = new URLSearchParams();
+        loginParams.set("mobile", event.mobileE164.replace("+", ""));
+        loginParams.set("city", cityToSave);
+        loginParams.set("cats", parsed.whatsappCategories.join(","));
+        loginParams.set("from", "wa");
+        const loginLink = `${appBase}/seller/login?${loginParams.toString()}`;
         await sendWhatsAppMessage({
           to: event.mobileE164,
-          body: buildExistingSellerMessage(cityToSave, parsed.whatsappCategories, dashboardLink)
+          body: buildExistingSellerMessage(cityToSave, parsed.whatsappCategories, loginLink)
         });
       } else {
-        const dashboardParams = new URLSearchParams();
-        dashboardParams.set("mobile", event.mobileE164.replace("+", ""));
-        dashboardParams.set("city", cityToSave);
-        dashboardParams.set("cats", parsed.whatsappCategories.join(","));
-        dashboardParams.set("from", "wa");
-        const registerLink = `${appBase}/seller/register?${dashboardParams.toString()}`;
+        const loginParams = new URLSearchParams();
+        loginParams.set("mobile", event.mobileE164.replace("+", "");
+        loginParams.set("city", cityToSave);
+        loginParams.set("cats", parsed.whatsappCategories.join(","));
+        loginParams.set("from", "wa");
+        const loginLink = `${appBase}/seller/login?${loginParams.toString()}`;
         await sendWhatsAppMessage({
           to: event.mobileE164,
-          body: buildSellerConfirmationMessage(cityToSave, parsed.whatsappCategories, registerLink)
+          body: buildSellerConfirmationMessage(cityToSave, parsed.whatsappCategories, loginLink)
         });
       }
       continue;
