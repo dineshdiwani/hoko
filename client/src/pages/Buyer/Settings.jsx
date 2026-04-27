@@ -6,6 +6,7 @@ import { getSession, logout } from "../../services/auth";
 import {
   getSettings,
   updateSettings,
+  setSession,
   updateSession
 } from "../../services/storage";
 import {

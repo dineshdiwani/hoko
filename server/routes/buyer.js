@@ -1452,297 +1452,308 @@ router.get("/profile", auth, buyerOnly, async (req, res) => {
  * Update buyer profile
  */
 router.post("/profile", auth, buyerOnly, async (req, res) => {
-  const {
-    name,
-    email,
-    mobile,
-    city,
-    preferredCurrency,
-    buyerSettings
-  } = req.body || {};
-
-  if (typeof name === "string") {
-    req.user.name = name.trim();
-  }
-  if (typeof email === "string") {
-    req.user.email = email.trim();
-  }
-  if (typeof mobile === "string") {
-    req.user.mobile = mobile.trim();
-  }
-  if (city) {
-    req.user.city = city;
-  }
-  if (preferredCurrency) {
-    req.user.preferredCurrency = preferredCurrency;
-  }
-  if (buyerSettings && typeof buyerSettings === "object") {
-    const next = getFreshBuyerSettings(req.user);
-    if (Object.prototype.hasOwnProperty.call(buyerSettings, "defaultCity")) {
-      next.defaultCity = String(buyerSettings.defaultCity || "").trim();
-    }
-    if (Object.prototype.hasOwnProperty.call(buyerSettings, "defaultCategory")) {
-      next.defaultCategory = String(buyerSettings.defaultCategory || "").trim();
-    }
-    if (Object.prototype.hasOwnProperty.call(buyerSettings, "defaultUnit")) {
-      next.defaultUnit = String(buyerSettings.defaultUnit || "").trim();
-    }
-    if (Object.prototype.hasOwnProperty.call(buyerSettings, "hideProfileUntilApproved")) {
-      next.hideProfileUntilApproved = toBoolean(
-        buyerSettings.hideProfileUntilApproved,
-        next.hideProfileUntilApproved
-      );
-    }
-    if (Object.prototype.hasOwnProperty.call(buyerSettings, "hideEmail")) {
-      next.hideEmail = toBoolean(buyerSettings.hideEmail, next.hideEmail);
-    }
-    if (Object.prototype.hasOwnProperty.call(buyerSettings, "hidePhone")) {
-      next.hidePhone = toBoolean(buyerSettings.hidePhone, next.hidePhone);
-    }
-    if (
-      Object.prototype.hasOwnProperty.call(
-        buyerSettings,
-        "chatOnlyAfterOfferAcceptance"
-      )
-    ) {
-      next.chatOnlyAfterOfferAcceptance = toBoolean(
-        buyerSettings.chatOnlyAfterOfferAcceptance,
-        next.chatOnlyAfterOfferAcceptance
-      );
-    }
-    if (Object.prototype.hasOwnProperty.call(buyerSettings, "postAutoExpiryDays")) {
-      next.postAutoExpiryDays = clamp(
-        buyerSettings.postAutoExpiryDays,
-        MIN_POST_AUTO_EXPIRY_DAYS,
-        MAX_POST_AUTO_EXPIRY_DAYS,
-        next.postAutoExpiryDays
-      );
-    }
-    if (Object.prototype.hasOwnProperty.call(buyerSettings, "documentAutoDeleteDays")) {
-      next.documentAutoDeleteDays = clamp(
-        buyerSettings.documentAutoDeleteDays,
-        MIN_DOC_AUTO_DELETE_DAYS,
-        MAX_DOC_AUTO_DELETE_DAYS,
-        next.documentAutoDeleteDays
-      );
-    }
-    if (buyerSettings.notificationToggles && typeof buyerSettings.notificationToggles === "object") {
-      const notif = buyerSettings.notificationToggles;
-      next.notificationToggles = {
-        ...next.notificationToggles,
-        pushEnabled: toBoolean(
-          notif.pushEnabled,
-          next.notificationToggles.pushEnabled
-        ),
-        newOffer: toBoolean(notif.newOffer, next.notificationToggles.newOffer),
-        chat: toBoolean(notif.chat, next.notificationToggles.chat),
-        statusUpdate: toBoolean(
-          notif.statusUpdate,
-          next.notificationToggles.statusUpdate
-        ),
-        reminder: toBoolean(notif.reminder, next.notificationToggles.reminder)
-      };
-    }
-    req.user.buyerSettings = next;
-  }
-
-  if (typeof email === "string" && email.trim()) {
-    const existingUser = await User.findOne({ email: email.trim(), _id: { $ne: req.user._id } });
-    if (existingUser) {
-      const requirementsMerged = await Requirement.updateMany(
-        { buyerId: req.user._id },
-        { $set: { buyerId: existingUser._id } }
-      );
-      await TempRequirement.updateMany(
-        { userId: req.user._id },
-        { $set: { userId: existingUser._id } }
-      );
-      existingUser.mobile = req.user.mobile;
-      if (existingUser.city && !existingUser.city.trim()) {
-        existingUser.city = req.user.city;
-      }
-      if (!existingUser.roles?.buyer) {
-        existingUser.roles = { ...existingUser.roles, buyer: true };
-      }
-      if (req.user.buyerSettings) {
-        existingUser.buyerSettings = {
-          ...existingUser.buyerSettings,
-          ...req.user.buyerSettings
-        };
-      }
-      await existingUser.save();
-      await User.findByIdAndDelete(req.user._id);
-      console.log(`[Account Merge] Merged WhatsApp user ${req.user._id} into Google user ${existingUser._id}, ${requirementsMerged.modifiedCount} requirements`);
-      const token = jwt.sign(
-        { id: existingUser._id, role: "buyer", tokenVersion: existingUser.tokenVersion || 0 },
-        process.env.JWT_SECRET,
-        { expiresIn: "7d" }
-      );
-      return res.json({
-        merged: true,
-        message: "Account merged successfully!",
-        token,
-        user: {
-          _id: existingUser._id,
-          email: existingUser.email,
-          role: existingUser.role,
-          roles: existingUser.roles,
-          city: existingUser.city,
-          preferredCurrency: existingUser.preferredCurrency || "INR",
-          mobile: existingUser.mobile
-        }
-      });
-    }
-  }
-
-  if (typeof mobile === "string" && mobile.trim()) {
-    const existingMobileUser = await User.findOne({ mobile: mobile.trim(), _id: { $ne: req.user._id } });
-    if (existingMobileUser) {
-      const requirementsMerged = await Requirement.updateMany(
-        { buyerId: req.user._id },
-        { $set: { buyerId: existingMobileUser._id } }
-      );
-      await TempRequirement.updateMany(
-        { userId: req.user._id },
-        { $set: { userId: existingMobileUser._id } }
-      );
-      existingMobileUser.email = req.user.email;
-      if (existingMobileUser.city && !existingMobileUser.city.trim()) {
-        existingMobileUser.city = req.user.city;
-      }
-      if (!existingMobileUser.roles?.buyer) {
-        existingMobileUser.roles = { ...existingMobileUser.roles, buyer: true };
-      }
-      if (req.user.buyerSettings) {
-        existingMobileUser.buyerSettings = {
-          ...existingMobileUser.buyerSettings,
-          ...req.user.buyerSettings
-        };
-      }
-      await existingMobileUser.save();
-      await User.findByIdAndDelete(req.user._id);
-      console.log(`[Account Merge] Merged Google user ${req.user._id} into WhatsApp user ${existingMobileUser._id}, ${requirementsMerged.modifiedCount} requirements`);
-      const token = jwt.sign(
-        { id: existingMobileUser._id, role: "buyer", tokenVersion: existingMobileUser.tokenVersion || 0 },
-        process.env.JWT_SECRET,
-        { expiresIn: "7d" }
-      );
-      return res.json({
-        merged: true,
-        message: "Account merged successfully!",
-        token,
-        user: {
-          _id: existingMobileUser._id,
-          email: existingMobileUser.email,
-          role: existingMobileUser.role,
-          roles: existingMobileUser.roles,
-          city: existingMobileUser.city,
-          preferredCurrency: existingMobileUser.preferredCurrency || "INR",
-          mobile: existingMobileUser.mobile
-        }
-      });
-    }
-  }
-
   try {
-    await req.user.save();
-  } catch (err) {
-    console.error("[Buyer Profile] Save error:", err.code, err.keyPattern);
-    if (err.code === 11000 && err.keyPattern?.email) {
-      console.log("[Buyer Profile] Email duplicate detected, attempting merge");
-      try {
-        const existingEmailUser = await User.findOne({ email: email, _id: { $ne: req.user._id } });
-        if (existingEmailUser) {
-          console.log("[Buyer Profile] Found existing user for merge:", existingEmailUser._id);
-          const requirementsMerged = await Requirement.updateMany(
-            { buyerId: req.user._id },
-            { $set: { buyerId: existingEmailUser._id } }
-          );
-          await TempRequirement.updateMany(
-            { userId: req.user._id },
-            { $set: { userId: existingEmailUser._id } }
-          );
-          existingEmailUser.mobile = req.user.mobile || existingEmailUser.mobile;
-          if (existingEmailUser.city && !existingEmailUser.city.trim()) {
-            existingEmailUser.city = req.user.city;
-          }
-          if (!existingEmailUser.roles?.buyer) {
-            existingEmailUser.roles = { ...existingEmailUser.roles, buyer: true };
-          }
-          await existingEmailUser.save();
-          await User.findByIdAndDelete(req.user._id);
-          console.log(`[Account Merge] Merged ${req.user._id} into ${existingEmailUser._id}, ${requirementsMerged.modifiedCount} requirements`);
-          const token = jwt.sign(
-            { id: existingEmailUser._id, role: "buyer", tokenVersion: existingEmailUser.tokenVersion || 0 },
-            process.env.JWT_SECRET,
-            { expiresIn: "7d" }
-          );
-          return res.json({
-            merged: true,
-            message: "Account merged! Your posts and offers have been transferred.",
-            token,
-            user: {
-              _id: existingEmailUser._id,
-              email: existingEmailUser.email,
-              role: existingEmailUser.role,
-              roles: existingEmailUser.roles,
-              city: existingEmailUser.city,
-              preferredCurrency: existingEmailUser.preferredCurrency || "INR",
-              mobile: existingEmailUser.mobile
-            }
-          });
-        }
-      } catch (mergeErr) {
-        console.error("[Account Merge] Error:", mergeErr);
+    const {
+      name,
+      email,
+      mobile,
+      city,
+      preferredCurrency,
+      buyerSettings
+    } = req.body || {};
+
+    if (typeof name === "string") {
+      req.user.name = name.trim();
+    }
+    if (typeof email === "string") {
+      req.user.email = email.trim();
+    }
+    if (typeof mobile === "string") {
+      req.user.mobile = mobile.trim();
+    }
+    if (city) {
+      req.user.city = city;
+    }
+    if (preferredCurrency) {
+      req.user.preferredCurrency = preferredCurrency;
+    }
+    if (buyerSettings && typeof buyerSettings === "object") {
+      const next = getFreshBuyerSettings(req.user);
+      if (Object.prototype.hasOwnProperty.call(buyerSettings, "defaultCity")) {
+        next.defaultCity = String(buyerSettings.defaultCity || "").trim();
       }
-      return res.status(400).json({ message: "This email is already registered. Please use a different email." });
+      if (Object.prototype.hasOwnProperty.call(buyerSettings, "defaultCategory")) {
+        next.defaultCategory = String(buyerSettings.defaultCategory || "").trim();
+      }
+      if (Object.prototype.hasOwnProperty.call(buyerSettings, "defaultUnit")) {
+        next.defaultUnit = String(buyerSettings.defaultUnit || "").trim();
+      }
+      if (Object.prototype.hasOwnProperty.call(buyerSettings, "hideProfileUntilApproved")) {
+        next.hideProfileUntilApproved = toBoolean(
+          buyerSettings.hideProfileUntilApproved,
+          next.hideProfileUntilApproved
+        );
+      }
+      if (Object.prototype.hasOwnProperty.call(buyerSettings, "hideEmail")) {
+        next.hideEmail = toBoolean(buyerSettings.hideEmail, next.hideEmail);
+      }
+      if (Object.prototype.hasOwnProperty.call(buyerSettings, "hidePhone")) {
+        next.hidePhone = toBoolean(buyerSettings.hidePhone, next.hidePhone);
+      }
+      if (
+        Object.prototype.hasOwnProperty.call(
+          buyerSettings,
+          "chatOnlyAfterOfferAcceptance"
+        )
+      ) {
+        next.chatOnlyAfterOfferAcceptance = toBoolean(
+          buyerSettings.chatOnlyAfterOfferAcceptance,
+          next.chatOnlyAfterOfferAcceptance
+        );
+      }
+      if (Object.prototype.hasOwnProperty.call(buyerSettings, "postAutoExpiryDays")) {
+        next.postAutoExpiryDays = clamp(
+          buyerSettings.postAutoExpiryDays,
+          MIN_POST_AUTO_EXPIRY_DAYS,
+          MAX_POST_AUTO_EXPIRY_DAYS,
+          next.postAutoExpiryDays
+        );
+      }
+      if (Object.prototype.hasOwnProperty.call(buyerSettings, "documentAutoDeleteDays")) {
+        next.documentAutoDeleteDays = clamp(
+          buyerSettings.documentAutoDeleteDays,
+          MIN_DOC_AUTO_DELETE_DAYS,
+          MAX_DOC_AUTO_DELETE_DAYS,
+          next.documentAutoDeleteDays
+        );
+      }
+      if (buyerSettings.notificationToggles && typeof buyerSettings.notificationToggles === "object") {
+        const notif = buyerSettings.notificationToggles;
+        next.notificationToggles = {
+          ...next.notificationToggles,
+          pushEnabled: toBoolean(
+            notif.pushEnabled,
+            next.notificationToggles.pushEnabled
+          ),
+          newOffer: toBoolean(notif.newOffer, next.notificationToggles.newOffer),
+          chat: toBoolean(notif.chat, next.notificationToggles.chat),
+          statusUpdate: toBoolean(
+            notif.statusUpdate,
+            next.notificationToggles.statusUpdate
+          ),
+          reminder: toBoolean(notif.reminder, next.notificationToggles.reminder)
+        };
+      }
+      req.user.buyerSettings = next;
     }
-    console.error("[Buyer Profile] Unknown save error:", err);
-    throw err;
-  }
 
-  const afterSettings = getFreshBuyerSettings(req.user);
-  afterSettings.hideEmail = Boolean(afterSettings.hideProfileUntilApproved);
-  afterSettings.hidePhone = Boolean(afterSettings.hideProfileUntilApproved);
-  req.user.buyerSettings = afterSettings;
-  await req.user.save();
-
-  const requirementIds = await Requirement.find({ buyerId: req.user._id })
-    .select("_id")
-    .lean();
-  const ids = requirementIds.map((item) => item._id);
-  if (ids.length) {
-    const allowContact =
-      afterSettings.hideProfileUntilApproved === false &&
-      afterSettings.chatOnlyAfterOfferAcceptance === false;
-    await Offer.updateMany(
-      { requirementId: { $in: ids }, "moderation.removed": { $ne: true } },
-      { $set: { contactEnabledByBuyer: allowContact } }
-    );
-  }
-
-  const documents = (afterSettings.documents || [])
-    .map(normalizeBuyerDocument)
-    .filter(Boolean);
-  res.json({
-    name: req.user.name || req.user.googleProfile?.name || "",
-    email: req.user.email || "",
-    mobile: req.user.mobile || "",
-    city: req.user.city,
-    preferredCurrency: req.user.preferredCurrency || "INR",
-    roles: req.user.roles || {},
-    loginMethods: {
-      otp: true,
-      google: Boolean(req.user.googleProfile?.sub)
-    },
-    terms: {
-      acceptedAt: req.user.termsAccepted?.at || null
-    },
-    buyerSettings: {
-      ...afterSettings,
-      documents
+    if (typeof email === "string" && email.trim()) {
+      const existingUser = await User.findOne({ email: email.trim(), _id: { $ne: req.user._id } });
+      if (existingUser) {
+        const requirementsMerged = await Requirement.updateMany(
+          { buyerId: req.user._id },
+          { $set: { buyerId: existingUser._id } }
+        );
+        await TempRequirement.updateMany(
+          { userId: req.user._id },
+          { $set: { userId: existingUser._id } }
+        );
+        existingUser.mobile = req.user.mobile;
+        if (existingUser.city && !existingUser.city.trim()) {
+          existingUser.city = req.user.city;
+        }
+        if (!existingUser.roles?.buyer) {
+          existingUser.roles = { ...existingUser.roles, buyer: true };
+        }
+        if (req.user.buyerSettings) {
+          existingUser.buyerSettings = {
+            ...existingUser.buyerSettings,
+            ...req.user.buyerSettings
+          };
+        }
+        await existingUser.save();
+        await User.findByIdAndDelete(req.user._id);
+        console.log(`[Account Merge] Merged WhatsApp user ${req.user._id} into Google user ${existingUser._id}, ${requirementsMerged.modifiedCount} requirements`);
+        const token = jwt.sign(
+          { id: existingUser._id, role: "buyer", tokenVersion: existingUser.tokenVersion || 0 },
+          process.env.JWT_SECRET,
+          { expiresIn: "7d" }
+        );
+        return res.json({
+          merged: true,
+          message: "Account merged successfully!",
+          token,
+          user: {
+            _id: existingUser._id,
+            email: existingUser.email,
+            role: existingUser.role,
+            roles: existingUser.roles,
+            city: existingUser.city,
+            preferredCurrency: existingUser.preferredCurrency || "INR",
+            mobile: existingUser.mobile
+          }
+        });
+      }
     }
-  });
+
+    if (typeof mobile === "string" && mobile.trim()) {
+      const existingMobileUser = await User.findOne({ mobile: mobile.trim(), _id: { $ne: req.user._id } });
+      if (existingMobileUser) {
+        const requirementsMerged = await Requirement.updateMany(
+          { buyerId: req.user._id },
+          { $set: { buyerId: existingMobileUser._id } }
+        );
+        await TempRequirement.updateMany(
+          { userId: req.user._id },
+          { $set: { userId: existingMobileUser._id } }
+        );
+        existingMobileUser.email = req.user.email;
+        if (existingMobileUser.city && !existingMobileUser.city.trim()) {
+          existingMobileUser.city = req.user.city;
+        }
+        if (!existingMobileUser.roles?.buyer) {
+          existingMobileUser.roles = { ...existingMobileUser.roles, buyer: true };
+        }
+        if (req.user.buyerSettings) {
+          existingMobileUser.buyerSettings = {
+            ...existingMobileUser.buyerSettings,
+            ...req.user.buyerSettings
+          };
+        }
+        await existingMobileUser.save();
+        await User.findByIdAndDelete(req.user._id);
+        console.log(`[Account Merge] Merged Google user ${req.user._id} into WhatsApp user ${existingMobileUser._id}, ${requirementsMerged.modifiedCount} requirements`);
+        const token = jwt.sign(
+          { id: existingMobileUser._id, role: "buyer", tokenVersion: existingMobileUser.tokenVersion || 0 },
+          process.env.JWT_SECRET,
+          { expiresIn: "7d" }
+        );
+        return res.json({
+          merged: true,
+          message: "Account merged successfully!",
+          token,
+          user: {
+            _id: existingMobileUser._id,
+            email: existingMobileUser.email,
+            role: existingMobileUser.role,
+            roles: existingMobileUser.roles,
+            city: existingMobileUser.city,
+            preferredCurrency: existingMobileUser.preferredCurrency || "INR",
+            mobile: existingMobileUser.mobile
+          }
+        });
+      }
+    }
+
+    try {
+      await req.user.save();
+    } catch (err) {
+      console.error("[Buyer Profile] Save error:", err.code, err.keyPattern);
+      if (err.code === 11000 && err.keyPattern?.email) {
+        console.log("[Buyer Profile] Email duplicate detected, attempting merge");
+        try {
+          const existingEmailUser = await User.findOne({ email: email, _id: { $ne: req.user._id } });
+          if (existingEmailUser) {
+            console.log("[Buyer Profile] Found existing user for merge:", existingEmailUser._id);
+            const requirementsMerged = await Requirement.updateMany(
+              { buyerId: req.user._id },
+              { $set: { buyerId: existingEmailUser._id } }
+            );
+            await TempRequirement.updateMany(
+              { userId: req.user._id },
+              { $set: { userId: existingEmailUser._id } }
+            );
+            existingEmailUser.mobile = req.user.mobile || existingEmailUser.mobile;
+            if (existingEmailUser.city && !existingEmailUser.city.trim()) {
+              existingEmailUser.city = req.user.city;
+            }
+            if (!existingEmailUser.roles?.buyer) {
+              existingEmailUser.roles = { ...existingEmailUser.roles, buyer: true };
+            }
+            await existingEmailUser.save();
+            await User.findByIdAndDelete(req.user._id);
+            console.log(`[Account Merge] Merged ${req.user._id} into ${existingEmailUser._id}, ${requirementsMerged.modifiedCount} requirements`);
+            const token = jwt.sign(
+              { id: existingEmailUser._id, role: "buyer", tokenVersion: existingEmailUser.tokenVersion || 0 },
+              process.env.JWT_SECRET,
+              { expiresIn: "7d" }
+            );
+            return res.json({
+              merged: true,
+              message: "Account merged! Your posts and offers have been transferred.",
+              token,
+              user: {
+                _id: existingEmailUser._id,
+                email: existingEmailUser.email,
+                role: existingEmailUser.role,
+                roles: existingEmailUser.roles,
+                city: existingEmailUser.city,
+                preferredCurrency: existingEmailUser.preferredCurrency || "INR",
+                mobile: existingEmailUser.mobile
+              }
+            });
+          }
+        } catch (mergeErr) {
+          console.error("[Account Merge] Error:", mergeErr);
+        }
+        return res.status(400).json({ message: "This email is already registered. Please use a different email." });
+      }
+      console.error("[Buyer Profile] Unknown save error:", err);
+      throw err;
+    }
+
+    const afterSettings = getFreshBuyerSettings(req.user);
+    afterSettings.hideEmail = Boolean(afterSettings.hideProfileUntilApproved);
+    afterSettings.hidePhone = Boolean(afterSettings.hideProfileUntilApproved);
+    req.user.buyerSettings = afterSettings;
+    await req.user.save();
+
+    const requirementIds = await Requirement.find({ buyerId: req.user._id })
+      .select("_id")
+      .lean();
+    const ids = requirementIds.map((item) => item._id);
+    if (ids.length) {
+      const allowContact =
+        afterSettings.hideProfileUntilApproved === false &&
+        afterSettings.chatOnlyAfterOfferAcceptance === false;
+      await Offer.updateMany(
+        { requirementId: { $in: ids }, "moderation.removed": { $ne: true } },
+        { $set: { contactEnabledByBuyer: allowContact } }
+      );
+    }
+
+    const documents = (afterSettings.documents || [])
+      .map(normalizeBuyerDocument)
+      .filter(Boolean);
+    res.json({
+      name: req.user.name || req.user.googleProfile?.name || "",
+      email: req.user.email || "",
+      mobile: req.user.mobile || "",
+      city: req.user.city,
+      preferredCurrency: req.user.preferredCurrency || "INR",
+      roles: req.user.roles || {},
+      loginMethods: {
+        otp: true,
+        google: Boolean(req.user.googleProfile?.sub)
+      },
+      terms: {
+        acceptedAt: req.user.termsAccepted?.at || null
+      },
+      buyerSettings: {
+        ...afterSettings,
+        documents
+      }
+    });
+  } catch (err) {
+    console.error("[Buyer Profile] Update failed:", err);
+    if (err?.code === 11000) {
+      const duplicateField = Object.keys(err?.keyPattern || {})[0] || "field";
+      return res.status(400).json({
+        message: `This ${duplicateField} is already registered. Please use a different value.`
+      });
+    }
+    return res.status(500).json({ message: "Failed to update buyer profile" });
+  }
 });
 
 /**

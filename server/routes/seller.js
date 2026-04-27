@@ -403,69 +403,87 @@ const update = {
  * Update seller profile
  */
 router.post("/profile", auth, sellerOnly, async (req, res) => {
-  const {
-    mobile,
-    registeredBusinessName,
-    registrationDetails,
-    businessAddress,
-    ownerName,
-    managerName,
-    categories,
-    website,
-    taxId,
-    city,
-    preferredCurrency,
-    sellerSettings
-  } = req.body || {};
+  try {
+    const {
+      email,
+      mobile,
+      registeredBusinessName,
+      registrationDetails,
+      businessAddress,
+      ownerName,
+      managerName,
+      categories,
+      website,
+      taxId,
+      city,
+      preferredCurrency,
+      sellerSettings
+    } = req.body || {};
 
-  const normalizedCategories = normalizeAndDedupeCategories(categories);
+    const normalizedCategories = normalizeAndDedupeCategories(categories);
 
-  const update = {
-    ...(typeof mobile === "string"
-      ? { mobile: String(mobile).trim() }
-      : {}),
-    ...(registeredBusinessName ? { "sellerProfile.registeredBusinessName": registeredBusinessName } : {}),
-    ...(registrationDetails
-      ? { "sellerProfile.registrationDetails": registrationDetails }
-      : {}),
-    ...(businessAddress
-      ? { "sellerProfile.businessAddress": businessAddress }
-      : {}),
-    ...(ownerName ? { "sellerProfile.ownerName": ownerName } : {}),
-    ...(managerName ? { "sellerProfile.managerName": managerName } : {}),
-    ...(Array.isArray(categories)
-      ? { "sellerProfile.categories": normalizedCategories }
-      : {}),
-    ...(website ? { "sellerProfile.website": website } : {}),
-    ...(taxId ? { "sellerProfile.taxId": taxId } : {})
-  };
-
-  if (city) {
-    update.city = city;
-  }
-  if (preferredCurrency) {
-    update.preferredCurrency = preferredCurrency;
-  }
-  if (sellerSettings && typeof sellerSettings === "object") {
-    update.sellerSettings = {
-      notificationsLeads: sellerSettings.notificationsLeads !== false,
-      notificationsAuction: sellerSettings.notificationsAuction !== false,
-      notificationsOffers: sellerSettings.notificationsOffers !== false
+    const update = {
+      ...(typeof email === "string"
+        ? { email: String(email).trim() }
+        : {}),
+      ...(typeof mobile === "string"
+        ? { mobile: String(mobile).trim() }
+        : {}),
+      ...(registeredBusinessName
+        ? { "sellerProfile.registeredBusinessName": registeredBusinessName }
+        : {}),
+      ...(registrationDetails
+        ? { "sellerProfile.registrationDetails": registrationDetails }
+        : {}),
+      ...(businessAddress
+        ? { "sellerProfile.businessAddress": businessAddress }
+        : {}),
+      ...(ownerName ? { "sellerProfile.ownerName": ownerName } : {}),
+      ...(managerName ? { "sellerProfile.managerName": managerName } : {}),
+      ...(Array.isArray(categories)
+        ? { "sellerProfile.categories": normalizedCategories }
+        : {}),
+      ...(website ? { "sellerProfile.website": website } : {}),
+      ...(taxId ? { "sellerProfile.taxId": taxId } : {})
     };
+
+    if (city) {
+      update.city = city;
+    }
+    if (preferredCurrency) {
+      update.preferredCurrency = preferredCurrency;
+    }
+    if (sellerSettings && typeof sellerSettings === "object") {
+      update.sellerSettings = {
+        notificationsLeads: sellerSettings.notificationsLeads !== false,
+        notificationsAuction: sellerSettings.notificationsAuction !== false,
+        notificationsOffers: sellerSettings.notificationsOffers !== false
+      };
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      update,
+      { new: true, runValidators: true }
+    );
+
+    res.json({
+      sellerProfile: user?.sellerProfile || {},
+      city: user?.city,
+      email: user?.email || "",
+      preferredCurrency: user?.preferredCurrency || "INR",
+      sellerSettings: user?.sellerSettings || {}
+    });
+  } catch (err) {
+    console.error("[Seller Profile] Update failed:", err);
+    if (err?.code === 11000) {
+      const duplicateField = Object.keys(err?.keyPattern || {})[0] || "field";
+      return res.status(400).json({
+        message: `This ${duplicateField} is already registered. Please use a different value.`
+      });
+    }
+    return res.status(500).json({ message: "Failed to update seller profile" });
   }
-
-  const user = await User.findByIdAndUpdate(
-    req.user._id,
-    update,
-    { new: true }
-  );
-
-  res.json({
-    sellerProfile: user?.sellerProfile || {},
-    city: user?.city,
-    preferredCurrency: user?.preferredCurrency || "INR",
-    sellerSettings: user?.sellerSettings || {}
-  });
 });
 
 /**
