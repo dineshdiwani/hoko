@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { getSession, setSession, updateSession, clearSession } from "../../services/storage";
+import { getSession, setSession } from "../../services/storage";
 import { fetchOptions } from "../../services/options";
 import api from "../../services/api";
 import GoogleLoginButton from "../../components/GoogleLoginButton";
@@ -12,10 +12,7 @@ export default function UserLogin({ role = "buyer" }) {
   const currentRole = isSeller ? "seller" : "buyer";
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const mobileFromUrl = searchParams.get("mobile") || "";
   const cityFromUrl = searchParams.get("city") || "";
-  const catsFromUrl = searchParams.get("cats") || "";
-  const isFromUrl = searchParams.has("ref");
   const isFromRequirement = searchParams.has("redirect");
   const postLoginRedirect = String(
     localStorage.getItem("post_login_redirect") || ""
@@ -51,7 +48,7 @@ export default function UserLogin({ role = "buyer" }) {
     "By continuing to use hoko, you acknowledge this Privacy Policy and any future updates."
   ].join("\n\n");
 
-  const [step, setStep] = useState("LOGIN");
+  const [step, setStep] = useState("EMAIL_LOGIN");
   const [email, setEmail] = useState("");
   const [emailOrMobile, setEmailOrMobile] = useState("");
   const [mobile, setMobile] = useState("");
@@ -59,14 +56,13 @@ export default function UserLogin({ role = "buyer" }) {
   const [city, setCity] = useState(cityFromUrl);
   const [otpLoading, setOtpLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(true);
   const [showLegalModal, setShowLegalModal] = useState(false);
   const [legalModalType, setLegalModalType] = useState("terms");
   const [submitted, setSubmitted] = useState(false);
   const [termsContent, setTermsContent] = useState(defaultTermsContent);
   const [privacyPolicyContent, setPrivacyPolicyContent] = useState(defaultPrivacyPolicyContent);
   const [cities, setCities] = useState([]);
-  const [waLinkLoading, setWaLinkLoading] = useState(false);
   const [loginMethod, setLoginMethod] = useState("");
   const [showCityModal, setShowCityModal] = useState(false);
   const [pendingCitySession, setPendingCitySession] = useState(null);
@@ -82,20 +78,7 @@ export default function UserLogin({ role = "buyer" }) {
     : (isSeller ? "/seller/dashboard" : "/buyer/dashboard");
   
   const redirect = finalRedirect;
-  const cityRef = useRef(city);
-  const acceptedTermsRef = useRef(acceptedTerms);
-
   useEffect(() => {
-    cityRef.current = city;
-  }, [city]);
-
-  useEffect(() => {
-    acceptedTermsRef.current = acceptedTerms;
-  }, [acceptedTerms]);
-
-  useEffect(() => {
-    if (mobileFromUrl) return;
-    
     const session = getSession();
     if (session?.role === currentRole && session?.token) {
       const urlRedirect = searchParams.get("redirect");
@@ -105,53 +88,7 @@ export default function UserLogin({ role = "buyer" }) {
         navigate(redirect, { replace: true });
       }
     }
-  }, [navigate, redirect, currentRole, searchParams, isSeller, mobileFromUrl]);
-
-  useEffect(() => {
-    if (!mobileFromUrl || step !== "LOGIN") return;
-    if (isSeller) return;
-
-    if (!acceptedTerms) {
-      setAcceptedTerms(true);
-    }
-
-    const sendWhatsAppOtp = async () => {
-      try {
-        setLoginMethod("whatsapp");
-        setPendingLoginMethod("whatsapp");
-        const res = await api.post("/auth/login", {
-          mobile: mobileFromUrl,
-          role: currentRole,
-          city: city || cityFromUrl
-        });
-        if (res.data?.success) {
-          setMobile(mobileFromUrl);
-          setStep("OTP");
-          alert("OTP sent via WhatsApp to " + mobileFromUrl);
-        }
-      } catch (err) {
-      }
-    };
-
-    sendWhatsAppOtp();
-  }, [mobileFromUrl, step, acceptedTerms, city, cityFromUrl, currentRole, isSeller]);
-
-  useEffect(() => {
-    if (!isSeller || !mobileFromUrl) return;
-    
-    if (typeof clearSession === "function") {
-      clearSession();
-    }
-    
-    if (catsFromUrl) {
-      localStorage.setItem("whatsapp_seller_cats", catsFromUrl);
-    }
-    if (cityFromUrl) {
-      localStorage.setItem("whatsapp_seller_city", cityFromUrl);
-    }
-    localStorage.setItem("whatsapp_seller_mobile", mobileFromUrl);
-    localStorage.setItem("whatsapp_login", "true");
-  }, [isSeller, mobileFromUrl, cityFromUrl, catsFromUrl]);
+  }, [navigate, redirect, currentRole, searchParams, isSeller]);
 
   useEffect(() => {
     fetchOptions()
@@ -186,19 +123,6 @@ export default function UserLogin({ role = "buyer" }) {
     }
   }, [isSeller, cityFromUrl]);
 
-  useEffect(() => {
-    if (!isSeller || !isFromUrl) return;
-    if (catsFromUrl) {
-      localStorage.setItem("whatsapp_categories", catsFromUrl);
-    }
-    if (cityFromUrl) {
-      localStorage.setItem("whatsapp_city", cityFromUrl);
-    }
-    if (mobileFromUrl) {
-      localStorage.setItem("whatsapp_mobile", mobileFromUrl);
-    }
-  }, [isSeller, isFromUrl, catsFromUrl, cityFromUrl, mobileFromUrl]);
-
   function validEmail(value) {
     return /\S+@\S+\.\S+/.test(String(value || ""));
   }
@@ -222,32 +146,6 @@ export default function UserLogin({ role = "buyer" }) {
 
     return { ok: false, message: "Enter a valid email or 10-digit mobile number" };
   }
-
-async function requestWhatsAppLogin() {
-      if (!mobile || mobile.length < 10) {
-        alert("Please enter your 10-digit mobile number");
-        return;
-      }
-      
-      setLoginMethod("whatsapp");
-      setPendingLoginMethod("whatsapp");
-      setWaLinkLoading(true);
-      try {
-        const res = await api.post("/auth/whatsapp/request", {
-          mobile: mobile
-        });
-        if (res.data?.success) {
-          window.open(res.data.wa_link, "_blank");
-          setStep("OTP");
-        } else {
-          alert(res.data?.message || "Failed to generate login link");
-        }
-      } catch (err) {
-        alert(err?.response?.data?.message || "Failed to generate login link");
-} finally {
-      setWaLinkLoading(false);
-    }
-   }
 
   function sendLoginOtp() {
     setSubmitted(true);
@@ -363,16 +261,11 @@ async function requestWhatsAppLogin() {
       city,
       acceptTerms: acceptedTerms
     };
-    let endpoint = "/auth/verify-otp";
-    if (loginMethod === "whatsapp") {
-      endpoint = "/auth/whatsapp/verify";
+    const endpoint = "/auth/verify-otp";
+    if (pendingLoginMethod === "mobile" || loginMethod === "sms") {
       payload.mobile = mobile;
     } else {
-      if (pendingLoginMethod === "mobile" || loginMethod === "sms") {
-        payload.mobile = mobile;
-      } else {
-        payload.email = email;
-      }
+      payload.email = email;
     }
     api
       .post(endpoint, payload)
@@ -383,8 +276,7 @@ async function requestWhatsAppLogin() {
           localStorage.getItem("login_intent_role") === "seller";
         const sellerCapable = Boolean(user?.roles?.seller);
 
-        // For email and WhatsApp OTP login, show city selection modal after OTP verification
-        if (pendingLoginMethod === "email" || pendingLoginMethod === "mobile" || pendingLoginMethod === "whatsapp") {
+        if (pendingLoginMethod === "email" || pendingLoginMethod === "mobile") {
           setPendingCitySession({
             _id: user._id,
             role: user.role || currentRole,
@@ -494,8 +386,7 @@ function handleGoogleLogin(credential) {
         credential,
         role: currentRole,
         city: "",
-        acceptTerms: true,
-        mobile: mobileFromUrl
+        acceptTerms: true
       })
       .then(async (res) => {
         const user = res.data.user || {};
@@ -550,139 +441,8 @@ function handleGoogleLogin(credential) {
                 {isFromRequirement ? "One step away!" : "Login to Hoko"}
               </h1>
 
-              {step === "LOGIN" && (
-                <>
-                <p className="text-center text-gray-500 text-sm mb-4">
-                  Choose your login method
-                </p>
-
-                <button
-                  onClick={() => {
-                    setLoginMethod("whatsapp");
-                    setStep("WHATSAPP_LOGIN");
-                  }}
-                  className="w-full py-4 rounded-xl bg-[#25D366] hover:bg-[#20BD5A] text-white font-semibold flex items-center justify-center gap-3 mb-3"
-                >
-                  <svg viewBox="0 0 48 48" className="h-6 w-6" fill="white">
-                    <path d="M40.8 7.2c-4.5-4.5-10.5-7-17-7-.8 0-1.6.1-2.4.2-2.2.4-4.2 1.4-5.8 3l-3.2 3.2c-.4.4-.7 1-.8 1.6l-1 8.4c-.1.5 0 1 .2 1.5.2.5.6 1 1 1.3l13.8 9.2c.5.3 1.1.5 1.6.5h.2l8.6-.8c.8-.1 1.5-.5 2-1.2.6-.8.7-1.8.4-2.7L43 12c-.1-.8-.4-1.5-1-2.2-.5-.6-1.2-1.2-2.2-1.6zm-3 14.2l-9.5 1c-.7.1-1.4-.1-2-.5L15.5 18.5l2.8-2.6c.4-.4.9-.7 1.5-.8l7.2-.8c.5 0 1-.2 1.4-.5l3-2.6c2.4-1.8 5.4-2.3 8.2-1.3.7.2 1.4.6 1.9 1.2l2.6 3.2c.4.5.5 1.2.4 1.8z"/>
-                  </svg>
-                  <span>Continue with WhatsApp</span>
-                </button>
-
-                <div className="flex items-center gap-3 my-4">
-                  <div className="h-px flex-1 bg-slate-200" />
-                  <span className="text-xs font-semibold text-slate-400">OR</span>
-                  <div className="h-px flex-1 bg-slate-200" />
-                </div>
-
-                <button
-                  onClick={() => {
-                    setLoginMethod("email");
-                    setStep("EMAIL_LOGIN");
-                  }}
-                  className="w-full py-4 rounded-xl border-2 border-amber-500 hover:bg-amber-50 text-amber-700 font-semibold flex items-center justify-center gap-3 mb-4"
-                >
-                  <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                  <span>Continue with Email</span>
-                </button>
-                </>
-              )}
-
-{step === "WHATSAPP_LOGIN" && (
-                <>
-                <button
-                  onClick={() => {
-                    setStep("LOGIN");
-                    setOtp("");
-                  }}
-                  className="text-sm text-gray-500 hover:text-gray-700 mb-4"
-                >
-                  ← Back
-                </button>
-
-                <label className="block text-sm font-medium mb-1 text-gray-700">
-                  Mobile Number
-                </label>
-                <input
-                  type="tel"
-                  value={mobile}
-                  onChange={(e) => setMobile(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                  placeholder="10-digit mobile number"
-                  className="w-full border border-gray-300 rounded-xl px-4 py-3 mb-4"
-                />
-
-                <div className="flex items-start gap-2 text-sm text-gray-600 mb-4">
-                  <span>
-                    By continuing, you accept our{" "}
-                    <button type="button" className="text-amber-700 hover:underline" onClick={() => { setLegalModalType("terms"); setShowLegalModal(true); }}>
-                      Terms & Conditions
-                    </button>
-                    {" "}and{" "}
-                    <button type="button" className="text-amber-700 hover:underline" onClick={() => { setLegalModalType("privacy"); setShowLegalModal(true); }}>
-                      Privacy Policy
-                    </button>
-                  </span>
-                </div>
-
-                <button
-                  onClick={requestWhatsAppLogin}
-                  disabled={waLinkLoading}
-                  className="w-full py-3 rounded-xl bg-[#25D366] hover:bg-[#20BD5A] disabled:opacity-50 text-white font-semibold"
-                >
-                  {waLinkLoading ? "Generating link..." : "Open WhatsApp & Get OTP"}
-                </button>
-
-                <p className="text-center text-xs text-gray-500 mt-3">
-                  Opens WhatsApp. Send "LOGIN" to receive OTP.
-                </p>
-                </>
-              )}
-
               {step === "EMAIL_LOGIN" && (
                 <>
-                <button
-                  onClick={() => {
-                    setStep("LOGIN");
-                    setOtp("");
-                    setEmail("");
-                    setEmailOrMobile("");
-                  }}
-                  className="text-sm text-gray-500 hover:text-gray-700 mb-4"
-                >
-                  ← Back
-                </button>
-
-                <GoogleLoginButton
-                  disabled={googleLoading}
-                  autoSelect={true}
-                  onPreClick={() => {
-                    if (!acceptedTerms) {
-                      setLegalModalType("terms");
-                      setShowLegalModal(true);
-                      return false;
-                    }
-                    return true;
-                  }}
-                  onSuccess={(credential) => {
-                    setLoginMethod("google");
-                    handleGoogleLogin(credential);
-                  }}
-                  onError={(error) => {
-                    const reason = error?.message || "Google login failed";
-                    if (!reason.includes("cancelled")) {
-                      alert(reason);
-                    }
-                  }}
-                />
-
-                <div className="flex items-center gap-3 my-4">
-                  <div className="h-px flex-1 bg-slate-200" />
-                  <span className="text-xs font-semibold text-slate-400">OR</span>
-                  <div className="h-px flex-1 bg-slate-200" />
-                </div>
-
                 <label className="block text-sm font-medium mb-1 text-gray-700">
                   Email or Mobile Number
                 </label>
@@ -717,29 +477,49 @@ function handleGoogleLogin(credential) {
                 >
                   {otpLoading ? "Sending OTP..." : "Send OTP"}
                 </button>
+
+                <div className="flex items-center gap-3 my-4">
+                  <div className="h-px flex-1 bg-slate-200" />
+                  <span className="text-xs font-semibold text-slate-400">OR</span>
+                  <div className="h-px flex-1 bg-slate-200" />
+                </div>
+
+                <GoogleLoginButton
+                  disabled={googleLoading}
+                  autoSelect={true}
+                  onPreClick={() => {
+                    setAcceptedTerms(true);
+                    return true;
+                  }}
+                  onSuccess={(credential) => {
+                    setLoginMethod("google");
+                    handleGoogleLogin(credential);
+                  }}
+                  onError={(error) => {
+                    const reason = error?.message || "Google login failed";
+                    if (!reason.includes("cancelled")) {
+                      alert(reason);
+                    }
+                  }}
+                />
               </>
               )}
-
               {step === "OTP" && (
                 <>
                   <button
                     onClick={() => {
-                      if (loginMethod === "whatsapp") {
-                        setStep("WHATSAPP_LOGIN");
-                      } else {
-                        setStep("EMAIL_LOGIN");
-                      }
+                      setStep("EMAIL_LOGIN");
                       setOtp("");
                     }}
                     className="text-sm text-gray-500 hover:text-gray-700 mb-4"
                   >
-                    ← Back
+                    <- Back
                   </button>
 
                   <div className="text-center mb-4 p-3 bg-green-50 rounded-xl">
                     <p className="text-sm text-gray-600">OTP sent via {loginMethod} to:</p>
                     <p className="font-semibold text-gray-800">
-                      {loginMethod === "whatsapp" || loginMethod === "sms" ? mobile : email}
+                      {loginMethod === "sms" ? mobile : email}
                     </p>
                   </div>
 
@@ -872,3 +652,4 @@ function handleGoogleLogin(credential) {
     </div>
   );
 }
+

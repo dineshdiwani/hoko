@@ -1,16 +1,70 @@
 const axios = require("axios");
 
+function normalizeIndianMobile(mobile) {
+  const digits = String(mobile || "").replace(/\D/g, "");
+  const normalized = digits.length > 10 ? digits.slice(-10) : digits;
+  if (!/^[6-9]\d{9}$/.test(normalized)) {
+    throw new Error("Invalid Indian mobile number for SMS");
+  }
+  return normalized;
+}
+
+function resolveOtpPayload(otp, mobile) {
+  const route = String(process.env.FAST2SMS_OTP_ROUTE || "otp")
+    .trim()
+    .toLowerCase();
+
+  if (route === "otp") {
+    return {
+      variables_values: String(otp),
+      route: "otp",
+      numbers: mobile
+    };
+  }
+
+  if (route === "dlt") {
+    const senderId = String(process.env.FAST2SMS_SENDER_ID || "").trim();
+    const messageId = String(process.env.FAST2SMS_DLT_MESSAGE_ID || "").trim();
+    if (!senderId || !messageId) {
+      throw new Error("FAST2SMS_SENDER_ID and FAST2SMS_DLT_MESSAGE_ID are required for FAST2SMS_OTP_ROUTE=dlt");
+    }
+    return {
+      sender_id: senderId,
+      message: messageId,
+      variables_values: String(otp),
+      route: "dlt",
+      numbers: mobile
+    };
+  }
+
+  if (route === "dlt_manual") {
+    const senderId = String(process.env.FAST2SMS_SENDER_ID || "").trim();
+    const entityId = String(process.env.FAST2SMS_DLT_ENTITY_ID || "").trim();
+    const templateId = String(process.env.FAST2SMS_DLT_TEMPLATE_ID || "").trim();
+    const templateText = String(process.env.FAST2SMS_DLT_MESSAGE_TEXT || "").trim();
+    if (!senderId || !entityId || !templateId || !templateText) {
+      throw new Error("FAST2SMS_SENDER_ID, FAST2SMS_DLT_ENTITY_ID, FAST2SMS_DLT_TEMPLATE_ID, FAST2SMS_DLT_MESSAGE_TEXT are required for FAST2SMS_OTP_ROUTE=dlt_manual");
+    }
+    return {
+      sender_id: senderId,
+      message: templateText.replace(/\{\{OTP\}\}/g, String(otp)),
+      template_id: templateId,
+      entity_id: entityId,
+      route: "dlt_manual",
+      numbers: mobile
+    };
+  }
+
+  throw new Error(`Unsupported FAST2SMS_OTP_ROUTE: ${route}`);
+}
+
 async function sendOtpSms({ mobile, otp }) {
   const apiKey = process.env.FAST2SMS_API_KEY;
   if (!apiKey) {
     throw new Error("FAST2SMS_API_KEY not set");
   }
-
-  const payload = {
-    variables_values: String(otp),
-    route: "otp",
-    numbers: String(mobile)
-  };
+  const normalizedMobile = normalizeIndianMobile(mobile);
+  const payload = resolveOtpPayload(otp, normalizedMobile);
 
   const res = await axios.post(
     "https://www.fast2sms.com/dev/bulkV2",
