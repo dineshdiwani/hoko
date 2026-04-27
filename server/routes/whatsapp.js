@@ -10,6 +10,7 @@ const WhatsAppBuyerLead = require("../models/WhatsAppBuyerLead");
 const WhatsAppContact = require("../models/WhatsAppContact");
 const WhatsAppBuyerContact = require("../models/WhatsAppBuyerContact");
 const OptedInSeller = require("../models/OptedInSeller");
+const User = require("../models/User");
 const { sendWhatsAppMessage } = require("../utils/sendWhatsApp");
 const { sendViaGupshupTemplate, sendViaWapiTemplate } = require("../utils/sendWhatsApp");
 const { resolvePublicAppUrl } = require("../utils/publicAppUrl");
@@ -241,6 +242,24 @@ function buildSellerCityPrompt() {
     "✅ Quick question: Which city do you operate in? 📍",
     "",
     "E.g., Mumbai, Delhi, Bangalore, Pune..."
+  ].join("\n");
+}
+
+function buildExistingSellerMessage(city, whatsappCategories, dashboardLink) {
+  const catList = whatsappCategories.slice(0, 3).join(", ");
+  const moreCats = whatsappCategories.length > 3 ? ` +${whatsappCategories.length - 3} more` : "";
+  return [
+    "✅ Welcome back, HOKO Seller!",
+    "",
+    `📍 City: ${city}`,
+    `📦 Categories: ${catList}${moreCats}`,
+    "",
+    "💰 Buyers post requirements DAILY - submit offers now!",
+    "",
+    "👉 Login to your dashboard:",
+    `👉 ${dashboardLink}`,
+    "",
+    "💡 First offer = highest visibility!"
   ].join("\n");
 }
 
@@ -1100,12 +1119,24 @@ console.log("[WA WEBHOOK] Extracted events:", events.length, events.map(e => ({ 
       params.set("ref", "wa");
       params.set("city", cityToSave);
       params.set("cats", parsed.whatsappCategories.join(","));
-      const loginLink = `${appBase}/seller/register?${params.toString()}`;
       
-      await sendWhatsAppMessage({
-        to: event.mobileE164,
-        body: buildSellerConfirmationMessage(cityToSave, parsed.whatsappCategories, loginLink)
-      });
+      // Check if seller already exists
+      const existingUser = await User.findOne({ mobile: event.mobileE164 }).select("_id roles").lean();
+      const isExistingSeller = existingUser && existingUser.roles?.seller;
+      
+      if (isExistingSeller) {
+        const loginLink = `${appBase}/seller/login?mobile=${event.mobileE164.replace("+", "")}`;
+        await sendWhatsAppMessage({
+          to: event.mobileE164,
+          body: buildExistingSellerMessage(cityToSave, parsed.whatsappCategories, loginLink)
+        });
+      } else {
+        const registerLink = `${appBase}/seller/register?${params.toString()}`;
+        await sendWhatsAppMessage({
+          to: event.mobileE164,
+          body: buildSellerConfirmationMessage(cityToSave, parsed.whatsappCategories, registerLink)
+        });
+      }
       continue;
     }
 

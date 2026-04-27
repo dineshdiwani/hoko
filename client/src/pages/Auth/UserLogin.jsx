@@ -48,9 +48,10 @@ export default function UserLogin({ role = "buyer" }) {
     "By continuing to use hoko, you acknowledge this Privacy Policy and any future updates."
   ].join("\n\n");
 
-  const [step, setStep] = useState("EMAIL_LOGIN");
+const [step, setStep] = useState("EMAIL_LOGIN");
+  const emailOrMobileFromUrl = searchParams.get("mobile") || "";
   const [email, setEmail] = useState("");
-  const [emailOrMobile, setEmailOrMobile] = useState("");
+  const [emailOrMobile, setEmailOrMobile] = useState(emailOrMobileFromUrl);
   const [mobile, setMobile] = useState("");
   const [otp, setOtp] = useState("");
   const [city, setCity] = useState(cityFromUrl);
