@@ -64,14 +64,6 @@ export default function SellerDashboard() {
   const [session, setSessionState] = useState(() => getSession());
   const menuRef = useRef(null);
 
-  // Initialize session state with a ref to avoid stale closures
-  const sessionRef = useRef(session);
-  sessionRef.current = session;
-
-  // Initialize session state with a ref to avoid stale closures
-  const sessionRef = useRef(session);
-  sessionRef.current = session;
-
   // Handle city/cats from URL params (from WhatsApp deep link)
   const sourceFromUrl = String(searchParams.get("from") || "").trim().toLowerCase();
   const cityFromUrl = searchParams.get("city") || "";
