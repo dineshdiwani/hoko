@@ -18,7 +18,26 @@ function extractObjectId(value) {
 function readPendingOfferIntent() {
   try {
     const parsed = JSON.parse(localStorage.getItem(PENDING_OFFER_KEY) || "{}");
-    return parsed && typeof parsed === "object" ? parsed : null;
+    if (parsed && typeof parsed === "object" && Object.keys(parsed).length) {
+      return parsed;
+    }
+    const legacyParsed = JSON.parse(localStorage.getItem("pending_offer_data") || "{}");
+    if (legacyParsed && typeof legacyParsed === "object" && Object.keys(legacyParsed).length) {
+      return {
+        requirementId: legacyParsed.requirementId,
+        city: String(legacyParsed.city || legacyParsed.sellerCity || "").trim(),
+        offerPayload: {
+          price: legacyParsed.price,
+          message: legacyParsed.message,
+          deliveryTime: legacyParsed.deliveryTime,
+          paymentTerms: legacyParsed.paymentTerms,
+          mobile: legacyParsed.mobile,
+          sellerCity: legacyParsed.sellerCity || legacyParsed.city || ""
+        },
+        createdAt: legacyParsed.createdAt || Date.now()
+      };
+    }
+    return null;
   } catch {
     return null;
   }
@@ -26,6 +45,7 @@ function readPendingOfferIntent() {
 
 function clearPendingOfferIntent() {
   localStorage.removeItem(PENDING_OFFER_KEY);
+  localStorage.removeItem("pending_offer_data");
 }
 
 export default function SellerDeepLink() {
@@ -80,6 +100,7 @@ export default function SellerDeepLink() {
       return {};
     }
   }, [params]);
+  const mobileFromPayload = String(packedData.mobile || "").replace(/^\+/, "");
   const routeRequirementId = extractObjectId(requirementId);
   const queryPostId = extractObjectId(
     packedData.postId || packedData.requirementId || params.get("postId") || params.get("ref")
@@ -92,6 +113,7 @@ export default function SellerDeepLink() {
     ? queryPostId
     : routeRequirementId || queryPostId;
   const city = String(packedData.city || params.get("city") || "").trim();
+  const resumeCategory = String(catsFromUrl || packedData.category || "").trim();
   const queryPreview = useMemo(
     () => ({
       _id: requirementIdValue,
@@ -120,7 +142,10 @@ export default function SellerDeepLink() {
 
   const buildRedirectTarget = () => {
     const next = new URLSearchParams();
+    const effectiveMobile = mobileFromUrl || mobileFromPayload;
+    if (effectiveMobile) next.set("mobile", effectiveMobile);
     if (city) next.set("city", city);
+    if (resumeCategory) next.set("cats", resumeCategory);
     next.set("resume", "1");
     return `/seller/deeplink/${encodeURIComponent(requirementIdValue)}?${next.toString()}`;
   };
@@ -144,15 +169,22 @@ export default function SellerDeepLink() {
     const session = getSession();
     const isSeller = session?.role === "seller" || Boolean(session?.roles?.seller);
     if (!session?.token) {
+      const effectiveMobile = mobileFromUrl || mobileFromPayload;
       const loginParams = new URLSearchParams();
-      if (mobileFromUrl) loginParams.set("mobile", mobileFromUrl);
+      if (effectiveMobile) loginParams.set("mobile", effectiveMobile);
       if (cityFromUrl) loginParams.set("city", cityFromUrl);
-      if (catsFromUrl) loginParams.set("cats", catsFromUrl);
+      if (resumeCategory) loginParams.set("cats", resumeCategory);
       navigate(`/seller/login?${loginParams.toString()}`, { replace: true });
       return;
     }
     if (session?.token && !isSeller) {
-      navigate(`/seller/register?requirementId=${encodeURIComponent(requirementIdValue)}`, {
+      const effectiveMobile = mobileFromUrl || mobileFromPayload;
+      const registerParams = new URLSearchParams();
+      registerParams.set("requirementId", requirementIdValue);
+      if (effectiveMobile) registerParams.set("mobile", effectiveMobile);
+      if (cityFromUrl) registerParams.set("city", cityFromUrl);
+      if (resumeCategory) registerParams.set("cats", resumeCategory);
+      navigate(`/seller/register?${registerParams.toString()}`, {
         replace: true
       });
       return;
@@ -223,6 +255,9 @@ export default function SellerDeepLink() {
             ? "Offer submitted now. Thank you."
             : "Offer submitted successfully."
         );
+        localStorage.removeItem("post_login_redirect");
+        localStorage.removeItem("post_login_redirect_source");
+        localStorage.removeItem("login_intent_role");
         const dashboardParams = new URLSearchParams();
         dashboardParams.set("openRequirement", requirementIdValue);
         if (city) dashboardParams.set("city", city);

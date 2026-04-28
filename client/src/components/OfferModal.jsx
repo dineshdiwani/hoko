@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import api from "../services/api";
+import { getSession } from "../services/storage";
 import {
   extractAttachmentFileName,
   getAttachmentDisplayName,
@@ -53,6 +54,50 @@ export default function OfferModal({
   const attachments = Array.isArray(requirement.attachments)
     ? requirement.attachments
     : [];
+  const session = getSession();
+
+  function buildResumeTarget() {
+    const next = new URLSearchParams();
+    next.set("resume", "1");
+    const requirementCity = String(requirement.city || "").trim();
+    const requirementCategory = String(requirement.category || "").trim();
+    if (requirementCity) next.set("city", requirementCity);
+    if (requirementCategory) next.set("cats", requirementCategory);
+    return `/seller/deeplink/${encodeURIComponent(requirementId)}?${next.toString()}`;
+  }
+
+  function buildAuthParams() {
+    const params = new URLSearchParams();
+    const requirementCity = String(requirement.city || "").trim();
+    const requirementCategory = String(requirement.category || "").trim();
+    const mobile = String(
+      session?.mobile ||
+        localStorage.getItem("whatsapp_mobile") ||
+        ""
+    ).trim();
+    if (mobile) params.set("mobile", mobile);
+    if (requirementCity) params.set("city", requirementCity);
+    if (requirementCategory) params.set("cats", requirementCategory);
+    return params;
+  }
+
+  function savePendingOfferIntent() {
+    const payload = {
+      requirementId,
+      city: String(requirement.city || "").trim(),
+      offerPayload: {
+        price: Number(price),
+        message: note,
+        deliveryTime,
+        paymentTerms,
+        mobile: String(session?.mobile || "").trim(),
+        sellerCity: String(requirement.city || session?.city || "").trim()
+      },
+      createdAt: Date.now()
+    };
+    localStorage.setItem("pending_seller_offer_intent", JSON.stringify(payload));
+    localStorage.setItem("pending_offer_data", JSON.stringify(payload));
+  }
 
   async function openAttachment(attachment) {
     const newTab = window.open("", "_blank", "noopener,noreferrer");
@@ -247,22 +292,17 @@ const submitOffer = async () => {
     
     // Not logged in - redirect to login
     if (!session?.token) {
-      localStorage.setItem("pending_offer_data", JSON.stringify({
-        requirementId: requirementId,
-        price: Number(price),
-        message: note,
-        deliveryTime: deliveryTime,
-        paymentTerms: paymentTerms
-      }));
+      savePendingOfferIntent();
       if (!localStorage.getItem("post_login_redirect")) {
-        const currentTarget = `/seller/deeplink/${encodeURIComponent(requirementId)}?resume=1`;
+        const currentTarget = buildResumeTarget();
         localStorage.setItem("post_login_redirect", currentTarget);
       }
       if (!localStorage.getItem("post_login_redirect_source")) {
         localStorage.setItem("post_login_redirect_source", "offer");
       }
       localStorage.setItem("login_intent_role", "seller");
-      window.location.href = "/seller/login";
+      const params = buildAuthParams();
+      window.location.href = `/seller/login${params.toString() ? `?${params.toString()}` : ""}`;
       return;
     }
     
@@ -270,22 +310,18 @@ const submitOffer = async () => {
     const hasSellerProfile = session?.sellerProfile?.registeredBusinessName && session?.sellerProfile?.managerName;
     
     if (!hasSellerProfile) {
-      localStorage.setItem("pending_offer_data", JSON.stringify({
-        requirementId: requirementId,
-        price: Number(price),
-        message: note,
-        deliveryTime: deliveryTime,
-        paymentTerms: paymentTerms
-      }));
+      savePendingOfferIntent();
       if (!localStorage.getItem("post_login_redirect")) {
-        const currentTarget = `/seller/deeplink/${encodeURIComponent(requirementId)}?resume=1`;
+        const currentTarget = buildResumeTarget();
         localStorage.setItem("post_login_redirect", currentTarget);
       }
       if (!localStorage.getItem("post_login_redirect_source")) {
         localStorage.setItem("post_login_redirect_source", "offer");
       }
       localStorage.setItem("login_intent_role", "seller");
-      window.location.href = "/seller/register";
+      const params = buildAuthParams();
+      params.set("requirementId", requirementId);
+      window.location.href = `/seller/register${params.toString() ? `?${params.toString()}` : ""}`;
       return;
     }
 

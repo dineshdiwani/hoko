@@ -105,6 +105,16 @@ const [step, setStep] = useState("EMAIL_LOGIN");
       return postLoginRedirect;
     }
   }
+
+  function buildSellerRegisterRedirect() {
+    const params = new URLSearchParams();
+    const loginMobile = String(mobile || emailOrMobileFromUrl || "").trim();
+    const catsFromLogin = String(searchParams.get("cats") || "").trim();
+    if (loginMobile) params.set("mobile", loginMobile);
+    if (cityFromUrl) params.set("city", cityFromUrl);
+    if (catsFromLogin) params.set("cats", catsFromLogin);
+    return `/seller/register${params.toString() ? `?${params.toString()}` : ""}`;
+  }
   useEffect(() => {
     const session = getSession();
     if (session?.role === currentRole && session?.token) {
@@ -284,7 +294,7 @@ useEffect(() => {
             message === "Complete seller registration before login")
         ) {
           alert(message);
-          navigate("/seller/register");
+          navigate(buildSellerRegisterRedirect());
           return;
         }
         alert(message);
@@ -526,7 +536,7 @@ useEffect(() => {
 
         if (shouldResumeSellerFlow) {
           if (!hasCompleteSellerProfile(user) && !profile?.registeredBusinessName) {
-            navigate("/seller/register", { replace: true });
+            navigate(buildSellerRegisterRedirect(), { replace: true });
             return;
           }
           navigate(buildSellerResumeRedirect(), { replace: true });
@@ -547,7 +557,7 @@ useEffect(() => {
           "Invalid OTP. Please try again.";
         if (isSeller && (message === "Complete seller registration before login" || message === "Complete seller registration before Google login")) {
           alert(message);
-          navigate("/seller/register", { replace: true });
+          navigate(buildSellerRegisterRedirect(), { replace: true });
           return;
         }
         alert(message);
@@ -583,7 +593,13 @@ useEffect(() => {
         setShowCityModal(true);
       })
       .catch((err) => {
-        alert(err?.response?.data?.message || "Login failed");
+        const message = err?.response?.data?.message || "Login failed";
+        if (isSeller && (message === "Complete seller registration before Google login" || message === "Complete seller registration before login")) {
+          alert(message);
+          navigate(buildSellerRegisterRedirect(), { replace: true });
+          return;
+        }
+        alert(message);
       })
       .finally(() => setGoogleLoading(false));
   }
@@ -906,7 +922,7 @@ useEffect(() => {
                   isSellerRole && useSellerPostLoginRedirect;
                 if (shouldResumeSellerFlow) {
                   if (!sellerProfileComplete) {
-                    navigate("/seller/register", { replace: true });
+                    navigate(buildSellerRegisterRedirect(), { replace: true });
                     return;
                   }
                   navigate(buildSellerResumeRedirect(), { replace: true });

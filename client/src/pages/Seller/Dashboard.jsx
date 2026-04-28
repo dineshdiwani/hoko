@@ -656,9 +656,13 @@ export default function SellerDashboard() {
   function getShareText(req) {
     const reqId = String(req?._id || "").trim();
     if (!reqId) return "";
+    const mobile = String(
+      req?.mobile || req?.contactMobile || req?.phone || req?.buyerMobile || ""
+    ).trim();
     const packed = encodeURIComponent(
       JSON.stringify({
         postId: reqId,
+        mobile,
         city: String(req?.city || ""),
         product: String(req?.product || req?.productName || ""),
         category: String(req?.category || ""),
@@ -686,7 +690,17 @@ export default function SellerDashboard() {
   function getWhatsAppShareText(req) {
     const reqId = String(req?._id || "").trim();
     if (!reqId) return "";
-    const deepLink = `${appBaseUrl}/seller/dashboard?openRequirement=${encodeURIComponent(reqId)}`;
+    const query = new URLSearchParams();
+    query.set("openRequirement", reqId);
+    const city = String(req?.city || "").trim();
+    const category = String(req?.category || "").trim();
+    const mobile = String(
+      req?.mobile || req?.contactMobile || req?.phone || req?.buyerMobile || ""
+    ).trim();
+    if (city) query.set("city", city);
+    if (category) query.set("cats", category);
+    if (mobile) query.set("mobile", mobile);
+    const deepLink = `${appBaseUrl}/seller/dashboard?${query.toString()}`;
     const product = String(req?.product || req?.productName || "PRODUCT / SERVICE").trim();
     const quantityValue = String(req?.quantity || "").trim();
     const quantityUnit = String(req?.type || req?.unit || "").trim();
@@ -717,7 +731,16 @@ export default function SellerDashboard() {
   function getSocialShareText(req) {
     const reqId = String(req?._id || "").trim();
     if (!reqId) return "";
-    const deepLink = `${appBaseUrl}/seller/deeplink/${encodeURIComponent(reqId)}`;
+    const query = new URLSearchParams();
+    const city = String(req?.city || "").trim();
+    const category = String(req?.category || "").trim();
+    const mobile = String(
+      req?.mobile || req?.contactMobile || req?.phone || req?.buyerMobile || ""
+    ).trim();
+    if (mobile) query.set("mobile", mobile);
+    if (city) query.set("city", city);
+    if (category) query.set("cats", category);
+    const deepLink = `${appBaseUrl}/seller/deeplink/${encodeURIComponent(reqId)}${query.toString() ? `?${query.toString()}` : ""}`;
     const product = String(req?.product || req?.productName || "PRODUCT / SERVICE").trim();
     const quantityValue = String(req?.quantity || "").trim();
     const quantityUnit = String(req?.type || req?.unit || "").trim();
@@ -766,7 +789,17 @@ export default function SellerDashboard() {
 
   function getShareLinks(req) {
     const reqId = String(req?._id || "").trim();
-    const deepLink = `${appBaseUrl}/seller/dashboard?openRequirement=${encodeURIComponent(reqId)}`;
+    const query = new URLSearchParams();
+    query.set("openRequirement", reqId);
+    const city = String(req?.city || "").trim();
+    const category = String(req?.category || "").trim();
+    const mobile = String(
+      req?.mobile || req?.contactMobile || req?.phone || req?.buyerMobile || ""
+    ).trim();
+    if (city) query.set("city", city);
+    if (category) query.set("cats", category);
+    if (mobile) query.set("mobile", mobile);
+    const deepLink = `${appBaseUrl}/seller/dashboard?${query.toString()}`;
     const whatsappText = encodeURIComponent(getWhatsAppShareText(req));
     const socialText = encodeURIComponent(getSocialShareText(req));
     const socialTextRaw = getSocialShareText(req);
