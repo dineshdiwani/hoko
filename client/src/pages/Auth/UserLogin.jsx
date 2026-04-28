@@ -101,8 +101,8 @@ useEffect(() => {
         if (Array.isArray(data.cities) && data.cities.length) {
           setCities(data.cities);
         }
-        // Pre-select city from URL or WhatsApp params
-        const cityFromUrl = searchParams.get("city") || localStorage.getItem("whatsapp_city") || "";
+        // Pre-select city from URL when available
+        const cityFromUrl = searchParams.get("city") || "";
         if (cityFromUrl && data.cities.includes(cityFromUrl)) {
           setCity(cityFromUrl);
         }
@@ -402,12 +402,9 @@ useEffect(() => {
           localStorage.getItem("login_intent_role") === "seller";
         const sellerCapable = Boolean(user?.roles?.seller);
 
-// Check for pending requirement (from WhatsApp buyer flow)
         const pendingRequirementData = sessionStorage.getItem("pending_requirement_data");
-        const isFromWhatsApp = localStorage.getItem("whatsapp_login") === "true";
         
-        // For WhatsApp buyers with pending requirement, skip city modal
-        if (pendingRequirementData && !isSeller && isFromWhatsApp) {
+        if (pendingRequirementData && !isSeller) {
           // Set session first
           setSession({
             _id: user._id,
@@ -439,7 +436,6 @@ useEffect(() => {
             
             const reqRes = await api.post("/buyer/requirement", reqPayload);
             sessionStorage.removeItem("pending_requirement_data");
-            localStorage.removeItem("whatsapp_login");
             
             if (reqRes.data?._id) {
               navigate(`/buyer/dashboard?activeTab=posts&highlight=${reqRes.data._id}`, { replace: true });
@@ -502,21 +498,11 @@ if (!(currentRole === "buyer" && sellerIntent)) {
           localStorage.removeItem("login_intent_role");
         }
         
-        // Build dashboard URL with WhatsApp params
-        const whatsappCity = localStorage.getItem("whatsapp_city") || "";
-        const whatsappCats = localStorage.getItem("whatsapp_categories") || "";
-        localStorage.removeItem("whatsapp_city");
-        localStorage.removeItem("whatsapp_categories");
-        
         const dashboardParams = new URLSearchParams();
-        if (isSeller) {
-          if (whatsappCity) dashboardParams.set("city", whatsappCity);
-          if (whatsappCats) dashboardParams.set("cats", whatsappCats);
-          dashboardParams.set("from", "wa");
-        }
-        
-        // Default to dashboard
-        navigate(`/seller/dashboard?${dashboardParams.toString()}`, { replace: true });
+        if (city) dashboardParams.set("city", city);
+        if (isSeller) dashboardParams.set("from", "seller-login");
+        const targetDashboard = isSeller ? "/seller/dashboard" : "/buyer/dashboard";
+        navigate(`${targetDashboard}?${dashboardParams.toString()}`, { replace: true });
       })
       .catch((err) => {
         const message =
@@ -878,19 +864,13 @@ if (!(currentRole === "buyer" && sellerIntent)) {
                   await new Promise(resolve => setTimeout(resolve, 1000));
                 }
                 
-                // Build dashboard URL with WhatsApp params
-                const whatsappCity = localStorage.getItem("whatsapp_city") || "";
-                const whatsappCats = localStorage.getItem("whatsapp_categories") || "";
-                localStorage.removeItem("whatsapp_city");
-                localStorage.removeItem("whatsapp_categories");
-                
                 const dashboardParams = new URLSearchParams();
                 if (city) dashboardParams.set("city", city);
-                if (whatsappCats) dashboardParams.set("cats", whatsappCats);
-                if (isSellerRole) dashboardParams.set("from", "wa");
+                if (isSellerRole) dashboardParams.set("from", "seller-login");
                 
                 // Redirect to dashboard
-                navigate(`/seller/dashboard?${dashboardParams.toString()}`, { replace: true });
+                const targetDashboard = isSellerRole ? "/seller/dashboard" : "/buyer/dashboard";
+                navigate(`${targetDashboard}?${dashboardParams.toString()}`, { replace: true });
               }}
               className="w-full py-3 rounded-xl btn-brand font-semibold"
             >

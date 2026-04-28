@@ -1,4 +1,5 @@
 const axios = require("axios");
+const querystring = require("querystring");
 
 function normalizeIndianMobile(mobile) {
   const digits = String(mobile || "").replace(/\D/g, "");
@@ -26,7 +27,11 @@ function resolveOtpPayload(otp, mobile) {
     const senderId = String(process.env.FAST2SMS_SENDER_ID || "").trim();
     const messageId = String(process.env.FAST2SMS_DLT_MESSAGE_ID || "").trim();
     if (!senderId || !messageId) {
-      throw new Error("FAST2SMS_SENDER_ID and FAST2SMS_DLT_MESSAGE_ID are required for FAST2SMS_OTP_ROUTE=dlt");
+      return {
+        variables_values: String(otp),
+        route: "otp",
+        numbers: mobile
+      };
     }
     return {
       sender_id: senderId,
@@ -43,7 +48,11 @@ function resolveOtpPayload(otp, mobile) {
     const templateId = String(process.env.FAST2SMS_DLT_TEMPLATE_ID || "").trim();
     const templateText = String(process.env.FAST2SMS_DLT_MESSAGE_TEXT || "").trim();
     if (!senderId || !entityId || !templateId || !templateText) {
-      throw new Error("FAST2SMS_SENDER_ID, FAST2SMS_DLT_ENTITY_ID, FAST2SMS_DLT_TEMPLATE_ID, FAST2SMS_DLT_MESSAGE_TEXT are required for FAST2SMS_OTP_ROUTE=dlt_manual");
+      return {
+        variables_values: String(otp),
+        route: "otp",
+        numbers: mobile
+      };
     }
     return {
       sender_id: senderId,
@@ -65,13 +74,15 @@ async function sendOtpSms({ mobile, otp }) {
   }
   const normalizedMobile = normalizeIndianMobile(mobile);
   const payload = resolveOtpPayload(otp, normalizedMobile);
+  const body = querystring.stringify(payload);
 
   const res = await axios.post(
     "https://www.fast2sms.com/dev/bulkV2",
-    payload,
+    body,
     {
       headers: {
-        authorization: apiKey
+        authorization: apiKey,
+        "Content-Type": "application/x-www-form-urlencoded"
       },
       timeout: 10000
     }
@@ -79,7 +90,9 @@ async function sendOtpSms({ mobile, otp }) {
 
   if (!res.data || res.data.return !== true) {
     const msg =
-      (res.data && res.data.message && res.data.message[0]) ||
+      Array.isArray(res.data?.message)
+        ? res.data.message[0]
+        : res.data?.message ||
       "Fast2SMS send failed";
     throw new Error(msg);
   }

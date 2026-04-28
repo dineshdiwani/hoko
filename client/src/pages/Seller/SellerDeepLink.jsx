@@ -58,12 +58,6 @@ export default function SellerDeepLink() {
     sellerCity: ""
   });
   
-  // OTP verification state
-  const [otpStep, setOtpStep] = useState(false);
-  const [otpValue, setOtpValue] = useState("");
-  const [otpError, setOtpError] = useState("");
-  const [otpSent, setOtpSent] = useState(false);
-  const [resendTimer, setResendTimer] = useState(0);
   const [pendingOfferPayload, setPendingOfferPayload] = useState(null);
   const [showRegistration, setShowRegistration] = useState(false); // Show registration after OTP verification
   const [registrationData, setRegistrationData] = useState({}); // Store registration form data
@@ -150,7 +144,11 @@ export default function SellerDeepLink() {
     const session = getSession();
     const isSeller = session?.role === "seller" || Boolean(session?.roles?.seller);
     if (!session?.token) {
-      navigate("/seller/login", { replace: true });
+      const loginParams = new URLSearchParams();
+      if (mobileFromUrl) loginParams.set("mobile", mobileFromUrl);
+      if (cityFromUrl) loginParams.set("city", cityFromUrl);
+      if (catsFromUrl) loginParams.set("cats", catsFromUrl);
+      navigate(`/seller/login?${loginParams.toString()}`, { replace: true });
       return;
     }
     if (session?.token && !isSeller) {
@@ -290,115 +288,27 @@ export default function SellerDeepLink() {
     }
   };
 
-  // OTP functions
-  const requestOtp = async () => {
-    if (!mobileFromUrl) {
-      alert("Mobile number not found. Please use the link from WhatsApp.");
-      return;
-    }
-    try {
-      await api.post("/seller/otp/request", {
-        mobile: "+" + mobileFromUrl
-      });
-      setOtpSent(true);
-      setOtpStep(true);
-      setResendTimer(60);
-      const interval = setInterval(() => {
-        setResendTimer((prev) => {
-          if (prev <= 1) {
-            clearInterval(interval);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    } catch (err) {
-      alert(err?.response?.data?.message || "Failed to send OTP. Please try again.");
-    }
-  };
-
-  const verifyOtp = async () => {
-    if (otpValue.length !== 4) {
-      setOtpError("Please enter 4-digit OTP");
-      return;
-    }
-    setOtpError("");
-    try {
-      const res = await api.post("/seller/otp/verify", {
-        mobile: "+" + mobileFromUrl,
-        otp: otpValue
-      });
-      if (res.data?.success && res.data?.token && res.data?.user) {
-        setSession({
-          _id: res.data.user._id,
-          role: res.data.user.role || "seller",
-          roles: res.data.user.roles || { seller: true },
-          email: res.data.user.email || "",
-          city: cityFromUrl || res.data.user.city || "",
-          name: res.data.user.name || "Seller",
-          preferredCurrency: res.data.user.preferredCurrency || "INR",
-          mobile: res.data.user.mobile || mobileFromUrl,
-          token: res.data.token
-        });
-        setOtpStep(false);
-        setOtpValue("");
-
-        // Stay on this page - show the offer form for the requirement
-        // Don't redirect to dashboard
-      } else {
-        throw new Error(res.data?.message || "Verification failed");
-      }
-    } catch (err) {
-      setOtpError(err?.response?.data?.message || err?.message || "Invalid OTP");
-    }
-  };
-
 useEffect(() => {
     const session = getSession();
-    
-    // For sellers coming from WhatsApp
-    if (mobileFromUrl) {
-      // Store WhatsApp params for later use on registration/dashboard
-      localStorage.setItem("whatsapp_seller_mobile", mobileFromUrl);
-      localStorage.setItem("whatsapp_mobile", mobileFromUrl); // For registration form
-      localStorage.setItem("whatsapp_login", "true");
-      if (cityFromUrl) {
-        localStorage.setItem("whatsapp_seller_city", cityFromUrl);
-        localStorage.setItem("whatsapp_city", cityFromUrl); // For registration form
-      }
-      if (catsFromUrl) {
-        localStorage.setItem("whatsapp_seller_cats", catsFromUrl);
-        localStorage.setItem("whatsapp_categories", catsFromUrl); // For registration form
-      }
-      if (requirementIdValue) localStorage.setItem("whatsapp_seller_ref", requirementIdValue);
-
-      // If already logged in as seller - show offer form directly (no OTP)
-      if (session?.token && session?.roles?.seller) {
-        const prefilledMobile = session?.mobile || localStorage.getItem("whatsapp_seller_mobile") || localStorage.getItem("whatsapp_mobile") || "";
-        const prefilledCity = session?.city || localStorage.getItem("whatsapp_seller_city") || localStorage.getItem("whatsapp_city") || "";
-        setForm((prev) => ({
-          ...prev,
-          mobile: prev.mobile || prefilledMobile,
-          sellerCity: prev.sellerCity || prefilledCity
-        }));
-        return;
-      }
-
-      // Not logged in - show OTP popup
-      requestOtp();
+    if (session?.token && session?.roles?.seller) {
+      setForm((prev) => ({
+        ...prev,
+        mobile: prev.mobile || session?.mobile || mobileFromUrl || "",
+        sellerCity: prev.sellerCity || session?.city || cityFromUrl || ""
+      }));
       return;
     }
 
-    // No mobile param - normal flow
-    if (session?.token && session?.roles?.seller) {
-      const prefilledMobile = session?.mobile || localStorage.getItem("whatsapp_seller_mobile") || localStorage.getItem("whatsapp_mobile") || "";
-      const prefilledCity = session?.city || localStorage.getItem("whatsapp_seller_city") || localStorage.getItem("whatsapp_city") || "";
-      setForm((prev) => ({
-        ...prev,
-        mobile: prev.mobile || prefilledMobile,
-        sellerCity: prev.sellerCity || prefilledCity
-      }));
+    const redirectParams = new URLSearchParams();
+    if (mobileFromUrl) redirectParams.set("mobile", mobileFromUrl);
+    if (cityFromUrl) redirectParams.set("city", cityFromUrl);
+    if (catsFromUrl) redirectParams.set("cats", catsFromUrl);
+    if (requirementIdValue) {
+      localStorage.setItem("post_login_redirect", buildRedirectTarget());
+      localStorage.setItem(POST_LOGIN_REDIRECT_SOURCE_KEY, "deeplink");
+      localStorage.setItem("login_intent_role", "seller");
     }
+    navigate(`/seller/login?${redirectParams.toString()}`, { replace: true });
   }, []);
 
   useEffect(() => {
@@ -485,8 +395,8 @@ useEffect(() => {
         const pending = JSON.parse(pendingData);
         if (pending.requirementId === requirementIdValue) {
           // Pre-fill form with pending offer data + session data
-          const prefilledMobile = session?.mobile || localStorage.getItem("whatsapp_seller_mobile") || localStorage.getItem("whatsapp_mobile") || "";
-          const prefilledCity = session?.city || localStorage.getItem("whatsapp_seller_city") || localStorage.getItem("whatsapp_city") || "";
+          const prefilledMobile = session?.mobile || mobileFromUrl || "";
+          const prefilledCity = session?.city || cityFromUrl || "";
           setForm({
             price: String(pending.price || ""),
             message: String(pending.message || ""),
@@ -598,12 +508,12 @@ useEffect(() => {
       return;
     }
 
-    // Not logged in - validate required fields for OTP
+    // Not logged in - validate required fields before redirecting to login
     const mobile = String(form.mobile || "").trim();
     const sellerName = String(form.sellerName || "").trim();
     const sellerCity = String(form.sellerCity || "").trim();
     if (!mobile) {
-      alert("Please enter your WhatsApp number.");
+      alert("Please enter your mobile number.");
       return;
     }
     if (!sellerName) {
@@ -615,9 +525,10 @@ useEffect(() => {
       return;
     }
 
-    // Trigger OTP flow
     setPendingOfferPayload(payload);
-    requestOtp();
+    if (!hasValidSession) {
+      redirectToAuthOrRegister(payload);
+    }
   };
 
   async function compressImageFile(file) {
@@ -828,59 +739,7 @@ useEffect(() => {
           </div>
         )}
         
-        {/* OTP Verification Screen */}
-        {otpStep && (
-          <div className="dashboard-panel p-6 space-y-4">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <h2 className="text-xl font-bold mb-2">Verify Your WhatsApp</h2>
-              <p className="text-gray-600 text-sm">
-                We've sent a 4-digit code to<br />
-                <strong>+{mobileFromUrl}</strong>
-              </p>
-            </div>
-            
-            <div className="space-y-3">
-              <input
-                type="text"
-                value={otpValue}
-                onChange={(e) => setOtpValue(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                placeholder="Enter 4-digit OTP"
-                className="app-input text-center text-2xl tracking-widest"
-                maxLength={4}
-              />
-              {otpError && (
-                <p className="text-red-600 text-sm text-center">{otpError}</p>
-              )}
-              <button
-                onClick={verifyOtp}
-                disabled={otpValue.length !== 4}
-                className="btn-primary w-full"
-              >
-                Verify OTP
-              </button>
-              <div className="text-center">
-                {resendTimer > 0 ? (
-                  <p className="text-gray-500 text-sm">Resend OTP in {resendTimer}s</p>
-                ) : (
-                  <button
-                    onClick={requestOtp}
-                    className="text-amber-700 text-sm hover:underline"
-                  >
-                    Resend OTP
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-        
-        {!otpStep && (
-          loading ? (
+        {loading ? (
             <p className="ui-body text-[var(--ui-muted)]">Loading requirement...</p>
           ) : (
           <div className="dashboard-panel p-4 space-y-3">
@@ -921,7 +780,7 @@ useEffect(() => {
               onChange={(e) => setForm((prev) => ({ ...prev, mobile: e.target.value }))}
               type="tel"
               className="app-input"
-              placeholder="WhatsApp number *"
+              placeholder="Mobile number *"
             />
             <select
               value={form.sellerCity}
@@ -1049,7 +908,7 @@ useEffect(() => {
             )}
           </div>
           )
-        )}
+        }
       </div>
     </div>
   );

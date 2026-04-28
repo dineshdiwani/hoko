@@ -526,13 +526,7 @@ export default function SellerDashboard() {
         String(req._id) === String(requirementId) ? { ...req, myOffer: true } : req
       )
     );
-    
-    // Only show registration prompt for WhatsApp login users
-    const isWhatsAppLogin = localStorage.getItem("whatsapp_login") === "true";
-    if (!isWhatsAppLogin) {
-      return; // Skip for normal email login users
-    }
-    
+
     // Check if seller already has profile
     const hasSellerProfile = session?.sellerProfile?.registeredBusinessName && session?.sellerProfile?.managerName;
     
