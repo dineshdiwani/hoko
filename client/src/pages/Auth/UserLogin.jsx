@@ -438,7 +438,8 @@ useEffect(() => {
             sessionStorage.removeItem("pending_requirement_data");
             
             if (reqRes.data?._id) {
-              navigate(`/buyer/dashboard?activeTab=posts&highlight=${reqRes.data._id}`, { replace: true });
+              setBuyerDashboardDefaultTab(city);
+              navigate(`/buyer/dashboard?tab=posts&highlight=${reqRes.data._id}`, { replace: true });
               return;
             }
           } catch (e) {
@@ -447,7 +448,8 @@ useEffect(() => {
           }
           
           // Fallback to dashboard
-          navigate("/buyer/dashboard", { replace: true });
+          setBuyerDashboardDefaultTab(city);
+          navigate("/buyer/dashboard?tab=posts", { replace: true });
           return;
         }
         
@@ -494,13 +496,15 @@ useEffect(() => {
           );
         }
 
-if (!(currentRole === "buyer" && sellerIntent)) {
+        if (!(currentRole === "buyer" && sellerIntent)) {
           localStorage.removeItem("login_intent_role");
         }
         
+        setBuyerDashboardDefaultTab(city);
         const dashboardParams = new URLSearchParams();
         if (city) dashboardParams.set("city", city);
         if (isSeller) dashboardParams.set("from", "seller-login");
+        if (!isSeller) dashboardParams.set("tab", "posts");
         const targetDashboard = isSeller ? "/seller/dashboard" : "/buyer/dashboard";
         navigate(`${targetDashboard}?${dashboardParams.toString()}`, { replace: true });
       })
@@ -850,7 +854,8 @@ if (!(currentRole === "buyer" && sellerIntent)) {
                       } catch {}
                       
                       sessionStorage.removeItem("pending_requirement_data");
-                      navigate(`/buyer/dashboard?activeTab=posts&highlight=${reqRes.data._id}`, { replace: true });
+                      setBuyerDashboardDefaultTab(reqData.city || city);
+                      navigate(`/buyer/dashboard?tab=posts&highlight=${reqRes.data._id}`, { replace: true });
                       return;
                     }
                   } catch (e) {
@@ -867,9 +872,13 @@ if (!(currentRole === "buyer" && sellerIntent)) {
                 const dashboardParams = new URLSearchParams();
                 if (city) dashboardParams.set("city", city);
                 if (isSellerRole) dashboardParams.set("from", "seller-login");
+                if (!isSellerRole) dashboardParams.set("tab", "posts");
                 
                 // Redirect to dashboard
                 const targetDashboard = isSellerRole ? "/seller/dashboard" : "/buyer/dashboard";
+                if (!isSellerRole) {
+                  setBuyerDashboardDefaultTab(city);
+                }
                 navigate(`${targetDashboard}?${dashboardParams.toString()}`, { replace: true });
               }}
               className="w-full py-3 rounded-xl btn-brand font-semibold"

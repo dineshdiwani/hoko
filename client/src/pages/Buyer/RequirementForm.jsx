@@ -587,7 +587,10 @@ useEffect(() => {
       }
 
       // For non-logged in users, redirect to login then to my posts
-      navigate("/buyer/login?redirect=/buyer/dashboard?tab=my", { replace: true });
+      const loginParams = new URLSearchParams();
+      if (payload.mobile) loginParams.set("mobile", payload.mobile);
+      loginParams.set("redirect", "/buyer/dashboard?tab=posts");
+      navigate(`/buyer/login?${loginParams.toString()}`, { replace: true });
     } catch (err) {
       const errorMsg = err?.response?.data?.message || err?.message || "Unknown error";
       alert(
@@ -639,8 +642,11 @@ useEffect(() => {
       offerInvitedFrom: form.offerInvitedFrom || "city",
       ref: tempRequirementRef
     }));
-    
-    navigate("/buyer/login?redirect=/buyer/dashboard?tab=posts", { replace: true });
+
+    const loginParams = new URLSearchParams();
+    if (form.mobile) loginParams.set("mobile", form.mobile);
+    loginParams.set("redirect", "/buyer/dashboard?tab=posts");
+    navigate(`/buyer/login?${loginParams.toString()}`, { replace: true });
   }
 
   if (loadingRequirement) {
