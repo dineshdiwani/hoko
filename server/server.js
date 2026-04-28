@@ -43,6 +43,9 @@ const {
 
 dotenv.config({ path: path.join(__dirname, ".env") });
 
+console.log("[ENV] Loaded from:", path.join(__dirname, ".env"));
+console.log("[ENV] FAST2SMS_OTP_ROUTE:", process.env.FAST2SMS_OTP_ROUTE);
+
 process.on("uncaughtException", (err) => {
   console.error("UNCAUGHT EXCEPTION:", err);
   console.error("Stack:", err.stack);
