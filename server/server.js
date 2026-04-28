@@ -8,6 +8,12 @@ const jwt = require("jsonwebtoken");
 const path = require("path");
 const fs = require("fs");
 
+console.log("[START] CWD:", process.cwd());
+console.log("[START] __dirname:", __dirname);
+const envPath = path.join(__dirname, ".env");
+console.log("[START] .env exists:", fs.existsSync(envPath));
+console.log("[START] Loading:", envPath);
+
 if (process.env.SENTRY_DSN) {
   const Sentry = require("@sentry/node");
   Sentry.init({
