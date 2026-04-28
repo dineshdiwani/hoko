@@ -274,7 +274,13 @@ export default function SellerDashboard() {
   }
 
   useEffect(() => {
-    if (!session?.token && !isPublicRequirementView && !isSellerWhatsAppPublicView) {
+    // NEVER redirect for WhatsApp flow - let them see the dashboard first
+    if (isSellerWhatsAppPublicView) {
+      console.log("[SellerDashboard] WhatsApp flow detected, staying on page", { sourceFromUrl, cityFromUrl, catsFromUrl, mobileFromUrl, isPublicRequirementView, hasToken: !!session?.token });
+      return;
+    }
+    console.log("[SellerDashboard] Redirect check", { hasToken: !!session?.token, isPublicRequirementView, isSellerWhatsAppPublicView });
+    if (!session?.token && !isPublicRequirementView) {
       navigate("/seller/login");
     }
   }, [session, navigate, isPublicRequirementView, isSellerWhatsAppPublicView]);
