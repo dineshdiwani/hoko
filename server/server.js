@@ -41,7 +41,7 @@ const {
   resolveAttachmentFilenameOnDisk
 } = require("./utils/attachments");
 
-dotenv.config();
+dotenv.config({ path: path.join(__dirname, ".env") });
 
 process.on("uncaughtException", (err) => {
   console.error("UNCAUGHT EXCEPTION:", err);
