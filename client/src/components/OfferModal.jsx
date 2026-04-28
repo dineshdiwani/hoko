@@ -254,7 +254,15 @@ const submitOffer = async () => {
         deliveryTime: deliveryTime,
         paymentTerms: paymentTerms
       }));
-      window.location.href = "/seller/login?redirect=/seller/dashboard";
+      if (!localStorage.getItem("post_login_redirect")) {
+        const currentTarget = `/seller/deeplink/${encodeURIComponent(requirementId)}?resume=1`;
+        localStorage.setItem("post_login_redirect", currentTarget);
+      }
+      if (!localStorage.getItem("post_login_redirect_source")) {
+        localStorage.setItem("post_login_redirect_source", "offer");
+      }
+      localStorage.setItem("login_intent_role", "seller");
+      window.location.href = "/seller/login";
       return;
     }
     
@@ -269,7 +277,15 @@ const submitOffer = async () => {
         deliveryTime: deliveryTime,
         paymentTerms: paymentTerms
       }));
-      window.location.href = "/seller/register?returnTo=/seller/dashboard";
+      if (!localStorage.getItem("post_login_redirect")) {
+        const currentTarget = `/seller/deeplink/${encodeURIComponent(requirementId)}?resume=1`;
+        localStorage.setItem("post_login_redirect", currentTarget);
+      }
+      if (!localStorage.getItem("post_login_redirect_source")) {
+        localStorage.setItem("post_login_redirect_source", "offer");
+      }
+      localStorage.setItem("login_intent_role", "seller");
+      window.location.href = "/seller/register";
       return;
     }
 

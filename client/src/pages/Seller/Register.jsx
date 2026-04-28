@@ -173,6 +173,22 @@ export default function SellerRegister() {
         sellerProfile: res.data.sellerProfile
       });
       alert("Registration submitted successfully!");
+      const resumeTarget = String(localStorage.getItem("post_login_redirect") || "").trim();
+      const resumeSource = String(localStorage.getItem("post_login_redirect_source") || "").trim();
+      const shouldResumeRedirect =
+        resumeTarget &&
+        (resumeSource === "deeplink" || resumeSource === "offer" || resumeTarget.startsWith("/seller/deeplink/"));
+      if (shouldResumeRedirect) {
+        try {
+          const url = new URL(resumeTarget, window.location.origin);
+          url.searchParams.set("autoSubmit", "true");
+          window.location.href = `${url.pathname}${url.search}`;
+          return;
+        } catch {
+          window.location.href = `${resumeTarget}${resumeTarget.includes("?") ? "&" : "?"}autoSubmit=true`;
+          return;
+        }
+      }
       window.location.href = "/seller/dashboard";
     } catch (err) {
       alert(err?.response?.data?.message || "Registration failed. Try again.");

@@ -157,7 +157,6 @@ export default function SellerDeepLink() {
       });
       return;
     }
-    navigate("/seller/login", { replace: true });
   };
 
   const ensureSellerSession = async () => {
@@ -232,47 +231,7 @@ export default function SellerDeepLink() {
         });
         return;
       }
-      
-      let nextAttachments = [];
-      if (attachments.length) {
-        for (const item of attachments) {
-          const formData = new FormData();
-          formData.append("file", item);
-          const uploadRes = await api.post("/seller/offer/attachments", formData, {
-            headers: { "Content-Type": "multipart/form-data" }
-          });
-          const uploadedUrls =
-            uploadRes?.data?.files?.map((entry) => entry.url).filter(Boolean) || [];
-          if (uploadedUrls.length) {
-            nextAttachments.push(...uploadedUrls);
-          }
-        }
-      }
-      
-      await api.post("/seller/offer/public", {
-        requirementId: requirementIdValue,
-        price: Number(payload.price),
-        message: payload.message || "",
-        deliveryTime: payload.deliveryTime || "",
-        paymentTerms: payload.paymentTerms || "",
-        mobile: payload.mobile || "",
-        sellerName: payload.sellerName || "",
-        sellerCity: payload.sellerCity || ""
-      });
-      localStorage.setItem("pending_whatsapp_offer_data", JSON.stringify({
-        mobile: payload.mobile || "",
-        sellerName: payload.sellerName || "",
-        sellerCity: payload.sellerCity || "",
-        requirementId: requirementIdValue
-      }));
-      clearPendingOfferIntent();
-      setAttachments([]);
-      alert(
-        isAuto
-          ? "Offer submitted now. Thank you."
-          : "Offer submitted successfully. You will be notified via WhatsApp or app."
-      );
-      navigate("/seller/dashboard", { replace: true });
+      redirectToAuthOrRegister(payload);
     } catch (err) {
       const status = err?.response?.status;
       const serverMessage = err?.response?.data?.message;
@@ -298,17 +257,6 @@ useEffect(() => {
       }));
       return;
     }
-
-    const redirectParams = new URLSearchParams();
-    if (mobileFromUrl) redirectParams.set("mobile", mobileFromUrl);
-    if (cityFromUrl) redirectParams.set("city", cityFromUrl);
-    if (catsFromUrl) redirectParams.set("cats", catsFromUrl);
-    if (requirementIdValue) {
-      localStorage.setItem("post_login_redirect", buildRedirectTarget());
-      localStorage.setItem(POST_LOGIN_REDIRECT_SOURCE_KEY, "deeplink");
-      localStorage.setItem("login_intent_role", "seller");
-    }
-    navigate(`/seller/login?${redirectParams.toString()}`, { replace: true });
   }, []);
 
   useEffect(() => {
@@ -386,52 +334,52 @@ useEffect(() => {
   useEffect(() => {
     if (loading || !requirementIdValue || autoSubmitTriedRef.current) return;
 
-    // Check for pending offer data from localStorage (set by SellerRegister redirect)
     const session = getSession();
-    const pendingData = localStorage.getItem("pending_seller_offer_data");
-    if (pendingData) {
-      localStorage.removeItem("pending_seller_offer_data");
-      try {
-        const pending = JSON.parse(pendingData);
-        if (pending.requirementId === requirementIdValue) {
-          // Pre-fill form with pending offer data + session data
-          const prefilledMobile = session?.mobile || mobileFromUrl || "";
-          const prefilledCity = session?.city || cityFromUrl || "";
-          setForm({
-            price: String(pending.price || ""),
-            message: String(pending.message || ""),
-            deliveryTime: String(pending.deliveryTime || ""),
-            paymentTerms: String(pending.paymentTerms || ""),
-            mobile: prefilledMobile,
-            sellerName: "",
-            sellerCity: prefilledCity
-          });
-        }
-      } catch {}
+    const pendingIntent = readPendingOfferIntent();
+    if (pendingIntent && String(pendingIntent.requirementId) === String(requirementIdValue)) {
+      const pendingPayload = pendingIntent.offerPayload || {};
+      setForm((prev) => ({
+        ...prev,
+        price: prev.price || String(pendingPayload.price || ""),
+        message: prev.message || String(pendingPayload.message || ""),
+        deliveryTime: prev.deliveryTime || String(pendingPayload.deliveryTime || ""),
+        paymentTerms: prev.paymentTerms || String(pendingPayload.paymentTerms || ""),
+        mobile: prev.mobile || String(pendingPayload.mobile || session?.mobile || mobileFromUrl || ""),
+        sellerName: prev.sellerName || String(pendingPayload.sellerName || ""),
+        sellerCity: prev.sellerCity || String(pendingPayload.sellerCity || session?.city || cityFromUrl || "")
+      }));
+      if (autoSubmitFromRegister && session?.token && session?.roles?.seller) {
+        autoSubmitTriedRef.current = true;
+        submitOffer({
+          price: String(pendingPayload.price || ""),
+          message: String(pendingPayload.message || ""),
+          deliveryTime: String(pendingPayload.deliveryTime || ""),
+          paymentTerms: String(pendingPayload.paymentTerms || ""),
+          mobile: String(pendingPayload.mobile || session?.mobile || mobileFromUrl || ""),
+          sellerName: String(pendingPayload.sellerName || ""),
+          sellerCity: String(pendingPayload.sellerCity || session?.city || cityFromUrl || "")
+        }, { isAuto: true });
+        clearPendingOfferIntent();
+        return;
+      }
+      setDraftLoaded(true);
+      return;
     }
 
-    // Check if user is logged in as seller
     const canBecomeSeller = Boolean(session?.token && session?.roles?.seller);
-    if (!canBecomeSeller) return;
-
-    // Only auto-submit if autoSubmit flag is set (from registration)
-    if (!autoSubmitFromRegister) return;
+    if (!canBecomeSeller || !autoSubmitFromRegister) return;
 
     autoSubmitTriedRef.current = true;
-    // Submit the pending offer
     const offerPayload = {
-      price: String(localStorage.getItem("pending_offer_price") || form.price || ""),
-      message: String(localStorage.getItem("pending_offer_message") || form.message || ""),
-      deliveryTime: String(localStorage.getItem("pending_offer_deliveryTime") || form.deliveryTime || ""),
-      paymentTerms: String(localStorage.getItem("pending_offer_paymentTerms") || form.paymentTerms || "")
+      price: String(form.price || "").trim(),
+      message: String(form.message || "").trim(),
+      deliveryTime: String(form.deliveryTime || "").trim(),
+      paymentTerms: String(form.paymentTerms || "").trim(),
+      mobile: String(form.mobile || "").trim(),
+      sellerName: String(form.sellerName || "").trim(),
+      sellerCity: String(form.sellerCity || "").trim()
     };
     submitOffer(offerPayload, { isAuto: true });
-
-    // Clear the pending offer keys
-    localStorage.removeItem("pending_offer_price");
-    localStorage.removeItem("pending_offer_message");
-    localStorage.removeItem("pending_offer_deliveryTime");
-    localStorage.removeItem("pending_offer_paymentTerms");
   }, [loading, requirementIdValue, autoSubmitFromRegister]);
 
   useEffect(() => {

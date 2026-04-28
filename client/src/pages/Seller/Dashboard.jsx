@@ -67,6 +67,9 @@ export default function SellerDashboard() {
   // Handle city/cats from URL params (from WhatsApp deep link)
   const cityFromUrl = searchParams.get("city") || "";
   const catsFromUrl = searchParams.get("cats") || "";
+  const openRequirementFromUrl =
+    searchParams.get("openRequirement") || searchParams.get("postId") || "";
+  const isPublicRequirementView = !session?.token && Boolean(openRequirementFromUrl);
 
   const [requirements, setRequirements] = useState([]);
   const [activeRequirement, setActiveRequirement] = useState(null);
@@ -250,10 +253,10 @@ export default function SellerDashboard() {
   };
 
   useEffect(() => {
-    if (!session?.token) {
+    if (!session?.token && !isPublicRequirementView) {
       navigate("/seller/login");
     }
-  }, [session, navigate]);
+  }, [session, navigate, isPublicRequirementView]);
 
   useEffect(() => {
     const stored = getSellerDashboardCategories();
@@ -293,6 +296,31 @@ export default function SellerDashboard() {
     async function load() {
       setLoading(true);
       try {
+        if (!session?.token && isPublicRequirementView) {
+          try {
+            const res = await api.get(
+              `/seller/offer/requirement/${encodeURIComponent(openRequirementFromUrl)}`
+            );
+            const publicRequirement = res?.data?.requirement || null;
+            if (publicRequirement) {
+              setRequirements([publicRequirement]);
+              if (publicRequirement.city) {
+                setSelectedCity(String(publicRequirement.city || "").trim() || "all");
+              }
+              if (publicRequirement.category) {
+                setSelectedCategory(String(publicRequirement.category || "").trim().toLowerCase() || "all");
+              }
+            } else {
+              setRequirements([]);
+            }
+            setShowingSampleData(false);
+          } catch {
+            setRequirements([]);
+            setShowingSampleData(false);
+          }
+          setLoading(false);
+          return;
+        }
         const res = await api.get("/seller/dashboard", {
           params: {
             city: selectedCity || "all",
@@ -326,6 +354,8 @@ export default function SellerDashboard() {
     cities,
     categories,
     allowSellerSamplePosts,
+    isPublicRequirementView,
+    openRequirementFromUrl,
     session?.city,
     refreshToken
   ]);
@@ -364,6 +394,10 @@ export default function SellerDashboard() {
           product: "Requirement",
           productName: "Requirement"
         });
+      }
+
+      if (isPublicRequirementView) {
+        return;
       }
 
       const nextParams = new URLSearchParams(location.search);
@@ -652,7 +686,7 @@ export default function SellerDashboard() {
   function getWhatsAppShareText(req) {
     const reqId = String(req?._id || "").trim();
     if (!reqId) return "";
-    const deepLink = `${appBaseUrl}/seller/deeplink/${encodeURIComponent(reqId)}`;
+    const deepLink = `${appBaseUrl}/seller/dashboard?openRequirement=${encodeURIComponent(reqId)}`;
     const product = String(req?.product || req?.productName || "PRODUCT / SERVICE").trim();
     const quantityValue = String(req?.quantity || "").trim();
     const quantityUnit = String(req?.type || req?.unit || "").trim();
@@ -732,7 +766,7 @@ export default function SellerDashboard() {
 
   function getShareLinks(req) {
     const reqId = String(req?._id || "").trim();
-    const deepLink = `${appBaseUrl}/seller/deeplink/${encodeURIComponent(reqId)}`;
+    const deepLink = `${appBaseUrl}/seller/dashboard?openRequirement=${encodeURIComponent(reqId)}`;
     const whatsappText = encodeURIComponent(getWhatsAppShareText(req));
     const socialText = encodeURIComponent(getSocialShareText(req));
     const socialTextRaw = getSocialShareText(req);

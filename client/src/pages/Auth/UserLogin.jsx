@@ -27,7 +27,9 @@ export default function UserLogin({ role = "buyer" }) {
   const useSellerPostLoginRedirect =
     isSeller &&
     Boolean(postLoginRedirect) &&
-    (postLoginRedirectSource === "deeplink" || isDeepLinkRedirect);
+    (postLoginRedirectSource === "deeplink" ||
+      postLoginRedirectSource === "offer" ||
+      isDeepLinkRedirect);
   const defaultTermsContent = [
     "By using hoko, you agree to these Terms & Conditions.",
     "hoko is a marketplace platform connecting buyers and sellers. You are responsible for all negotiations, pricing, delivery, and payments.",
@@ -83,6 +85,26 @@ const [step, setStep] = useState("EMAIL_LOGIN");
     : (isSeller ? "/seller/dashboard" : "/buyer/dashboard");
   
   const redirect = finalRedirect;
+
+  function hasCompleteSellerProfile(user) {
+    return Boolean(
+      user?.sellerProfile?.registeredBusinessName &&
+      user?.sellerProfile?.managerName
+    );
+  }
+
+  function buildSellerResumeRedirect() {
+    if (!postLoginRedirect) return "";
+    try {
+      const url = new URL(postLoginRedirect, window.location.origin);
+      if (useSellerPostLoginRedirect) {
+        url.searchParams.set("autoSubmit", "true");
+      }
+      return `${url.pathname}${url.search}`;
+    } catch {
+      return postLoginRedirect;
+    }
+  }
   useEffect(() => {
     const session = getSession();
     if (session?.role === currentRole && session?.token) {
@@ -480,12 +502,14 @@ useEffect(() => {
           name: buildDisplayName(user, currentRole, profile),
           preferredCurrency: user.preferredCurrency || "INR",
           mobile: user.mobile || mobile || "",
+          sellerProfile: user.sellerProfile || profile || {},
           token: res.data.token
         });
 
         localStorage.setItem("seller_email", user.email || email || "");
 
-        if (!(currentRole === "buyer" && sellerIntent)) {
+        const shouldResumeSellerFlow = isSeller && useSellerPostLoginRedirect;
+        if (!(currentRole === "buyer" && sellerIntent) && !shouldResumeSellerFlow) {
           localStorage.removeItem("post_login_redirect");
           localStorage.removeItem("post_login_redirect_source");
         }
@@ -499,7 +523,16 @@ useEffect(() => {
         if (!(currentRole === "buyer" && sellerIntent)) {
           localStorage.removeItem("login_intent_role");
         }
-        
+
+        if (shouldResumeSellerFlow) {
+          if (!hasCompleteSellerProfile(user) && !profile?.registeredBusinessName) {
+            navigate("/seller/register", { replace: true });
+            return;
+          }
+          navigate(buildSellerResumeRedirect(), { replace: true });
+          return;
+        }
+
         setBuyerDashboardDefaultTab(city);
         const dashboardParams = new URLSearchParams();
         if (city) dashboardParams.set("city", city);
@@ -544,6 +577,7 @@ useEffect(() => {
           name: user.name || "Buyer",
           picture: user.picture,
           preferredCurrency: user.preferredCurrency || "INR",
+          sellerProfile: user.sellerProfile || {},
           token: res.data.token
         });
         setShowCityModal(true);
@@ -862,6 +896,21 @@ useEffect(() => {
                     console.error("[Login] Failed to post pending requirement:", e);
                     sessionStorage.removeItem("pending_requirement_data");
                   }
+                }
+
+                const sellerProfileComplete = Boolean(
+                  pendingCitySession?.sellerProfile?.registeredBusinessName &&
+                  pendingCitySession?.sellerProfile?.managerName
+                );
+                const shouldResumeSellerFlow =
+                  isSellerRole && useSellerPostLoginRedirect;
+                if (shouldResumeSellerFlow) {
+                  if (!sellerProfileComplete) {
+                    navigate("/seller/register", { replace: true });
+                    return;
+                  }
+                  navigate(buildSellerResumeRedirect(), { replace: true });
+                  return;
                 }
                 
                 // If no cities loaded yet, wait
