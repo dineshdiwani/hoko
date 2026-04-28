@@ -325,6 +325,7 @@ export default function SellerDashboard() {
       setLoading(true);
       try {
         if (isWhatsAppPublicView) {
+          console.log("[Dash] Fetching meta/requirements", { city: selectedCity, category: selectedCategory });
           // Use /meta/requirements for public read (no auth needed)
           const res = await api.get("/meta/requirements", {
             params: {
@@ -382,7 +383,7 @@ export default function SellerDashboard() {
 
   useEffect(() => {
     const openRequirement = String(
-      params.get("openRequirement") || params.get("postId") || ""
+      searchParams.get("openRequirement") || searchParams.get("postId") || ""
     ).trim();
     if (!openRequirement) return;
 
