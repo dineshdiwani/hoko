@@ -131,6 +131,9 @@ function BuyerOfferRouteHandler() {
 function AppShell() {
   const location = useLocation();
   const hideGlobalLogo = location.pathname === "/";
+  
+  // Debug route matching
+  console.log("[AppShell] Location:", location.pathname, location.search);
 
   function isNotificationAllowedForRole(role, notification, currentSettings) {
     const category = getNotificationCategory(notification);
