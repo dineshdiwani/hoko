@@ -27,7 +27,7 @@ router.get("/options", async (req, res) => {
 
 router.get("/requirements", async (req, res) => {
   try {
-    const { city, limit = 50 } = req.query;
+    const { city, category, limit = 50 } = req.query;
     const query = {
       "moderation.removed": { $ne: true },
       status: { $in: ["active", "pending"] }
@@ -38,6 +38,9 @@ router.get("/requirements", async (req, res) => {
         { city: { $regex: city, $options: "i" } },
         { offerInvitedFrom: "anywhere" }
       ];
+    }
+    if (category) {
+      query.category = { $regex: `^\\s*${String(category).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*$`, $options: "i" };
     }
     
     const requirements = await Requirement.find(query)

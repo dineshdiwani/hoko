@@ -10,6 +10,7 @@ import {
 } from "../../utils/attachments";
 
 const LAST_REQUIREMENT_PREFS_KEY = "buyer_last_requirement_prefs";
+const BUYER_DASHBOARD_FORCE_TAB_KEY = "buyer_dashboard_force_tab";
 
 function readLastRequirementPrefs() {
   try {
@@ -577,6 +578,7 @@ useEffect(() => {
       // For logged-in users, navigate to dashboard
       if (session?.token) {
         try {
+          localStorage.setItem(BUYER_DASHBOARD_FORCE_TAB_KEY, "posts");
           await api.post("/buyer/profile", {
             city: payload.city,
             buyerSettings: {
@@ -655,6 +657,7 @@ useEffect(() => {
     const loginParams = new URLSearchParams();
     if (form.mobile) loginParams.set("mobile", form.mobile);
     loginParams.set("redirect", "/buyer/dashboard?tab=posts");
+    localStorage.setItem(BUYER_DASHBOARD_FORCE_TAB_KEY, "posts");
     navigate(`/buyer/login?${loginParams.toString()}`, { replace: true });
   }
 

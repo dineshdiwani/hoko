@@ -65,11 +65,16 @@ export default function SellerDashboard() {
   const menuRef = useRef(null);
 
   // Handle city/cats from URL params (from WhatsApp deep link)
+  const sourceFromUrl = String(searchParams.get("from") || "").trim().toLowerCase();
   const cityFromUrl = searchParams.get("city") || "";
   const catsFromUrl = searchParams.get("cats") || "";
   const openRequirementFromUrl =
     searchParams.get("openRequirement") || searchParams.get("postId") || "";
   const isPublicRequirementView = !session?.token && Boolean(openRequirementFromUrl);
+  const isSellerWhatsAppPublicView =
+    !session?.token &&
+    !isPublicRequirementView &&
+    (sourceFromUrl === "wa" || Boolean(cityFromUrl) || Boolean(catsFromUrl));
 
   const [requirements, setRequirements] = useState([]);
   const [activeRequirement, setActiveRequirement] = useState(null);
@@ -84,7 +89,10 @@ export default function SellerDashboard() {
   const [dashboardCategories, setDashboardCategories] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const persistedState = readSellerDashboardState();
-  const [selectedCategory, setSelectedCategory] = useState(persistedState.selectedCategory);
+  const initialCategory = catsFromUrl
+    ? String(catsFromUrl.split(",")[0] || "").trim().toLowerCase() || "all"
+    : persistedState.selectedCategory;
+  const [selectedCategory, setSelectedCategory] = useState(initialCategory);
   const [cities, setCities] = useState([]);
   const [categories, setCategories] = useState([]);
   const [selectedCity, setSelectedCity] = useState(
@@ -253,10 +261,10 @@ export default function SellerDashboard() {
   };
 
   useEffect(() => {
-    if (!session?.token && !isPublicRequirementView) {
+    if (!session?.token && !isPublicRequirementView && !isSellerWhatsAppPublicView) {
       navigate("/seller/login");
     }
-  }, [session, navigate, isPublicRequirementView]);
+  }, [session, navigate, isPublicRequirementView, isSellerWhatsAppPublicView]);
 
   useEffect(() => {
     const stored = getSellerDashboardCategories();
@@ -321,6 +329,19 @@ export default function SellerDashboard() {
           setLoading(false);
           return;
         }
+        if (!session?.token && isSellerWhatsAppPublicView) {
+          const publicRes = await api.get("/meta/requirements", {
+            params: {
+              city: selectedCity && selectedCity !== "all" ? selectedCity : "",
+              category: selectedCategory && selectedCategory !== "all" ? selectedCategory : "",
+              limit: 100
+            }
+          });
+          const publicRows = Array.isArray(publicRes.data) ? publicRes.data : [];
+          setRequirements(publicRows);
+          setShowingSampleData(false);
+          return;
+        }
         const res = await api.get("/seller/dashboard", {
           params: {
             city: selectedCity || "all",
@@ -355,6 +376,7 @@ export default function SellerDashboard() {
     categories,
     allowSellerSamplePosts,
     isPublicRequirementView,
+    isSellerWhatsAppPublicView,
     openRequirementFromUrl,
     session?.city,
     refreshToken

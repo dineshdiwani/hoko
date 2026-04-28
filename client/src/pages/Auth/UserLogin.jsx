@@ -139,21 +139,28 @@ const [step, setStep] = useState("EMAIL_LOGIN");
     if (sourceFromUrl) params.set("from", sourceFromUrl);
     return `/seller/dashboard${params.toString() ? `?${params.toString()}` : ""}`;
   }
+
+  function forceBuyerPostsTab() {
+    try {
+      localStorage.setItem("buyer_dashboard_force_tab", "posts");
+    } catch {}
+  }
   useEffect(() => {
     const session = getSession();
     if (session?.role === currentRole && session?.token) {
       const urlRedirect = searchParams.get("redirect");
       if (urlRedirect && !isSeller) {
         navigate(urlRedirect, { replace: true });
-      } else if (isSeller && isSellerWhatsAppFlow) {
-        navigate(buildSellerDashboardRedirect(session.city || cityFromUrl), {
-          replace: true
-        });
       } else {
         navigate(redirect, { replace: true });
       }
+      return;
     }
-  }, [navigate, redirect, currentRole, searchParams, isSeller, isSellerWhatsAppFlow, cityFromUrl, catsFromUrl, sourceFromUrl]);
+
+    if (isSeller && sourceFromUrl === "wa" && !session?.token) {
+      navigate(buildSellerDashboardRedirect(cityFromUrl), { replace: true });
+    }
+  }, [navigate, redirect, currentRole, searchParams, isSeller, cityFromUrl, sourceFromUrl]);
 
 useEffect(() => {
     fetchOptions()
@@ -413,6 +420,7 @@ useEffect(() => {
 
       if (reqRes.data?._id) {
         setBuyerDashboardDefaultTab(requirementCity || sessionCity);
+        forceBuyerPostsTab();
         navigate(`/buyer/dashboard?tab=posts&highlight=${reqRes.data._id}`, { replace: true });
         return true;
       }
@@ -422,6 +430,7 @@ useEffect(() => {
     }
 
     setBuyerDashboardDefaultTab(loginCity || user?.city || "");
+    forceBuyerPostsTab();
     navigate("/buyer/dashboard?tab=posts", { replace: true });
     return true;
   }
@@ -597,6 +606,7 @@ useEffect(() => {
             localStorage.setItem("terms_accepted_at", new Date().toISOString());
           }
           localStorage.removeItem("login_intent_role");
+          forceBuyerPostsTab();
           navigate(buildSellerDashboardRedirect(cityFromUrl || user.city || city), {
             replace: true
           });
@@ -748,6 +758,7 @@ useEffect(() => {
             token: res.data.token
           });
           localStorage.setItem("seller_email", user.email || "");
+          forceBuyerPostsTab();
           navigate(buildSellerDashboardRedirect(cityFromUrl || user.city || ""), {
             replace: true
           });

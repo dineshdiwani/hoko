@@ -16,6 +16,7 @@ import {
 } from "../../utils/notifications";
 
 const BUYER_DASHBOARD_STATE_KEY = "buyer_dashboard_state";
+const BUYER_DASHBOARD_FORCE_TAB_KEY = "buyer_dashboard_force_tab";
 
 function normalizeBuyerCityFilter(value) {
   const raw = String(value || "").trim();
@@ -53,6 +54,18 @@ function readBuyerDashboardState() {
   }
 }
 
+function readForcedBuyerDashboardTab() {
+  if (typeof window === "undefined") return "";
+  try {
+    const raw = String(localStorage.getItem(BUYER_DASHBOARD_FORCE_TAB_KEY) || "").trim();
+    if (raw === "posts" || raw === "city" || raw === "offers") {
+      localStorage.removeItem(BUYER_DASHBOARD_FORCE_TAB_KEY);
+      return raw;
+    }
+  } catch {}
+  return "";
+}
+
 function normalizeDashboardTab(value) {
   const raw = String(value || "").trim().toLowerCase();
   if (raw === "posts" || raw === "myposts" || raw === "my-posts" || raw === "mypost") return "posts";
@@ -70,10 +83,11 @@ export default function BuyerDashboard() {
   const [sessionVersion, setSessionVersion] = useState(0);
   const [refreshToken, setRefreshToken] = useState(0);
   const persistedState = readBuyerDashboardState();
+  const forcedTab = readForcedBuyerDashboardTab();
   const lastSyncedProfileCityRef = useRef(String(session?.city || "").trim());
 
   const [activeTab, setActiveTab] = useState(
-    requestedTab || persistedState.activeTab
+    forcedTab || requestedTab || persistedState.activeTab
   );
   const [city, setCity] = useState(
     normalizeBuyerCityFilter(session?.city || persistedState.city || "")
@@ -192,9 +206,13 @@ const [showAppBanner, setShowAppBanner] = useState(true);
   }, [highlightId]);
 
   useEffect(() => {
+    if (forcedTab) {
+      setActiveTab("posts");
+      return;
+    }
     if (!requestedTab) return;
     setActiveTab(requestedTab);
-  }, [requestedTab]);
+  }, [forcedTab, requestedTab]);
 
   function handleNotificationClick(notification) {
     if (!notification) return;
