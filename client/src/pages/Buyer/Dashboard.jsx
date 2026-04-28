@@ -17,6 +17,12 @@ import {
 
 const BUYER_DASHBOARD_STATE_KEY = "buyer_dashboard_state";
 
+function normalizeBuyerCityFilter(value) {
+  const raw = String(value || "").trim();
+  if (!raw || raw.toLowerCase() === "all") return "";
+  return raw;
+}
+
 function readBuyerDashboardState() {
   if (typeof window === "undefined") {
     return {
@@ -33,8 +39,10 @@ function readBuyerDashboardState() {
         : "posts";
     return {
       activeTab: safeTab,
-      city: String(raw?.city || "").trim(),
-      selectedCategory: String(raw?.selectedCategory || "all").trim() || "all"
+      city: normalizeBuyerCityFilter(raw?.city),
+      selectedCategory: String(raw?.selectedCategory || "all")
+        .trim()
+        .toLowerCase() || "all"
     };
   } catch {
     return {
@@ -67,7 +75,9 @@ export default function BuyerDashboard() {
   const [activeTab, setActiveTab] = useState(
     requestedTab || persistedState.activeTab
   );
-  const [city, setCity] = useState(session?.city || persistedState.city || "");
+  const [city, setCity] = useState(
+    normalizeBuyerCityFilter(session?.city || persistedState.city || "")
+  );
   const [selectedCategory, setSelectedCategory] = useState(
     persistedState.selectedCategory || "all"
   );
@@ -391,19 +401,28 @@ useEffect(() => {
         if (nextCities.length) {
           setCities(nextCities);
           setCity((prevCity) => {
-            const preferredCity = session?.city || "";
-            if (preferredCity && nextCities.includes(preferredCity)) {
-              return preferredCity;
-            }
-            if (prevCity && nextCities.includes(prevCity)) {
-              return prevCity;
-            }
-            return nextCities[0];
+            const normalizedPrev = normalizeBuyerCityFilter(prevCity);
+            const preferredCity = normalizeBuyerCityFilter(
+              session?.city || persistedState.city || ""
+            );
+            const matchCity = (value) =>
+              nextCities.find(
+                (cityName) =>
+                  String(cityName || "").trim().toLowerCase() ===
+                  String(value || "").trim().toLowerCase()
+              ) || "";
+            const currentMatch = normalizedPrev ? matchCity(normalizedPrev) : "";
+            if (currentMatch) return currentMatch;
+            const preferredMatch = preferredCity ? matchCity(preferredCity) : "";
+            if (preferredMatch) return preferredMatch;
+            if (normalizedPrev) return normalizedPrev;
+            if (preferredCity) return preferredCity;
+            return "";
           });
         }
-})
+      })
       .catch(() => {});
-  }, [session?.city, refreshToken]);
+  }, [persistedState.city, session?.city, refreshToken]);
 
   useEffect(() => {
     fetchOptions()

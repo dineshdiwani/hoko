@@ -45,7 +45,9 @@ function readSellerDashboardState() {
     const raw = JSON.parse(localStorage.getItem(SELLER_DASHBOARD_STATE_KEY) || "{}");
     return {
       selectedCity: String(raw?.selectedCity || "all").trim() || "all",
-      selectedCategory: String(raw?.selectedCategory || "all").trim() || "all"
+      selectedCategory: String(raw?.selectedCategory || "all")
+        .trim()
+        .toLowerCase() || "all"
     };
   } catch {
     return {
@@ -447,6 +449,17 @@ export default function SellerDashboard() {
         const nextCities = Array.isArray(data?.cities) ? data.cities : [];
         if (nextCities.length) {
           setCities(nextCities);
+          setSelectedCity((prev) =>
+            resolveCityValue(
+              prev ||
+                cityFromUrl ||
+                session?.city ||
+                persistedState.selectedCity ||
+                "all",
+              nextCities,
+              "all"
+            )
+          );
         }
         const nextCategories = Array.isArray(data?.categories)
           ? data.categories
@@ -464,7 +477,7 @@ export default function SellerDashboard() {
         }
       })
       .catch(() => {});
-  }, []);
+  }, [cityFromUrl, persistedState.selectedCity, session?.city]);
 
   const visibleRequirements = requirements;
 

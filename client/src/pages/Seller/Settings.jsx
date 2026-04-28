@@ -6,7 +6,8 @@ import { getSession, logout } from "../../services/auth";
 import {
   getSettings,
   updateSettings,
-  setSellerDashboardCategories
+  setSellerDashboardCategories,
+  updateSession
 } from "../../services/storage";
 import {
   buildNotificationHelpText,
@@ -245,9 +246,17 @@ setProfile({
       if (mobile && mobile !== initialMobile) {
         payload.mobile = mobile;
       }
-      await api.post("/seller/profile", payload);
+      const res = await api.post("/seller/profile", payload);
       setProfile((prev) => ({ ...prev, categories: uniqueCategories }));
       setSellerDashboardCategories(uniqueCategories);
+      updateSession({
+        city: res.data?.city || profile.city || session?.city || "",
+        preferredCurrency:
+          res.data?.preferredCurrency ||
+          profile.preferredCurrency ||
+          session?.preferredCurrency ||
+          "INR"
+      });
       updateSettings({ seller: prefs });
       alert("Settings saved");
     } catch {
