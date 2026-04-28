@@ -362,10 +362,10 @@ export default function SellerDashboard() {
           setRequirements([]);
           setShowingSampleData(false);
         }
-      } finally {
+} finally {
         setLoading(false);
       }
-}
+    }
     
     // Load data when filters or options change
     useEffect(() => {
