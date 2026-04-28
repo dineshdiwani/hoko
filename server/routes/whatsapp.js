@@ -256,7 +256,7 @@ function buildExistingSellerMessage(city, whatsappCategories, loginLink) {
     "",
     "💰 Buyers post requirements DAILY - submit offers now!",
     "",
-    "👉 Login to your dashboard:",
+    "👉 View & submit offers:",
     `👉 ${loginLink}`,
     "",
     "💡 First offer = highest visibility!"
@@ -274,7 +274,7 @@ function buildSellerConfirmationMessage(city, whatsappCategories, loginLink) {
     "",
     "Buyers post requirements DAILY in your city!",
     "",
-    "📝 Login to submit offers:",
+    "👉 View & submit offers:",
     `👉 ${loginLink}`,
     "",
     "💡 First offer submitted = highest visibility!"
