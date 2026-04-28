@@ -75,8 +75,6 @@ export default function SellerDashboard() {
   // Check for WhatsApp flow - simple check for from=wa
   const isWhatsAppFlow = sourceFromUrl === "wa";
   
-  console.log("[Dash] URL params:", { sourceFromUrl, cityFromUrl, catsFromUrl, mobileFromUrl, isWhatsAppFlow });
-  
   const isPublicRequirementView = !session?.token && Boolean(openRequirementFromUrl);
   const isWhatsAppPublicView = isWhatsAppFlow && !session?.token;
 
@@ -273,7 +271,6 @@ export default function SellerDashboard() {
   }
 
   useEffect(() => {
-    console.log("[Dash] isWhatsAppFlow:", isWhatsAppFlow, "isWhatsAppPublicView:", isWhatsAppPublicView, "hasToken:", !!session?.token);
     // Never redirect for WhatsApp flow - let them see the dashboard
     if (isWhatsAppPublicView) {
       return;
@@ -325,7 +322,6 @@ export default function SellerDashboard() {
       setLoading(true);
       try {
         if (isWhatsAppPublicView) {
-          console.log("[Dash] Fetching meta/requirements", { city: selectedCity, category: selectedCategory });
           // Use /meta/requirements for public read (no auth needed)
           const res = await api.get("/meta/requirements", {
             params: {
@@ -1042,10 +1038,9 @@ export default function SellerDashboard() {
               <NotificationCenter onNotificationClick={handleNotificationClick} />
 
             <div className="relative" ref={menuRef}>
-              {console.log("[Dash] Render check:", { hasToken: !!session?.token, isWhatsAppPublicView, navigateFn: !!navigateToLogin }) || null}
-              {!session?.token && isWhatsAppPublicView ? (
+              {!session?.token ? (
                 <button
-                  onClick={() => { console.log("[Dash] Login clicked"); navigateToLogin(); }}
+                  onClick={navigateToLogin}
                   className="ui-btn-primary px-4 py-2"
                 >
                   Login
