@@ -74,6 +74,9 @@ async function sendOtpSms({ mobile, otp }) {
   }
   const normalizedMobile = normalizeIndianMobile(mobile);
   const payload = resolveOtpPayload(otp, normalizedMobile);
+  
+  console.log("[sendSms] Payload:", payload);
+  
   const body = querystring.stringify(payload);
 
   const res = await axios.post(
@@ -86,7 +89,12 @@ async function sendOtpSms({ mobile, otp }) {
       },
       timeout: 10000
     }
-  );
+  ).catch(err => {
+    console.error("[sendSms] API error:", err.response?.data || err.message);
+    throw err;
+  });
+
+  console.log("[sendSms] Response:", res.data);
 
   if (!res.data || res.data.return !== true) {
     const msg =
