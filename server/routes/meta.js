@@ -35,12 +35,13 @@ router.get("/requirements", async (req, res) => {
     
     if (city) {
       query.$or = [
-        { city: { $regex: city, $options: "i" } },
+        { city: { $regex: `^\\s*${String(city).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*$`, $options: "i" } },
         { offerInvitedFrom: "anywhere" }
       ];
     }
     if (category) {
-      query.category = { $regex: `^\\s*${String(category).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*$`, $options: "i" };
+      // Use case-insensitive partial match for flexibility
+      query.category = { $regex: String(category).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), $options: "i" };
     }
     
     const requirements = await Requirement.find(query)
