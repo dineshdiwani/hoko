@@ -196,12 +196,13 @@ router.post("/login", otpSendLimiter, async (req, res) => {
         name: "WhatsApp User"
       });
     }
-    const otp = generateOtp();
+const otp = generateOtp();
+    console.log("[AUTH] Sending OTP to:", mobileE164, "route:", process.env.FAST2SMS_OTP_ROUTE);
     try {
       const mobileDigits = mobileE164.replace(/^\+/, "");
       await sendOtpSms({ mobile: mobileDigits, otp });
     } catch (err) {
-      console.error("OTP SMS send failed:", err.message);
+      console.error("[AUTH] OTP SMS send failed:", err.message);
       const body = { message: "Failed to send OTP" };
       if (process.env.NODE_ENV !== "production") {
         body.error = err?.response || err?.message || "Unknown Fast2SMS error";
