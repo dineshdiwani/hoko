@@ -26,18 +26,21 @@ export async function fetchOptions(forceRefresh = true) {
   }
   try {
     const res = await api.get("/meta/options");
+    const apiData = res.data || {};
     optionsCache = {
-      cities: DEFAULT_CITIES,
-      categories: DEFAULT_CATEGORIES,
-      ...res.data
+      cities: Array.isArray(apiData.cities) && apiData.cities.length > 0 ? apiData.cities : DEFAULT_CITIES,
+      categories: Array.isArray(apiData.categories) && apiData.categories.length > 0 ? apiData.categories : DEFAULT_CATEGORIES,
+      ...apiData
     };
     optionsCacheTime = now;
     return optionsCache;
   } catch (err) {
     console.warn("[fetchOptions] Failed, using defaults:", err.message);
-    return {
+    optionsCache = {
       cities: DEFAULT_CITIES,
       categories: DEFAULT_CATEGORIES
     };
+    optionsCacheTime = now;
+    return optionsCache;
   }
 }

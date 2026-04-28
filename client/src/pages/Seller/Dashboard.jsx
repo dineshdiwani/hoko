@@ -319,97 +319,24 @@ export default function SellerDashboard() {
     };
 
     async function load() {
-      console.log("[SellerDashboard] load() called", { isSellerWhatsAppPublicView, hasToken: !!session?.token, selectedCity, selectedCategory });
       setLoading(true);
       try {
         if (isSellerWhatsAppPublicView) {
-          console.log("[SellerDashboard] Fetching public requirements", { selectedCity, selectedCategory });
-          try {
-            const publicRes = await api.get("/meta/requirements", {
-              params: {
-                city: selectedCity && selectedCity !== "all" ? selectedCity : "",
-                category: selectedCategory && selectedCategory !== "all" ? selectedCategory : "",
-                limit: 100
-              }
-            });
-            console.log("[SellerDashboard] Public requirements response:", publicRes.data?.length);
-            const publicRows = Array.isArray(publicRes.data) ? publicRes.data : [];
-            setRequirements(publicRows);
-            setShowingSampleData(false);
-            setLoading(false);
-            return;
-          } catch (pubErr) {
-            console.log("[SellerDashboard] Public fetch error:", pubErr.message);
-            setRequirements([]);
-            setShowingSampleData(false);
-            setLoading(false);
-            return;
-          }
-        }
-        if (!session?.token && isPublicRequirementView) {
-          try {
-            const res = await api.get(
-              `/seller/offer/requirement/${encodeURIComponent(openRequirementFromUrl)}`
-            );
-            const publicRequirement = res?.data?.requirement || null;
-            if (publicRequirement) {
-              setRequirements([publicRequirement]);
-              if (publicRequirement.city) {
-                setSelectedCity(String(publicRequirement.city || "").trim() || "all");
-              }
-              if (publicRequirement.category) {
-                setSelectedCategory(String(publicRequirement.category || "").trim().toLowerCase() || "all");
-              }
-            } else {
-              setRequirements([]);
+          // Use /meta/requirements for public read (no auth needed)
+          const res = await api.get("/meta/requirements", {
+            params: {
+              city: selectedCity || "",
+              category: selectedCategory || "",
+              limit: 100
             }
-            setShowingSampleData(false);
-          } catch {
-            setRequirements([]);
-            setShowingSampleData(false);
-          }
+          });
+          const rows = Array.isArray(res.data) ? res.data : [];
+          setRequirements(rows);
+          setShowingSampleData(false);
           setLoading(false);
           return;
         }
-        const res = await api.get("/seller/dashboard", {
-          params: {
-            city: selectedCity || "all",
-            category: selectedCategory || "all"
-          }
-        });
-        const liveRows = Array.isArray(res.data) ? res.data : [];
-        if (allowSellerSamplePosts && liveRows.length === 0) {
-          setRequirements(buildSamplePosts());
-          setShowingSampleData(true);
-          return;
-        }
-        setRequirements(liveRows);
-        setShowingSampleData(false);
-      } catch (err) {
-        if (allowSellerSamplePosts) {
-          setRequirements(buildSamplePosts());
-          setShowingSampleData(true);
-        } else {
-          setRequirements([]);
-          setShowingSampleData(false);
-        }
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-  }, [
-    selectedCity,
-    selectedCategory,
-    cities,
-    categories,
-    allowSellerSamplePosts,
-    isPublicRequirementView,
-    isSellerWhatsAppPublicView,
-    openRequirementFromUrl,
-    session?.city,
-    refreshToken
-  ]);
+        if (!session?.token && isPublicRequirementView) {
 
   useEffect(() => {
     if (loading) return;
@@ -531,24 +458,32 @@ export default function SellerDashboard() {
   useEffect(() => {
     fetchOptions()
       .then((data) => {
-        const nextCities = Array.isArray(data?.cities) ? data.cities : [];
-        if (nextCities.length) {
-          setCities(nextCities);
-          setSelectedCity((prev) =>
-            resolveCityValue(
-              prev ||
-                cityFromUrl ||
-                session?.city ||
-                persistedState.selectedCity ||
-                "all",
-              nextCities,
-              "all"
-            )
-          );
-        }
-        const nextCategories = Array.isArray(data?.categories)
-          ? data.categories
-          : [];
+        // Use defaults if API fails or returns empty
+        const nextCities = Array.isArray(data?.cities) && data.cities.length ? data.cities : [
+          "Mumbai", "Delhi", "Bangalore", "Hyderabad", "Chennai", "Kolkata", "Pune",
+          "Ahmedabad", "Surat", "Jaipur", "Lucknow", "Kanpur", "Nagpur", "Indore",
+          "Thane", "Bhopal", "Visakhapatnam", "Patna", "Vadodara", "Ghaziabad",
+          "Noida", "Coimbatore", "Chandigarh", "Jodhpur", "Madurai", "Kochi"
+        ];
+        setCities(nextCities);
+        setSelectedCity((prev) =>
+          resolveCityValue(
+            prev ||
+              cityFromUrl ||
+              session?.city ||
+              persistedState.selectedCity ||
+              "all",
+            nextCities,
+            "all"
+          )
+        );
+        const nextCategories = Array.isArray(data?.categories) && data.categories.length ? data.categories : [
+          "Electronics & Appliances", "Furniture & Home", "Vehicles & Parts",
+          "Industrial Machinery", "Electrical Parts", "Construction Materials",
+          "Services & Maintenance", "Raw Materials", "Chemicals & Plastics",
+          "Packaging", "Textiles & Apparel", "Food & Agriculture",
+          "Health & Safety", "Logistics & Transport", "Business Services"
+        ];
         setCategories(nextCategories);
         
         // Apply categories from WhatsApp URL params
