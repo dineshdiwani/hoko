@@ -72,10 +72,13 @@ function resolveOtpPayload(otp, mobile) {
 }
 
 async function sendOtpSms({ mobile, otp }) {
+  console.log("[sendOtpSms] ========== CALLED ==========");
   const apiKey = process.env.FAST2SMS_API_KEY;
   if (!apiKey) {
     throw new Error("FAST2SMS_API_KEY not set");
   }
+  console.log("[sendOtpSms] apiKey exists:", !!apiKey);
+  console.log("[sendOtpSms] OTP_ROUTE env:", process.env.FAST2SMS_OTP_ROUTE);
   const normalizedMobile = normalizeIndianMobile(mobile);
   const payload = resolveOtpPayload(otp, normalizedMobile);
   
