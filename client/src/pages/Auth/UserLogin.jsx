@@ -57,6 +57,14 @@ export default function UserLogin({ role = "buyer" }) {
 
 const [step, setStep] = useState("EMAIL_LOGIN");
   const emailOrMobileFromUrl = searchParams.get("mobile") || "";
+  const hasMobileInUrl = Boolean(emailOrMobileFromUrl);
+  
+  useEffect(() => {
+    if (hasMobileInUrl && isSeller && sourceFromUrl === "wa" && !searchParams.get("redirect")) {
+      navigate(buildSellerDashboardRedirect(cityFromUrl), { replace: true });
+    }
+  }, [navigate, hasMobileInUrl, isSeller, sourceFromUrl, cityFromUrl]);
+
   const [email, setEmail] = useState("");
   const [emailOrMobile, setEmailOrMobile] = useState(emailOrMobileFromUrl);
   const [mobile, setMobile] = useState("");

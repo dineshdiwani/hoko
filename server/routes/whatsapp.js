@@ -1130,7 +1130,7 @@ if (isExistingSeller) {
         loginParams.set("city", cityToSave);
         loginParams.set("cats", parsed.whatsappCategories.join(","));
         loginParams.set("from", "wa");
-        const loginLink = `${appBase}/seller/login?${loginParams.toString()}`;
+        const loginLink = `${appBase}/seller/dashboard?${loginParams.toString()}`;
         await sendWhatsAppMessage({
           to: event.mobileE164,
           body: buildExistingSellerMessage(cityToSave, parsed.whatsappCategories, loginLink)
@@ -1141,7 +1141,7 @@ if (isExistingSeller) {
         loginParams.set("city", cityToSave);
         loginParams.set("cats", parsed.whatsappCategories.join(","));
         loginParams.set("from", "wa");
-        const loginLink = `${appBase}/seller/login?${loginParams.toString()}`;
+        const loginLink = `${appBase}/seller/dashboard?${loginParams.toString()}`;
         await sendWhatsAppMessage({
           to: event.mobileE164,
           body: buildSellerConfirmationMessage(cityToSave, parsed.whatsappCategories, loginLink)
