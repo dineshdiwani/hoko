@@ -85,7 +85,7 @@ export default function RequirementForm({ isPublic = false }) {
   const [form, setForm] = useState({
     mobile: "",
     email: "",
-    city: cityFromUrl || "",
+    city: isPublic ? "" : cityFromUrl || "",
     category: "",
     product: productFromUrl || "",
     makeBrand: "",
@@ -295,17 +295,18 @@ useEffect(() => {
       const lastPrefs = readLastRequirementPrefs();
       setForm((prev) => ({
         ...prev,
-        city:
-          prev.city ||
-          resolveCityValue(
-            sessionCity || lastPrefs.city || buyerPrefs.defaultCity,
-            cities
-          ) ||
-          "",
+        city: isPublic
+          ? prev.city
+          : prev.city ||
+            resolveCityValue(
+              sessionCity || lastPrefs.city || buyerPrefs.defaultCity,
+              cities
+            ) ||
+            "",
         unit: prev.unit || lastPrefs.unit || buyerPrefs.defaultUnit || ""
       }));
     } catch {}
-  }, [cities, sessionCity]);
+  }, [cities, isPublic, sessionCity]);
 
   useEffect(() => {
     async function startCamera() {
@@ -575,6 +576,14 @@ useEffect(() => {
 
       // For logged-in users, navigate to dashboard
       if (session?.token) {
+        try {
+          await api.post("/buyer/profile", {
+            city: payload.city,
+            buyerSettings: {
+              defaultCity: payload.city
+            }
+          });
+        } catch {}
         if (payload.email || payload.mobile) {
           updateSession({
             ...(payload.email ? { email: payload.email } : {}),

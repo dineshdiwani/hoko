@@ -65,7 +65,10 @@ export default function BuyerProfile() {
     try {
       const res = await api.post("/buyer/profile", {
         city: profile.city,
-        preferredCurrency: profile.preferredCurrency
+        preferredCurrency: profile.preferredCurrency,
+        buyerSettings: {
+          defaultCity: profile.city
+        }
       });
       updateSession({
         city: res.data?.city || profile.city,

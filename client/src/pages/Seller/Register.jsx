@@ -189,7 +189,13 @@ export default function SellerRegister() {
           return;
         }
       }
-      window.location.href = "/seller/dashboard";
+      const dashboardParams = new URLSearchParams();
+      if (seller.city) dashboardParams.set("city", seller.city);
+      if (catsFromUrl) dashboardParams.set("cats", catsFromUrl);
+      if (cityFromUrl && !seller.city) dashboardParams.set("city", cityFromUrl);
+      window.location.href = `/seller/dashboard${
+        dashboardParams.toString() ? `?${dashboardParams.toString()}` : ""
+      }`;
     } catch (err) {
       alert(err?.response?.data?.message || "Registration failed. Try again.");
       setSubmitted(false);

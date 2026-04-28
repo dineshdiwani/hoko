@@ -13,6 +13,8 @@ export default function UserLogin({ role = "buyer" }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const cityFromUrl = searchParams.get("city") || "";
+  const catsFromUrl = searchParams.get("cats") || "";
+  const sourceFromUrl = String(searchParams.get("from") || "").trim().toLowerCase();
   const isFromRequirement = searchParams.has("redirect");
   const postLoginRedirect = String(
     localStorage.getItem("post_login_redirect") || ""
@@ -30,6 +32,9 @@ export default function UserLogin({ role = "buyer" }) {
     (postLoginRedirectSource === "deeplink" ||
       postLoginRedirectSource === "offer" ||
       isDeepLinkRedirect);
+  const isSellerWhatsAppFlow =
+    isSeller &&
+    (sourceFromUrl === "wa" || Boolean(cityFromUrl) || Boolean(catsFromUrl));
   const defaultTermsContent = [
     "By using hoko, you agree to these Terms & Conditions.",
     "hoko is a marketplace platform connecting buyers and sellers. You are responsible for all negotiations, pricing, delivery, and payments.",
@@ -82,7 +87,17 @@ const [step, setStep] = useState("EMAIL_LOGIN");
   
   const finalRedirect = urlRedirect 
     ? (redirectTab ? `${urlRedirect}?tab=${redirectTab}` : urlRedirect)
-    : (isSeller ? "/seller/dashboard" : "/buyer/dashboard");
+    : (isSeller
+        ? `/seller/dashboard${
+            isSellerWhatsAppFlow
+              ? `?${new URLSearchParams({
+                  ...(cityFromUrl ? { city: cityFromUrl } : {}),
+                  ...(catsFromUrl ? { cats: catsFromUrl } : {}),
+                  ...(sourceFromUrl ? { from: sourceFromUrl } : {})
+                }).toString()}`
+              : ""
+          }`
+        : "/buyer/dashboard");
   
   const redirect = finalRedirect;
 
@@ -109,11 +124,20 @@ const [step, setStep] = useState("EMAIL_LOGIN");
   function buildSellerRegisterRedirect() {
     const params = new URLSearchParams();
     const loginMobile = String(mobile || emailOrMobileFromUrl || "").trim();
-    const catsFromLogin = String(searchParams.get("cats") || "").trim();
     if (loginMobile) params.set("mobile", loginMobile);
     if (cityFromUrl) params.set("city", cityFromUrl);
-    if (catsFromLogin) params.set("cats", catsFromLogin);
+    if (catsFromUrl) params.set("cats", catsFromUrl);
+    if (sourceFromUrl) params.set("from", sourceFromUrl);
     return `/seller/register${params.toString() ? `?${params.toString()}` : ""}`;
+  }
+
+  function buildSellerDashboardRedirect(cityValue = cityFromUrl) {
+    const params = new URLSearchParams();
+    const normalizedCity = String(cityValue || "").trim();
+    if (normalizedCity) params.set("city", normalizedCity);
+    if (catsFromUrl) params.set("cats", catsFromUrl);
+    if (sourceFromUrl) params.set("from", sourceFromUrl);
+    return `/seller/dashboard${params.toString() ? `?${params.toString()}` : ""}`;
   }
   useEffect(() => {
     const session = getSession();
@@ -121,11 +145,15 @@ const [step, setStep] = useState("EMAIL_LOGIN");
       const urlRedirect = searchParams.get("redirect");
       if (urlRedirect && !isSeller) {
         navigate(urlRedirect, { replace: true });
+      } else if (isSeller && isSellerWhatsAppFlow) {
+        navigate(buildSellerDashboardRedirect(session.city || cityFromUrl), {
+          replace: true
+        });
       } else {
         navigate(redirect, { replace: true });
       }
     }
-  }, [navigate, redirect, currentRole, searchParams, isSeller]);
+  }, [navigate, redirect, currentRole, searchParams, isSeller, isSellerWhatsAppFlow, cityFromUrl, catsFromUrl, sourceFromUrl]);
 
 useEffect(() => {
     fetchOptions()
@@ -322,6 +350,82 @@ useEffect(() => {
     return profile;
   }
 
+  async function persistBuyerDefaultCity(cityValue) {
+    const normalizedCity = String(cityValue || "").trim();
+    if (!normalizedCity) return "";
+
+    try {
+      const res = await api.post("/buyer/profile", {
+        city: normalizedCity,
+        buyerSettings: {
+          defaultCity: normalizedCity
+        }
+      });
+      return String(res?.data?.city || normalizedCity).trim();
+    } catch {
+      try {
+        await api.post("/buyer/profile", { city: normalizedCity });
+      } catch {}
+      return normalizedCity;
+    }
+  }
+
+  async function completePendingBuyerRequirementLogin({ user, token, profile, loginCity }) {
+    const pendingRequirementData = sessionStorage.getItem("pending_requirement_data");
+    if (!pendingRequirementData || isSeller) return false;
+
+    try {
+      const reqData = JSON.parse(pendingRequirementData);
+      const requirementCity = String(reqData?.city || loginCity || "").trim();
+      const sessionCity = requirementCity || String(loginCity || user?.city || "").trim();
+
+      setSession({
+        _id: user._id,
+        role: user.role || currentRole,
+        roles: user.roles,
+        email: user.email || email,
+        city: sessionCity,
+        name: buildDisplayName(user, currentRole, profile),
+        preferredCurrency: user.preferredCurrency || "INR",
+        mobile: user.mobile || mobile || "",
+        token
+      });
+
+      if (requirementCity) {
+        await persistBuyerDefaultCity(requirementCity);
+      }
+
+      const reqPayload = {
+        mobile: reqData.mobile,
+        city: requirementCity || reqData.city,
+        category: reqData.category,
+        productName: reqData.productName,
+        product: reqData.product,
+        quantity: reqData.quantity,
+        type: reqData.unit,
+        details: reqData.details,
+        offerInvitedFrom: reqData.offerInvitedFrom || "city",
+        ref: reqData.ref
+      };
+
+      const reqRes = await api.post("/buyer/requirement", reqPayload);
+      sessionStorage.removeItem("pending_requirement_data");
+
+      if (reqRes.data?._id) {
+        setBuyerDashboardDefaultTab(requirementCity || sessionCity);
+        navigate(`/buyer/dashboard?tab=posts&highlight=${reqRes.data._id}`, { replace: true });
+        return true;
+      }
+    } catch (err) {
+      console.error("[Login] Failed to post pending requirement:", err);
+      sessionStorage.removeItem("pending_requirement_data");
+    }
+
+    setBuyerDashboardDefaultTab(loginCity || user?.city || "");
+    navigate("/buyer/dashboard?tab=posts", { replace: true });
+    return true;
+  }
+
   function buildDisplayName(user, roleValue, profile) {
     if (roleValue === "seller") {
       return (
@@ -432,56 +536,70 @@ useEffect(() => {
         const profile = isSeller ? await applySellerProfile(city) : null;
         const sellerIntent =
           localStorage.getItem("login_intent_role") === "seller";
-        const sellerCapable = Boolean(user?.roles?.seller);
 
-        const pendingRequirementData = sessionStorage.getItem("pending_requirement_data");
-        
-        if (pendingRequirementData && !isSeller) {
-          // Set session first
+        if (await completePendingBuyerRequirementLogin({
+          user,
+          token: res.data.token,
+          profile,
+          loginCity: city
+        })) {
+          return;
+        }
+
+        if (isSeller && isSellerWhatsAppFlow) {
+          if (!hasCompleteSellerProfile(user) && !profile?.registeredBusinessName) {
+            setSession({
+              _id: user._id,
+              role: user.role || currentRole,
+              roles: user.roles,
+              email: user.email || email,
+              city: cityFromUrl || user.city || city || "",
+              name: buildDisplayName(user, currentRole, profile),
+              preferredCurrency: user.preferredCurrency || "INR",
+              mobile: user.mobile || mobile || "",
+              sellerProfile: user.sellerProfile || profile || {},
+              token: res.data.token
+            });
+            localStorage.setItem("seller_email", user.email || email || "");
+            if (acceptedTerms) {
+              localStorage.setItem("terms_accepted_at", new Date().toISOString());
+            }
+            setPendingCitySession({
+              _id: user._id,
+              role: user.role || currentRole,
+              roles: user.roles,
+              email: user.email || email,
+              city: user.city || city || cityFromUrl || "",
+              name: buildDisplayName(user, currentRole, profile),
+              preferredCurrency: user.preferredCurrency || "INR",
+              mobile: user.mobile || mobile || "",
+              sellerProfile: user.sellerProfile || profile || {},
+              token: res.data.token
+            });
+            navigate(buildSellerRegisterRedirect(), { replace: true });
+            return;
+          }
+
           setSession({
             _id: user._id,
             role: user.role || currentRole,
             roles: user.roles,
             email: user.email || email,
-            city: city, // use city from form/search params
+            city: cityFromUrl || user.city || city,
             name: buildDisplayName(user, currentRole, profile),
             preferredCurrency: user.preferredCurrency || "INR",
             mobile: user.mobile || mobile || "",
+            sellerProfile: user.sellerProfile || profile || {},
             token: res.data.token
           });
-          
-          // Proceed to post requirement
-          try {
-            const reqData = JSON.parse(pendingRequirementData);
-            const reqPayload = {
-              mobile: reqData.mobile,
-              city: reqData.city,
-              category: reqData.category,
-              productName: reqData.productName,
-              product: reqData.product,
-              quantity: reqData.quantity,
-              type: reqData.unit,
-              details: reqData.details,
-              offerInvitedFrom: reqData.offerInvitedFrom || "city",
-              ref: reqData.ref
-            };
-            
-            const reqRes = await api.post("/buyer/requirement", reqPayload);
-            sessionStorage.removeItem("pending_requirement_data");
-            
-            if (reqRes.data?._id) {
-              setBuyerDashboardDefaultTab(city);
-              navigate(`/buyer/dashboard?tab=posts&highlight=${reqRes.data._id}`, { replace: true });
-              return;
-            }
-          } catch (e) {
-            console.error("[Login] Failed to post pending requirement:", e);
-            sessionStorage.removeItem("pending_requirement_data");
+          localStorage.setItem("seller_email", user.email || email || "");
+          if (acceptedTerms) {
+            localStorage.setItem("terms_accepted_at", new Date().toISOString());
           }
-          
-          // Fallback to dashboard
-          setBuyerDashboardDefaultTab(city);
-          navigate("/buyer/dashboard?tab=posts", { replace: true });
+          localStorage.removeItem("login_intent_role");
+          navigate(buildSellerDashboardRedirect(cityFromUrl || user.city || city), {
+            replace: true
+          });
           return;
         }
         
@@ -578,6 +696,63 @@ useEffect(() => {
         const user = res.data.user || {};
         
         // Show city modal before continuing
+        if (currentRole === "buyer" && await completePendingBuyerRequirementLogin({
+          user,
+          token: res.data.token,
+          profile: null,
+          loginCity: ""
+        })) {
+          return;
+        }
+        if (isSeller && isSellerWhatsAppFlow) {
+          const sellerProfile = user.sellerProfile || {};
+          if (!hasCompleteSellerProfile(user) && !sellerProfile.registeredBusinessName) {
+            setSession({
+              _id: user._id,
+              role: currentRole,
+              roles: user.roles,
+              email: user.email,
+              city: cityFromUrl || "",
+              name: user.name || "Seller",
+              picture: user.picture,
+              preferredCurrency: user.preferredCurrency || "INR",
+              sellerProfile,
+              token: res.data.token
+            });
+            localStorage.setItem("seller_email", user.email || "");
+            setPendingCitySession({
+              _id: user._id,
+              role: currentRole,
+              roles: user.roles,
+              email: user.email,
+              city: cityFromUrl || "",
+              name: user.name || "Seller",
+              picture: user.picture,
+              preferredCurrency: user.preferredCurrency || "INR",
+              sellerProfile,
+              token: res.data.token
+            });
+            navigate(buildSellerRegisterRedirect(), { replace: true });
+            return;
+          }
+          setSession({
+            _id: user._id,
+            role: user.role || currentRole,
+            roles: user.roles,
+            email: user.email,
+            city: cityFromUrl || user.city || "",
+            name: user.name || "Seller",
+            picture: user.picture,
+            preferredCurrency: user.preferredCurrency || "INR",
+            sellerProfile,
+            token: res.data.token
+          });
+          localStorage.setItem("seller_email", user.email || "");
+          navigate(buildSellerDashboardRedirect(cityFromUrl || user.city || ""), {
+            replace: true
+          });
+          return;
+        }
         setPendingCitySession({
           _id: user._id,
           role: currentRole,
@@ -856,7 +1031,14 @@ useEffect(() => {
                 console.log("Updating city to:", city);
                 try {
                   const endpoint = isSellerRole ? "/seller/profile/city" : "/buyer/profile/city";
-                  const res = await api.post(endpoint, { city });
+                  const res = isSellerRole
+                    ? await api.post(endpoint, { city })
+                    : await api.post("/buyer/profile", {
+                        city,
+                        buyerSettings: {
+                          defaultCity: city
+                        }
+                      });
                   console.log("Profile update response:", res.data);
                   if (res?.data?.city) {
                     setSession({
@@ -867,7 +1049,12 @@ useEffect(() => {
                 } catch (e) {
                   if (!isSellerRole) {
                     try {
-                      await api.post("/buyer/profile", { city });
+                      await api.post("/buyer/profile", {
+                        city,
+                        buyerSettings: {
+                          defaultCity: city
+                        }
+                      });
                     } catch {}
                   } else {
                     try {
@@ -900,7 +1087,10 @@ useEffect(() => {
                     if (reqRes.data?._id) {
                       // Update user profile with city from requirement
                       try {
-                        await api.post("/buyer/profile", { city: reqData.city });
+                        await api.post("/buyer/profile", {
+                          city: reqData.city,
+                          buyerSettings: { defaultCity: reqData.city }
+                        });
                       } catch {}
                       
                       sessionStorage.removeItem("pending_requirement_data");

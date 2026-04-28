@@ -159,6 +159,7 @@ export default function BuyerSettings() {
         preferredCurrency: profile.preferredCurrency,
         buyerSettings: {
           ...prefs,
+          defaultCity: profile.city,
           notificationToggles: {
             ...DEFAULT_PREFS.notificationToggles,
             ...(prefs.notificationToggles || {}),
