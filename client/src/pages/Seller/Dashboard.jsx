@@ -64,6 +64,14 @@ export default function SellerDashboard() {
   const [session, setSessionState] = useState(() => getSession());
   const menuRef = useRef(null);
 
+  // Initialize session state with a ref to avoid stale closures
+  const sessionRef = useRef(session);
+  sessionRef.current = session;
+
+  // Initialize session state with a ref to avoid stale closures
+  const sessionRef = useRef(session);
+  sessionRef.current = session;
+
   // Handle city/cats from URL params (from WhatsApp deep link)
   const sourceFromUrl = String(searchParams.get("from") || "").trim().toLowerCase();
   const cityFromUrl = searchParams.get("city") || "";
@@ -71,11 +79,15 @@ export default function SellerDashboard() {
   const mobileFromUrl = searchParams.get("mobile") || "";
   const openRequirementFromUrl =
     searchParams.get("openRequirement") || searchParams.get("postId") || "";
+
+  // Check for WhatsApp flow - this must be at component level to work with URL params
+  const isWhatsAppFlow = sourceFromUrl === "wa" || Boolean(cityFromUrl) || Boolean(catsFromUrl) || Boolean(mobileFromUrl);
+  
   const isPublicRequirementView = !session?.token && Boolean(openRequirementFromUrl);
   const isSellerWhatsAppPublicView =
     !session?.token &&
     !isPublicRequirementView &&
-    (sourceFromUrl === "wa" || Boolean(cityFromUrl) || Boolean(catsFromUrl) || Boolean(mobileFromUrl));
+    isWhatsAppFlow;
 
   const [requirements, setRequirements] = useState([]);
   const [activeRequirement, setActiveRequirement] = useState(null);
