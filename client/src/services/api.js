@@ -52,7 +52,27 @@ api.interceptors.response.use(
       if (status === 401) {
         localStorage.removeItem("hoko_session");
         localStorage.removeItem("session");
-        window.location.href = "/login";
+        
+        // Don't redirect if in WhatsApp public flow (public read-only mode)
+        const isWhatsAppFlow = window.location.search.includes("from=wa") || 
+          window.location.search.includes("mobile=");
+        
+        if (isWhatsAppFlow) {
+          console.log("[API] 401 in WhatsApp flow, staying on page");
+          return Promise.reject(error);
+        }
+        
+        // Store current location for post-login redirect
+        const currentPath = window.location.pathname;
+        if (currentPath.startsWith("/seller")) {
+          window.location.href = "/seller/login";
+        } else if (currentPath.startsWith("/buyer")) {
+          window.location.href = "/buyer/login";
+        } else if (currentPath.startsWith("/admin")) {
+          window.location.href = "/admin/login";
+        } else {
+          window.location.href = "/login";
+        }
       } else if (status === 403) {
         console.warn("[API] Access denied:", error.response.data?.message);
       }
