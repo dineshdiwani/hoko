@@ -319,8 +319,33 @@ export default function SellerDashboard() {
     };
 
     async function load() {
+      console.log("[SellerDashboard] load() called", { isSellerWhatsAppPublicView, hasToken: !!session?.token, selectedCity, selectedCategory });
       setLoading(true);
       try {
+        if (isSellerWhatsAppPublicView) {
+          console.log("[SellerDashboard] Fetching public requirements", { selectedCity, selectedCategory });
+          try {
+            const publicRes = await api.get("/meta/requirements", {
+              params: {
+                city: selectedCity && selectedCity !== "all" ? selectedCity : "",
+                category: selectedCategory && selectedCategory !== "all" ? selectedCategory : "",
+                limit: 100
+              }
+            });
+            console.log("[SellerDashboard] Public requirements response:", publicRes.data?.length);
+            const publicRows = Array.isArray(publicRes.data) ? publicRes.data : [];
+            setRequirements(publicRows);
+            setShowingSampleData(false);
+            setLoading(false);
+            return;
+          } catch (pubErr) {
+            console.log("[SellerDashboard] Public fetch error:", pubErr.message);
+            setRequirements([]);
+            setShowingSampleData(false);
+            setLoading(false);
+            return;
+          }
+        }
         if (!session?.token && isPublicRequirementView) {
           try {
             const res = await api.get(
@@ -344,19 +369,6 @@ export default function SellerDashboard() {
             setShowingSampleData(false);
           }
           setLoading(false);
-          return;
-        }
-        if (!session?.token && isSellerWhatsAppPublicView) {
-          const publicRes = await api.get("/meta/requirements", {
-            params: {
-              city: selectedCity && selectedCity !== "all" ? selectedCity : "",
-              category: selectedCategory && selectedCategory !== "all" ? selectedCategory : "",
-              limit: 100
-            }
-          });
-          const publicRows = Array.isArray(publicRes.data) ? publicRes.data : [];
-          setRequirements(publicRows);
-          setShowingSampleData(false);
           return;
         }
         const res = await api.get("/seller/dashboard", {
