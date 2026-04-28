@@ -528,13 +528,11 @@ export default function SellerDashboard() {
         setCategories(nextCategories);
         
         // Apply categories from WhatsApp URL params
-        if (catsFromUrl && nextCategories.length) {
-          const catArray = catsFromUrl.includes(",") ? catsFromUrl.split(",") : [catsFromUrl];
-          const validCats = catArray.filter(c => nextCategories.includes(c.trim()));
-          if (validCats.length > 0) {
-            setDashboardCategories(validCats);
-            setSelectedCategory(validCats[0]);
-          }
+        if (catsFromUrl) {
+          // Use URL category directly (skip validation since admin may have custom categories)
+          const catFromUrl = catsFromUrl.split(",")[0].trim();
+          setSelectedCategory(catFromUrl || "all");
+          setDashboardCategories([catFromUrl]);
         }
       })
       .catch(() => {});
@@ -1044,9 +1042,10 @@ export default function SellerDashboard() {
               <NotificationCenter onNotificationClick={handleNotificationClick} />
 
             <div className="relative" ref={menuRef}>
+              {console.log("[Dash] Render check:", { hasToken: !!session?.token, isWhatsAppPublicView, navigateFn: !!navigateToLogin }) || null}
               {!session?.token && isWhatsAppPublicView ? (
                 <button
-                  onClick={navigateToLogin}
+                  onClick={() => { console.log("[Dash] Login clicked"); navigateToLogin(); }}
                   className="ui-btn-primary px-4 py-2"
                 >
                   Login
