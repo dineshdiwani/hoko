@@ -336,11 +336,48 @@ export default function SellerDashboard() {
           setLoading(false);
           return;
         }
-        if (!session?.token && isPublicRequirementView) {
+        
+        // For logged-in users or when viewing a specific requirement
+        const res = await api.get("/seller/dashboard", {
+          params: {
+            city: selectedCity || "all",
+            category: selectedCategory || "all"
+          }
+        });
+        const liveRows = Array.isArray(res.data) ? res.data : [];
+        
+        if (allowSellerSamplePosts && liveRows.length === 0) {
+          setRequirements(buildSamplePosts());
+          setShowingSampleData(true);
+          setLoading(false);
+          return;
+        }
+        setRequirements(liveRows);
+        setShowingSampleData(false);
+      } catch (err) {
+        if (allowSellerSamplePosts) {
+          setRequirements(buildSamplePosts());
+          setShowingSampleData(true);
+        } else {
+          setRequirements([]);
+          setShowingSampleData(false);
+        }
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, [
+    selectedCity,
+    selectedCategory,
+    cities,
+    categories,
+    allowSellerSamplePosts,
+    isSellerWhatsAppPublicView,
+    refreshToken
+  ]);
 
   useEffect(() => {
-    if (loading) return;
-    const params = new URLSearchParams(location.search);
     const openRequirement = String(
       params.get("openRequirement") || params.get("postId") || ""
     ).trim();
