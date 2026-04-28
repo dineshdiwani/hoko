@@ -68,13 +68,14 @@ export default function SellerDashboard() {
   const sourceFromUrl = String(searchParams.get("from") || "").trim().toLowerCase();
   const cityFromUrl = searchParams.get("city") || "";
   const catsFromUrl = searchParams.get("cats") || "";
+  const mobileFromUrl = searchParams.get("mobile") || "";
   const openRequirementFromUrl =
     searchParams.get("openRequirement") || searchParams.get("postId") || "";
   const isPublicRequirementView = !session?.token && Boolean(openRequirementFromUrl);
   const isSellerWhatsAppPublicView =
     !session?.token &&
     !isPublicRequirementView &&
-    (sourceFromUrl === "wa" || Boolean(cityFromUrl) || Boolean(catsFromUrl));
+    (sourceFromUrl === "wa" || Boolean(cityFromUrl) || Boolean(catsFromUrl) || Boolean(mobileFromUrl));
 
   const [requirements, setRequirements] = useState([]);
   const [activeRequirement, setActiveRequirement] = useState(null);
