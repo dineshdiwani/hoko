@@ -11,9 +11,13 @@ function normalizeIndianMobile(mobile) {
 }
 
 function resolveOtpPayload(otp, mobile) {
-  const route = String(process.env.FAST2SMS_OTP_ROUTE || "otp")
+  const envRoute = process.env.FAST2SMS_OTP_ROUTE;
+  console.log("[resolveOtpPayload] env.FAST2SMS_OTP_ROUTE:", envRoute);
+  const route = String(envRoute || "otp")
     .trim()
     .toLowerCase();
+
+  console.log("[resolveOtpPayload] resolved route:", route);
 
   if (route === "otp") {
     return {
