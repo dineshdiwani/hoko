@@ -72,14 +72,11 @@ export default function SellerDashboard() {
   const openRequirementFromUrl =
     searchParams.get("openRequirement") || searchParams.get("postId") || "";
 
-  // Check for WhatsApp flow - this must be at component level to work with URL params
-  const isWhatsAppFlow = sourceFromUrl === "wa" || Boolean(cityFromUrl) || Boolean(catsFromUrl) || Boolean(mobileFromUrl);
+  // Check for WhatsApp flow - simple check for from=wa
+  const isWhatsAppFlow = sourceFromUrl === "wa";
   
   const isPublicRequirementView = !session?.token && Boolean(openRequirementFromUrl);
-  const isSellerWhatsAppPublicView =
-    !session?.token &&
-    !isPublicRequirementView &&
-    isWhatsAppFlow;
+  const isWhatsAppPublicView = isWhatsAppFlow && !session?.token;
 
   const [requirements, setRequirements] = useState([]);
   const [activeRequirement, setActiveRequirement] = useState(null);
@@ -274,14 +271,17 @@ export default function SellerDashboard() {
   }
 
   useEffect(() => {
-    // NEVER redirect for WhatsApp flow - let them see the dashboard first
-    if (isSellerWhatsAppPublicView) {
+    // Never redirect for WhatsApp flow - let them see the dashboard
+    if (isWhatsAppPublicView) {
       return;
     }
-    if (!session?.token && !isPublicRequirementView) {
-      navigate("/seller/login");
+    // For logged-in users, also stay on dashboard
+    if (session?.token) {
+      return;
     }
-  }, [session, navigate, isPublicRequirementView, isSellerWhatsAppPublicView]);
+    // Only redirect if NOT in WhatsApp flow and NOT logged in
+    navigate("/seller/login");
+  }, [session, navigate, isWhatsAppPublicView]);
 
   useEffect(() => {
     const stored = getSellerDashboardCategories();
@@ -321,7 +321,7 @@ export default function SellerDashboard() {
     async function load() {
       setLoading(true);
       try {
-        if (isSellerWhatsAppPublicView) {
+        if (isWhatsAppPublicView) {
           // Use /meta/requirements for public read (no auth needed)
           const res = await api.get("/meta/requirements", {
             params: {
@@ -373,7 +373,7 @@ export default function SellerDashboard() {
     cities,
     categories,
     allowSellerSamplePosts,
-    isSellerWhatsAppPublicView,
+    isWhatsAppPublicView,
     refreshToken
   ]);
 
@@ -1040,7 +1040,7 @@ export default function SellerDashboard() {
               <NotificationCenter onNotificationClick={handleNotificationClick} />
 
             <div className="relative" ref={menuRef}>
-              {!session?.token && isSellerWhatsAppPublicView ? (
+              {!session?.token && isWhatsAppPublicView ? (
                 <button
                   onClick={navigateToLogin}
                   className="ui-btn-primary px-4 py-2"
