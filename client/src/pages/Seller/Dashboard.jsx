@@ -365,17 +365,14 @@ export default function SellerDashboard() {
       } finally {
         setLoading(false);
       }
-    }
-    load();
-  }, [
-    selectedCity,
-    selectedCategory,
-    cities,
-    categories,
-    allowSellerSamplePosts,
-    isWhatsAppPublicView,
-    refreshToken
-  ]);
+}
+    
+    // Load data when filters or options change
+    useEffect(() => {
+      if (loading) return;
+      if (!selectedCity || !selectedCategory || !cities.length || !categories.length) return;
+      load();
+    }, [selectedCity, selectedCategory, cities, categories, isWhatsAppPublicView, refreshToken]);
 
   useEffect(() => {
     const openRequirement = String(
