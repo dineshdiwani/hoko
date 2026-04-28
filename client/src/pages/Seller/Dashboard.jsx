@@ -260,6 +260,14 @@ export default function SellerDashboard() {
     return true;
   };
 
+  function navigateToLogin() {
+    const params = new URLSearchParams();
+    if (selectedCity && selectedCity !== "all") params.set("city", selectedCity);
+    if (selectedCategory && selectedCategory !== "all") params.set("cats", selectedCategory);
+    params.set("from", "wa");
+    navigate(`/seller/login?${params.toString()}`);
+  }
+
   useEffect(() => {
     if (!session?.token && !isPublicRequirementView && !isSellerWhatsAppPublicView) {
       navigate("/seller/login");
@@ -1039,71 +1047,82 @@ export default function SellerDashboard() {
               <NotificationCenter onNotificationClick={handleNotificationClick} />
 
             <div className="relative" ref={menuRef}>
-              <button
-                onClick={() => setMenuOpen(!menuOpen)}
-                className="ui-btn-secondary ui-button-text px-2 md:px-3 py-2"
-              >
-                {session?.name || "Seller"} v
-              </button>
+              {!session?.token && isSellerWhatsAppPublicView ? (
+                <button
+                  onClick={navigateToLogin}
+                  className="ui-btn-primary px-4 py-2"
+                >
+                  Login
+                </button>
+              ) : (
+                <>
+                <button
+                  onClick={() => setMenuOpen(!menuOpen)}
+                  className="ui-btn-secondary ui-button-text px-2 md:px-3 py-2"
+                >
+                  {session?.name || "Seller"} v
+                </button>
 
-              {menuOpen && (
-                <div className="dashboard-panel absolute right-0 mt-2 w-44 overflow-hidden">
-                  <div className="px-3 py-2 text-xs text-gray-500 border-b bg-gray-50">
-                    Set city: {session?.city || "Not set"}
-                  </div>
-                  <button
-                    onClick={() => {
-                      setMenuOpen(false);
-                      navigate("/seller/settings");
-                    }}
-                    className="ui-menu-item"
-                  >
-                    Profile Settings
-                  </button>
-
-                  <button
-                    onClick={async () => {
-                      try {
-                        setSwitching(true);
-                        const res = await api.post("/auth/switch-role", {
-                          role: "buyer"
-                        });
-                        setSession({
-                          _id: res.data.user._id,
-                          role: res.data.user.role,
-                          roles: res.data.user.roles,
-                          email: res.data.user.email,
-                          city: res.data.user.city,
-                          name: "Buyer",
-                          preferredCurrency: res.data.user.preferredCurrency,
-                          mobile: res.data.user.mobile || "",
-                          token: res.data.token
-                        });
+                {menuOpen && (
+                  <div className="dashboard-panel absolute right-0 mt-2 w-44 overflow-hidden">
+                    <div className="px-3 py-2 text-xs text-gray-500 border-b bg-gray-50">
+                      Set city: {session?.city || "Not set"}
+                    </div>
+                    <button
+                      onClick={() => {
                         setMenuOpen(false);
-                        navigate("/buyer/dashboard");
-                      } catch (err) {
-                        const message = err?.response?.data?.message || "";
-                        alert(message || "Unable to switch role");
-                      } finally {
-                        setSwitching(false);
-                      }
-                    }}
-                    className="ui-menu-item"
-                  >
-                    {switching
-                      ? "Switching..."
-                      : session?.roles?.buyer
-                      ? "Switch to Buyer"
-                      : "Become Buyer"}
-                  </button>
+                        navigate("/seller/settings");
+                      }}
+                      className="ui-menu-item"
+                    >
+                      Profile Settings
+                    </button>
 
-                  <button
-                    onClick={() => logout(navigate)}
-                    className="ui-menu-item ui-menu-item-danger"
-                  >
-                    Logout
-                  </button>
-                </div>
+                    <button
+                      onClick={async () => {
+                        try {
+                          setSwitching(true);
+                          const res = await api.post("/auth/switch-role", {
+                            role: "buyer"
+                          });
+                          setSession({
+                            _id: res.data.user._id,
+                            role: res.data.user.role,
+                            roles: res.data.user.roles,
+                            email: res.data.user.email,
+                            city: res.data.user.city,
+                            name: "Buyer",
+                            preferredCurrency: res.data.user.preferredCurrency,
+                            mobile: res.data.user.mobile || "",
+                            token: res.data.token
+                          });
+                          setMenuOpen(false);
+                          navigate("/buyer/dashboard");
+                        } catch (err) {
+                          const message = err?.response?.data?.message || "";
+                          alert(message || "Unable to switch role");
+                        } finally {
+                          setSwitching(false);
+                        }
+                      }}
+                      className="ui-menu-item"
+                    >
+                      {switching
+                        ? "Switching..."
+                        : session?.roles?.buyer
+                        ? "Switch to Buyer"
+                        : "Become Buyer"}
+                    </button>
+
+                    <button
+                      onClick={() => logout(navigate)}
+                      className="ui-menu-item ui-menu-item-danger"
+                    >
+                      Logout
+                    </button>
+                  </div>
+                )}
+                </>
               )}
             </div>
             </div>
@@ -1339,7 +1358,13 @@ export default function SellerDashboard() {
                         Current lowest price: Rs {lowestPrice}
                       </p>
                       <button
-                        onClick={() => setActiveRequirement(req)}
+                        onClick={() => {
+                          if (!session?.token) {
+                            navigateToLogin();
+                            return;
+                          }
+                          setActiveRequirement(req);
+                        }}
                         className="ui-link ui-status-warning"
                       >
                         Edit your offer now
@@ -1396,6 +1421,10 @@ export default function SellerDashboard() {
                   <button
                     onClick={() => {
                       if (isSample || isCityLocked) return;
+                      if (!session?.token) {
+                        navigateToLogin();
+                        return;
+                      }
                       setActiveRequirement(req);
                     }}
                     disabled={isSample || isCityLocked}
@@ -1404,6 +1433,8 @@ export default function SellerDashboard() {
                         ? "bg-gray-200 text-gray-600 cursor-not-allowed"
                         : req.myOffer
                         ? "bg-green-600 text-white active:scale-95"
+                        : !session?.token
+                        ? "bg-blue-600 text-white active:scale-95"
                         : "btn-brand active:scale-95"
                     }`}
                   >
@@ -1411,6 +1442,8 @@ export default function SellerDashboard() {
                       ? "Preview Only (Sample Post)"
                       : isCityLocked
                       ? "Offer Locked (City)"
+                      : !session?.token
+                      ? "Login to Submit Offer"
                       : req.myOffer
                       ? "Submitted Offer / Edit Offer"
                       : "Submit Offer"}
