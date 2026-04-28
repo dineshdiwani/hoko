@@ -75,6 +75,8 @@ export default function SellerDashboard() {
   // Check for WhatsApp flow - simple check for from=wa
   const isWhatsAppFlow = sourceFromUrl === "wa";
   
+  console.log("[Dash] URL params:", { sourceFromUrl, cityFromUrl, catsFromUrl, mobileFromUrl, isWhatsAppFlow });
+  
   const isPublicRequirementView = !session?.token && Boolean(openRequirementFromUrl);
   const isWhatsAppPublicView = isWhatsAppFlow && !session?.token;
 
@@ -271,6 +273,7 @@ export default function SellerDashboard() {
   }
 
   useEffect(() => {
+    console.log("[Dash] isWhatsAppFlow:", isWhatsAppFlow, "isWhatsAppPublicView:", isWhatsAppPublicView, "hasToken:", !!session?.token);
     // Never redirect for WhatsApp flow - let them see the dashboard
     if (isWhatsAppPublicView) {
       return;
