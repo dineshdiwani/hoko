@@ -781,8 +781,9 @@ async function sendBuyerInviteTemplate(to, tempRequirementId) {
   try {
     const templateId = String(templateConfig.templateId || "").trim();
     const languageCode = String(templateConfig.language || "en").trim();
-    const mobileDisplay = String(to || "").replace(/^91/, "").trim();
-    const deepLinkWithMobile = `${deepLink}?mobile=${mobileDisplay}`;
+    const mobileDisplay = String(to || "").replace(/^(\+)?91/, "").replace("+", "").trim();
+    const separator = deepLink.includes("?") ? "&" : "?";
+    const deepLinkWithMobile = `${deepLink}${separator}mobile=${mobileDisplay}`;
     const parameters = [deepLinkWithMobile];
 
     const result = provider === "gupshup"
