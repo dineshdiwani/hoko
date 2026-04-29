@@ -187,22 +187,8 @@ export default function SellerRegister() {
         sellerProfile: res.data.sellerProfile
       });
       alert("Registration submitted successfully!");
-      const resumeTarget = String(localStorage.getItem("post_login_redirect") || "").trim();
-      const resumeSource = String(localStorage.getItem("post_login_redirect_source") || "").trim();
-      const shouldResumeRedirect =
-        resumeTarget &&
-        (resumeSource === "deeplink" || resumeSource === "offer" || resumeTarget.startsWith("/seller/deeplink/"));
-      if (shouldResumeRedirect) {
-        try {
-          const url = new URL(resumeTarget, window.location.origin);
-          url.searchParams.set("autoSubmit", "true");
-          window.location.href = `${url.pathname}${url.search}`;
-          return;
-        } catch {
-          window.location.href = `${resumeTarget}${resumeTarget.includes("?") ? "&" : "?"}autoSubmit=true`;
-          return;
-        }
-      }
+      localStorage.removeItem("post_login_redirect");
+      localStorage.removeItem("post_login_redirect_source");
       const dashboardParams = new URLSearchParams();
       if (seller.city) dashboardParams.set("city", seller.city);
       if (catsFromUrl) dashboardParams.set("cats", catsFromUrl);
