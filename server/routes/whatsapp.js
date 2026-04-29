@@ -308,7 +308,7 @@ async function sendBuyerInviteDirect(mobileE164) {
   );
   
   const appBase = resolvePublicAppUrl();
-  return `${appBase}/buyer/requirement/new?ref=${tempReq._id.toString()}&mobile=${mobileE164.replace("+", "")}`;
+  return `${appBase}/buyer/requirement/new?ref=${tempReq._id.toString()}`;
 }
 
 async function sendBuyerRequirementInvite(mobileE164) {
@@ -1012,10 +1012,13 @@ console.log("[WA WEBHOOK] Extracted events:", events.length, events.map(e => ({ 
           { upsert: true, new: true, setDefaultsOnInsert: true }
         );
         
+        console.log("[WA WEBHOOK] Sending buyer invite template to", event.mobileE164);
         const sendResult = await sendBuyerInviteTemplate(event.mobileE164, tempReq._id.toString());
+        console.log("[WA WEBHOOK] Send result:", sendResult);
         
         if (!sendResult.ok) {
-          const deepLink = `${resolvePublicAppUrl()}/buyer/requirement/new?ref=${tempReq._id.toString()}&mobile=${event.mobileE164.replace("+", "")}`;
+          console.log("[WA WEBHOOK] Template failed, using fallback. Reason:", sendResult.reason);
+          const deepLink = `${resolvePublicAppUrl()}/buyer/requirement/new?ref=${tempReq._id.toString()}`;
           const message = buildBuyerConfirmationMessage(event.mobileE164, deepLink);
           await sendWhatsAppMessage({
             to: event.mobileE164,
