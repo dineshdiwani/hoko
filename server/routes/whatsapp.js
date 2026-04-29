@@ -1084,13 +1084,30 @@ router.post("/webhook", async (req, res) => {
       continue;
     }
 
-    if (BUYER_WORDS.has(normalizedInbound)) {
+    if (BUYER_WORDS.has(normalizedInbound) || normalizedInbound.includes("buyer")) {
+      console.log("[WA WEBHOOK] Existing BUYER detected! Sending template...");
       consentState.delete(consentKey);
-      const deepLink = await sendBuyerInviteDirect(event.mobileE164);
-      await sendWhatsAppMessage({
-        to: event.mobileE164,
-        body: buildBuyerConfirmationMessage(event.mobileE164, deepLink)
-      });
+      
+      const tempReq = await TempRequirement.findOneAndUpdate(
+        { mobileE164: event.mobileE164, status: "pending" },
+        {
+          $set: { status: "pending", source: "whatsapp", templateUsed: "buyer_invite_post_requirement" },
+          $setOnInsert: { expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) }
+        },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
+      
+      const sendResult = await sendBuyerInviteTemplate(event.mobileE164, tempReq._id.toString());
+      
+      if (!sendResult.ok) {
+        console.log("[WA WEBHOOK] Template failed for existing user, using fallback. Reason:", sendResult.reason);
+        const deepLink = `${resolvePublicAppUrl()}/buyer/requirement/new?ref=${tempReq._id.toString()}`;
+        const message = buildBuyerConfirmationMessage(event.mobileE164, deepLink);
+        await sendWhatsAppMessage({
+          to: event.mobileE164,
+          body: message
+        });
+      }
       continue;
     }
 
