@@ -105,6 +105,7 @@ export default function SellerDashboard() {
       String(getSession()?.city || "").trim() ||
       "all"
   );
+  const [cityManuallySet, setCityManuallySet] = useState(false);
   const [activeSmartTab, setActiveSmartTab] = useState("all");
   const [chatOpen, setChatOpen] = useState(false);
   const [chatPeer, setChatPeer] = useState(null);
@@ -132,6 +133,7 @@ export default function SellerDashboard() {
   }, []);
 
   useEffect(() => {
+    if (cityManuallySet) return;
     const latestProfileCity = String(session?.city || "").trim();
     if (!latestProfileCity) return;
     setSelectedCity((prev) => {
@@ -144,7 +146,7 @@ export default function SellerDashboard() {
       return shouldFollowDefault ? latestProfileCity : prev;
     });
     lastSyncedProfileCityRef.current = latestProfileCity;
-  }, [session?.city]);
+  }, [session?.city, cityManuallySet]);
 
   const normalizeCategory = (cat) => String(cat || "").toLowerCase().trim();
   const normalizeCity = (value) => String(value || "").trim().toLowerCase();
@@ -296,12 +298,12 @@ export default function SellerDashboard() {
       localStorage.setItem(
         SELLER_DASHBOARD_STATE_KEY,
         JSON.stringify({
-          selectedCity,
+          selectedCity: cityManuallySet ? selectedCity : (session?.city || "all"),
           selectedCategory
         })
       );
     } catch {}
-  }, [selectedCity, selectedCategory]);
+  }, [selectedCity, selectedCategory, session?.city, cityManuallySet]);
 
   useEffect(() => {
     const buildSamplePosts = () => {
@@ -517,17 +519,21 @@ export default function SellerDashboard() {
           "Noida", "Coimbatore", "Chandigarh", "Jodhpur", "Madurai", "Kochi"
         ];
         setCities(nextCities);
-        setSelectedCity((prev) =>
-          resolveCityValue(
-            prev ||
-              cityFromUrl ||
-              session?.city ||
-              persistedState.selectedCity ||
-              "all",
-            nextCities,
-            "all"
-          )
-        );
+        
+        if (!cityManuallySet) {
+          setSelectedCity((prev) =>
+            resolveCityValue(
+              prev ||
+                cityFromUrl ||
+                session?.city ||
+                persistedState.selectedCity ||
+                "all",
+              nextCities,
+              "all"
+            )
+          );
+        }
+        
         const nextCategories = Array.isArray(data?.categories) && data.categories.length ? data.categories : [
           "Electronics & Appliances", "Furniture & Home", "Vehicles & Parts",
           "Industrial Machinery", "Electrical Parts", "Construction Materials",
@@ -546,7 +552,7 @@ export default function SellerDashboard() {
         }
       })
       .catch(() => {});
-  }, [cityFromUrl, persistedState.selectedCity, session?.city]);
+  }, [cityFromUrl, persistedState.selectedCity, session?.city, cityManuallySet]);
 
   const visibleRequirements = requirements;
 
@@ -1018,7 +1024,10 @@ export default function SellerDashboard() {
               </span>
               <select
                 value={selectedCity}
-                onChange={(e) => setSelectedCity(e.target.value)}
+                onChange={(e) => {
+                  setSelectedCity(e.target.value);
+                  setCityManuallySet(true);
+                }}
                 className="app-select ui-body w-[calc(50%-0.25rem)] md:w-auto"
                 aria-label="Filter posts by city"
                 title="Filter posts by city"
