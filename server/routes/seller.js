@@ -329,7 +329,7 @@ function escapeRegex(value) {
  * Seller onboarding (first-time registration)
  */
 router.post("/onboard", auth, async (req, res) => {
-const {
+  const {
     mobile,
     email,
     registeredBusinessName,
@@ -349,7 +349,7 @@ const {
   const registeredBusinessNameValue = String(registeredBusinessName || "").trim();
   const managerNameValue = String(managerName || "").trim();
 
-if (
+  if (
     !mobileValue ||
     !emailValue ||
     !cityValue ||
@@ -366,7 +366,7 @@ if (
     return res.status(400).json({ message: "Missing required fields" });
   }
 
-const update = {
+  const update = {
     mobile: mobileValue,
     email: emailValue,
     city: cityValue,
@@ -379,22 +379,66 @@ const update = {
     } : {})
   };
 
-  const user = await User.findByIdAndUpdate(
-    req.user._id,
-    {
-      ...update,
-      "roles.seller": true
-    },
-    { new: true }
-  );
+  try {
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      {
+        ...update,
+        "roles.seller": true
+      },
+      { new: true }
+    );
 
-  res.json({
-    sellerProfile: user?.sellerProfile || {},
-    city: user?.city,
-    email: user?.email,
-    roles: user?.roles,
-    termsAccepted: user?.termsAccepted
-  });
+    return res.json({
+      sellerProfile: user?.sellerProfile || {},
+      city: user?.city,
+      email: user?.email,
+      roles: user?.roles,
+      termsAccepted: user?.termsAccepted
+    });
+  } catch (err) {
+    if (err?.code === 11000 && err?.keyPattern?.email) {
+      const existingUser = await User.findOne({ email: emailValue });
+      if (!existingUser) throw err;
+
+      const currentUserId = req.user._id;
+      const targetUserId = existingUser._id;
+
+      await Offer.updateMany({ seller: currentUserId }, { $set: { seller: targetUserId } });
+      await Requirement.updateMany({ buyer: currentUserId }, { $set: { buyer: targetUserId } });
+      await Notification.updateMany({ to: currentUserId }, { $set: { to: targetUserId } });
+      await ChatMessage.updateMany({ from: currentUserId }, { $set: { from: targetUserId } });
+      await ChatMessage.updateMany({ to: currentUserId }, { $set: { to: targetUserId } });
+      await PendingOfferDraft.updateMany({ seller: currentUserId }, { $set: { seller: targetUserId } });
+
+      await User.findByIdAndDelete(currentUserId);
+
+      const mergedUser = await User.findByIdAndUpdate(
+        targetUserId,
+        {
+          ...update,
+          "roles.seller": true
+        },
+        { new: true }
+      );
+
+      const token = jwt.sign(
+        { id: mergedUser._id, role: "seller", tokenVersion: mergedUser.tokenVersion },
+        process.env.JWT_SECRET,
+        { expiresIn: "30d" }
+      );
+
+      return res.json({
+        sellerProfile: mergedUser?.sellerProfile || {},
+        city: mergedUser?.city,
+        email: mergedUser?.email,
+        roles: mergedUser?.roles,
+        termsAccepted: mergedUser?.termsAccepted,
+        token
+      });
+    }
+    throw err;
+  }
 });
 
 /**
