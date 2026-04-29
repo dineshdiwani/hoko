@@ -93,23 +93,15 @@ export default function SellerDashboard() {
   const [dashboardCategories, setDashboardCategories] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const persistedState = readSellerDashboardState();
-  const initialCategory = catsFromUrl
-    ? String(catsFromUrl.split(",")[0] || "").trim().toLowerCase() || "all"
-    : persistedState.selectedCategory;
-  const [selectedCategory, setSelectedCategory] = useState(initialCategory);
+  const [selectedCategory, setSelectedCategory] = useState("all");
   const [cities, setCities] = useState([]);
   const [categories, setCategories] = useState([]);
   const [selectedCity, setSelectedCity] = useState(
     cityFromUrl ||
-      persistedState.selectedCity ||
       String(getSession()?.city || "").trim() ||
       "all"
   );
-  const [cityManuallySet, setCityManuallySet] = useState(() => {
-    if (cityFromUrl) return true;
-    if (persistedState.selectedCity && persistedState.selectedCity !== "all") return true;
-    return false;
-  });
+  const [cityManuallySet, setCityManuallySet] = useState(false);
   const [activeSmartTab, setActiveSmartTab] = useState("all");
   const [chatOpen, setChatOpen] = useState(false);
   const [chatPeer, setChatPeer] = useState(null);
@@ -525,17 +517,10 @@ export default function SellerDashboard() {
         setCities(nextCities);
         
         if (!cityManuallySet) {
-          setSelectedCity((prev) =>
-            resolveCityValue(
-              prev ||
-                cityFromUrl ||
-                session?.city ||
-                persistedState.selectedCity ||
-                "all",
-              nextCities,
-              "all"
-            )
-          );
+          const profileCity = String(session?.city || "").trim();
+          if (profileCity) {
+            setSelectedCity(profileCity);
+          }
         }
         
         const nextCategories = Array.isArray(data?.categories) && data.categories.length ? data.categories : [
@@ -546,17 +531,10 @@ export default function SellerDashboard() {
           "Health & Safety", "Logistics & Transport", "Business Services"
         ];
         setCategories(nextCategories);
-        
-        // Apply categories from WhatsApp URL params
-        if (catsFromUrl) {
-          // Use URL category directly (skip validation since admin may have custom categories)
-          const catFromUrl = catsFromUrl.split(",")[0].trim();
-          setSelectedCategory(catFromUrl || "all");
-          setDashboardCategories([catFromUrl]);
-        }
+        setSelectedCategory("all");
       })
       .catch(() => {});
-  }, [cityFromUrl, persistedState.selectedCity, session?.city, cityManuallySet]);
+  }, [session?.city]);
 
   const visibleRequirements = requirements;
 
