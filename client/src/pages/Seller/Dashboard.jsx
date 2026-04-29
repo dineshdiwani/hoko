@@ -75,7 +75,7 @@ export default function SellerDashboard() {
   // Check for WhatsApp flow - simple check for from=wa
   const isWhatsAppFlow = sourceFromUrl === "wa";
   
-  console.log("[Dash] URL params:", { sourceFromUrl, cityFromUrl, catsFromUrl, mobileFromUrl, isWhatsAppFlow });
+  console.log("[Dash] URL params - sourceFromUrl:", sourceFromUrl, "cityFromUrl:", cityFromUrl, "catsFromUrl:", catsFromUrl, "mobileFromUrl:", mobileFromUrl, "isWhatsAppFlow:", isWhatsAppFlow);
   
   // Handle WhatsApp deep link - set mobile in localStorage for later use
   useEffect(() => {
@@ -83,6 +83,9 @@ export default function SellerDashboard() {
       localStorage.setItem("whatsapp_mobile", mobileFromUrl);
     }
   }, [isWhatsAppFlow, mobileFromUrl]);
+
+  // COMPLETELY BYPASS AUTH for WhatsApp flow - let them see dashboard
+  const isWhatsAppPublicView = isWhatsAppFlow;
   
   const isPublicRequirementView = !session?.token && Boolean(openRequirementFromUrl);
   const isWhatsAppPublicView = isWhatsAppFlow && !session?.token;
@@ -353,8 +356,9 @@ export default function SellerDashboard() {
   useEffect(() => {
     console.log("[Dash] isWhatsAppFlow:", isWhatsAppFlow, "isWhatsAppPublicView:", isWhatsAppPublicView, "hasToken:", !!session?.token);
     console.log("[Dash] URL params:", { cityFromUrl, catsFromUrl, mobileFromUrl, sourceFromUrl });
-    // Never redirect for WhatsApp flow - let them see the dashboard
-    if (isWhatsAppPublicView) {
+    // NEVER redirect for WhatsApp flow - let them see the dashboard
+    if (isWhatsAppFlow || isWhatsAppPublicView) {
+      console.log("[Dash] WhatsApp flow - staying on dashboard");
       return;
     }
     // For logged-in users, also stay on dashboard
@@ -363,7 +367,7 @@ export default function SellerDashboard() {
     }
     // Only redirect if NOT in WhatsApp flow and NOT logged in
     navigate("/seller/login");
-  }, [session, navigate, isWhatsAppPublicView]);
+  }, [session, navigate, isWhatsAppPublicView, isWhatsAppFlow]);
 
   useEffect(() => {
     const stored = getSellerDashboardCategories();
