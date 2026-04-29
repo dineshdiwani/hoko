@@ -105,7 +105,11 @@ export default function SellerDashboard() {
       String(getSession()?.city || "").trim() ||
       "all"
   );
-  const [cityManuallySet, setCityManuallySet] = useState(false);
+  const [cityManuallySet, setCityManuallySet] = useState(() => {
+    if (cityFromUrl) return true;
+    if (persistedState.selectedCity && persistedState.selectedCity !== "all") return true;
+    return false;
+  });
   const [activeSmartTab, setActiveSmartTab] = useState("all");
   const [chatOpen, setChatOpen] = useState(false);
   const [chatPeer, setChatPeer] = useState(null);
