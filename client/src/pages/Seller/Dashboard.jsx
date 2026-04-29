@@ -77,6 +77,13 @@ export default function SellerDashboard() {
   
   console.log("[Dash] URL params:", { sourceFromUrl, cityFromUrl, catsFromUrl, mobileFromUrl, isWhatsAppFlow });
   
+  // Handle WhatsApp deep link - set mobile in localStorage for later use
+  useEffect(() => {
+    if (isWhatsAppFlow && mobileFromUrl) {
+      localStorage.setItem("whatsapp_mobile", mobileFromUrl);
+    }
+  }, [isWhatsAppFlow, mobileFromUrl]);
+  
   const isPublicRequirementView = !session?.token && Boolean(openRequirementFromUrl);
   const isWhatsAppPublicView = isWhatsAppFlow && !session?.token;
 
@@ -127,6 +134,77 @@ export default function SellerDashboard() {
       window.removeEventListener("storage", syncSession);
     };
   }, []);
+
+  // Handle post-login redirect for pending offer submission
+  useEffect(() => {
+    if (!session?.token) return;
+    
+    const pendingOffer = JSON.parse(localStorage.getItem("pending_seller_offer_intent") || "null");
+    if (!pendingOffer || !pendingOffer.requirementId) return;
+    
+    // Check if this is a post-login redirect
+    const redirectSource = localStorage.getItem("post_login_redirect_source");
+    if (redirectSource !== "offer") return;
+    
+    console.log("[Dash] Found pending offer after login, submitting...");
+    
+    // Clear the pending offer and redirect
+    localStorage.removeItem("pending_seller_offer_intent");
+    localStorage.removeItem("pending_offer_data");
+    localStorage.removeItem("post_login_redirect");
+    localStorage.removeItem("post_login_redirect_source");
+    
+    // Submit the offer
+    const submitOffer = async () => {
+      try {
+        const payload = {
+          price: Number(pendingOffer.offerPayload?.price) || 0,
+          message: pendingOffer.offerPayload?.message || "",
+          deliveryTime: pendingOffer.offerPayload?.deliveryTime || "",
+          paymentTerms: pendingOffer.offerPayload?.paymentTerms || "",
+          mobile: pendingOffer.offerPayload?.mobile || session?.mobile || "",
+          sellerCity: pendingOffer.offerPayload?.sellerCity || session?.city || ""
+        };
+        
+        await api.post(`/seller/requirement/${pendingOffer.requirementId}/offer`, payload);
+        alert("Offer submitted successfully!");
+        
+        // Refresh the page to show updated offers
+        window.location.reload();
+      } catch (err) {
+        console.error("[Dash] Failed to submit pending offer:", err);
+        alert(err?.response?.data?.message || "Failed to submit offer. Please try again.");
+      }
+    };
+    
+    submitOffer();
+  }, [session?.token]);
+
+  // Handle autoSubmit from URL (WhatsApp flow)
+  useEffect(() => {
+    const autoSubmit = searchParams.get("autoSubmit");
+    if (autoSubmit !== "true") return;
+    if (!session?.token) return;
+    
+    // Check if we have requirementId to submit to
+    const requirementId = searchParams.get("requirementId") || "";
+    if (!requirementId) return;
+    
+    console.log("[Dash] Auto-submitting offer for requirement:", requirementId);
+    
+    // Clear the autoSubmit param
+    const nextParams = new URLSearchParams(location.search);
+    nextParams.delete("autoSubmit");
+    navigate(
+      {
+        pathname: location.pathname,
+        search: nextParams.toString()
+      },
+      { replace: true }
+    );
+    
+    // The actual submission will be handled by the OfferModal when opened
+  }, [session?.token, location.search, navigate, searchParams]);
 
   useEffect(() => {
     if (cityManuallySet) return;

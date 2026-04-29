@@ -78,6 +78,10 @@ export default function OfferModal({
     if (mobile) params.set("mobile", mobile);
     if (requirementCity) params.set("city", requirementCity);
     if (requirementCategory) params.set("cats", requirementCategory);
+    // Preserve WhatsApp flow
+    if (localStorage.getItem("whatsapp_mobile")) {
+      params.set("from", "wa");
+    }
     return params;
   }
 

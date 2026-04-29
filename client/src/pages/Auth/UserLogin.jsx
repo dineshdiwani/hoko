@@ -124,6 +124,12 @@ const [step, setStep] = useState("EMAIL_LOGIN");
       if (useSellerPostLoginRedirect) {
         url.searchParams.set("autoSubmit", "true");
       }
+      // Preserve WhatsApp flow if coming from WhatsApp
+      if (localStorage.getItem("whatsapp_mobile")) {
+        url.searchParams.set("from", "wa");
+        const waMobile = localStorage.getItem("whatsapp_mobile");
+        if (waMobile) url.searchParams.set("mobile", waMobile);
+      }
       return `${url.pathname}${url.search}`;
     } catch {
       return postLoginRedirect;
