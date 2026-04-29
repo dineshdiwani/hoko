@@ -30,7 +30,7 @@ const SellerDeepLink = lazy(() => import("./pages/Seller/SellerDeepLink"));
 
 function SellerDashboardWrapper() {
   const location = useLocation();
-  const [searchParams] = useSearchParams();
+  const searchParams = new URLSearchParams(location.search);
   const sourceFromUrl = String(searchParams.get("from") || "").trim().toLowerCase();
   const isWhatsAppFlow = sourceFromUrl === "wa";
   
