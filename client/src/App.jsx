@@ -28,6 +28,25 @@ const SellerProfile = lazy(() => import("./pages/Seller/SellerProfile"));
 const SellerSettings = lazy(() => import("./pages/Seller/Settings"));
 const SellerDeepLink = lazy(() => import("./pages/Seller/SellerDeepLink"));
 
+function SellerDashboardWrapper() {
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const sourceFromUrl = String(searchParams.get("from") || "").trim().toLowerCase();
+  const isWhatsAppFlow = sourceFromUrl === "wa";
+  
+  // For WhatsApp flow, BYPASS all auth checks - let them see the dashboard directly
+  if (isWhatsAppFlow) {
+    return <SellerDashboard />;
+  }
+  
+  // Normal flow: require seller auth
+  return requireSeller() ? (
+    <SellerDashboard />
+  ) : (
+    <Navigate to="/seller/login" replace />
+  );
+}
+
 const AdminLogin = lazy(() => import("./pages/Admin/Login"));
 const AdminDashboard = lazy(() => import("./pages/Admin/AdminDashboard"));
 const AdminAnalytics = lazy(() => import("./pages/Admin/AdminAnalytics"));
@@ -390,7 +409,9 @@ function AppShell() {
 
         <Route
           path="/seller/dashboard"
-          element={<SellerDashboard />}
+          element={
+            <SellerDashboardWrapper />
+          }
         />
 
         <Route
