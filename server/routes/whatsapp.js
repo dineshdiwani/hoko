@@ -785,6 +785,16 @@ async function sendBuyerInviteTemplate(to, tempRequirementId) {
     const separator = deepLink.includes("?") ? "&" : "?";
     const deepLinkWithMobile = `${deepLink}${separator}mobile=${mobileDisplay}`;
     const parameters = [deepLinkWithMobile];
+    console.log("[Buyer Invite] Sending template:", { 
+      to, 
+      templateId, 
+      templateName: templateConfig.templateName,
+      languageCode, 
+      parameters,
+      provider: resolveWhatsAppProvider(),
+      gupshupAppId: process.env.GUPSHUP_APP_ID,
+      gupshupSource: process.env.GUPSHUP_SOURCE
+    });
 
     const result = provider === "gupshup"
       ? await sendViaGupshupTemplate({
