@@ -754,14 +754,28 @@ async function sendBuyerInviteTemplate(to, tempRequirementId) {
   const appBase = resolvePublicAppUrl();
   const deepLink = `${appBase}/buyer/requirement/new?ref=${tempRequirementId}`;
 
-  const templateConfig = await WhatsAppTemplateRegistry.findOne({
+  let templateConfig = await WhatsAppTemplateRegistry.findOne({
     key: "buyer_invite_post_requirement",
     isActive: true
   }).lean();
 
   if (!templateConfig) {
-    console.warn("[Buyer Invite] Template config not found for buyer_invite_post_requirement_v2");
-    return { ok: false, reason: "template_not_configured" };
+    console.log("[Buyer Invite] Template not found, creating default...");
+    templateConfig = await WhatsAppTemplateRegistry.findOneAndUpdate(
+      { key: "buyer_invite_post_requirement" },
+      {
+        key: "buyer_invite_post_requirement",
+        templateName: "buyer_invite_post_requirement_v2",
+        templateId: "c236ec98-5807-4910-9135-c8f7774ccd54",
+        language: "en",
+        category: "MARKETING",
+        status: "APPROVED",
+        variableCount: 1,
+        isActive: true
+      },
+      { upsert: true, new: true }
+    ).lean();
+    console.log("[Buyer Invite] Template created:", templateConfig.templateId);
   }
 
   try {
