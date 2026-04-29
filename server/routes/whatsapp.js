@@ -680,7 +680,9 @@ function buildRegisterConfirmationMessage(requirement, deepLink, profile) {
 }
 
 function normalizeInboundText(value) {
-  return String(value || "").trim().toLowerCase().replace(/[^\w\s]|_/g, "").replace(/\s+/g, " ").trim();
+  const normalized = String(value || "").trim().toLowerCase().replace(/[^\w\s]|_/g, "").replace(/\s+/g, " ").trim();
+  console.log("[WA WEBHOOK] normalizeInboundText:", { original: value, normalized, isBuyer: BUYER_WORDS.has(normalized) });
+  return normalized;
 }
 
 function buildConsentPromptMessage() {
