@@ -100,7 +100,9 @@ export default function SellerDashboard() {
   const [dashboardCategories, setDashboardCategories] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const persistedState = readSellerDashboardState();
-  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedCategory, setSelectedCategory] = useState(
+    catsFromUrl || "all"
+  );
   const [cities, setCities] = useState([]);
   const [categories, setCategories] = useState([]);
   const [selectedCity, setSelectedCity] = useState(
