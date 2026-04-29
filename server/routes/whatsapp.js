@@ -1015,7 +1015,8 @@ router.post("/webhook", async (req, res) => {
       notifyWhatsAppInteraction(event.mobileE164, "", event.text || "");
       
       // New user - show greeting and handle BUYER/SELLER directly
-      if (BUYER_WORDS.has(normalizedInbound)) {
+      if (BUYER_WORDS.has(normalizedInbound) || normalizedInbound.includes("buyer")) {
+        console.log("[WA WEBHOOK] BUYER detected! normalized:", normalizedInbound);
         await applyConsentConfirmed(await WhatsAppBuyerContact.findOne({ mobileE164: event.mobileE164 }), "buyer", event);
         
         const tempReq = await TempRequirement.findOneAndUpdate(
