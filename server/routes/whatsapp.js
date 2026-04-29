@@ -998,7 +998,8 @@ router.post("/webhook", async (req, res) => {
     });
   }
   
-console.log("[WA WEBHOOK] Extracted events:", events.length, events.map(e => ({ text: e.text, mobile: e.mobileE164 })));
+  console.log("[WA WEBHOOK] Extracted events:", events.length, events.map(e => ({ text: e.text, mobile: e.mobileE164 })));
+  console.log("[WA WEBHOOK] FIRST EVENT FULL:", JSON.stringify(events[0]));
 
   for (const event of events) {
     const normalizedInbound = normalizeInboundText(event.text);
