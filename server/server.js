@@ -47,7 +47,10 @@ const {
   resolveAttachmentFilenameOnDisk
 } = require("./utils/attachments");
 
-dotenv.config({ path: path.join(__dirname, ".env") });
+// Only load .env if DOTENV_CONFIG_PATH is not set (allows CLI override)
+if (!process.env.DOTENV_CONFIG_PATH) {
+  dotenv.config({ path: path.join(__dirname, ".env") });
+}
 
 console.log("[ENV] Loaded from:", path.join(__dirname, ".env"));
 console.log("[ENV] FAST2SMS_OTP_ROUTE:", process.env.FAST2SMS_OTP_ROUTE);
@@ -662,6 +665,28 @@ mongoose
       }
     } catch (err) {
       console.warn("Legacy index cleanup skipped:", err.message);
+    }
+    
+    // Ensure buyer_invite_post_requirement template exists
+    try {
+      const WhatsAppTemplateRegistry = require("./models/WhatsAppTemplateRegistry");
+      await WhatsAppTemplateRegistry.findOneAndUpdate(
+        { key: "buyer_invite_post_requirement" },
+        {
+          key: "buyer_invite_post_requirement",
+          templateName: "buyer_invite_post_requirement_v2",
+          templateId: "c236ec98-5807-4910-9135-c8f7774ccd54",
+          language: "en",
+          category: "MARKETING",
+          status: "APPROVED",
+          variableCount: 1,
+          isActive: true
+        },
+        { upsert: true, new: true }
+      );
+      console.log("[Startup] buyer_invite_post_requirement template ensured");
+    } catch (err) {
+      console.warn("[Startup] Template init failed:", err.message);
     }
   })
   .catch((err) => console.error("MongoDB connection error:", err));
