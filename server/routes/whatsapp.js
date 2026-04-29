@@ -679,7 +679,7 @@ function buildRegisterConfirmationMessage(requirement, deepLink, profile) {
 }
 
 function normalizeInboundText(value) {
-  return String(value || "").trim().toLowerCase();
+  return String(value || "").trim().toLowerCase().replace(/[^\w\s]|_/g, "").replace(/\s+/g, " ").trim();
 }
 
 function buildConsentPromptMessage() {
@@ -1152,11 +1152,6 @@ if (isExistingSeller) {
       }
       continue;
     }
-
-    await sendWhatsAppMessage({
-      to: event.mobileE164,
-      body: buildWelcomeMessage()
-    });
 
     const intent = classifyInboundText(event.text);
     const registerPayload = intent.kind === "register"
