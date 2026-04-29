@@ -1086,7 +1086,7 @@ export default function SellerDashboard() {
               {console.log("[Dash] Render check:", { hasToken: !!session?.token, isWhatsAppPublicView, navigateFn: !!navigateToLogin }) || null}
               {!session?.token && isWhatsAppPublicView ? (
                 <button
-                  onClick={() => { console.log("[Dash] Login clicked"); navigateToLogin(); }}
+                  onClick={() => navigateToLogin()}
                   className="ui-btn-primary px-4 py-2"
                 >
                   Login
@@ -1244,7 +1244,13 @@ export default function SellerDashboard() {
               title="No buyer requirements right now"
               description="Check back soon! New requirements are posted daily. You can also update your categories to see more relevant posts."
               actionLabel="Update categories"
-              action={() => navigate("/seller/profile")}
+              action={() => {
+                if (session?.token) {
+                  navigate("/seller/settings");
+                } else {
+                  navigateToLogin();
+                }
+              }}
             />
           )}
 
