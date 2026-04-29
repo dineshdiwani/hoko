@@ -103,7 +103,7 @@ export default function SellerDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const persistedState = readSellerDashboardState();
   const [selectedCategory, setSelectedCategory] = useState(
-    catsFromUrl ? catsFromUrl.split(",").map(c => c.trim()).filter(Boolean) : "all"
+    catsFromUrl || "all"
   );
   const [cities, setCities] = useState([]);
   const [categories, setCategories] = useState(
@@ -400,7 +400,7 @@ export default function SellerDashboard() {
               limit: 100
             }
           });
-          console.log("[Dash] API response:", { status: res.status, count: Array.isArray(res.data) ? res.data.length : 0 });
+          console.log("[Dash] API response status:", res.status, "data count:", Array.isArray(res.data) ? res.data.length : 0, "first item:", Array.isArray(res.data) && res.data[0] ? res.data[0].product : "none");
           const rows = Array.isArray(res.data) ? res.data : [];
           setRequirements(rows);
           setShowingSampleData(false);
