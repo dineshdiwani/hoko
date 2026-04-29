@@ -989,13 +989,25 @@ console.log("[WA WEBHOOK] Extracted events:", events.length, events.map(e => ({ 
       if (BUYER_WORDS.has(normalizedInbound)) {
         await applyConsentConfirmed(await WhatsAppBuyerContact.findOne({ mobileE164: event.mobileE164 }), "buyer", event);
         
-        const deepLink = await sendBuyerInviteDirect(event.mobileE164);
-        const message = buildBuyerConfirmationMessage(event.mobileE164, deepLink);
+        const tempReq = await TempRequirement.findOneAndUpdate(
+          { mobileE164: event.mobileE164, status: "pending" },
+          {
+            $set: { status: "pending", source: "whatsapp", templateUsed: "buyer_invite_post_requirement" },
+            $setOnInsert: { expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) }
+          },
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
         
-        await sendWhatsAppMessage({
-          to: event.mobileE164,
-          body: message
-        });
+        const sendResult = await sendBuyerInviteTemplate(event.mobileE164, tempReq._id.toString());
+        
+        if (!sendResult.ok) {
+          const deepLink = `${resolvePublicAppUrl()}/buyer/requirement/new?ref=${tempReq._id.toString()}&mobile=${event.mobileE164.replace("+", "")}`;
+          const message = buildBuyerConfirmationMessage(event.mobileE164, deepLink);
+          await sendWhatsAppMessage({
+            to: event.mobileE164,
+            body: message
+          });
+        }
         
         consentState.delete(consentKey);
         continue;
