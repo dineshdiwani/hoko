@@ -351,13 +351,6 @@ export default function SellerDashboard() {
     load();
   }, [selectedCity, selectedCategory, session?.city, allowSellerSamplePosts, isWhatsAppPublicView, categories]);
 
-  // Reload when filters change
-  useEffect(() => {
-    if (!selectedCity || !selectedCategory || !cities.length || !categories.length) return;
-    if (loading) return;
-    load();
-  }, [selectedCity, selectedCategory]);
-
   useEffect(() => {
     const openRequirement = String(
       searchParams.get("openRequirement") || searchParams.get("postId") || ""
