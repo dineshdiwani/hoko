@@ -88,7 +88,6 @@ export default function SellerDashboard() {
   const isWhatsAppPublicView = isWhatsAppFlow;
   
   const isPublicRequirementView = !session?.token && Boolean(openRequirementFromUrl);
-  const isWhatsAppPublicView = isWhatsAppFlow && !session?.token;
 
   const [requirements, setRequirements] = useState([]);
   const [activeRequirement, setActiveRequirement] = useState(null);
