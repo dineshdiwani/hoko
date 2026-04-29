@@ -185,11 +185,12 @@ function buildConsentConfirmedBuyerMessage(deepLink, product, requirementId) {
 }
 
 function buildBuyerConfirmationMessage(mobile, deepLink) {
+  const mobileDisplay = String(mobile || "").replace(/^91/, "").trim();
   return [
     "🛒 You're a BUYER on HOKO!",
     "",
     "📝 Post your requirement and get multiple seller offers:",
-    deepLink,
+    `${deepLink}?mobile=${mobileDisplay}`,
     "",
     "💡 Fill in your details - sellers near you will respond!"
   ].join("\n");
@@ -765,7 +766,9 @@ async function sendBuyerInviteTemplate(to, tempRequirementId) {
   try {
     const templateId = String(templateConfig.templateId || "").trim();
     const languageCode = String(templateConfig.language || "en").trim();
-    const parameters = [deepLink];
+    const mobileDisplay = String(to || "").replace(/^91/, "").trim();
+    const deepLinkWithMobile = `${deepLink}?mobile=${mobileDisplay}`;
+    const parameters = [deepLinkWithMobile];
 
     const result = provider === "gupshup"
       ? await sendViaGupshupTemplate({
