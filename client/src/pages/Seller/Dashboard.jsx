@@ -103,7 +103,7 @@ export default function SellerDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const persistedState = readSellerDashboardState();
   const [selectedCategory, setSelectedCategory] = useState(
-    catsFromUrl || "all"
+    catsFromUrl ? catsFromUrl.split(",").map(c => c.trim()).filter(Boolean) : "all"
   );
   const [cities, setCities] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -435,7 +435,7 @@ export default function SellerDashboard() {
     }
 
     load();
-  }, [selectedCity, selectedCategory, session?.city, allowSellerSamplePosts, isWhatsAppPublicView, categories]);
+  }, [selectedCity, selectedCategory, session?.city, allowSellerSamplePosts, isWhatsAppPublicView, isWhatsAppFlow, categories]);
 
   useEffect(() => {
     const openRequirement = String(
