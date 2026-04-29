@@ -106,7 +106,9 @@ export default function SellerDashboard() {
     catsFromUrl ? catsFromUrl.split(",").map(c => c.trim()).filter(Boolean) : "all"
   );
   const [cities, setCities] = useState([]);
-  const [categories, setCategories] = useState([]);
+  const [categories, setCategories] = useState(
+    catsFromUrl ? catsFromUrl.split(",").map(c => c.trim()).filter(Boolean) : []
+  );
   const [selectedCity, setSelectedCity] = useState(
     cityFromUrl ||
       String(getSession()?.city || "").trim() ||
