@@ -90,8 +90,9 @@ export default function BuyerDashboard() {
     forcedTab || requestedTab || persistedState.activeTab
   );
   const [city, setCity] = useState(
-    normalizeBuyerCityFilter(session?.city || persistedState.city || "")
+    normalizeBuyerCityFilter(persistedState.city || session?.city || "")
   );
+  const cityInitializedRef = useRef(false);
   const [selectedCategory, setSelectedCategory] = useState(
     persistedState.selectedCategory || "all"
   );
@@ -125,18 +126,12 @@ const [showAppBanner, setShowAppBanner] = useState(true);
   }, []);
 
   useEffect(() => {
+    if (cityInitializedRef.current) return;
     const latestProfileCity = String(session?.city || "").trim();
     if (!latestProfileCity) return;
-    setCity((prev) => {
-      const current = String(prev || "").trim();
-      const previousDefault = String(lastSyncedProfileCityRef.current || "").trim();
-      const shouldFollowDefault =
-        !current ||
-        current.toLowerCase() === "all" ||
-        current.toLowerCase() === previousDefault.toLowerCase();
-      return shouldFollowDefault ? latestProfileCity : prev;
-    });
+    setCity(latestProfileCity);
     lastSyncedProfileCityRef.current = latestProfileCity;
+    cityInitializedRef.current = true;
   }, [session?.city]);
 
   // Safety guard
@@ -412,30 +407,35 @@ const [showAppBanner, setShowAppBanner] = useState(true);
     session?.token
   ]);
 
-useEffect(() => {
+  useEffect(() => {
     fetchOptions()
       .then((data) => {
         const nextCities = Array.isArray(data?.cities) ? data.cities : [];
         if (nextCities.length) {
           setCities(nextCities);
           setCity((prevCity) => {
-            const normalizedPrev = normalizeBuyerCityFilter(prevCity);
-            const preferredCity = normalizeBuyerCityFilter(
-              session?.city || persistedState.city || ""
-            );
-            const matchCity = (value) =>
-              nextCities.find(
+            if (cityInitializedRef.current && prevCity) {
+              const normalizedPrev = normalizeBuyerCityFilter(prevCity);
+              const currentMatch = nextCities.find(
                 (cityName) =>
                   String(cityName || "").trim().toLowerCase() ===
-                  String(value || "").trim().toLowerCase()
-              ) || "";
-            const currentMatch = normalizedPrev ? matchCity(normalizedPrev) : "";
-            if (currentMatch) return currentMatch;
-            const preferredMatch = preferredCity ? matchCity(preferredCity) : "";
-            if (preferredMatch) return preferredMatch;
-            if (normalizedPrev) return normalizedPrev;
-            if (preferredCity) return preferredCity;
-            return "";
+                  String(normalizedPrev || "").trim().toLowerCase()
+              );
+              return currentMatch || prevCity;
+            }
+            const preferredCity = normalizeBuyerCityFilter(
+              persistedState.city || session?.city || ""
+            );
+            const preferredMatch = preferredCity ? nextCities.find(
+              (cityName) =>
+                String(cityName || "").trim().toLowerCase() ===
+                String(preferredCity || "").trim().toLowerCase()
+            ) : "";
+            if (preferredMatch) {
+              cityInitializedRef.current = true;
+              return preferredMatch;
+            }
+            return prevCity || "";
           });
         }
       })
@@ -463,15 +463,9 @@ useEffect(() => {
         const latestCity = String(res?.data?.city || "").trim();
         const latestCurrency = String(res?.data?.preferredCurrency || "").trim();
 
-        if (latestCity) {
-          setCity((prev) => {
-            const currentCity = String(prev || "").trim();
-            const sessionCity = String(session?.city || "").trim();
-            if (!currentCity || currentCity === sessionCity) {
-              return latestCity;
-            }
-            return currentCity;
-          });
+        if (latestCity && !cityInitializedRef.current) {
+          setCity(latestCity);
+          cityInitializedRef.current = true;
         }
 
         if (
