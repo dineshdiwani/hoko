@@ -10,3 +10,6 @@ project(':capacitor-push-notifications').projectDir = new File('../node_modules/
 
 include ':capgo-capacitor-social-login'
 project(':capgo-capacitor-social-login').projectDir = new File('../node_modules/@capgo/capacitor-social-login/android')
+
+include ':shaher-capacitor-sms-retriever'
+project(':shaher-capacitor-sms-retriever').projectDir = new File('../node_modules/@shaher/capacitor-sms-retriever/android')
