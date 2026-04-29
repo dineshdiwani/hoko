@@ -302,29 +302,10 @@ export default function SellerDashboard() {
   }, [selectedCity, selectedCategory, session?.city, cityManuallySet]);
 
   useEffect(() => {
-    const buildSamplePosts = () => {
-      const cityValue = String(selectedCity || "").trim();
-      if (cityValue && cityValue.toLowerCase() !== "all") {
-        return generateSamplePostsForCity(cityValue, categories, 50);
-      }
-      const sampleCities = (Array.isArray(cities) ? cities : []).filter(Boolean);
-      if (!sampleCities.length) {
-        const fallbackCity = String(session?.city || "").trim();
-        return fallbackCity
-          ? generateSamplePostsForCity(fallbackCity, categories, 50)
-          : [];
-      }
-      return sampleCities.flatMap((cityName) =>
-        generateSamplePostsForCity(cityName, categories, 30)
-      );
-    };
-
     async function load() {
       setLoading(true);
       try {
         if (isWhatsAppPublicView) {
-          console.log("[Dash] Fetching meta/requirements", { city: selectedCity, category: selectedCategory });
-          // Use /meta/requirements for public read (no auth needed)
           const res = await api.get("/meta/requirements", {
             params: {
               city: selectedCity || "",
@@ -338,8 +319,7 @@ export default function SellerDashboard() {
           setLoading(false);
           return;
         }
-        
-        // For logged-in users or when viewing a specific requirement
+
         const res = await api.get("/seller/dashboard", {
           params: {
             city: selectedCity || "all",
@@ -347,40 +327,29 @@ export default function SellerDashboard() {
           }
         });
         const liveRows = Array.isArray(res.data) ? res.data : [];
-        
+
         if (allowSellerSamplePosts && liveRows.length === 0) {
-          setRequirements(buildSamplePosts());
-          setShowingSampleData(true);
-          setLoading(false);
-          return;
-        }
-        setRequirements(liveRows);
-        setShowingSampleData(false);
-      } catch (err) {
-        if (allowSellerSamplePosts) {
-          setRequirements(buildSamplePosts());
+          const samplePosts = generateSamplePostsForCity(
+            selectedCity && selectedCity !== "all" ? selectedCity : (session?.city || "Mumbai"),
+            categories.length ? categories : ["Electronics & Appliances"],
+            50
+          );
+          setRequirements(samplePosts);
           setShowingSampleData(true);
         } else {
-          setRequirements([]);
+          setRequirements(liveRows);
           setShowingSampleData(false);
         }
-} finally {
+      } catch (err) {
+        setRequirements([]);
+        setShowingSampleData(false);
+      } finally {
         setLoading(false);
       }
     }
-    
+
     load();
-  }, [
-    selectedCity,
-    selectedCategory,
-    cities,
-    categories,
-    allowSellerSamplePosts,
-    isWhatsAppPublicView,
-    openRequirementFromUrl,
-    session?.city,
-    refreshToken
-  ]);
+  }, [selectedCity, selectedCategory, session?.city, allowSellerSamplePosts, isWhatsAppPublicView, categories]);
 
   // Reload when filters change
   useEffect(() => {
