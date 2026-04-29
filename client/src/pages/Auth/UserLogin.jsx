@@ -6,6 +6,7 @@ import api from "../../services/api";
 import GoogleLoginButton from "../../components/GoogleLoginButton";
 import { isNativeAppRuntime } from "../../utils/runtime";
 import { ensureNativePushRegistration, isNativePushEnabled } from "../../services/nativePush";
+import { CapacitorSmsRetriever } from "@shaher/capacitor-sms-retriever";
 
 export default function UserLogin({ role = "buyer" }) {
   const isSeller = role === "seller";
@@ -217,6 +218,10 @@ useEffect(() => {
         webOtpAbortRef.current.abort();
         webOtpAbortRef.current = null;
       }
+      // Stop SMS retriever if running
+      if (isNativeAppRuntime()) {
+        CapacitorSmsRetriever.stopListening().catch(() => {});
+      }
       return undefined;
     }
 
@@ -224,8 +229,25 @@ useEffect(() => {
 
     const isNative = isNativeAppRuntime();
 
+    if (isNative && loginMethod === "sms") {
+      // Use SMS Retriever plugin for Android
+      CapacitorSmsRetriever.startListening()
+        .then((result) => {
+          const smsBody = String(result?.body || "");
+          const code = (smsBody.match(/\b(\d{6})\b/) || [])[1];
+          if (code && code.length === 6) {
+            setOtp(code);
+          }
+        })
+        .catch(() => {});
+      
+      return () => {
+        CapacitorSmsRetriever.stopListening().catch(() => {});
+      };
+    }
+
     if (isNative) {
-      // For native Android app, focus the hidden input to trigger SMS autofill on keyboard
+      // For native app without SMS retriever, focus the hidden input to trigger keyboard autofill
       setTimeout(() => {
         otpAutoFillRef.current?.focus();
       }, 300);
