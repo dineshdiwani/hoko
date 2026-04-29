@@ -352,6 +352,7 @@ export default function SellerDashboard() {
 
   useEffect(() => {
     console.log("[Dash] isWhatsAppFlow:", isWhatsAppFlow, "isWhatsAppPublicView:", isWhatsAppPublicView, "hasToken:", !!session?.token);
+    console.log("[Dash] URL params:", { cityFromUrl, catsFromUrl, mobileFromUrl, sourceFromUrl });
     // Never redirect for WhatsApp flow - let them see the dashboard
     if (isWhatsAppPublicView) {
       return;
@@ -386,6 +387,7 @@ export default function SellerDashboard() {
       setLoading(true);
       try {
         if (isWhatsAppPublicView) {
+          console.log("[Dash] Loading data for WhatsApp:", { selectedCity, selectedCategory });
           const res = await api.get("/meta/requirements", {
             params: {
               city: selectedCity || "",
@@ -393,6 +395,7 @@ export default function SellerDashboard() {
               limit: 100
             }
           });
+          console.log("[Dash] API response:", { status: res.status, count: Array.isArray(res.data) ? res.data.length : 0 });
           const rows = Array.isArray(res.data) ? res.data : [];
           setRequirements(rows);
           setShowingSampleData(false);
