@@ -1003,6 +1003,7 @@ router.post("/webhook", async (req, res) => {
 
   for (const event of events) {
     const normalizedInbound = normalizeInboundText(event.text);
+  console.log("[WA WEBHOOK] Normalized inbound:", { original: event.text, normalized: normalizedInbound, isBuyer: BUYER_WORDS.has(normalizedInbound) });
     const { sellerContact, buyerContact } = await loadContactByMobile(event.mobileE164);
     const consentKey = getConsentStateKey(event.mobileE164);
     const currentConsentState = consentState.get(consentKey);
