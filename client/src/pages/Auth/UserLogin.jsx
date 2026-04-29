@@ -222,6 +222,16 @@ useEffect(() => {
 
     focusOtpBox(0);
 
+    const isNative = isNativeAppRuntime();
+
+    if (isNative) {
+      // For native Android app, focus the hidden input to trigger SMS autofill on keyboard
+      setTimeout(() => {
+        otpAutoFillRef.current?.focus();
+      }, 300);
+      return undefined;
+    }
+
     const supportsWebOtp =
       typeof window !== "undefined" &&
       "OTPCredential" in window &&
@@ -910,6 +920,7 @@ useEffect(() => {
                     className="sr-only absolute opacity-0 pointer-events-none"
                     tabIndex={-1}
                     aria-hidden="true"
+                    autoFocus={isNativeAppRuntime()}
                   />
 
                   <label className="block text-sm font-medium mb-3 text-gray-700 text-center">
