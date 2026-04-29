@@ -92,7 +92,6 @@ export default function BuyerDashboard() {
   const [city, setCity] = useState(
     normalizeBuyerCityFilter(persistedState.city || session?.city || "")
   );
-  const cityInitializedRef = useRef(false);
   const [selectedCategory, setSelectedCategory] = useState(
     persistedState.selectedCategory || "all"
   );
@@ -125,13 +124,22 @@ const [showAppBanner, setShowAppBanner] = useState(true);
     };
   }, []);
 
-  useEffect(() => {
-    if (cityInitializedRef.current) return;
+   useEffect(() => {
     const latestProfileCity = String(session?.city || "").trim();
     if (!latestProfileCity) return;
-    setCity(latestProfileCity);
-    lastSyncedProfileCityRef.current = latestProfileCity;
-    cityInitializedRef.current = true;
+    setCity((prev) => {
+      const current = String(prev || "").trim();
+      if (!current) return current;
+      const previousDefault = String(lastSyncedProfileCityRef.current || "").trim();
+      const shouldFollowDefault =
+        current.toLowerCase() === "all" ||
+        current.toLowerCase() === previousDefault.toLowerCase();
+      if (shouldFollowDefault) {
+        lastSyncedProfileCityRef.current = latestProfileCity;
+        return latestProfileCity;
+      }
+      return prev;
+    });
   }, [session?.city]);
 
   // Safety guard
@@ -413,34 +421,10 @@ const [showAppBanner, setShowAppBanner] = useState(true);
         const nextCities = Array.isArray(data?.cities) ? data.cities : [];
         if (nextCities.length) {
           setCities(nextCities);
-          setCity((prevCity) => {
-            if (cityInitializedRef.current && prevCity) {
-              const normalizedPrev = normalizeBuyerCityFilter(prevCity);
-              const currentMatch = nextCities.find(
-                (cityName) =>
-                  String(cityName || "").trim().toLowerCase() ===
-                  String(normalizedPrev || "").trim().toLowerCase()
-              );
-              return currentMatch || prevCity;
-            }
-            const preferredCity = normalizeBuyerCityFilter(
-              persistedState.city || session?.city || ""
-            );
-            const preferredMatch = preferredCity ? nextCities.find(
-              (cityName) =>
-                String(cityName || "").trim().toLowerCase() ===
-                String(preferredCity || "").trim().toLowerCase()
-            ) : "";
-            if (preferredMatch) {
-              cityInitializedRef.current = true;
-              return preferredMatch;
-            }
-            return prevCity || "";
-          });
         }
       })
       .catch(() => {});
-  }, [persistedState.city, session?.city, refreshToken]);
+  }, [refreshToken]);
 
   useEffect(() => {
     fetchOptions()
@@ -463,10 +447,13 @@ const [showAppBanner, setShowAppBanner] = useState(true);
         const latestCity = String(res?.data?.city || "").trim();
         const latestCurrency = String(res?.data?.preferredCurrency || "").trim();
 
-        if (latestCity && !cityInitializedRef.current) {
-          setCity(latestCity);
-          cityInitializedRef.current = true;
-        }
+        setCity((prev) => {
+          const currentCity = String(prev || "").trim();
+          if (!currentCity || currentCity === String(session?.city || "").trim()) {
+            return latestCity || prev;
+          }
+          return prev;
+        });
 
         if (
           (latestCity && latestCity !== String(session?.city || "").trim()) ||
