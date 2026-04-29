@@ -186,11 +186,12 @@ function buildConsentConfirmedBuyerMessage(deepLink, product, requirementId) {
 
 function buildBuyerConfirmationMessage(mobile, deepLink) {
   const mobileDisplay = String(mobile || "").replace(/^91/, "").trim();
+  const separator = deepLink.includes("?") ? "&" : "?";
   return [
     "🛒 You're a BUYER on HOKO!",
     "",
     "📝 Post your requirement and get multiple seller offers:",
-    `${deepLink}?mobile=${mobileDisplay}`,
+    `${deepLink}${separator}mobile=${mobileDisplay}`,
     "",
     "💡 Fill in your details - sellers near you will respond!"
   ].join("\n");
