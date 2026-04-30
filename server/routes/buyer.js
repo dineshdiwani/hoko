@@ -413,6 +413,86 @@ async function sendRequirementAckTemplate(mobileE164, requirementId) {
   }
 }
 
+async function sendBuyerRequirementConfirmation(mobileE164) {
+  const provider = String(process.env.WHATSAPP_PROVIDER || "mock").trim().toLowerCase();
+  if (!["gupshup"].includes(provider)) {
+    console.log(`[Buyer Confirm] Provider ${provider} not supported`);
+    return { ok: false, reason: "unsupported_provider" };
+  }
+
+  let templateConfig = await WhatsAppTemplateRegistry.findOne({
+    key: "buyer_requirement_confirmation",
+    isActive: true
+  }).lean();
+
+  if (!templateConfig) {
+    templateConfig = await WhatsAppTemplateRegistry.findOneAndUpdate(
+      { key: "buyer_requirement_confirmation" },
+      {
+        key: "buyer_requirement_confirmation",
+        templateName: "buyer_requirement_post_confirm_v1",
+        templateId: "placeholder",
+        language: "en",
+        category: "UTILITY",
+        status: "PENDING",
+        variableCount: 0,
+        isActive: false
+      },
+      { upsert: true, new: true }
+    ).lean();
+  }
+
+  if (!templateConfig.isActive || templateConfig.status !== "APPROVED") {
+    console.log(`[Buyer Confirm] Template not approved yet, skipping WhatsApp`);
+    return { ok: false, reason: "template_not_approved" };
+  }
+
+  try {
+    const templateId = String(templateConfig.templateId || "").trim();
+    const languageCode = String(templateConfig.language || "en").trim();
+    const appBase = resolvePublicAppUrl();
+    const dashboardLink = `${appBase}/buyer/dashboard?tab=posts`;
+
+    const result = await sendViaGupshupTemplate({
+      to: mobileE164,
+      templateId,
+      templateName: templateConfig.templateName,
+      languageCode,
+      parameters: [],
+      buttonUrl: dashboardLink
+    });
+
+    console.log(`[Buyer Confirm] Sent confirmation to ${mobileE164}`);
+    return { ok: true, providerMessageId: result?.providerMessageId };
+  } catch (err) {
+    console.error(`[Buyer Confirm] Failed for ${mobileE164}:`, err?.message || err);
+    return { ok: false, reason: err?.message || "send_failed" };
+  }
+}
+
+async function sendBuyerConfirmationSms(mobileE164) {
+  const appBase = resolvePublicAppUrl();
+  const dashboardLink = `${appBase}/buyer/dashboard?tab=posts`;
+  const smsBody = `Your requirement is live! Sellers will compete to offer you the best price. Manage & track it here: ${dashboardLink}`;
+
+  try {
+    const { sendBulkSms } = require("../utils/sendSms");
+    await sendBulkSms({ numbers: [mobileE164], message: smsBody });
+    console.log(`[Buyer SMS] Sent confirmation SMS to ${mobileE164}`);
+    return { ok: true };
+  } catch (err) {
+    console.error(`[Buyer SMS] Failed for ${mobileE164}:`, err?.message || err);
+    return { ok: false, reason: err?.message || "send_failed" };
+  }
+}
+
+async function sendBuyerRequirementPostNotification(mobileE164) {
+  const waResult = await sendBuyerRequirementConfirmation(mobileE164);
+  if (!waResult.ok) {
+    await sendBuyerConfirmationSms(mobileE164);
+  }
+}
+
 router.get("/temp-requirement/:refId", async (req, res) => {
   const { refId } = req.params;
   
@@ -535,6 +615,7 @@ router.post("/requirement/public", async (req, res) => {
   });
 
   const ackResult = await sendRequirementAckTemplate(mobileE164, requirement._id);
+  sendBuyerRequirementPostNotification(mobileE164);
 
   setImmediate(async () => {
     try {
@@ -1117,6 +1198,11 @@ router.post("/requirement", auth, buyerOnly, async (req, res) => {
       name: req.user.name || ""
     }
   });
+
+  const buyerMobile = req.user.mobile || "";
+  if (buyerMobile) {
+    sendBuyerRequirementPostNotification(buyerMobile);
+  }
 
   const io = req.app.get("io");
   const requirementName =
