@@ -312,7 +312,8 @@ router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
             city: user.city,
             name: user.name,
             preferredCurrency: user.preferredCurrency || "INR",
-            mobile: user.mobile
+            mobile: user.mobile,
+            sellerProfile: user.sellerProfile || {}
           },
           token
         });
@@ -341,7 +342,8 @@ router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
         city: user.city,
         name: user.name,
         preferredCurrency: user.preferredCurrency || "INR",
-        mobile: user.mobile
+        mobile: user.mobile,
+        sellerProfile: user.sellerProfile || {}
       },
       token,
       merge: mergeResult.merged ? mergeResult : undefined
@@ -402,7 +404,8 @@ router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
           city: user.city,
           name: user.name,
           preferredCurrency: user.preferredCurrency || "INR",
-          mobile: user.mobile
+          mobile: user.mobile,
+          sellerProfile: user.sellerProfile || {}
         },
         token
       });
