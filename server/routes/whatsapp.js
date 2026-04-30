@@ -1179,6 +1179,57 @@ router.post("/webhook", async (req, res) => {
       const existingUser = await User.findOne({ mobile: event.mobileE164 }).select("_id roles").lean();
       const isExistingSeller = existingUser && existingUser.roles?.seller;
       
+async function sendSellerConfirmationTemplate(to, city, categories, loginLink) {
+  const provider = resolveWhatsAppProvider();
+  if (!["gupshup"].includes(provider)) {
+    console.log(`[Seller Confirm] Provider ${provider} not supported for template send`);
+    return { ok: false, reason: "unsupported_provider" };
+  }
+
+  let templateConfig = await WhatsAppTemplateRegistry.findOne({
+    key: "seller_confirmation_welcome",
+    isActive: true
+  }).lean();
+
+  if (!templateConfig) {
+    templateConfig = await WhatsAppTemplateRegistry.findOneAndUpdate(
+      { key: "seller_confirmation_welcome" },
+      {
+        key: "seller_confirmation_welcome",
+        templateName: "seller_welcome_confirm_v1",
+        templateId: "ee6df77f-d5cc-4833-aaf9-29e06623e7db",
+        language: "en",
+        category: "MARKETING",
+        status: "APPROVED",
+        variableCount: 2,
+        isActive: true
+      },
+      { upsert: true, new: true }
+    ).lean();
+  }
+
+  try {
+    const templateId = String(templateConfig.templateId || "").trim();
+    const languageCode = String(templateConfig.language || "en").trim();
+    const categoryText = categories.length > 0 ? categories.join(", ") : "";
+
+    const result = await sendViaGupshupTemplate({
+      to,
+      templateId,
+      templateName: templateConfig.templateName,
+      languageCode,
+      parameters: [city, categoryText],
+      buttonUrl: loginLink
+    });
+
+    console.log(`[Seller Confirm] Sent to ${to}, providerMessageId: ${result?.providerMessageId}`);
+    return { ok: true, providerMessageId: result?.providerMessageId };
+  } catch (err) {
+    console.error(`[Seller Confirm] Failed to send to ${to}:`, err?.message || err);
+    return { ok: false, reason: err?.message || "send_failed" };
+  }
+}
+
 if (isExistingSeller) {
         const loginParams = new URLSearchParams();
         loginParams.set("mobile", event.mobileE164.replace("+", ""));
@@ -1186,10 +1237,18 @@ if (isExistingSeller) {
         loginParams.set("cats", parsed.whatsappCategories.join(","));
         loginParams.set("from", "wa");
         const loginLink = `${appBase}/seller/login?${loginParams.toString()}`;
-        await sendWhatsAppMessage({
-          to: event.mobileE164,
-          body: buildExistingSellerMessage(cityToSave, parsed.whatsappCategories, loginLink)
-        });
+        const sendResult = await sendSellerConfirmationTemplate(
+          event.mobileE164,
+          cityToSave,
+          parsed.whatsappCategories,
+          loginLink
+        );
+        if (!sendResult.ok) {
+          await sendWhatsAppMessage({
+            to: event.mobileE164,
+            body: buildExistingSellerMessage(cityToSave, parsed.whatsappCategories, loginLink)
+          });
+        }
       } else {
         const loginParams = new URLSearchParams();
         loginParams.set("mobile", event.mobileE164.replace("+", ""));
@@ -1197,10 +1256,18 @@ if (isExistingSeller) {
         loginParams.set("cats", parsed.whatsappCategories.join(","));
         loginParams.set("from", "wa");
         const loginLink = `${appBase}/seller/login?${loginParams.toString()}`;
-        await sendWhatsAppMessage({
-          to: event.mobileE164,
-          body: buildSellerConfirmationMessage(cityToSave, parsed.whatsappCategories, loginLink)
-        });
+        const sendResult = await sendSellerConfirmationTemplate(
+          event.mobileE164,
+          cityToSave,
+          parsed.whatsappCategories,
+          loginLink
+        );
+        if (!sendResult.ok) {
+          await sendWhatsAppMessage({
+            to: event.mobileE164,
+            body: buildSellerConfirmationMessage(cityToSave, parsed.whatsappCategories, loginLink)
+          });
+        }
       }
       continue;
     }
