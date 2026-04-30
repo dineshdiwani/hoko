@@ -766,7 +766,7 @@ async function sendBuyerInviteTemplate(to, tempRequirementId) {
         language: "en",
         category: "MARKETING",
         status: "APPROVED",
-        variableCount: 0,
+        variableCount: 1,
         isActive: true
       },
       { upsert: true, new: true }
@@ -782,7 +782,7 @@ async function sendBuyerInviteTemplate(to, tempRequirementId) {
       templateId, 
       templateName: templateConfig.templateName,
       languageCode,
-      buttonUrl: deepLink,
+      parameters: [deepLink],
       provider: resolveWhatsAppProvider(),
       gupshupAppId: process.env.GUPSHUP_APP_ID,
       gupshupSource: process.env.GUPSHUP_SOURCE
@@ -793,8 +793,7 @@ async function sendBuyerInviteTemplate(to, tempRequirementId) {
           templateId,
           templateName: templateConfig.templateName,
           languageCode,
-          parameters: [],
-          buttonUrl: deepLink
+          parameters: [deepLink]
         });
 
     console.log(`[Buyer Invite] Sent to ${to}, providerMessageId: ${result?.providerMessageId}`);
