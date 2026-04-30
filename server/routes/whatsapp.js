@@ -12,7 +12,7 @@ const WhatsAppBuyerContact = require("../models/WhatsAppBuyerContact");
 const OptedInSeller = require("../models/OptedInSeller");
 const User = require("../models/User");
 const { sendWhatsAppMessage } = require("../utils/sendWhatsApp");
-const { sendViaGupshupTemplate, sendViaWapiTemplate } = require("../utils/sendWhatsApp");
+const { sendViaGupshupTemplate } = require("../utils/sendWhatsApp");
 const { resolvePublicAppUrl } = require("../utils/publicAppUrl");
 const WhatsAppTemplateRegistry = require("../models/WhatsAppTemplateRegistry");
 const PlatformSettings = require("../models/PlatformSettings");
@@ -485,7 +485,7 @@ function normalizeCityName(city) {
 
 async function sendSellerRequirementInvite(to, requirementId, product, city, quantity) {
   const provider = resolveWhatsAppProvider();
-  if (!["gupshup", "meta"].includes(provider)) {
+  if (!["gupshup"].includes(provider)) {
     console.log(`[Seller Invite] Provider ${provider} not supported for template send`);
     return { ok: false, reason: "unsupported_provider" };
   }
@@ -507,17 +507,9 @@ async function sendSellerRequirementInvite(to, requirementId, product, city, qua
     const languageCode = String(templateConfig.language || "en").trim();
     const parameters = [product, city, quantity, String(requirementId)];
 
-    const result = provider === "gupshup"
-      ? await sendViaGupshupTemplate({
+    const result = await sendViaGupshupTemplate({
           to,
           templateId,
-          templateName: templateConfig.templateName,
-          languageCode,
-          parameters,
-          buttonUrl: String(requirementId)
-        })
-      : await sendViaWapiTemplate({
-          to,
           templateName: templateConfig.templateName,
           languageCode,
           parameters,
@@ -748,7 +740,7 @@ function resolveWhatsAppProvider() {
 
 async function sendBuyerInviteTemplate(to, tempRequirementId) {
   const provider = resolveWhatsAppProvider();
-  if (!["gupshup", "meta"].includes(provider)) {
+  if (!["gupshup"].includes(provider)) {
     console.log(`[Buyer Invite] Provider ${provider} not supported for template send`);
     return { ok: false, reason: "unsupported_provider" };
   }
@@ -772,7 +764,7 @@ async function sendBuyerInviteTemplate(to, tempRequirementId) {
         language: "en",
         category: "MARKETING",
         status: "APPROVED",
-        variableCount: 1,
+        variableCount: 0,
         isActive: true
       },
       { upsert: true, new: true }
@@ -783,34 +775,24 @@ async function sendBuyerInviteTemplate(to, tempRequirementId) {
   try {
     const templateId = String(templateConfig.templateId || "").trim();
     const languageCode = String(templateConfig.language || "en").trim();
-    const mobileDisplay = String(to || "").replace(/^(\+)?91/, "").replace("+", "").trim();
-    const separator = deepLink.includes("?") ? "&" : "?";
-    const deepLinkWithMobile = `${deepLink}${separator}mobile=${mobileDisplay}`;
-    const parameters = [deepLinkWithMobile];
     console.log("[Buyer Invite] Sending template:", { 
       to, 
       templateId, 
       templateName: templateConfig.templateName,
-      languageCode, 
-      parameters,
+      languageCode,
+      buttonUrl: deepLink,
       provider: resolveWhatsAppProvider(),
       gupshupAppId: process.env.GUPSHUP_APP_ID,
       gupshupSource: process.env.GUPSHUP_SOURCE
     });
 
-    const result = provider === "gupshup"
-      ? await sendViaGupshupTemplate({
+    const result = await sendViaGupshupTemplate({
           to,
           templateId,
           templateName: templateConfig.templateName,
           languageCode,
-          parameters
-        })
-      : await sendViaWapiTemplate({
-          to,
-          templateName: templateConfig.templateName,
-          languageCode,
-          parameters
+          parameters: [],
+          buttonUrl: deepLink
         });
 
     console.log(`[Buyer Invite] Sent to ${to}, providerMessageId: ${result?.providerMessageId}`);
