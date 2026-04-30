@@ -180,12 +180,14 @@ export default function SellerRegister() {
     try {
       const res = await api.post("/seller/onboard", profile);
       setSellerDashboardCategories(profile.categories || []);
-      setSession({
+      const updatedSession = {
         ...session,
         city: res.data.city,
         name: res.data.sellerProfile?.registeredBusinessName || "Seller",
-        sellerProfile: res.data.sellerProfile
-      });
+        sellerProfile: res.data.sellerProfile,
+        roles: { ...(session?.roles || {}), seller: true }
+      };
+      setSession(updatedSession);
       alert("Registration submitted successfully!");
       localStorage.removeItem("post_login_redirect");
       localStorage.removeItem("post_login_redirect_source");
@@ -193,6 +195,7 @@ export default function SellerRegister() {
       if (seller.city) dashboardParams.set("city", seller.city);
       if (catsFromUrl) dashboardParams.set("cats", catsFromUrl);
       if (cityFromUrl && !seller.city) dashboardParams.set("city", cityFromUrl);
+      dashboardParams.set("from", "wa");
       window.location.href = `/seller/dashboard${
         dashboardParams.toString() ? `?${dashboardParams.toString()}` : ""
       }`;
