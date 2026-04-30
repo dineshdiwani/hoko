@@ -413,7 +413,7 @@ async function sendRequirementAckTemplate(mobileE164, requirementId) {
   }
 }
 
-async function sendBuyerRequirementConfirmation(mobileE164) {
+async function sendBuyerRequirementConfirmation(mobileE164, requirementId) {
   const provider = String(process.env.WHATSAPP_PROVIDER || "mock").trim().toLowerCase();
   if (!["gupshup"].includes(provider)) {
     console.log(`[Buyer Confirm] Provider ${provider} not supported`);
@@ -451,7 +451,7 @@ async function sendBuyerRequirementConfirmation(mobileE164) {
     const templateId = String(templateConfig.templateId || "").trim();
     const languageCode = String(templateConfig.language || "en").trim();
     const appBase = resolvePublicAppUrl();
-    const dashboardLink = `${appBase}/buyer/dashboard?tab=posts`;
+    const dashboardLink = `${appBase}/buyer/dashboard?tab=posts&ref=${requirementId}`;
 
     const result = await sendViaGupshupTemplate({
       to: mobileE164,
@@ -470,9 +470,9 @@ async function sendBuyerRequirementConfirmation(mobileE164) {
   }
 }
 
-async function sendBuyerConfirmationSms(mobileE164) {
+async function sendBuyerConfirmationSms(mobileE164, requirementId) {
   const appBase = resolvePublicAppUrl();
-  const dashboardLink = `${appBase}/buyer/dashboard?tab=posts`;
+  const dashboardLink = `${appBase}/buyer/dashboard?tab=posts&ref=${requirementId}`;
   const smsBody = `Your requirement is live! Sellers will compete to offer you the best price. Manage & track it here: ${dashboardLink}`;
 
   try {
@@ -486,10 +486,10 @@ async function sendBuyerConfirmationSms(mobileE164) {
   }
 }
 
-async function sendBuyerRequirementPostNotification(mobileE164) {
-  const waResult = await sendBuyerRequirementConfirmation(mobileE164);
+async function sendBuyerRequirementPostNotification(mobileE164, requirementId) {
+  const waResult = await sendBuyerRequirementConfirmation(mobileE164, requirementId);
   if (!waResult.ok) {
-    await sendBuyerConfirmationSms(mobileE164);
+    await sendBuyerConfirmationSms(mobileE164, requirementId);
   }
 }
 
@@ -615,7 +615,7 @@ router.post("/requirement/public", async (req, res) => {
   });
 
   const ackResult = await sendRequirementAckTemplate(mobileE164, requirement._id);
-  sendBuyerRequirementPostNotification(mobileE164);
+  sendBuyerRequirementPostNotification(mobileE164, requirement._id);
 
   setImmediate(async () => {
     try {
@@ -1201,7 +1201,7 @@ router.post("/requirement", auth, buyerOnly, async (req, res) => {
 
   const buyerMobile = req.user.mobile || "";
   if (buyerMobile) {
-    sendBuyerRequirementPostNotification(buyerMobile);
+    sendBuyerRequirementPostNotification(buyerMobile, requirement._id);
   }
 
   const io = req.app.get("io");
