@@ -241,7 +241,6 @@ useEffect(() => {
           const code = (smsBody.match(/\b(\d{6})\b/) || [])[1];
           if (code && code.length === 6) {
             setOtp(code);
-            setTimeout(() => verifyOtp(), 500);
           }
         })
         .catch(() => {});
@@ -659,18 +658,38 @@ useEffect(() => {
         }
         
         if (pendingLoginMethod === "email" || pendingLoginMethod === "mobile") {
-          setPendingCitySession({
-            _id: user._id,
-            role: user.role || currentRole,
-            roles: user.roles,
-            email: user.email || (pendingLoginMethod === "email" ? email : ""),
-            city: user.city || "",
-            name: buildDisplayName(user, currentRole, profile),
-            preferredCurrency: user.preferredCurrency || "INR",
-            mobile: user.mobile || mobile || "",
-            token: res.data.token
-          });
-          setShowCityModal(true);
+          if (user.city || cityFromUrl) {
+            setSession({
+              _id: user._id,
+              role: user.role || currentRole,
+              roles: user.roles,
+              email: user.email || (pendingLoginMethod === "email" ? email : ""),
+              city: cityFromUrl || user.city,
+              name: buildDisplayName(user, currentRole, profile),
+              preferredCurrency: user.preferredCurrency || "INR",
+              mobile: user.mobile || mobile || "",
+              sellerProfile: user.sellerProfile || profile || {},
+              token: res.data.token
+            });
+            forceBuyerPostsTab();
+            const dashboardParams = new URLSearchParams();
+            dashboardParams.set("tab", "posts");
+            if (cityFromUrl || user.city) dashboardParams.set("city", cityFromUrl || user.city);
+            navigate(`/buyer/dashboard?${dashboardParams.toString()}`, { replace: true });
+          } else if (!user.city) {
+            setPendingCitySession({
+              _id: user._id,
+              role: user.role || currentRole,
+              roles: user.roles,
+              email: user.email || (pendingLoginMethod === "email" ? email : ""),
+              city: "",
+              name: buildDisplayName(user, currentRole, profile),
+              preferredCurrency: user.preferredCurrency || "INR",
+              mobile: user.mobile || mobile || "",
+              token: res.data.token
+            });
+            setShowCityModal(true);
+          }
           setOtpLoading(false);
           return;
         }
@@ -809,19 +828,39 @@ useEffect(() => {
           });
           return;
         }
-        setPendingCitySession({
-          _id: user._id,
-          role: currentRole,
-          roles: user.roles,
-          email: user.email,
-          city: "",
-          name: user.name || "Buyer",
-          picture: user.picture,
-          preferredCurrency: user.preferredCurrency || "INR",
-          sellerProfile: user.sellerProfile || {},
-          token: res.data.token
-        });
-        setShowCityModal(true);
+        if (user.city || cityFromUrl) {
+          setSession({
+            _id: user._id,
+            role: currentRole,
+            roles: user.roles,
+            email: user.email,
+            city: cityFromUrl || user.city,
+            name: user.name || "Buyer",
+            picture: user.picture,
+            preferredCurrency: user.preferredCurrency || "INR",
+            sellerProfile: user.sellerProfile || {},
+            token: res.data.token
+          });
+          forceBuyerPostsTab();
+          const dashboardParams = new URLSearchParams();
+          dashboardParams.set("tab", "posts");
+          if (cityFromUrl || user.city) dashboardParams.set("city", cityFromUrl || user.city);
+          navigate(`/buyer/dashboard?${dashboardParams.toString()}`, { replace: true });
+        } else {
+          setPendingCitySession({
+            _id: user._id,
+            role: currentRole,
+            roles: user.roles,
+            email: user.email,
+            city: "",
+            name: user.name || "Buyer",
+            picture: user.picture,
+            preferredCurrency: user.preferredCurrency || "INR",
+            sellerProfile: user.sellerProfile || {},
+            token: res.data.token
+          });
+          setShowCityModal(true);
+        }
       })
       .catch((err) => {
         const message = err?.response?.data?.message || "Login failed";
