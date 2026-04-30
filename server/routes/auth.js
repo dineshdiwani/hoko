@@ -294,9 +294,28 @@ router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
     
     const normalizedRole = role === "seller" ? "seller" : "buyer";
     if (normalizedRole === "seller") {
-const hasSellerProfile = Boolean(user.roles?.seller) || Boolean(user.sellerProfile?.registeredBusinessName);
+      const hasSellerProfile = Boolean(user.roles?.seller) || Boolean(user.sellerProfile?.registeredBusinessName);
       if (!hasSellerProfile) {
-        return res.status(403).json({ message: "Complete seller registration before login" });
+        const token = jwt.sign(
+          { id: user._id, role: normalizedRole, tokenVersion: user.tokenVersion || 0 },
+          process.env.JWT_SECRET,
+          { expiresIn: "7d" }
+        );
+        return res.status(200).json({
+          success: true,
+          requiresSellerRegistration: true,
+          user: {
+            _id: user._id,
+            email: user.email,
+            role: normalizedRole,
+            roles: user.roles,
+            city: user.city,
+            name: user.name,
+            preferredCurrency: user.preferredCurrency || "INR",
+            mobile: user.mobile
+          },
+          token
+        });
       }
     }
     
@@ -367,8 +386,25 @@ const hasSellerProfile = Boolean(user.roles?.seller) || Boolean(user.sellerProfi
       Boolean(user.sellerProfile?.registeredBusinessName) ||
       Boolean(user.sellerProfile?.taxId);
     if (!hasSellerProfile) {
-      return res.status(403).json({
-        message: "Complete seller registration before login"
+      const token = jwt.sign(
+        { id: user._id, role: normalizedRole, tokenVersion: user.tokenVersion || 0 },
+        process.env.JWT_SECRET,
+        { expiresIn: "7d" }
+      );
+      return res.status(200).json({
+        success: true,
+        requiresSellerRegistration: true,
+        user: {
+          _id: user._id,
+          email: user.email,
+          role: normalizedRole,
+          roles: user.roles,
+          city: user.city,
+          name: user.name,
+          preferredCurrency: user.preferredCurrency || "INR",
+          mobile: user.mobile
+        },
+        token
       });
     }
     if (!user.termsAccepted?.at && !acceptTerms) {
