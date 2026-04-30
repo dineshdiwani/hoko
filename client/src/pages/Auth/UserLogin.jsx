@@ -235,13 +235,13 @@ useEffect(() => {
     const isNative = isNativeAppRuntime();
 
     if (isNative && loginMethod === "sms") {
-      // Use SMS Retriever plugin for Android
       CapacitorSmsRetriever.startListening()
         .then((result) => {
           const smsBody = String(result?.body || "");
           const code = (smsBody.match(/\b(\d{6})\b/) || [])[1];
           if (code && code.length === 6) {
             setOtp(code);
+            setTimeout(() => verifyOtp(), 500);
           }
         })
         .catch(() => {});
