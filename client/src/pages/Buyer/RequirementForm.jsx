@@ -227,6 +227,20 @@ useEffect(() => {
   }, [isEditMode, navigate, requirementId]);
 
   useEffect(() => {
+    if (mobileFromUrl) {
+      setForm((prev) => ({ ...prev, mobile: mobileFromUrl }));
+    } else if (session?.mobile) {
+      setForm((prev) => ({ ...prev, mobile: session.mobile.replace("+", "") }));
+    }
+
+    if (session?.email) {
+      setForm((prev) => ({ ...prev, email: session.email }));
+    }
+
+    if (session?.city && isPublic && !cityFromUrl && !form.city) {
+      setForm((prev) => ({ ...prev, city: session.city }));
+    }
+    
     async function fetchMobileFromRef() {
       if (!isPublic || !tempRequirementRef || form.mobile) return;
       
@@ -244,20 +258,6 @@ useEffect(() => {
       }
     }
     
-    if (mobileFromUrl) {
-      setForm((prev) => ({ ...prev, mobile: mobileFromUrl }));
-    }
-    
-    // If logged in via email, pre-fill mobile from session if available
-    if (session?.mobile && isPublic && !form.mobile) {
-      setForm((prev) => ({ ...prev, mobile: session.mobile.replace("+", "") }));
-    }
-
-    if (session?.email) {
-      setForm((prev) => ({ ...prev, email: session.email }));
-    }
-    
-    // For existing users, fetch city from database using mobile
     async function loadCityFromDatabase() {
       const mobile = form.mobile || mobileFromUrl;
       if (!mobile || !isPublic) return;
@@ -275,7 +275,7 @@ useEffect(() => {
     
     loadCityFromDatabase();
     fetchMobileFromRef();
-  }, [tempRequirementRef, isPublic, session?.mobile]);
+  }, [tempRequirementRef, isPublic, mobileFromUrl, cityFromUrl, session]);
 
   useEffect(() => {
     const draft = localStorage.getItem("draft_requirement_text");
