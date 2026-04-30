@@ -746,7 +746,8 @@ async function sendBuyerInviteTemplate(to, tempRequirementId) {
   }
 
   const appBase = resolvePublicAppUrl();
-  const deepLink = `${appBase}/buyer/requirement/new?ref=${tempRequirementId}`;
+  const mobileDisplay = String(to || "").replace(/^(\+)?91/, "").replace("+", "").trim();
+  const deepLink = `${appBase}/buyer/requirement/new?ref=${tempRequirementId}&mobile=${mobileDisplay}`;
 
   let templateConfig = await WhatsAppTemplateRegistry.findOne({
     key: "buyer_invite_post_requirement",
