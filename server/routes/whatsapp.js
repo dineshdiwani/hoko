@@ -1231,17 +1231,14 @@ async function sendSellerConfirmationTemplate(to, city, categories, loginLink) {
 }
 
 if (isExistingSeller) {
-        const loginParams = new URLSearchParams();
-        loginParams.set("mobile", event.mobileE164.replace("+", ""));
-        loginParams.set("city", cityToSave);
-        loginParams.set("cats", parsed.whatsappCategories.join(","));
-        loginParams.set("from", "wa");
-        const loginLink = `${appBase}/seller/login?${loginParams.toString()}`;
+        const sellerMobile = String(event.mobileE164 || "").replace("+", "").trim();
+        const buttonSuffix = `mobile=${sellerMobile}&city=${encodeURIComponent(cityToSave)}&cats=${encodeURIComponent(parsed.whatsappCategories.join(","))}&from=wa`;
+        const loginLink = `${appBase}/seller/login?${buttonSuffix}`;
         const sendResult = await sendSellerConfirmationTemplate(
           event.mobileE164,
           cityToSave,
           parsed.whatsappCategories,
-          loginLink
+          buttonSuffix
         );
         if (!sendResult.ok) {
           await sendWhatsAppMessage({
@@ -1250,17 +1247,14 @@ if (isExistingSeller) {
           });
         }
       } else {
-        const loginParams = new URLSearchParams();
-        loginParams.set("mobile", event.mobileE164.replace("+", ""));
-        loginParams.set("city", cityToSave);
-        loginParams.set("cats", parsed.whatsappCategories.join(","));
-        loginParams.set("from", "wa");
-        const loginLink = `${appBase}/seller/login?${loginParams.toString()}`;
+        const sellerMobile = String(event.mobileE164 || "").replace("+", "").trim();
+        const buttonSuffix = `mobile=${sellerMobile}&city=${encodeURIComponent(cityToSave)}&cats=${encodeURIComponent(parsed.whatsappCategories.join(","))}&from=wa`;
+        const loginLink = `${appBase}/seller/login?${buttonSuffix}`;
         const sendResult = await sendSellerConfirmationTemplate(
           event.mobileE164,
           cityToSave,
           parsed.whatsappCategories,
-          loginLink
+          buttonSuffix
         );
         if (!sendResult.ok) {
           await sendWhatsAppMessage({
