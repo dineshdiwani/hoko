@@ -169,6 +169,7 @@ function extractFallbackFormEvents(body) {
 }
 
 function extractGupshupEvents(body) {
+  console.log("[WA Inbound] Raw Gupshup body:", JSON.stringify(body).substring(0, 500));
   if (String(body?.type || "").trim().toLowerCase() !== "message") {
     return [];
   }

@@ -680,7 +680,9 @@ function buildRegisterConfirmationMessage(requirement, deepLink, profile) {
 }
 
 function normalizeInboundText(value) {
-  return String(value || "").trim().toLowerCase().replace(/[^\w\s]|_/g, "").replace(/\s+/g, " ").trim();
+  const normalized = String(value || "").trim().toLowerCase().replace(/[^\w\s]|_/g, "").replace(/\s+/g, " ").trim();
+  console.log("[WA WEBHOOK] normalizeInboundText:", { original: value, normalized, isBuyer: BUYER_WORDS.has(normalized) });
+  return normalized;
 }
 
 function buildConsentPromptMessage() {
@@ -785,6 +787,31 @@ async function sendBuyerInviteTemplate(to, tempRequirementId) {
     const separator = deepLink.includes("?") ? "&" : "?";
     const deepLinkWithMobile = `${deepLink}${separator}mobile=${mobileDisplay}`;
     const parameters = [deepLinkWithMobile];
+    console.log("[Buyer Invite] Sending template:", { 
+      to, 
+      templateId, 
+      templateName: templateConfig.templateName,
+      languageCode, 
+      parameters,
+      provider: resolveWhatsAppProvider(),
+      gupshupAppId: process.env.GUPSHUP_APP_ID,
+      gupshupSource: process.env.GUPSHUP_SOURCE
+    });
+
+    const result = provider === "gupshup"
+      ? await sendViaGupshupTemplate({
+          to,
+          templateId,
+          templateName: templateConfig.templateName,
+          languageCode,
+          parameters
+        })
+      : await sendViaWapiTemplate({
+          to,
+          templateName: templateConfig.templateName,
+          languageCode,
+          parameters
+        });
 
     console.log(`[Buyer Invite] Sent to ${to}, providerMessageId: ${result?.providerMessageId}`);
     return { ok: true, providerMessageId: result?.providerMessageId, deepLink };
@@ -974,9 +1001,11 @@ router.post("/webhook", async (req, res) => {
   }
   
   console.log("[WA WEBHOOK] Extracted events:", events.length, events.map(e => ({ text: e.text, mobile: e.mobileE164 })));
+  console.log("[WA WEBHOOK] FIRST EVENT FULL:", JSON.stringify(events[0]));
 
   for (const event of events) {
     const normalizedInbound = normalizeInboundText(event.text);
+  console.log("[WA WEBHOOK] Normalized inbound:", { original: event.text, normalized: normalizedInbound, isBuyer: BUYER_WORDS.has(normalizedInbound) });
     const { sellerContact, buyerContact } = await loadContactByMobile(event.mobileE164);
     const consentKey = getConsentStateKey(event.mobileE164);
     const currentConsentState = consentState.get(consentKey);
@@ -986,8 +1015,9 @@ router.post("/webhook", async (req, res) => {
       notifyWhatsAppInteraction(event.mobileE164, "", event.text || "");
       
       // New user - show greeting and handle BUYER/SELLER directly
-  if (BUYER_WORDS.has(normalizedInbound) || normalizedInbound.includes("buyer")) {
-      await applyConsentConfirmed(await WhatsAppBuyerContact.findOne({ mobileE164: event.mobileE164 }), "buyer", event);
+      if (BUYER_WORDS.has(normalizedInbound) || normalizedInbound.includes("buyer")) {
+        console.log("[WA WEBHOOK] BUYER detected! normalized:", normalizedInbound);
+        await applyConsentConfirmed(await WhatsAppBuyerContact.findOne({ mobileE164: event.mobileE164 }), "buyer", event);
         
         const tempReq = await TempRequirement.findOneAndUpdate(
           { mobileE164: event.mobileE164, status: "pending" },
@@ -998,7 +1028,9 @@ router.post("/webhook", async (req, res) => {
           { upsert: true, new: true, setDefaultsOnInsert: true }
         );
         
-    const sendResult = await sendBuyerInviteTemplate(event.mobileE164, tempReq._id.toString());
+        console.log("[WA WEBHOOK] Sending buyer invite template to", event.mobileE164);
+        const sendResult = await sendBuyerInviteTemplate(event.mobileE164, tempReq._id.toString());
+        console.log("[WA WEBHOOK] Send result:", sendResult);
         
         if (!sendResult.ok) {
           console.log("[WA WEBHOOK] Template failed, using fallback. Reason:", sendResult.reason);
