@@ -10,8 +10,7 @@ if (vapidPublicKey && vapidPrivateKey) {
 }
 
 /**
- * Push notifications disabled in local dev
- * (Enable later with valid VAPID keys)
+ * Web push notification delivery
  */
 
 async function subscribeToPush(userId, subscription) {
