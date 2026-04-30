@@ -20,6 +20,7 @@ export default function SellerProfile() {
   const [currencies, setCurrencies] = useState([]);
 
 const [profile, setProfile] = useState({
+    name: "",
     email: "",
     registeredBusinessName: "",
     registrationDetails: "",
@@ -78,6 +79,7 @@ const [profile, setProfile] = useState({
 const data = res.data || {};
         const sellerProfile = data.sellerProfile || {};
         setProfile({
+          name: data.name || session?.name || "",
           email: data.email || session?.email || "",
           registeredBusinessName: sellerProfile.registeredBusinessName || "",
           registrationDetails: sellerProfile.registrationDetails || "",
@@ -121,6 +123,7 @@ const data = res.data || {};
     setSaving(true);
     try {
 const res = await api.post("/seller/profile", {
+        name: profile.name,
         email: profile.email,
         registeredBusinessName: profile.registeredBusinessName,
         registrationDetails: profile.registrationDetails,
@@ -134,6 +137,7 @@ const res = await api.post("/seller/profile", {
       });
 
       updateSession({
+        name: res.data?.name || profile.name,
         email: res.data?.email || profile.email,
         city: res.data?.city || profile.city,
         preferredCurrency:
@@ -170,6 +174,16 @@ const res = await api.post("/seller/profile", {
                 <p className="text-lg font-semibold">
                   {rating.avg.toFixed(1)} stars ({rating.count})
                 </p>
+              </div>
+              <div className="md:col-span-2">
+                <label className="text-sm text-gray-600">Name</label>
+                <input
+                  value={profile.name}
+                  onChange={(e) =>
+                    setProfile({ ...profile, name: e.target.value })
+                  }
+                  className="w-full border rounded-xl px-4 py-3"
+                />
               </div>
               <div>
                 <label className="text-sm text-gray-600">Email *</label>

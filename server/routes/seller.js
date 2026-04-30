@@ -26,6 +26,9 @@ const { normalizeRequirementAttachmentsForResponse } = require("../utils/attachm
 const { normalizeE164, sendViaGupshupTemplate, sendWhatsAppMessage } = require("../utils/sendWhatsApp");
 const { normalizeOfferInvitedFrom, getEffectiveRequirementStatus } = require("../utils/sharedUtils");
 const { notifyNewOffer, notifyReverseAuction } = require("../services/adminNotifications");
+const { setOtp, verifyOtp: verifyOtpCode } = require("../utils/otpStore");
+const { sendOtpEmail } = require("../utils/sendEmail");
+const { sendOtpSms } = require("../utils/sendSms");
 const WhatsAppTemplateRegistry = require("../models/WhatsAppTemplateRegistry");
 
 const offerUploadDir = path.join(__dirname, "../uploads/offers");
@@ -447,6 +450,7 @@ router.post("/onboard", auth, async (req, res) => {
 router.post("/profile", auth, sellerOnly, async (req, res) => {
   try {
     const {
+      name,
       email,
       mobile,
       registeredBusinessName,
@@ -465,11 +469,12 @@ router.post("/profile", auth, sellerOnly, async (req, res) => {
     const normalizedCategories = normalizeAndDedupeCategories(categories);
 
     const update = {
+      ...(typeof name === "string" ? { name: name.trim() } : {}),
       ...(typeof email === "string"
-        ? { email: String(email).trim() }
+        ? { email: String(email).trim().toLowerCase() }
         : {}),
-      ...(typeof mobile === "string"
-        ? { mobile: String(mobile).trim() }
+      ...(typeof mobile === "string" && mobile.trim()
+        ? { mobile: normalizeE164(mobile) }
         : {}),
       ...(registeredBusinessName
         ? { "sellerProfile.registeredBusinessName": registeredBusinessName }
@@ -510,6 +515,7 @@ router.post("/profile", auth, sellerOnly, async (req, res) => {
     );
 
     res.json({
+      name: user?.name || "",
       sellerProfile: user?.sellerProfile || {},
       city: user?.city,
       email: user?.email || "",
@@ -558,6 +564,7 @@ router.get("/profile", auth, sellerOnly, async (req, res) => {
     .sort({ updatedAt: -1 })
     .select("updatedAt");
   res.json({
+    name: user?.name || "",
     sellerProfile: user?.sellerProfile || {},
     email: user?.email || "",
     mobile: user?.mobile || "",
@@ -582,6 +589,108 @@ router.post("/profile/password", auth, sellerOnly, async (req, res) => {
   return res.status(410).json({
     message: "Password login is disabled. Use email OTP login."
   });
+});
+
+/**
+ * Send OTP to a new email or mobile for verification before profile update
+ */
+router.post("/profile/verify-contact", auth, sellerOnly, async (req, res) => {
+  try {
+    const { email, mobile } = req.body || {};
+    const currentEmail = String(req.user.email || "").trim();
+    const currentMobile = String(req.user.mobile || "").trim();
+
+    const sendingEmail = email && email !== currentEmail;
+    const sendingMobile = mobile && mobile !== currentMobile;
+
+    if (!sendingEmail && !sendingMobile) {
+      return res.json({ ok: true, reason: "no_change" });
+    }
+
+    const otp = String(Math.floor(100000 + Math.random() * 900000));
+
+    if (sendingEmail) {
+      const emailValue = String(email).trim().toLowerCase();
+      if (!/\S+@\S+\.\S+/.test(emailValue)) {
+        return res.status(400).json({ message: "Invalid email" });
+      }
+      await sendOtpEmail({ email: emailValue, otp, subject: "Verify your email for Hoko" });
+      setOtp(`verify-email:${req.user._id}`, otp, 5 * 60 * 1000);
+      console.log(`[Seller Verify Contact] OTP sent to ${emailValue}`);
+    }
+
+    if (sendingMobile) {
+      const mobileValue = normalizeE164(mobile);
+      if (mobileValue.length < 10) {
+        return res.status(400).json({ message: "Invalid mobile number" });
+      }
+      const mobileDigits = mobileValue.replace(/^\+/, "");
+      await sendOtpSms({ mobile: mobileDigits, otp });
+      setOtp(`verify-mobile:${req.user._id}`, otp, 5 * 60 * 1000);
+      console.log(`[Seller Verify Contact] OTP sent to ${mobileValue}`);
+    }
+
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error("[Seller Verify Contact] Failed:", err?.message || err);
+    return res.status(500).json({ message: err?.message || "Failed to send OTP" });
+  }
+});
+
+/**
+ * Verify OTP and update email/mobile on seller profile
+ */
+router.post("/profile/confirm-contact", auth, sellerOnly, async (req, res) => {
+  try {
+    const { email, mobile, otp } = req.body || {};
+    if (!otp) {
+      return res.status(400).json({ message: "OTP required" });
+    }
+
+    const currentEmail = String(req.user.email || "").trim();
+    const currentMobile = String(req.user.mobile || "").trim();
+
+    const changingEmail = email && email !== currentEmail;
+    const changingMobile = mobile && mobile !== currentMobile;
+
+    if (changingEmail) {
+      const result = verifyOtpCode(`verify-email:${req.user._id}`, String(otp));
+      if (!result.ok) {
+        return res.status(400).json({ message: `Invalid OTP: ${result.reason}` });
+      }
+      const existingUser = await User.findOne({ email: email.trim().toLowerCase(), _id: { $ne: req.user._id } });
+      if (existingUser) {
+        return res.status(409).json({ message: "This email is already in use by another account" });
+      }
+      req.user.email = email.trim().toLowerCase();
+    }
+
+    if (changingMobile) {
+      const result = verifyOtpCode(`verify-mobile:${req.user._id}`, String(otp));
+      if (!result.ok) {
+        return res.status(400).json({ message: `Invalid OTP: ${result.reason}` });
+      }
+      const normalizedMobile = normalizeE164(mobile);
+      const existingMobileUser = await User.findOne({ mobile: normalizedMobile, _id: { $ne: req.user._id } });
+      if (existingMobileUser) {
+        return res.status(409).json({ message: "This mobile number is already in use by another account" });
+      }
+      req.user.mobile = normalizedMobile;
+    }
+
+    await req.user.save();
+
+    res.json({
+      ok: true,
+      user: {
+        email: req.user.email,
+        mobile: req.user.mobile
+      }
+    });
+  } catch (err) {
+    console.error("[Seller Confirm Contact] Failed:", err?.message || err);
+    return res.status(500).json({ message: "Failed to verify contact" });
+  }
 });
 
 /**

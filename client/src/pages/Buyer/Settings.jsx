@@ -57,6 +57,9 @@ export default function BuyerSettings() {
     id: ""
   });
   const [pushPermission, setPushPermission] = useState(() => getPushPermissionState());
+  const [contactOtpModal, setContactOtpModal] = useState({ open: false, email: "", mobile: "" });
+  const [contactOtp, setContactOtp] = useState("");
+  const [contactOtpSending, setContactOtpSending] = useState(false);
   const initialContactRef = useRef({ email: "", mobile: "" });
 
   useEffect(() => {
@@ -149,10 +152,34 @@ export default function BuyerSettings() {
   async function saveSettings() {
     const email = String(profile.email || "").trim();
     const mobile = String(profile.mobile || "").trim();
+    const initialEmail = String(initialContactRef.current.email || "").trim();
+    const initialMobile = String(initialContactRef.current.mobile || "").trim();
+    const changingEmail = email && email !== initialEmail;
+    const changingMobile = mobile && mobile !== initialMobile;
+
+    if (changingEmail || changingMobile) {
+      setContactOtpSending(true);
+      try {
+        const verifyPayload = {};
+        if (changingEmail) verifyPayload.email = email;
+        if (changingMobile) verifyPayload.mobile = mobile;
+        await api.post("/buyer/profile/verify-contact", verifyPayload);
+        setContactOtpModal({ open: true, email: email || initialEmail, mobile: mobile || initialMobile });
+        setContactOtp("");
+      } catch (err) {
+        alert(err?.response?.data?.message || "Failed to send OTP");
+      } finally {
+        setContactOtpSending(false);
+      }
+      return;
+    }
+
+    await saveProfileChanges(email, mobile, initialEmail, initialMobile);
+  }
+
+  async function saveProfileChanges(email, mobile, initialEmail, initialMobile) {
     setSaving(true);
     try {
-      const initialEmail = String(initialContactRef.current.email || "").trim();
-      const initialMobile = String(initialContactRef.current.mobile || "").trim();
       const payload = {
         name: profile.name,
         city: profile.city,
@@ -250,6 +277,36 @@ export default function BuyerSettings() {
       alert(message || "Unable to switch role");
     } finally {
       setBusyAction("");
+    }
+  }
+
+  async function confirmContactOtp() {
+    if (!contactOtp || contactOtp.length < 6) {
+      alert("Please enter the 6-digit OTP");
+      return;
+    }
+    setContactOtpSending(true);
+    try {
+      const res = await api.post("/buyer/profile/confirm-contact", {
+        email: contactOtpModal.email,
+        mobile: contactOtpModal.mobile,
+        otp: contactOtp
+      });
+      setContactOtpModal({ open: false, email: "", mobile: "" });
+      initialContactRef.current = {
+        email: res.data?.user?.email || initialContactRef.current.email,
+        mobile: res.data?.user?.mobile || initialContactRef.current.mobile
+      };
+      await saveProfileChanges(
+        res.data?.user?.email || profile.email,
+        res.data?.user?.mobile || profile.mobile,
+        initialContactRef.current.email,
+        initialContactRef.current.mobile
+      );
+    } catch (err) {
+      alert(err?.response?.data?.message || "OTP verification failed");
+    } finally {
+      setContactOtpSending(false);
     }
   }
 
@@ -589,14 +646,49 @@ export default function BuyerSettings() {
           <div className="pt-6">
             <button
               onClick={saveSettings}
-              disabled={saving}
+              disabled={saving || contactOtpSending}
               className="btn-primary w-full"
             >
-              {saving ? "Saving..." : "Save Settings"}
+              {saving ? "Saving..." : contactOtpSending ? "Sending OTP..." : "Save Settings"}
             </button>
           </div>
         </div>
       </div>
+
+      {contactOtpModal.open && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm">
+            <h3 className="text-lg font-semibold mb-2">Verify Contact Change</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Enter the OTP sent to {contactOtpModal.email && contactOtpModal.mobile ? `${contactOtpModal.email} and ${contactOtpModal.mobile}` : contactOtpModal.email || contactOtpModal.mobile}
+            </p>
+            <input
+              type="text"
+              maxLength={6}
+              value={contactOtp}
+              onChange={(e) => setContactOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              placeholder="Enter 6-digit OTP"
+              className="w-full border rounded-xl px-4 py-3 text-center text-xl tracking-widest mb-4"
+              autoFocus
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={() => setContactOtpModal({ open: false, email: "", mobile: "" })}
+                className="flex-1 py-3 rounded-xl border border-gray-300 text-gray-700 font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmContactOtp}
+                disabled={contactOtpSending}
+                className="flex-1 py-3 rounded-xl btn-brand font-semibold"
+              >
+                {contactOtpSending ? "Verifying..." : "Verify & Save"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
