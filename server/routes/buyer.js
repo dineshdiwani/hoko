@@ -1570,9 +1570,11 @@ router.put("/requirement/:id", auth, buyerOnly, async (req, res) => {
             _id: { $in: sellerIds },
             email: { $type: "string", $ne: "" }
           })
-            .select("email")
+            .select("email sellerSettings")
             .lean();
           sellers.forEach((seller) => {
+            const emailToggles = seller.sellerSettings?.emailNotificationToggles || {};
+            if (emailToggles.enabled === false || emailToggles.requirementUpdated === false) return;
             tasks.push(
               sendEmailToRecipient({
                 to: seller.email,
@@ -1800,6 +1802,14 @@ router.post("/profile", auth, buyerOnly, async (req, res) => {
             next.notificationToggles.statusUpdate
           ),
           reminder: toBoolean(notif.reminder, next.notificationToggles.reminder)
+        };
+      }
+      if (buyerSettings.emailNotificationToggles && typeof buyerSettings.emailNotificationToggles === "object") {
+        const emailNotif = buyerSettings.emailNotificationToggles;
+        next.emailNotificationToggles = {
+          ...next.emailNotificationToggles,
+          enabled: toBoolean(emailNotif.enabled, next.emailNotificationToggles.enabled),
+          newOffer: toBoolean(emailNotif.newOffer, next.emailNotificationToggles.newOffer)
         };
       }
       req.user.buyerSettings = next;
@@ -2663,9 +2673,11 @@ router.post("/requirement/:id/reverse-auction/start", auth, buyerOnly, async (re
           _id: { $in: sellerIds },
           email: { $type: "string", $ne: "" }
         })
-          .select("email")
+          .select("email sellerSettings")
           .lean();
         sellers.forEach((seller) => {
+          const emailToggles = seller.sellerSettings?.emailNotificationToggles || {};
+          if (emailToggles.enabled === false || emailToggles.reverseAuction === false) return;
           tasks.push(
             sendEmailToRecipient({
               to: seller.email,

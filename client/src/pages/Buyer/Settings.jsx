@@ -27,6 +27,10 @@ const DEFAULT_PREFS = {
     chat: true,
     statusUpdate: true,
     reminder: true
+  },
+  emailNotificationToggles: {
+    enabled: true,
+    newOffer: true
   }
 };
 
@@ -195,6 +199,10 @@ export default function BuyerSettings() {
             chat: Boolean(prefs.notificationToggles?.chat),
             statusUpdate: Boolean(prefs.notificationToggles?.statusUpdate),
             reminder: Boolean(prefs.notificationToggles?.reminder)
+          },
+          emailNotificationToggles: {
+            enabled: Boolean(prefs.emailNotificationToggles?.enabled),
+            newOffer: Boolean(prefs.emailNotificationToggles?.newOffer)
           }
         }
       };
@@ -519,6 +527,31 @@ export default function BuyerSettings() {
                   </button>
                 )}
               </div>
+            </div>
+          </div>
+
+          <div className="pt-6">
+            <h2 className="text-lg font-semibold mb-3">Email Notifications</h2>
+            <div className="grid gap-2 text-sm text-gray-700">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={Boolean(prefs.emailNotificationToggles?.enabled)}
+                  onChange={(e) => updatePrefs({ emailNotificationToggles: { ...prefs.emailNotificationToggles, enabled: e.target.checked } })}
+                />
+                Enable email notifications
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={Boolean(prefs.emailNotificationToggles?.newOffer)}
+                  onChange={(e) => updatePrefs({ emailNotificationToggles: { ...prefs.emailNotificationToggles, newOffer: e.target.checked } })}
+                />
+                New offer received
+              </label>
+              <p className="text-xs text-gray-500 mt-1">
+                Email notifications are sent to {profile.email || "your registered email"}
+              </p>
             </div>
           </div>
 

@@ -95,6 +95,10 @@ termsAccepted: {
         statusUpdate: { type: Boolean, default: true },
         reminder: { type: Boolean, default: true }
       },
+      emailNotificationToggles: {
+        enabled: { type: Boolean, default: true },
+        newOffer: { type: Boolean, default: true }
+      },
       documents: [
         {
           filename: { type: String, default: "" },
@@ -118,12 +122,17 @@ termsAccepted: {
       ]
     },
 
-sellerSettings: {
+    sellerSettings: {
       notificationsLeads: { type: Boolean, default: true },
       notificationsAuction: { type: Boolean, default: true },
       notificationsOffers: { type: Boolean, default: true },
       whatsappConsent: { type: Boolean, default: false },
-      whatsappConsentAt: { type: Date }
+      whatsappConsentAt: { type: Date },
+      emailNotificationToggles: {
+        enabled: { type: Boolean, default: true },
+        requirementUpdated: { type: Boolean, default: true },
+        reverseAuction: { type: Boolean, default: true }
+      }
     }
   },
 { timestamps: true }

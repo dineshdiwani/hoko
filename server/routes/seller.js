@@ -506,6 +506,14 @@ router.post("/profile", auth, sellerOnly, async (req, res) => {
         notificationsAuction: sellerSettings.notificationsAuction !== false,
         notificationsOffers: sellerSettings.notificationsOffers !== false
       };
+      if (sellerSettings.emailNotificationToggles && typeof sellerSettings.emailNotificationToggles === "object") {
+        const emailNotif = sellerSettings.emailNotificationToggles;
+        update.sellerSettings.emailNotificationToggles = {
+          enabled: emailNotif.enabled !== false,
+          requirementUpdated: emailNotif.requirementUpdated !== false,
+          reverseAuction: emailNotif.reverseAuction !== false
+        };
+      }
     }
 
     const user = await User.findByIdAndUpdate(
@@ -1225,7 +1233,7 @@ router.post("/offer", auth, sellerOnly, async (req, res) => {
           const text = lines.join("\n");
           const tasks = [];
 
-          if (events.newOfferToBuyer !== false && buyer?.email) {
+          if (events.newOfferToBuyer !== false && buyer?.email && buyer.buyerSettings?.emailNotificationToggles?.enabled !== false && buyer.buyerSettings?.emailNotificationToggles?.newOffer !== false) {
             tasks.push(
               sendEmailToRecipient({
                 to: buyer.email,

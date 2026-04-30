@@ -54,6 +54,11 @@ const [profile, setProfile] = useState({
     termsAcceptedAt:
       localStorage.getItem("terms_accepted_at") || ""
   });
+  const [emailNotifToggles, setEmailNotifToggles] = useState({
+    enabled: true,
+    requirementUpdated: true,
+    reverseAuction: true
+  });
   const [pushPermission, setPushPermission] = useState(() => getPushPermissionState());
   const [contactOtpModal, setContactOtpModal] = useState({ open: false, email: "", mobile: "" });
   const [contactOtp, setContactOtp] = useState("");
@@ -145,6 +150,11 @@ setProfile({
           ...prev,
           ...(res.data?.sellerSettings || {})
         }));
+        setEmailNotifToggles({
+          enabled: res.data?.sellerSettings?.emailNotificationToggles?.enabled !== false,
+          requirementUpdated: res.data?.sellerSettings?.emailNotificationToggles?.requirementUpdated !== false,
+          reverseAuction: res.data?.sellerSettings?.emailNotificationToggles?.reverseAuction !== false
+        });
       })
       .catch(() => {});
 
@@ -262,7 +272,12 @@ setProfile({
         sellerSettings: {
           notificationsLeads: prefs.notificationsLeads !== false,
           notificationsAuction: prefs.notificationsAuction !== false,
-          notificationsOffers: prefs.notificationsOffers !== false
+          notificationsOffers: prefs.notificationsOffers !== false,
+          emailNotificationToggles: {
+            enabled: Boolean(emailNotifToggles.enabled),
+            requirementUpdated: Boolean(emailNotifToggles.requirementUpdated),
+            reverseAuction: Boolean(emailNotifToggles.reverseAuction)
+          }
         }
       };
       if (email && email !== initialEmail) {
@@ -656,6 +671,39 @@ setProfile({
                   Enable Notifications
                 </button>
               )}
+            </div>
+          </div>
+
+          <div className="pt-6">
+            <h2 className="text-lg font-semibold mb-3">Email Notifications</h2>
+            <div className="grid gap-2 text-sm text-gray-700">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={Boolean(emailNotifToggles.enabled)}
+                  onChange={(e) => setEmailNotifToggles((prev) => ({ ...prev, enabled: e.target.checked }))}
+                />
+                Enable email notifications
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={Boolean(emailNotifToggles.requirementUpdated)}
+                  onChange={(e) => setEmailNotifToggles((prev) => ({ ...prev, requirementUpdated: e.target.checked }))}
+                />
+                Buyer updates requirement
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={Boolean(emailNotifToggles.reverseAuction)}
+                  onChange={(e) => setEmailNotifToggles((prev) => ({ ...prev, reverseAuction: e.target.checked }))}
+                />
+                Reverse auction initiated
+              </label>
+              <p className="text-xs text-gray-500 mt-1">
+                Email notifications are sent to {profile.email || "your registered email"}
+              </p>
             </div>
           </div>
 
