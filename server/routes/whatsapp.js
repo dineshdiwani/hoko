@@ -747,7 +747,8 @@ async function sendBuyerInviteTemplate(to, tempRequirementId) {
 
   const appBase = resolvePublicAppUrl();
   const mobileDisplay = String(to || "").replace(/^(\+)?91/, "").replace("+", "").trim();
-  const deepLink = `${appBase}/buyer/requirement/new?ref=${tempRequirementId}&mobile=${mobileDisplay}`;
+  const refId = String(tempRequirementId || "").trim();
+  const deepLink = `${appBase}/buyer/requirement/new?ref=${refId}&mobile=${mobileDisplay}`;
 
   let templateConfig = await WhatsAppTemplateRegistry.findOne({
     key: "buyer_invite_post_requirement",
@@ -1017,7 +1018,8 @@ router.post("/webhook", async (req, res) => {
         
         if (!sendResult.ok) {
           console.log("[WA WEBHOOK] Template failed, using fallback. Reason:", sendResult.reason);
-          const deepLink = `${resolvePublicAppUrl()}/buyer/requirement/new?ref=${tempReq._id.toString()}`;
+          const mobileFallback = String(event.mobileE164 || "").replace(/^(\+)?91/, "").replace("+", "").trim();
+          const deepLink = `${resolvePublicAppUrl()}/buyer/requirement/new?ref=${String(tempReq._id || "").trim()}&mobile=${mobileFallback}`;
           const message = buildBuyerConfirmationMessage(event.mobileE164, deepLink);
           await sendWhatsAppMessage({
             to: event.mobileE164,
@@ -1084,7 +1086,8 @@ router.post("/webhook", async (req, res) => {
       
       if (!sendResult.ok) {
         console.log("[WA WEBHOOK] Template failed for existing user, using fallback. Reason:", sendResult.reason);
-        const deepLink = `${resolvePublicAppUrl()}/buyer/requirement/new?ref=${tempReq._id.toString()}`;
+        const mobileFallback = String(event.mobileE164 || "").replace(/^(\+)?91/, "").replace("+", "").trim();
+        const deepLink = `${resolvePublicAppUrl()}/buyer/requirement/new?ref=${String(tempReq._id || "").trim()}&mobile=${mobileFallback}`;
         const message = buildBuyerConfirmationMessage(event.mobileE164, deepLink);
         await sendWhatsAppMessage({
           to: event.mobileE164,
