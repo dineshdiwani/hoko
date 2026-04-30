@@ -1232,13 +1232,12 @@ async function sendSellerConfirmationTemplate(to, city, categories, loginLink) {
 
 if (isExistingSeller) {
         const sellerMobile = String(event.mobileE164 || "").replace("+", "").trim();
-        const buttonSuffix = `mobile=${sellerMobile}&city=${encodeURIComponent(cityToSave)}&cats=${encodeURIComponent(parsed.whatsappCategories.join(","))}&from=wa`;
-        const loginLink = `${appBase}/seller/login?${buttonSuffix}`;
+        const loginLink = `${appBase}/seller/login?mobile=${sellerMobile}&city=${encodeURIComponent(cityToSave)}&cats=${encodeURIComponent(parsed.whatsappCategories.join(","))}&from=wa`;
         const sendResult = await sendSellerConfirmationTemplate(
           event.mobileE164,
           cityToSave,
           parsed.whatsappCategories,
-          buttonSuffix
+          loginLink
         );
         if (!sendResult.ok) {
           await sendWhatsAppMessage({
@@ -1248,13 +1247,12 @@ if (isExistingSeller) {
         }
       } else {
         const sellerMobile = String(event.mobileE164 || "").replace("+", "").trim();
-        const buttonSuffix = `mobile=${sellerMobile}&city=${encodeURIComponent(cityToSave)}&cats=${encodeURIComponent(parsed.whatsappCategories.join(","))}&from=wa`;
-        const loginLink = `${appBase}/seller/login?${buttonSuffix}`;
+        const loginLink = `${appBase}/seller/login?mobile=${sellerMobile}&city=${encodeURIComponent(cityToSave)}&cats=${encodeURIComponent(parsed.whatsappCategories.join(","))}&from=wa`;
         const sendResult = await sendSellerConfirmationTemplate(
           event.mobileE164,
           cityToSave,
           parsed.whatsappCategories,
-          buttonSuffix
+          loginLink
         );
         if (!sendResult.ok) {
           await sendWhatsAppMessage({
