@@ -746,8 +746,12 @@ async function sendBuyerInviteTemplate(to, tempRequirementId) {
   }
 
   const appBase = resolvePublicAppUrl();
-  const mobileDisplay = String(to || "").replace(/^(\+)?91/, "").replace("+", "").trim();
+  const mobileDisplay = String(to || "").replace("+", "").trim();
   const refId = String(tempRequirementId || "").trim();
+  if (!refId || refId === "{}") {
+    console.error("[Buyer Invite] Missing or invalid tempRequirementId:", tempRequirementId);
+    return { ok: false, reason: "invalid_ref" };
+  }
   const deepLink = `${appBase}/buyer/requirement/new?ref=${refId}&mobile=${mobileDisplay}`;
 
   let templateConfig = await WhatsAppTemplateRegistry.findOne({
@@ -1017,7 +1021,7 @@ router.post("/webhook", async (req, res) => {
         
         if (!sendResult.ok) {
           console.log("[WA WEBHOOK] Template failed, using fallback. Reason:", sendResult.reason);
-          const mobileFallback = String(event.mobileE164 || "").replace(/^(\+)?91/, "").replace("+", "").trim();
+          const mobileFallback = String(event.mobileE164 || "").replace("+", "").trim();
           const deepLink = `${resolvePublicAppUrl()}/buyer/requirement/new?ref=${String(tempReq._id || "").trim()}&mobile=${mobileFallback}`;
           const message = buildBuyerConfirmationMessage(event.mobileE164, deepLink);
           await sendWhatsAppMessage({
@@ -1085,7 +1089,7 @@ router.post("/webhook", async (req, res) => {
       
       if (!sendResult.ok) {
         console.log("[WA WEBHOOK] Template failed for existing user, using fallback. Reason:", sendResult.reason);
-        const mobileFallback = String(event.mobileE164 || "").replace(/^(\+)?91/, "").replace("+", "").trim();
+        const mobileFallback = String(event.mobileE164 || "").replace("+", "").trim();
         const deepLink = `${resolvePublicAppUrl()}/buyer/requirement/new?ref=${String(tempReq._id || "").trim()}&mobile=${mobileFallback}`;
         const message = buildBuyerConfirmationMessage(event.mobileE164, deepLink);
         await sendWhatsAppMessage({
