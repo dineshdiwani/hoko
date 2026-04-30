@@ -1201,7 +1201,7 @@ async function sendSellerConfirmationTemplate(to, city, categories, loginLink) {
         language: "en",
         category: "MARKETING",
         status: "APPROVED",
-        variableCount: 2,
+        variableCount: 3,
         isActive: true
       },
       { upsert: true, new: true }
@@ -1213,13 +1213,14 @@ async function sendSellerConfirmationTemplate(to, city, categories, loginLink) {
     const languageCode = String(templateConfig.language || "en").trim();
     const categoryText = categories.length > 0 ? categories.join(", ") : "";
 
+    console.log("[Seller Confirm] Sending template:", { to, templateId, city, category: categoryText, buttonUrl: loginLink });
+
     const result = await sendViaGupshupTemplate({
       to,
       templateId,
       templateName: templateConfig.templateName,
       languageCode,
-      parameters: [city, categoryText],
-      buttonUrl: loginLink
+      parameters: [city, categoryText, loginLink]
     });
 
     console.log(`[Seller Confirm] Sent to ${to}, providerMessageId: ${result?.providerMessageId}`);
