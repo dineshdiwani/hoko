@@ -154,7 +154,6 @@ export default function GoogleLoginButton({
       const response = await SocialLogin.login({
         provider: "google",
         options: {
-          scopes: ["email", "profile"],
           filterByAuthorizedAccounts: false,
           autoSelectEnabled: false
         }
