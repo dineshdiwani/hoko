@@ -6,7 +6,8 @@
     "SocialLogin": {
       "providers": {
         "google": {
-          "webClientId": "482189438712-3si7monkd64341m7qh90hqevmdhh75iv.apps.googleusercontent.com"
+          "webClientId": "482189438712-3si7monkd64341m7qh90hqevmdhh75iv.apps.googleusercontent.com",
+          "androidClientId": "482189438712-b1n0ktef1lp5m3f6ch5c424086bdmber.apps.googleusercontent.com"
         },
         "facebook": false,
         "apple": false,
