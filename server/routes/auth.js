@@ -105,6 +105,7 @@ let googleClient = null;
 let googleAuthInitError = null;
 const DEFAULT_GOOGLE_CLIENT_IDS = [
   "482189438712-3si7monkd64341m7qh90hqevmdhh75iv.apps.googleusercontent.com",
+  "482189438712-b1n0ktef1lp5m3f6ch5c424086bdmber.apps.googleusercontent.com",
   "340021652429-qu9hohn3j0hu9uv437skbc3m53dl7b06.apps.googleusercontent.com",
   "340021652429-subaig4nmuueab270ffsopgjm8raggpr.apps.googleusercontent.com"
 ];

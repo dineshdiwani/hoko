@@ -1812,6 +1812,14 @@ router.post("/profile", auth, buyerOnly, async (req, res) => {
           newOffer: toBoolean(emailNotif.newOffer, next.emailNotificationToggles.newOffer)
         };
       }
+      if (buyerSettings.smsNotificationToggles && typeof buyerSettings.smsNotificationToggles === "object") {
+        const smsNotif = buyerSettings.smsNotificationToggles;
+        next.smsNotificationToggles = {
+          ...next.smsNotificationToggles,
+          enabled: toBoolean(smsNotif.enabled, next.smsNotificationToggles.enabled),
+          newOffer: toBoolean(smsNotif.newOffer, next.smsNotificationToggles.newOffer)
+        };
+      }
       req.user.buyerSettings = next;
     }
 

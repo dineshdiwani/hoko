@@ -99,6 +99,10 @@ termsAccepted: {
         enabled: { type: Boolean, default: true },
         newOffer: { type: Boolean, default: true }
       },
+      smsNotificationToggles: {
+        enabled: { type: Boolean, default: true },
+        newOffer: { type: Boolean, default: true }
+      },
       documents: [
         {
           filename: { type: String, default: "" },
@@ -131,6 +135,11 @@ termsAccepted: {
       emailNotificationToggles: {
         enabled: { type: Boolean, default: true },
         requirementUpdated: { type: Boolean, default: true },
+        reverseAuction: { type: Boolean, default: true }
+      },
+      smsNotificationToggles: {
+        enabled: { type: Boolean, default: true },
+        requirementMatch: { type: Boolean, default: true },
         reverseAuction: { type: Boolean, default: true }
       }
     }

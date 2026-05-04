@@ -5,7 +5,10 @@
   "plugins": {
     "SocialLogin": {
       "providers": {
-        "google": true,
+        "google": {
+          "clientId": "482189438712-3si7monkd64341m7qh90hqevmdhh75iv.apps.googleusercontent.com",
+          "scopes": ["profile", "email"]
+        },
         "facebook": false,
         "apple": false,
         "twitter": false
