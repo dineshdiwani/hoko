@@ -152,11 +152,7 @@ export default function GoogleLoginButton({
     }
     try {
       const response = await SocialLogin.login({
-        provider: "google",
-        options: {
-          filterByAuthorizedAccounts: false,
-          autoSelectEnabled: false
-        }
+        provider: "google"
       });
       const credential =
         response?.provider === "google" ? response?.result?.idToken : null;
