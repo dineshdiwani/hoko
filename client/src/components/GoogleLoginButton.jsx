@@ -2,99 +2,32 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { SocialLogin } from "@capgo/capacitor-social-login";
 import { isNativeAppRuntime } from "../utils/runtime";
 
-function parseGoogleClientIds() {
-  const raw = [
-    import.meta.env.VITE_GOOGLE_CLIENT_ID,
-    import.meta.env.VITE_GOOGLE_CLIENT_ID_FALLBACK,
-  ]
-    .map((item) => String(item || "").trim())
-    .filter(Boolean)
-    .join(",");
-  const unique = [];
-  for (const id of raw.split(",").map((item) => item.trim()).filter(Boolean)) {
-    if (!unique.includes(id)) {
-      unique.push(id);
-    }
-  }
-  return unique;
-}
-
-function isUserCancellation(error) {
-  const message = String(error?.message || error || "").toLowerCase();
-  return (
-    message === "cancelled by user" ||
-    message === "canceled by user" ||
-    message === "user cancelled" ||
-    message === "user canceled" ||
-    message.includes("cancelled") ||
-    message.includes("canceled")
-  );
-}
-
-async function tryNativeGoogleLogin(options) {
-  const response = await SocialLogin.login({
-    provider: "google",
-    options
-  });
-  if (response?.provider !== "google") return null;
-  const result = response?.result || {};
-  const idToken = result.idToken || result.authentication?.idToken || null;
-  return idToken;
-}
-
 export default function GoogleLoginButton({
   onSuccess,
   onError,
   disabled = false,
-  onDisabledClick,
-  onPreClick,
-  autoSelect = false
+  onDisabledClick
 }) {
-  const googleClientIdsRef = useRef(parseGoogleClientIds());
-  const activeClientIndexRef = useRef(0);
   const initializedRef = useRef(false);
   const buttonHostRef = useRef(null);
   const onSuccessRef = useRef(onSuccess);
   const onErrorRef = useRef(onError);
-  const onPreClickRef = useRef(onPreClick);
-  const autoSelectRef = useRef(autoSelect);
-  const useNativeGoogleLogin = isNativeAppRuntime();
+  const isNativeRuntime = isNativeAppRuntime();
   const [scriptLoaded, setScriptLoaded] = useState(false);
   const [googleReady, setGoogleReady] = useState(false);
-  const [initializing, setInitializing] = useState(false);
-  const [initError, setInitError] = useState("");
 
   useEffect(() => {
     onSuccessRef.current = onSuccess;
     onErrorRef.current = onError;
-    onPreClickRef.current = onPreClick;
-  }, [onSuccess, onError, onPreClick]);
+  }, [onSuccess, onError]);
 
-  useEffect(() => {
-    autoSelectRef.current = autoSelect;
-  }, [autoSelect]);
-
-  const initializeGoogle = useCallback((forcedIndex = null) => {
-    const clientIds = googleClientIdsRef.current;
-    const clientId =
-      clientIds[
-        forcedIndex == null
-          ? activeClientIndexRef.current
-          : Math.max(0, Math.min(forcedIndex, clientIds.length - 1))
-      ];
+  const initializeGoogle = useCallback(() => {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
     if (!clientId) {
-      const error = new Error("Missing VITE_GOOGLE_CLIENT_ID");
-      setInitError(error.message);
-      onErrorRef.current?.(error);
+      onErrorRef.current?.(new Error("Missing VITE_GOOGLE_CLIENT_ID"));
       return false;
     }
     if (!window.google?.accounts?.id) return false;
-    if (forcedIndex != null) {
-      activeClientIndexRef.current = Math.max(
-        0,
-        Math.min(forcedIndex, clientIds.length - 1)
-      );
-    }
 
     if (!initializedRef.current) {
       window.google.accounts.id.initialize({
@@ -108,49 +41,34 @@ export default function GoogleLoginButton({
             );
           }
         },
-        auto_select: autoSelectRef.current
+        auto_select: false
       });
       initializedRef.current = true;
     }
     return true;
   }, []);
 
-  const initializeNativeGoogle = useCallback(async (forcedIndex = null) => {
-    const clientIds = googleClientIdsRef.current;
-    const safeIndex =
-      forcedIndex == null
-        ? activeClientIndexRef.current
-        : Math.max(0, Math.min(forcedIndex, clientIds.length - 1));
-    const clientId = clientIds[safeIndex];
+  const initializeNativeGoogle = useCallback(async () => {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
     if (!clientId) {
-      const error = new Error("Missing VITE_GOOGLE_CLIENT_ID");
-      setInitError(error.message);
-      onErrorRef.current?.(error);
+      onErrorRef.current?.(new Error("Missing VITE_GOOGLE_CLIENT_ID"));
       return false;
     }
     try {
-      setInitializing(true);
-      setInitError("");
-      activeClientIndexRef.current = safeIndex;
       await SocialLogin.initialize({
         google: {
           webClientId: clientId,
           mode: "online"
         }
       });
-      setGoogleReady(true);
       return true;
     } catch (error) {
-      const nextError =
+      onErrorRef.current?.(
         error instanceof Error
           ? error
-          : new Error("Google login is unavailable on this device");
-      setGoogleReady(false);
-      setInitError(nextError.message);
-      onErrorRef.current?.(nextError);
+          : new Error("Failed to initialize Google login")
+      );
       return false;
-    } finally {
-      setInitializing(false);
     }
   }, []);
 
@@ -172,8 +90,9 @@ export default function GoogleLoginButton({
   }, []);
 
   useEffect(() => {
-    if (useNativeGoogleLogin) {
+    if (isNativeRuntime) {
       initializeNativeGoogle().then((ready) => {
+        setGoogleReady(Boolean(ready));
         setScriptLoaded(Boolean(ready));
       });
       return;
@@ -204,10 +123,10 @@ export default function GoogleLoginButton({
     script.onerror = () =>
       onErrorRef.current?.(new Error("Failed to load Google script"));
     document.body.appendChild(script);
-  }, [initializeNativeGoogle, useNativeGoogleLogin]);
+  }, [initializeNativeGoogle, isNativeRuntime]);
 
   useEffect(() => {
-    if (useNativeGoogleLogin) return;
+    if (isNativeRuntime) return;
     if (!scriptLoaded) return;
     if (!initializeGoogle()) return;
 
@@ -222,109 +141,107 @@ export default function GoogleLoginButton({
     return () => {
       window.google?.accounts?.id?.cancel();
     };
-  }, [scriptLoaded, initializeGoogle, renderGoogleButton, disabled, useNativeGoogleLogin]);
+  }, [scriptLoaded, initializeGoogle, renderGoogleButton, disabled, isNativeRuntime]);
 
   const signInWithNativeGoogle = useCallback(async () => {
     if (!googleReady) {
-      const initialized = await initializeNativeGoogle();
-      if (!initialized) {
-        return;
-      }
+      onErrorRef.current?.(
+        new Error("Google login is still loading. Please wait a moment and try again.")
+      );
+      return;
     }
     try {
-      setInitError("");
-      setInitializing(true);
-      const credential = await tryNativeGoogleLogin({
-        style: "bottom",
-        filterByAuthorizedAccounts: false,
-        autoSelectEnabled: false
+      const response = await SocialLogin.login({
+        provider: "google",
+        options: {
+          scopes: ["email", "profile"],
+          filterByAuthorizedAccounts: false,
+          autoSelectEnabled: false
+        }
       });
+      const credential =
+        response?.provider === "google" ? response?.result?.idToken : null;
       if (!credential) {
         throw new Error("Google credential unavailable");
       }
       onSuccessRef.current?.(credential);
     } catch (error) {
-      if (isUserCancellation(error)) {
-        const nextError = new Error(
-          "Google Sign-In was cancelled. Please try again."
-        );
-        setInitError(nextError.message);
-        onErrorRef.current?.(nextError);
-        return;
-      }
-      const nextError =
-        error instanceof Error
-          ? error
-          : new Error("Google login failed");
-      setInitError(nextError.message);
-      onErrorRef.current?.(nextError);
-    } finally {
-      setInitializing(false);
+      onErrorRef.current?.(
+        error instanceof Error ? error : new Error("Google login failed")
+      );
     }
-  }, [googleReady, initializeNativeGoogle]);
-
-  const handleGoogleClick = useCallback(() => {
-    if (onPreClickRef.current) {
-      const canProceed = onPreClickRef.current();
-      if (canProceed === false) return;
-    }
-    window.google?.accounts?.id?.prompt();
-  }, []);
-
-  const handleNativeClick = useCallback(() => {
-    if (onPreClickRef.current) {
-      const canProceed = onPreClickRef.current();
-      if (canProceed === false) return;
-    }
-    signInWithNativeGoogle();
-  }, [signInWithNativeGoogle]);
+  }, [googleReady]);
 
   return (
     <div className={`w-full mt-3 relative ${disabled ? "opacity-70" : ""}`}>
       <div className="relative w-full">
-        {useNativeGoogleLogin ? (
+        {isNativeRuntime ? (
           <button
             type="button"
-            onClick={disabled ? () => onDisabledClick?.() : handleNativeClick}
+            onClick={disabled ? () => onDisabledClick?.() : signInWithNativeGoogle}
             className="w-full h-[44px] rounded-xl border border-slate-300 bg-white text-sm font-semibold text-slate-600 inline-flex items-center justify-center gap-2"
-            disabled={initializing}
+            disabled={!googleReady}
           >
             <span className="inline-flex h-5 w-5 items-center justify-center">
               <svg viewBox="0 0 48 48" className="h-4 w-4" aria-hidden="true">
-                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.4 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.14-3.09-.4-4.55H24v9.02h12.94c-.58 2.96-2.25 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-                <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24s.92 7.54 2.56 10.78l7.97-6.19z"/>
-                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                <path
+                  fill="#EA4335"
+                  d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.4 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
+                />
+                <path
+                  fill="#4285F4"
+                  d="M46.98 24.55c0-1.57-.14-3.09-.4-4.55H24v9.02h12.94c-.58 2.96-2.25 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24s.92 7.54 2.56 10.78l7.97-6.19z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
+                />
               </svg>
             </span>
-            <span>
-              {initializing ? "Loading Google login..." : "Continue with Google"}
-            </span>
+            <span>{googleReady ? "Continue with Google" : "Loading Google login..."}</span>
           </button>
         ) : (
-          <>
-            <div
-              ref={buttonHostRef}
-              className={`w-full ${disabled ? "pointer-events-none" : ""}`}
-            />
-            {!googleReady && scriptLoaded && (
-              <button
-                type="button"
-                onClick={handleGoogleClick}
-                className="w-full h-[44px] rounded-xl border border-slate-300 bg-white text-sm font-semibold text-slate-600 inline-flex items-center justify-center gap-2"
-              >
-                <span className="inline-flex h-5 w-5 items-center justify-center">
-                  <svg viewBox="0 0 48 48" className="h-4 w-4" aria-hidden="true">
-                    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.4 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-                    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.14-3.09-.4-4.55H24v9.02h12.94c-.58 2.96-2.25 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-                    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24s.92 7.54 2.56 10.78l7.97-6.19z"/>
-                    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-                  </svg>
-                </span>
-                <span>Continue with Google</span>
-              </button>
-            )}
-          </>
+        <div
+          ref={buttonHostRef}
+          className={`w-full ${disabled ? "pointer-events-none" : ""}`}
+        />
+        )}
+        {!isNativeRuntime && !googleReady && (
+          <button
+            type="button"
+            onClick={() =>
+              onErrorRef.current?.(
+                new Error("Google login is still loading. Please wait a moment and try again.")
+              )
+            }
+            className="w-full h-[44px] rounded-xl border border-slate-300 bg-white text-sm font-semibold text-slate-600 inline-flex items-center justify-center gap-2"
+          >
+            <span className="inline-flex h-5 w-5 items-center justify-center">
+              <svg viewBox="0 0 48 48" className="h-4 w-4" aria-hidden="true">
+                <path
+                  fill="#EA4335"
+                  d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.4 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
+                />
+                <path
+                  fill="#4285F4"
+                  d="M46.98 24.55c0-1.57-.14-3.09-.4-4.55H24v9.02h12.94c-.58 2.96-2.25 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24s.92 7.54 2.56 10.78l7.97-6.19z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
+                />
+              </svg>
+            </span>
+            <span>Continue with Google</span>
+          </button>
         )}
         {disabled && (
           <button
@@ -336,14 +253,9 @@ export default function GoogleLoginButton({
           />
         )}
       </div>
-      {!googleReady && !initError && !scriptLoaded && (
+      {!googleReady && (
         <div className="text-xs text-gray-500 text-center mt-2">
           Loading Google login...
-        </div>
-      )}
-      {Boolean(initError) && (
-        <div className="text-xs text-amber-700 text-center mt-2">
-          {initError}
         </div>
       )}
     </div>
