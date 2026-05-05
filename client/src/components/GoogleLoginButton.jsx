@@ -49,15 +49,11 @@ export default function GoogleLoginButton({
   }, []);
 
   const initializeNativeGoogle = useCallback(async () => {
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-    if (!clientId) {
-      onErrorRef.current?.(new Error("Missing VITE_GOOGLE_CLIENT_ID"));
-      return false;
-    }
     try {
       await SocialLogin.initialize({
         google: {
-          webClientId: clientId,
+          webClientId: "482189438712-3si7monkd64341m7qh90hqevmdhh75iv.apps.googleusercontent.com",
+          androidClientId: "482189438712-b1n0ktef1lp5m3f6ch5c424086bdmber.apps.googleusercontent.com",
           mode: "online"
         }
       });
