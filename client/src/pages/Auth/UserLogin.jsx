@@ -835,17 +835,21 @@ useEffect(() => {
             roles: user.roles,
             email: user.email,
             city: cityFromUrl || user.city,
-            name: user.name || "Buyer",
+            name: user.name || (isSeller ? "Seller" : "Buyer"),
             picture: user.picture,
             preferredCurrency: user.preferredCurrency || "INR",
             sellerProfile: user.sellerProfile || {},
             token: res.data.token
           });
-          forceBuyerPostsTab();
-          const dashboardParams = new URLSearchParams();
-          dashboardParams.set("tab", "posts");
-          if (cityFromUrl || user.city) dashboardParams.set("city", cityFromUrl || user.city);
-          navigate(`/buyer/dashboard?${dashboardParams.toString()}`, { replace: true });
+          if (isSeller) {
+            navigate(buildSellerDashboardRedirect(cityFromUrl || user.city || ""), { replace: true });
+          } else {
+            forceBuyerPostsTab();
+            const dashboardParams = new URLSearchParams();
+            dashboardParams.set("tab", "posts");
+            if (cityFromUrl || user.city) dashboardParams.set("city", cityFromUrl || user.city);
+            navigate(`/buyer/dashboard?${dashboardParams.toString()}`, { replace: true });
+          }
         } else {
           setPendingCitySession({
             _id: user._id,
