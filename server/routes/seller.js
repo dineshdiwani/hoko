@@ -953,7 +953,7 @@ router.post("/offer/public", async (req, res) => {
         if (mobileE164) {
           const appBase = String(process.env.PUBLIC_APP_URL || "https://hokoapp.in").trim();
           const sellerMobile = String(normalizeE164(mobileE164) || mobileE164 || "").replace(/[^\d]/g, "");
-          const sellerLoginLink = `${appBase}/seller/login?mobile=${encodeURIComponent(sellerMobile)}&ref=${encodeURIComponent(requirementIdStr)}&from=wa`;
+          const sellerLoginLink = `${appBase}/seller/deeplink/${encodeURIComponent(requirementIdStr)}?mobile=${encodeURIComponent(sellerMobile)}&from=wa`;
           const sellerParams = [productName];
           console.log("[Public Offer] Sending to seller:", { to: mobileE164, templateKey: "seller_quote_received_ack", params: sellerParams, buttonUrl: sellerLoginLink });
           await sendWhatsAppTemplate({
@@ -1138,11 +1138,13 @@ router.post("/offer", auth, sellerOnly, async (req, res) => {
           
           if (sellerMobileE164) {
             const sellerParams = [sellerName, productName, priceStr];
+            const sellerDeepLink = `${String(process.env.PUBLIC_APP_URL || "https://hokoapp.in").trim()}/seller/deeplink/${encodeURIComponent(requirementIdStr)}?mobile=${encodeURIComponent(String(sellerMobileE164 || "").replace(/[^\d]/g, ""))}&from=wa`;
             await sendWhatsAppTemplate({
               to: sellerMobileE164,
               templateKey: "seller_quote_received_ack_v1",
               parameters: sellerParams,
-              requirementId: requirementIdStr
+              requirementId: requirementIdStr,
+              buttonUrl: sellerDeepLink
             });
           }
           

@@ -490,7 +490,7 @@ async function sendSellerRequirementInvite(to, requirementId, product, city, qua
     return { ok: false, reason: "unsupported_provider" };
   }
 
-  const deepLink = buildSellerDeepLink(requirementId);
+  const deepLink = buildSellerDeepLink(requirementId, to);
 
   const templateConfig = await WhatsAppTemplateRegistry.findOne({
     key: "seller_new_requirement_invite_v2",
@@ -513,7 +513,7 @@ async function sendSellerRequirementInvite(to, requirementId, product, city, qua
           templateName: templateConfig.templateName,
           languageCode,
           parameters,
-          buttonUrl: String(requirementId)
+          buttonUrl: deepLink
         });
 
     console.log(`[Seller Invite] Sent to ${to}, providerMessageId: ${result?.providerMessageId}, deepLink: ${deepLink}`);
@@ -587,9 +587,15 @@ function firstNonEmpty(values) {
   return "";
 }
 
-function buildSellerDeepLink(requirementId) {
+function buildSellerDeepLink(requirementId, mobileE164 = "") {
   const appBase = resolvePublicAppUrl();
-  return `${appBase}/seller/deeplink/${encodeURIComponent(String(requirementId || "").trim())}`;
+  const reqId = encodeURIComponent(String(requirementId || "").trim());
+  const mobileDigits = String(mobileE164 || "").replace(/[^\d]/g, "");
+  const params = new URLSearchParams();
+  if (mobileDigits) params.set("mobile", mobileDigits);
+  params.set("from", "wa");
+  const queryString = params.toString();
+  return `${appBase}/seller/deeplink/${reqId}${queryString ? `?${queryString}` : ""}`;
 }
 
 function buildRequirementLabel(requirement) {
