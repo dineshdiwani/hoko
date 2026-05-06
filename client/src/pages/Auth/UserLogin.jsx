@@ -57,7 +57,7 @@ export default function UserLogin({ role = "buyer" }) {
   ].join("\n\n");
 
   const [step, setStep] = useState("EMAIL_LOGIN");
-  const rawMobile = searchParams.get("mobile") || "";
+  const rawMobile = searchParams.get("mobile") || localStorage.getItem("whatsapp_mobile") || "";
   const normalizeMobileValue = (value) => {
     const raw = String(value || "").trim();
     if (!raw) return "";
@@ -149,8 +149,10 @@ export default function UserLogin({ role = "buyer" }) {
     const params = new URLSearchParams();
     const loginMobile = normalizeMobileValue(mobile || emailOrMobileFromUrl || "");
     if (loginMobile) params.set("mobile", loginMobile);
-    if (cityFromUrl) params.set("city", cityFromUrl);
-    if (catsFromUrl) params.set("cats", catsFromUrl);
+    const waCity = cityFromUrl || localStorage.getItem("whatsapp_city") || "";
+    const waCats = catsFromUrl || localStorage.getItem("whatsapp_categories") || "";
+    if (waCity) params.set("city", waCity);
+    if (waCats) params.set("cats", waCats);
     if (sourceFromUrl) params.set("from", sourceFromUrl);
     return `/seller/register${params.toString() ? `?${params.toString()}` : ""}`;
   }
@@ -159,7 +161,8 @@ export default function UserLogin({ role = "buyer" }) {
     const params = new URLSearchParams();
     const normalizedCity = String(cityValue || "").trim();
     if (normalizedCity) params.set("city", normalizedCity);
-    if (catsFromUrl) params.set("cats", catsFromUrl);
+    const waCats = catsFromUrl || localStorage.getItem("whatsapp_categories") || "";
+    if (waCats) params.set("cats", waCats);
     if (sourceFromUrl) params.set("from", sourceFromUrl);
     return `/seller/dashboard${params.toString() ? `?${params.toString()}` : ""}`;
   }

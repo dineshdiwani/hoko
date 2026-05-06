@@ -77,6 +77,9 @@ export default function SellerDashboard() {
   const mobileFromUrl = normalizeMobileValue(searchParams.get("mobile") || "");
   const openRequirementFromUrl =
     searchParams.get("openRequirement") || searchParams.get("postId") || "";
+  const whatsappContextMobile = mobileFromUrl || normalizeMobileValue(localStorage.getItem("whatsapp_mobile") || "");
+  const whatsappContextCity = String(cityFromUrl || localStorage.getItem("whatsapp_city") || "").trim();
+  const whatsappContextCats = String(catsFromUrl || localStorage.getItem("whatsapp_categories") || "").trim();
 
   const normalizeCategoryValue = (value) =>
     String(value || "")
@@ -95,10 +98,17 @@ export default function SellerDashboard() {
   
   // Handle WhatsApp deep link - set mobile in localStorage for later use
   useEffect(() => {
-    if (isWhatsAppFlow && mobileFromUrl) {
-      localStorage.setItem("whatsapp_mobile", mobileFromUrl);
+    if (!isWhatsAppFlow) return;
+    if (whatsappContextMobile) {
+      localStorage.setItem("whatsapp_mobile", whatsappContextMobile);
     }
-  }, [isWhatsAppFlow, mobileFromUrl]);
+    if (whatsappContextCity) {
+      localStorage.setItem("whatsapp_city", whatsappContextCity);
+    }
+    if (whatsappContextCats) {
+      localStorage.setItem("whatsapp_categories", whatsappContextCats);
+    }
+  }, [isWhatsAppFlow, whatsappContextMobile, whatsappContextCity, whatsappContextCats]);
 
   // COMPLETELY BYPASS AUTH for WhatsApp flow - let them see dashboard
   const isWhatsAppPublicView = isWhatsAppFlow;
@@ -362,8 +372,9 @@ export default function SellerDashboard() {
 
   function navigateToLogin() {
     const params = new URLSearchParams();
-    if (selectedCity && selectedCity !== "all") params.set("city", selectedCity);
-    if (selectedCategory && selectedCategory !== "all") params.set("cats", selectedCategory);
+    if (whatsappContextMobile) params.set("mobile", whatsappContextMobile);
+    if (whatsappContextCity) params.set("city", whatsappContextCity);
+    if (whatsappContextCats) params.set("cats", whatsappContextCats);
     params.set("from", "wa");
     navigate(`/seller/login?${params.toString()}`);
   }
@@ -372,10 +383,10 @@ export default function SellerDashboard() {
     const params = new URLSearchParams();
     const requirementId = String(req?._id || "").trim();
     const waMobile =
-      mobileFromUrl ||
+      whatsappContextMobile ||
       normalizeMobileValue(localStorage.getItem("whatsapp_mobile") || "");
-    const reqCity = String(req?.city || "").trim();
-    const reqCategory = String(req?.category || "").trim();
+    const reqCity = String(whatsappContextCity || req?.city || "").trim();
+    const reqCategory = String(whatsappContextCats || req?.category || "").trim();
     if (requirementId) params.set("openRequirement", requirementId);
     if (waMobile) params.set("mobile", waMobile);
     if (reqCity) params.set("city", reqCity);
@@ -389,12 +400,12 @@ export default function SellerDashboard() {
     if (!requirementId) return;
 
     const waMobile =
-      mobileFromUrl ||
+      whatsappContextMobile ||
       normalizeMobileValue(localStorage.getItem("whatsapp_mobile") || "");
     const params = new URLSearchParams();
     if (waMobile) params.set("mobile", waMobile);
-    if (String(req?.city || "").trim()) params.set("city", String(req.city).trim());
-    if (String(req?.category || "").trim()) params.set("cats", String(req.category).trim());
+    if (whatsappContextCity || String(req?.city || "").trim()) params.set("city", whatsappContextCity || String(req.city).trim());
+    if (whatsappContextCats || String(req?.category || "").trim()) params.set("cats", whatsappContextCats || String(req.category).trim());
     params.set("from", "wa");
 
     const resumeTarget = buildWhatsAppOfferResumeTarget(req);
@@ -410,12 +421,12 @@ export default function SellerDashboard() {
     if (!requirementId) return;
 
     const waMobile =
-      mobileFromUrl ||
+      whatsappContextMobile ||
       normalizeMobileValue(localStorage.getItem("whatsapp_mobile") || "");
     const params = new URLSearchParams();
     if (waMobile) params.set("mobile", waMobile);
-    if (String(req?.city || "").trim()) params.set("city", String(req.city).trim());
-    if (String(req?.category || "").trim()) params.set("cats", String(req.category).trim());
+    if (whatsappContextCity || String(req?.city || "").trim()) params.set("city", whatsappContextCity || String(req.city).trim());
+    if (whatsappContextCats || String(req?.category || "").trim()) params.set("cats", whatsappContextCats || String(req.category).trim());
     params.set("from", "wa");
     params.set("requirementId", requirementId);
 
