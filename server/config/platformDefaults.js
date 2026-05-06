@@ -153,6 +153,14 @@ const DEFAULT_WHATSAPP_CAMPAIGN = {
   cities: [],
   categories: []
 };
+const DEFAULT_WHATSAPP_FLOW = {
+  mode: "acquisition",
+  welcomeMessage: "Welcome to Hoko. We keep WhatsApp short and use the app for the full journey.",
+  buyerMessage: "Open the buyer flow in the app to post your requirement.",
+  sellerMessage: "Open the seller flow in the app to receive buyer leads.",
+  helpMessage: "Reply BUYER, SELLER, STATUS, or HELP.",
+  statusMessage: "Open your dashboard in the app to view live status updates."
+};
 const DEFAULT_EMAIL_NOTIFICATIONS = {
   enabled: false,
   adminCopy: true,
@@ -253,6 +261,10 @@ function buildOptionsResponse(doc) {
         ? raw.sampleCityPostsEnabled
         : DEFAULT_SAMPLE_CITY_POSTS_ENABLED,
     whatsAppCampaign: raw?.whatsAppCampaign || DEFAULT_WHATSAPP_CAMPAIGN,
+    whatsappFlow: {
+      ...DEFAULT_WHATSAPP_FLOW,
+      ...(raw?.whatsappFlow || {})
+    },
     moderationRules: raw?.moderationRules || DEFAULT_MODERATION_RULES,
     termsAndConditions: raw?.termsAndConditions || {
       content: DEFAULT_TERMS_CONTENT
@@ -273,6 +285,7 @@ module.exports = {
   DEFAULT_NOTIFICATIONS,
   DEFAULT_EMAIL_NOTIFICATIONS,
   DEFAULT_WHATSAPP_CAMPAIGN,
+  DEFAULT_WHATSAPP_FLOW,
   DEFAULT_MODERATION_RULES,
   DEFAULT_SELECTIONS,
   DEFAULT_SAMPLE_CITY_POSTS_ENABLED,

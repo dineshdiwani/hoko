@@ -3,6 +3,15 @@ import api from "../../utils/adminApi";
 import AdminNav from "../../components/AdminNav";
 import { getPublicAppUrl } from "../../utils/runtime";
 
+const DEFAULT_WHATSAPP_FLOW = {
+  mode: "acquisition",
+  welcomeMessage: "Welcome to Hoko. We keep WhatsApp short and use the app for the full journey.",
+  buyerMessage: "Open the buyer flow in the app to post your requirement.",
+  sellerMessage: "Open the seller flow in the app to receive buyer leads.",
+  helpMessage: "Reply BUYER, SELLER, STATUS, or HELP.",
+  statusMessage: "Open your dashboard in the app to view live status updates."
+};
+
 export default function AdminWhatsApp() {
   const [options, setOptions] = useState({
     cities: [],
@@ -11,7 +20,8 @@ export default function AdminWhatsApp() {
       enabled: false,
       cities: [],
       categories: []
-    }
+    },
+    whatsappFlow: DEFAULT_WHATSAPP_FLOW
   });
   const [requirements, setRequirements] = useState([]);
   const [contacts, setContacts] = useState([]);
@@ -47,6 +57,7 @@ const [consentConfig, setConsentConfig] = useState({
     pendingCount: 0,
     optedInCount: 0
   });
+  const [savingWhatsAppFlow, setSavingWhatsAppFlow] = useState(false);
   const [unsubscribeMobile, setUnsubscribeMobile] = useState("");
   const [unsubscribeReason, setUnsubscribeReason] = useState("");
   const [dndBulk, setDndBulk] = useState("");
@@ -134,6 +145,40 @@ const [consentConfig, setConsentConfig] = useState({
     const model = firstNonEmpty([requirement?.typeModel, requirement?.type]);
     if (make && model) return `${make} ${model}`;
     return make || model || "-";
+  };
+
+  const whatsappFlow = {
+    ...DEFAULT_WHATSAPP_FLOW,
+    ...(options.whatsappFlow || {})
+  };
+
+  const updateWhatsAppFlow = (field, value) => {
+    setOptions((prev) => ({
+      ...prev,
+      whatsappFlow: {
+        ...DEFAULT_WHATSAPP_FLOW,
+        ...(prev.whatsappFlow || {}),
+        [field]: value
+      }
+    }));
+  };
+
+  const saveWhatsAppFlow = async () => {
+    try {
+      setSavingWhatsAppFlow(true);
+      const payload = {
+        ...options,
+        whatsappFlow
+      };
+      delete payload.sampleCityPostsEnabled;
+      await api.put("/admin/options", payload);
+      alert("WhatsApp flow updated");
+      await loadData();
+    } catch (err) {
+      alert(err?.response?.data?.message || "Failed to update WhatsApp flow");
+    } finally {
+      setSavingWhatsAppFlow(false);
+    }
   };
 
   const buildManualMessage = useCallback(
@@ -1188,6 +1233,90 @@ const manualCategoryOptions = useMemo(() => {
                   <span>Pending consent: <span className="font-semibold">{consentConfig.pendingCount || 0}</span></span>
                   <span>Opted-in: <span className="font-semibold">{consentConfig.optedInCount || 0}</span></span>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h2 className="text-lg font-bold mb-3">WhatsApp Flow Control</h2>
+            <div className="bg-white border rounded-2xl p-4 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <label className="block text-sm">
+                  <span className="block text-xs font-semibold text-gray-600 mb-1">Flow mode</span>
+                  <select
+                    className="w-full border rounded-lg px-3 py-2 text-sm"
+                    value={whatsappFlow.mode}
+                    onChange={(e) => updateWhatsAppFlow("mode", e.target.value)}
+                  >
+                    <option value="acquisition">Acquisition first</option>
+                    <option value="status_only">Status only</option>
+                    <option value="legacy">Legacy conversational flow</option>
+                    <option value="off">Off</option>
+                  </select>
+                </label>
+                <div className="rounded-lg border bg-amber-50 p-3 text-xs text-amber-900">
+                  WhatsApp now stays outside the app logic. Use this panel to control the acquisition message and the fallback behavior, while buyers and sellers keep using the app for transactions.
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <label className="block text-sm">
+                  <span className="block text-xs font-semibold text-gray-600 mb-1">Welcome copy</span>
+                  <textarea
+                    rows={3}
+                    className="w-full border rounded-lg px-3 py-2 text-sm"
+                    value={whatsappFlow.welcomeMessage}
+                    onChange={(e) => updateWhatsAppFlow("welcomeMessage", e.target.value)}
+                  />
+                </label>
+                <label className="block text-sm">
+                  <span className="block text-xs font-semibold text-gray-600 mb-1">Buyer CTA</span>
+                  <textarea
+                    rows={3}
+                    className="w-full border rounded-lg px-3 py-2 text-sm"
+                    value={whatsappFlow.buyerMessage}
+                    onChange={(e) => updateWhatsAppFlow("buyerMessage", e.target.value)}
+                  />
+                </label>
+                <label className="block text-sm">
+                  <span className="block text-xs font-semibold text-gray-600 mb-1">Seller CTA</span>
+                  <textarea
+                    rows={3}
+                    className="w-full border rounded-lg px-3 py-2 text-sm"
+                    value={whatsappFlow.sellerMessage}
+                    onChange={(e) => updateWhatsAppFlow("sellerMessage", e.target.value)}
+                  />
+                </label>
+                <label className="block text-sm">
+                  <span className="block text-xs font-semibold text-gray-600 mb-1">Status copy</span>
+                  <textarea
+                    rows={3}
+                    className="w-full border rounded-lg px-3 py-2 text-sm"
+                    value={whatsappFlow.statusMessage}
+                    onChange={(e) => updateWhatsAppFlow("statusMessage", e.target.value)}
+                  />
+                </label>
+              </div>
+              <label className="block text-sm">
+                <span className="block text-xs font-semibold text-gray-600 mb-1">Help copy</span>
+                <textarea
+                  rows={2}
+                  className="w-full border rounded-lg px-3 py-2 text-sm"
+                  value={whatsappFlow.helpMessage}
+                  onChange={(e) => updateWhatsAppFlow("helpMessage", e.target.value)}
+                />
+              </label>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={saveWhatsAppFlow}
+                  disabled={savingWhatsAppFlow}
+                  className="px-4 py-2 rounded-lg text-sm font-semibold btn-primary disabled:opacity-60"
+                >
+                  {savingWhatsAppFlow ? "Saving..." : "Save WhatsApp Flow"}
+                </button>
+                <span className="text-xs text-gray-500">
+                  This updates only the WhatsApp entry behavior. Buyer and seller app screens keep working as they are.
+                </span>
               </div>
             </div>
           </div>

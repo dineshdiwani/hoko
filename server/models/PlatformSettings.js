@@ -40,6 +40,18 @@ const platformSettingsSchema = new mongoose.Schema(
       cities: [{ type: String }],
       categories: [{ type: String }]
     },
+    whatsappFlow: {
+      mode: {
+        type: String,
+        enum: ["acquisition", "status_only", "legacy", "off"],
+        default: "acquisition"
+      },
+      welcomeMessage: { type: String, default: "Welcome to Hoko. We keep WhatsApp short and use the app for the full journey." },
+      buyerMessage: { type: String, default: "Open the buyer flow in the app to post your requirement." },
+      sellerMessage: { type: String, default: "Open the seller flow in the app to receive buyer leads." },
+      helpMessage: { type: String, default: "Reply BUYER, SELLER, STATUS, or HELP." },
+      statusMessage: { type: String, default: "Open your dashboard in the app to view live status updates." }
+    },
     sampleCityPostsEnabled: {
       type: Boolean,
       default: true
