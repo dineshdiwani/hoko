@@ -58,15 +58,21 @@ export default function UserLogin({ role = "buyer" }) {
 
   const [step, setStep] = useState("EMAIL_LOGIN");
   const rawMobile = searchParams.get("mobile") || "";
+  const normalizeMobileValue = (value) => {
+    const raw = String(value || "").trim();
+    if (!raw) return "";
+    const match = raw.match(/\+?\d{10,15}/);
+    return match ? match[0].replace(/[^\d]/g, "") : raw.replace(/[^\d]/g, "");
+  };
   const emailOrMobileFromUrl = rawMobile.startsWith("http")
     ? (() => {
         try {
-          return new URL(rawMobile).searchParams.get("mobile") || "";
+          return normalizeMobileValue(new URL(rawMobile).searchParams.get("mobile") || "");
         } catch {
           return "";
         }
       })()
-    : rawMobile;
+    : normalizeMobileValue(rawMobile);
   const hasMobileInUrl = Boolean(emailOrMobileFromUrl);
 
   const [email, setEmail] = useState("");
@@ -141,7 +147,7 @@ export default function UserLogin({ role = "buyer" }) {
 
   function buildSellerRegisterRedirect() {
     const params = new URLSearchParams();
-    const loginMobile = String(mobile || emailOrMobileFromUrl || "").trim();
+    const loginMobile = normalizeMobileValue(mobile || emailOrMobileFromUrl || "");
     if (loginMobile) params.set("mobile", loginMobile);
     if (cityFromUrl) params.set("city", cityFromUrl);
     if (catsFromUrl) params.set("cats", catsFromUrl);

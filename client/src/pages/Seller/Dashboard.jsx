@@ -68,7 +68,13 @@ export default function SellerDashboard() {
   const sourceFromUrl = String(searchParams.get("from") || "").trim().toLowerCase();
   const cityFromUrl = searchParams.get("city") || "";
   const catsFromUrl = searchParams.get("cats") || "";
-  const mobileFromUrl = searchParams.get("mobile") || "";
+  const normalizeMobileValue = (value) => {
+    const raw = String(value || "").trim();
+    if (!raw) return "";
+    const match = raw.match(/\+?\d{10,15}/);
+    return match ? match[0].replace(/[^\d]/g, "") : raw.replace(/[^\d]/g, "");
+  };
+  const mobileFromUrl = normalizeMobileValue(searchParams.get("mobile") || "");
   const openRequirementFromUrl =
     searchParams.get("openRequirement") || searchParams.get("postId") || "";
 

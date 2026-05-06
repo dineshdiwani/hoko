@@ -10,7 +10,13 @@ import {
 
 export default function SellerRegister() {
   const [searchParams] = useSearchParams();
-  const mobileFromUrl = searchParams.get("mobile") || "";
+  const normalizeMobileValue = (value) => {
+    const raw = String(value || "").trim();
+    if (!raw) return "";
+    const match = raw.match(/\+?\d{10,15}/);
+    return match ? match[0].replace(/[^\d]/g, "") : raw.replace(/[^\d]/g, "");
+  };
+  const mobileFromUrl = normalizeMobileValue(searchParams.get("mobile") || "");
   const cityFromUrl = searchParams.get("city") || "";
   const catsFromUrl = searchParams.get("cats") || "";
   const session = getSession();
@@ -51,7 +57,7 @@ export default function SellerRegister() {
           setCities(data.cities);
           const whatsappCity = localStorage.getItem("whatsapp_city") || cityFromUrl;
           const whatsappCats = localStorage.getItem("whatsapp_categories") || catsFromUrl;
-          const whatsappMobile = localStorage.getItem("whatsapp_mobile") || mobileFromUrl;
+          const whatsappMobile = normalizeMobileValue(localStorage.getItem("whatsapp_mobile") || mobileFromUrl);
           setSeller((prev) => {
             let next = { ...prev };
             if (whatsappCity) {
@@ -83,7 +89,7 @@ export default function SellerRegister() {
 
   useEffect(() => {
     const savedEmail = localStorage.getItem("seller_email");
-    const savedMobile = localStorage.getItem("whatsapp_mobile");
+    const savedMobile = normalizeMobileValue(localStorage.getItem("whatsapp_mobile"));
     const savedCity = localStorage.getItem("whatsapp_city");
     const savedCats = localStorage.getItem("whatsapp_categories");
     
@@ -97,7 +103,7 @@ export default function SellerRegister() {
       }
       
       if (session?.mobile && !next.mobile) {
-        next.mobile = session.mobile;
+        next.mobile = normalizeMobileValue(session.mobile);
       } else if (savedMobile && !next.mobile) {
         next.mobile = savedMobile;
       }

@@ -77,13 +77,19 @@ export default function SellerDeepLink() {
     sellerName: "",
     sellerCity: ""
   });
+  const normalizeMobileValue = (value) => {
+    const raw = String(value || "").trim();
+    if (!raw) return "";
+    const match = raw.match(/\+?\d{10,15}/);
+    return match ? match[0].replace(/[^\d]/g, "") : raw.replace(/[^\d]/g, "");
+  };
   
   const [pendingOfferPayload, setPendingOfferPayload] = useState(null);
   const [showRegistration, setShowRegistration] = useState(false); // Show registration after OTP verification
   const [registrationData, setRegistrationData] = useState({}); // Store registration form data
   
   const params = useMemo(() => new URLSearchParams(location.search), [location.search]);
-  const mobileFromUrl = String(params.get("mobile") || "").replace(/^\+/, "");
+  const mobileFromUrl = normalizeMobileValue(params.get("mobile") || "");
   const cityFromUrl = String(params.get("city") || "").trim();
   const catsFromUrl = String(params.get("cats") || "").trim();
   const autoSubmitFromRegister = params.get("autoSubmit") === "true";
@@ -100,7 +106,7 @@ export default function SellerDeepLink() {
       return {};
     }
   }, [params]);
-  const mobileFromPayload = String(packedData.mobile || "").replace(/^\+/, "");
+  const mobileFromPayload = normalizeMobileValue(packedData.mobile || "");
   const routeRequirementId = extractObjectId(requirementId);
   const queryPostId = extractObjectId(
     packedData.postId || packedData.requirementId || params.get("postId") || params.get("ref")
@@ -287,7 +293,7 @@ useEffect(() => {
     if (session?.token && session?.roles?.seller) {
       setForm((prev) => ({
         ...prev,
-        mobile: prev.mobile || session?.mobile || mobileFromUrl || "",
+        mobile: prev.mobile || normalizeMobileValue(session?.mobile) || mobileFromUrl || "",
         sellerCity: prev.sellerCity || session?.city || cityFromUrl || ""
       }));
       return;
@@ -379,7 +385,7 @@ useEffect(() => {
         message: prev.message || String(pendingPayload.message || ""),
         deliveryTime: prev.deliveryTime || String(pendingPayload.deliveryTime || ""),
         paymentTerms: prev.paymentTerms || String(pendingPayload.paymentTerms || ""),
-        mobile: prev.mobile || String(pendingPayload.mobile || session?.mobile || mobileFromUrl || ""),
+        mobile: prev.mobile || normalizeMobileValue(pendingPayload.mobile || session?.mobile || mobileFromUrl || ""),
         sellerName: prev.sellerName || String(pendingPayload.sellerName || ""),
         sellerCity: prev.sellerCity || String(pendingPayload.sellerCity || session?.city || cityFromUrl || "")
       }));
@@ -390,7 +396,7 @@ useEffect(() => {
           message: String(pendingPayload.message || ""),
           deliveryTime: String(pendingPayload.deliveryTime || ""),
           paymentTerms: String(pendingPayload.paymentTerms || ""),
-          mobile: String(pendingPayload.mobile || session?.mobile || mobileFromUrl || ""),
+          mobile: normalizeMobileValue(pendingPayload.mobile || session?.mobile || mobileFromUrl || ""),
           sellerName: String(pendingPayload.sellerName || ""),
           sellerCity: String(pendingPayload.sellerCity || session?.city || cityFromUrl || "")
         }, { isAuto: true });
