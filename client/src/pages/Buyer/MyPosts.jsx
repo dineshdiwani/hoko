@@ -39,6 +39,10 @@ export default function MyPosts({
     }
     return "open";
   };
+  const compactText = (value, fallback = "-") => {
+    const text = String(value || "").trim();
+    return text || fallback;
+  };
   const getRequirementStatusMeta = (value) => {
     const status = normalizeRequirementStatus(value);
     if (status === "fulfilled") {
@@ -264,33 +268,39 @@ export default function MyPosts({
   /* ---------------- LIST ---------------- */
   return (
     <>
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <span className="ui-label text-gray-700">City</span>
-        <select
-          value={city}
-          onChange={(e) => onCityChange?.(e.target.value)}
-          className="w-full sm:w-auto max-w-full px-4 py-2.5 rounded-xl border text-sm bg-white"
-        >
-          <option value="">All cities</option>
-          {cities.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
-        <span className="ui-label text-gray-700 sm:ml-2">Category</span>
-        <select
-          value={selectedCategory}
-          onChange={(e) => onCategoryChange?.(e.target.value)}
-          className="w-full sm:w-auto max-w-full px-4 py-2.5 rounded-xl border text-sm bg-white"
-        >
-          <option value="all">All categories</option>
-          {categories.map((cat) => (
-            <option key={cat} value={cat}>
-              {cat}
-            </option>
-          ))}
-        </select>
+      <div className="mb-4 rounded-2xl border border-[var(--ui-border)] bg-white p-3 shadow-sm">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="flex flex-col gap-1">
+            <span className="ui-label text-gray-700">City</span>
+            <select
+              value={city}
+              onChange={(e) => onCityChange?.(e.target.value)}
+              className="w-full max-w-full px-4 py-2.5 rounded-xl border text-sm bg-white"
+            >
+              <option value="">All cities</option>
+              {cities.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="ui-label text-gray-700">Category</span>
+            <select
+              value={selectedCategory}
+              onChange={(e) => onCategoryChange?.(e.target.value)}
+              className="w-full max-w-full px-4 py-2.5 rounded-xl border text-sm bg-white"
+            >
+              <option value="all">All categories</option>
+              {categories.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
       </div>
 
       {filteredRequirements.length === 0 && (
@@ -336,7 +346,7 @@ export default function MyPosts({
                 `/buyer/requirement/${req._id || req.id}/offers`
               )
             }
-            className="relative app-card active:scale-[0.99] transition"
+            className="relative app-card active:scale-[0.99] transition flex flex-col gap-4"
           >
             <button
               onClick={(e) => {
@@ -355,73 +365,84 @@ export default function MyPosts({
                 <path d="M9 3h6l1 2h4v2H4V5h4l1-2Zm1 7h2v8h-2v-8Zm4 0h2v8h-2v-8ZM7 10h2v8H7v-8Z" />
               </svg>
             </button>
-            {/* Top row */}
-            <div className="flex justify-between items-start mb-2">
-              <h3 className="font-semibold text-base text-[var(--ui-text)]">
-                {req.productName || req.product || "-"}
-              </h3>
-
-              <span
-                className={`${statusClass} mr-10`}
-              >
-                {statusText}
-              </span>
-            </div>
-
-            {/* Meta */}
-            <p className="text-sm text-[var(--ui-muted)]">
-              {req.city || "-"} | {req.category || "-"}
-            </p>
-            <p className="text-sm text-[var(--ui-muted)]">
-              Make/Brand: {req.makeBrand || req.brand || "-"} | Type/Model: {req.typeModel || req.type || "-"}
-            </p>
-            <p className="text-sm text-[var(--ui-muted)]">
-              Quantity: {req.quantity || "-"} {req.unit || req.type || ""}
-            </p>
-
-            {requirementDetails && (
-              <p className="text-sm text-[var(--ui-text)] mt-1 whitespace-pre-line">
-                {requirementDetails}
-              </p>
-            )}
-
-            <p className="text-xs text-gray-400 mt-1">
-              Posted{" "}
-              {new Date(
-                req.createdAt || Date.now()
-              ).toLocaleDateString()}
-            </p>
-
-            {/* Auction info */}
-            {auctionActive && (
-              <div className="mt-3 text-sm text-red-700">
-                Lowest price: Rs{" "}
-                {req.reverseAuction?.lowestPrice ??
-                  req.currentLowestPrice ??
-                  "-"}
+            <div className="flex flex-col gap-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-base text-[var(--ui-text)] break-words">
+                    {compactText(req.productName || req.product)}
+                  </h3>
+                  <p className="text-sm text-[var(--ui-muted)] mt-1">
+                    {compactText(req.city)} · {compactText(req.category)}
+                  </p>
+                </div>
+                <span className={`${statusClass} shrink-0`}>{statusText}</span>
               </div>
-            )}
 
-            {attachments.length > 0 && (
-              <div className="mt-3">
-                <p className="text-xs font-medium text-gray-600 mb-2">
-                  Attachments
-                </p>
-                <div className="space-y-2">
-                  {attachments.map((attachment, index) => {
-                    const filename = extractAttachmentFileName(attachment);
-                    const name = getDisplayName(attachment, index);
-                    const typeMeta = getAttachmentTypeMeta(attachment, index);
-                    return (
-                      <div
-                        key={`${name}-${index}`}
-                        className="flex items-center gap-3"
-                        onClick={(e) => e.stopPropagation()}
-                      >
+              <div className="flex flex-wrap gap-2">
+                <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
+                  Brand: {compactText(req.makeBrand || req.brand)}
+                </span>
+                <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
+                  Model: {compactText(req.typeModel || req.type)}
+                </span>
+                <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
+                  Qty: {compactText(req.quantity)} {compactText(req.unit || req.type, "")}
+                </span>
+                <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
+                  Posted: {new Date(req.createdAt || Date.now()).toLocaleDateString()}
+                </span>
+                <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${offerCount > 0 ? "bg-blue-50 text-blue-700" : "bg-slate-100 text-slate-600"}`}>
+                  {offerCount > 0 ? `${offerCount} offers` : "No offers yet"}
+                </span>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
+                <div className="rounded-2xl border border-[var(--ui-border)] bg-slate-50/70 p-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">
+                    Requirement preview
+                  </p>
+                  <p className="text-sm text-[var(--ui-text)] whitespace-pre-line break-words">
+                    {requirementDetails || "No extra details added yet."}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-[var(--ui-border)] bg-white p-3 md:min-w-[220px]">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
+                    Quick status
+                  </p>
+                  {auctionActive && (
+                    <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                      Lowest price: Rs{" "}
+                      {req.reverseAuction?.lowestPrice ??
+                        req.currentLowestPrice ??
+                        "-"}
+                    </div>
+                  )}
+                  <p className="text-xs text-gray-500 mt-3">
+                    Tap the card or the button below to manage offers.
+                  </p>
+                </div>
+              </div>
+
+              {attachments.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
+                    Attachments
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {attachments.map((attachment, index) => {
+                      const filename = extractAttachmentFileName(attachment);
+                      const name = getDisplayName(attachment, index);
+                      const typeMeta = getAttachmentTypeMeta(attachment, index);
+                      return (
                         <button
+                          key={`${name}-${index}`}
                           type="button"
-                          onClick={() => openAttachment(attachment)}
-                          className="text-xs text-amber-700 hover:underline break-all inline-flex items-center gap-2"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openAttachment(attachment);
+                          }}
+                          className="inline-flex max-w-full items-center gap-2 rounded-full border border-[var(--ui-border)] bg-white px-3 py-1.5 text-xs font-semibold text-[var(--ui-text)] hover:bg-slate-50"
                           title={filename || "Attachment path missing"}
                         >
                           <span
@@ -429,63 +450,49 @@ export default function MyPosts({
                           >
                             {typeMeta.label}
                           </span>
-                          {name}
+                          <span className="truncate max-w-[11rem]">{name}</span>
                         </button>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {Array.isArray(req.sellerFirms) &&
-              req.sellerFirms.length > 0 && (
-                <div
-                  className="mt-3 flex flex-wrap gap-2"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <span className="text-xs text-gray-500">
-                    Sellers:
-                  </span>
-                  {req.sellerFirms.map((seller) => (
-                    <button
-                      key={seller.id}
-                      onClick={() =>
-                        openSellerDetails(seller.id)
-                      }
-                      className="px-2 py-1 text-xs font-bold rounded-full border border-indigo-200 text-indigo-700 hover:bg-indigo-50"
-                    >
-                      {seller.registeredBusinessName}
-                    </button>
-                  ))}
-                </div>
-            )}
+              {Array.isArray(req.sellerFirms) &&
+                req.sellerFirms.length > 0 && (
+                  <div
+                    className="flex flex-wrap gap-2"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <span className="text-xs text-gray-500 self-center">
+                      Sellers
+                    </span>
+                    {req.sellerFirms.map((seller) => (
+                      <button
+                        key={seller.id}
+                        onClick={() =>
+                          openSellerDetails(seller.id)
+                        }
+                        className="inline-flex max-w-full items-center rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-bold text-indigo-700 hover:bg-indigo-100"
+                      >
+                        <span className="truncate max-w-[11rem]">
+                          {seller.registeredBusinessName}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+              )}
 
-            {/* CTA */}
-            <div className="mt-4 flex items-center justify-between">
-              <span
-                className={`text-sm font-semibold transition ${
-                  offerCount > 0
-                    ? "text-blue-600 underline hover:animate-pulse cursor-pointer"
-                    : "text-gray-500"
-                }`}
+              <div
+                className="grid grid-cols-2 gap-2 md:grid-cols-3"
+                onClick={(e) => e.stopPropagation()}
               >
-                {offerCount > 0
-                  ? `${offerCount} offer received`
-                  : "No offers received yet"}
-              </span>
-            </div>
-
-            <div
-              className="mt-3 flex flex-wrap items-center gap-2"
-              onClick={(e) => e.stopPropagation()}
-            >
               <button
                 onClick={() =>
                   navigate(`/buyer/requirement/${reqId}/edit`)
                 }
                 disabled={normalizedStatus !== "open"}
-                className="inline-flex h-10 min-w-[120px] items-center justify-center px-4 rounded-lg text-xs font-semibold border border-[var(--ui-border)] text-[var(--ui-text)]"
+                className="inline-flex h-10 items-center justify-center rounded-xl border border-[var(--ui-border)] px-4 text-xs font-semibold text-[var(--ui-text)]"
               >
                 Edit Post
               </button>
@@ -494,7 +501,7 @@ export default function MyPosts({
                   navigate(`/buyer/requirement/${reqId}/offers`)
                 }
                 disabled={offerCount < 1}
-                className={`inline-flex h-10 min-w-[120px] items-center justify-center px-4 rounded-lg text-xs font-semibold ${
+                className={`inline-flex h-10 items-center justify-center rounded-xl px-4 text-xs font-semibold ${
                   offerCount < 1
                     ? "bg-gray-300 text-gray-600 cursor-not-allowed"
                     : "btn-primary text-white"
@@ -502,10 +509,10 @@ export default function MyPosts({
                 title={
                   offerCount < 1
                     ? "No offers yet"
-                    : "Open offers and enable chat"
+                    : "Open offers and manage responses"
                 }
               >
-                Enable Chat
+                View Offers
               </button>
               <div
                 className="relative inline-flex"
@@ -535,7 +542,7 @@ export default function MyPosts({
                     }
                     navigate(`/buyer/requirement/${reqId}/compare`);
                   }}
-                  className={`inline-flex h-10 min-w-[120px] items-center justify-center px-4 rounded-lg text-xs font-semibold ${
+                  className={`inline-flex h-10 w-full items-center justify-center rounded-xl px-4 text-xs font-semibold ${
                     offerCount < 2
                       ? "bg-gray-300 text-gray-600 cursor-not-allowed"
                       : "bg-slate-900 text-white hover:bg-slate-800"
@@ -619,14 +626,14 @@ export default function MyPosts({
                   </div>
                 )}
               </div>
-              <div className="mt-2 flex flex-wrap gap-2">
+              <div className="mt-2 flex flex-wrap gap-2 col-span-2 md:col-span-3">
                 {normalizedStatus !== "open" ? (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       updateRequirementStatus(reqId, "open");
                     }}
-                    className="inline-flex h-9 items-center justify-center px-3 rounded-lg text-xs font-semibold border border-emerald-300 text-emerald-700"
+                    className="inline-flex h-9 items-center justify-center rounded-xl border border-emerald-300 px-3 text-xs font-semibold text-emerald-700"
                   >
                     Reopen
                   </button>
@@ -637,7 +644,7 @@ export default function MyPosts({
                         e.stopPropagation();
                         updateRequirementStatus(reqId, "closed");
                       }}
-                      className="inline-flex h-9 items-center justify-center px-3 rounded-lg text-xs font-semibold border border-slate-300 text-slate-700"
+                      className="inline-flex h-9 items-center justify-center rounded-xl border border-slate-300 px-3 text-xs font-semibold text-slate-700"
                     >
                       Close
                     </button>
@@ -646,7 +653,7 @@ export default function MyPosts({
                         e.stopPropagation();
                         updateRequirementStatus(reqId, "fulfilled");
                       }}
-                      className="inline-flex h-9 items-center justify-center px-3 rounded-lg text-xs font-semibold border border-green-300 text-green-700"
+                      className="inline-flex h-9 items-center justify-center rounded-xl border border-green-300 px-3 text-xs font-semibold text-green-700"
                     >
                       Fulfilled
                     </button>
@@ -655,12 +662,13 @@ export default function MyPosts({
                         e.stopPropagation();
                         updateRequirementStatus(reqId, "cancelled");
                       }}
-                      className="inline-flex h-9 items-center justify-center px-3 rounded-lg text-xs font-semibold border border-red-300 text-red-600"
+                      className="inline-flex h-9 items-center justify-center rounded-xl border border-red-300 px-3 text-xs font-semibold text-red-600"
                     >
                       Cancel
                     </button>
                   </>
                 )}
+              </div>
               </div>
             </div>
           </div>

@@ -392,7 +392,7 @@ export default function OfferList() {
             Offers for {productName}
           </h1>
           {requirementDetails && (
-            <p className="text-sm text-gray-600 mt-1 whitespace-pre-line">
+            <p className="text-sm text-gray-600 mt-1 whitespace-pre-line max-w-3xl">
               {requirementDetails}
             </p>
           )}
@@ -484,6 +484,20 @@ export default function OfferList() {
 
       {/* ================= OFFERS ================= */}
       <div className="page-shell pt-6 pb-24">
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <span className="app-chip">
+            {offers.length} offers
+          </span>
+          <span className="app-chip">
+            {bestOffer ? `Best: Rs ${bestOffer.price}` : "Waiting for offers"}
+          </span>
+          <span className="app-chip">
+            {requirement.city || "Any city"}
+          </span>
+          <span className="app-chip">
+            {requirement.category || "Any category"}
+          </span>
+        </div>
         {offers.length === 0 && !loading && (
           <EmptyState
             icon="inbox"
@@ -507,104 +521,107 @@ export default function OfferList() {
               onClick={() =>
                 markViewed(offer._id || offer.id)
               }
-              className={`app-card active:scale-[0.99] transition ${
+              className={`app-card active:scale-[0.99] transition flex flex-col gap-4 ${
                 isBest
-                  ? "border-green-500"
+                  ? "border-green-500 ring-1 ring-green-200"
                   : ""
               }`}
             >
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <p className="text-xl font-semibold">
-                    Rs {offer.price}
-                  </p>
-                  <p className="text-xs text-[var(--ui-muted)] mt-1">
-                    Inclusive of all taxex
-                  </p>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      openSellerDetails(offer.sellerId);
-                    }}
-                    className="text-sm font-bold text-indigo-700 hover:underline"
+              <div className="flex flex-col gap-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-2xl font-bold text-[var(--ui-text)]">
+                        Rs {offer.price}
+                      </p>
+                      {isBest && (
+                        <span className="inline-flex rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-700">
+                          Best offer
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openSellerDetails(offer.sellerId);
+                      }}
+                      className="mt-1 text-sm font-bold text-indigo-700 hover:underline break-words text-left"
+                    >
+                      {offer.sellerFirm}
+                    </button>
+                    <p className="text-xs text-indigo-700 mt-1">
+                      Tap seller name to view full seller details
+                    </p>
+                  </div>
+
+                  <span
+                    className={`app-badge ${
+                      offer.viewedByBuyer
+                        ? "app-badge-muted"
+                        : "app-badge-new"
+                    }`}
                   >
-                    {offer.sellerFirm}
-                  </button>
-                  <p className="text-xs text-indigo-700 mt-1">
-                    Tap seller name to view full seller details
-                  </p>
-                  <p className="text-sm text-[var(--ui-muted)] mt-1">
-                    Delivery: {offer.deliveryTime || "-"}
-                  </p>
-                  <p className="text-sm text-[var(--ui-muted)]">
-                    Payment: {offer.paymentTerms || "-"}
-                  </p>
-                </div>
-
-                <span
-                  className={`app-badge ${
-                    offer.viewedByBuyer
-                      ? "app-badge-muted"
-                      : "app-badge-new"
-                  }`}
-                >
-                  {offer.viewedByBuyer
-                    ? "Viewed"
-                    : "New"}
-                </span>
-              </div>
-              <div className="mb-3 flex flex-wrap items-center gap-2">
-                <span
-                  className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${outcomeMeta.className}`}
-                >
-                  Outcome: {outcomeMeta.label}
-                </span>
-                {offer.outcomeUpdatedAt && (
-                  <span className="text-xs text-gray-500">
-                    Updated {new Date(offer.outcomeUpdatedAt).toLocaleString()}
+                    {offer.viewedByBuyer
+                      ? "Viewed"
+                      : "New"}
                   </span>
-                )}
-              </div>
-
-              {offerDetails && (
-                <div className="mt-3 rounded-xl border border-[var(--ui-border)] bg-white p-3">
-                  <p className="text-xs font-semibold text-gray-600 mb-1">Details</p>
-                  <p className="text-sm text-[var(--ui-text)] whitespace-pre-line break-words">
-                    {offerDetails}
-                  </p>
                 </div>
-              )}
 
-              {Array.isArray(offer.attachments) && offer.attachments.length > 0 && (
-                <div className="mt-3 rounded-xl border border-[var(--ui-border)] p-3">
-                  <p className="text-sm font-medium mb-2">Attachments</p>
-                  <div className="space-y-2">
-                    {offer.attachments.map((attachment, attachmentIndex) => {
-                      const filename = extractAttachmentFileName(
-                        attachment,
-                        attachmentIndex
-                      );
-                      const displayName = getAttachmentDisplayName(
-                        attachment,
-                        attachmentIndex
-                      );
-                      const typeMeta = getAttachmentTypeMeta(
-                        attachment,
-                        attachmentIndex
-                      );
-                      return (
-                        <div
-                          key={`${displayName}-${attachmentIndex}`}
-                          className="flex items-center gap-3"
-                        >
+                <div className="flex flex-wrap gap-2">
+                  <span
+                    className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${outcomeMeta.className}`}
+                  >
+                    {outcomeMeta.label}
+                  </span>
+                  {offer.outcomeUpdatedAt && (
+                    <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
+                      Updated {new Date(offer.outcomeUpdatedAt).toLocaleString()}
+                    </span>
+                  )}
+                  <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
+                    Delivery: {offer.deliveryTime || "-"}
+                  </span>
+                  <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
+                    Payment: {offer.paymentTerms || "-"}
+                  </span>
+                </div>
+
+                {offerDetails && (
+                  <div className="rounded-2xl border border-[var(--ui-border)] bg-slate-50/70 p-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">Details</p>
+                    <p className="text-sm text-[var(--ui-text)] whitespace-pre-line break-words">
+                      {offerDetails}
+                    </p>
+                  </div>
+                )}
+
+                {Array.isArray(offer.attachments) && offer.attachments.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">Attachments</p>
+                    <div className="flex flex-wrap gap-2">
+                      {offer.attachments.map((attachment, attachmentIndex) => {
+                        const filename = extractAttachmentFileName(
+                          attachment,
+                          attachmentIndex
+                        );
+                        const displayName = getAttachmentDisplayName(
+                          attachment,
+                          attachmentIndex
+                        );
+                        const typeMeta = getAttachmentTypeMeta(
+                          attachment,
+                          attachmentIndex
+                        );
+                        return (
                           <button
+                            key={`${displayName}-${attachmentIndex}`}
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
                               openOfferAttachment(attachment, attachmentIndex);
                             }}
-                            className="text-sm text-indigo-600 hover:underline break-all inline-flex items-center gap-2"
+                            className="inline-flex max-w-full items-center gap-2 rounded-full border border-[var(--ui-border)] bg-white px-3 py-1.5 text-xs font-semibold text-[var(--ui-text)] hover:bg-slate-50"
                             title={filename || "Attachment path missing"}
                           >
                             <span
@@ -612,17 +629,16 @@ export default function OfferList() {
                             >
                               {typeMeta.label}
                             </span>
-                            {displayName}
+                            <span className="truncate max-w-[11rem]">{displayName}</span>
                           </button>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* CTA icons */}
-              <div className="flex flex-wrap items-center justify-start gap-2 mt-4">
+                {/* CTA icons */}
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                 {offer.sellerId && (
                   <>
                     <button
@@ -661,13 +677,12 @@ export default function OfferList() {
                           ? "bg-green-700 text-white"
                           : "bg-green-600 text-white"
                       }`}
-                    >
-                      Select
-                    </button>
-                  </>
-                )}
-                {offer.sellerId &&
-                  offer.contactEnabledByBuyer && (
+                      >
+                        Select
+                      </button>
+                    </>
+                  )}
+                {offer.sellerId && offer.contactEnabledByBuyer && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -711,32 +726,33 @@ export default function OfferList() {
                       : "Enable Chat"}
                   </button>
                 )}
-              </div>
-
-              {offer.sellerId && (
-                <div className="mt-3 flex flex-wrap items-center justify-start gap-2">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setReviewTarget(offer.sellerId);
-                      setReviewOpen(true);
-                    }}
-                    className="inline-flex w-fit items-center justify-center px-3 py-2 border border-[var(--ui-border)] rounded-xl text-sm font-semibold text-[var(--ui-text)]"
-                  >
-                    Rate Seller
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setReportTarget(offer.sellerId);
-                      setReportOpen(true);
-                    }}
-                    className="inline-flex w-fit items-center justify-center px-3 py-2 border border-red-300 text-red-600 rounded-xl text-sm font-semibold"
-                  >
-                    Report Seller
-                  </button>
                 </div>
-              )}
+
+                {offer.sellerId && (
+                  <div className="flex flex-wrap items-center justify-start gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setReviewTarget(offer.sellerId);
+                        setReviewOpen(true);
+                      }}
+                      className="inline-flex w-fit items-center justify-center px-3 py-2 border border-[var(--ui-border)] rounded-xl text-sm font-semibold text-[var(--ui-text)]"
+                    >
+                      Rate Seller
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setReportTarget(offer.sellerId);
+                        setReportOpen(true);
+                      }}
+                      className="inline-flex w-fit items-center justify-center px-3 py-2 border border-red-300 text-red-600 rounded-xl text-sm font-semibold"
+                    >
+                      Report Seller
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           );
         })}
