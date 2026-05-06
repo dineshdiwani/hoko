@@ -1250,7 +1250,6 @@ const manualCategoryOptions = useMemo(() => {
                   >
                     <option value="acquisition">Acquisition first</option>
                     <option value="status_only">Status only</option>
-                    <option value="legacy">Legacy conversational flow</option>
                     <option value="off">Off</option>
                   </select>
                 </label>

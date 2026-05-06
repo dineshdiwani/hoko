@@ -43,7 +43,7 @@ const platformSettingsSchema = new mongoose.Schema(
     whatsappFlow: {
       mode: {
         type: String,
-        enum: ["acquisition", "status_only", "legacy", "off"],
+        enum: ["acquisition", "status_only", "off"],
         default: "acquisition"
       },
       welcomeMessage: { type: String, default: "Welcome to Hoko. We keep WhatsApp short and use the app for the full journey." },
