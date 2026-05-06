@@ -30,7 +30,7 @@ router.get("/requirements", async (req, res) => {
     const { city, category, limit = 50 } = req.query;
     const query = {
       "moderation.removed": { $ne: true },
-      status: { $in: ["active", "pending"] }
+      status: { $in: ["open", "active", "pending"] }
     };
     
     if (city) {
