@@ -8,6 +8,7 @@ import {
   getAttachmentTypeMeta
 } from "../utils/attachments";
 import { getPublicAppUrl, isNativeAppRuntime } from "../utils/runtime";
+import { launchWhatsAppLink } from "../utils/whatsapp";
 import EmptyState from "../components/EmptyState";
 
 export default function CityDashboard({
@@ -222,6 +223,10 @@ export default function CityDashboard({
   function openShareLink(url) {
     const target = String(url || "").trim();
     if (!target) return;
+    if (/wa\.me|api\.whatsapp\.com|whatsapp:|intent:\/\//i.test(target)) {
+      launchWhatsAppLink(target);
+      return;
+    }
     window.open(target, "_blank", "noopener,noreferrer");
   }
 

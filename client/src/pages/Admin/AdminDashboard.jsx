@@ -4,6 +4,7 @@ import api from "../../utils/adminApi";
 import { confirmDialog } from "../../utils/dialogs";
 import AdminNav from "../../components/AdminNav";
 import { getPublicAppUrl } from "../../utils/runtime";
+import { launchWhatsAppLink } from "../../utils/whatsapp";
 
 export default function AdminDashboard() {
   const defaultTermsContent = [
@@ -619,7 +620,7 @@ export default function AdminDashboard() {
 
   const openManualWhatsApp = (entry) => {
     if (!entry?.whatsappLink) return;
-    window.open(entry.whatsappLink, "_blank", "noopener,noreferrer");
+    launchWhatsAppLink(entry.whatsappLink);
   };
 
   const toggleUserDetails = (userId) => {

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import api from "../../utils/adminApi";
 import AdminNav from "../../components/AdminNav";
 import { getPublicAppUrl } from "../../utils/runtime";
+import { launchWhatsAppLink } from "../../utils/whatsapp";
 
 export default function AdminWhatsApp() {
   const [options, setOptions] = useState({
@@ -1591,7 +1592,7 @@ const manualCategoryOptions = useMemo(() => {
                       </div>
                       <div className="flex gap-2">
 <button
-                          onClick={() => window.open(entry.whatsappLink, "_blank", "noopener,noreferrer")}
+                          onClick={() => launchWhatsAppLink(entry.whatsappLink)}
                           className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-green-300 text-green-700"
                         >
                           Open WhatsApp

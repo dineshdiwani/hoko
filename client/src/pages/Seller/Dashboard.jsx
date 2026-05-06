@@ -17,6 +17,7 @@ import ReportModal from "../../components/ReportModal";
 import ChatModal from "../../components/ChatModal";
 import EmptyState from "../../components/EmptyState";
 import { confirmDialog } from "../../utils/dialogs";
+import { launchWhatsAppLink } from "../../utils/whatsapp";
 import {
   extractAttachmentFileName,
   getAttachmentDisplayName,
@@ -1017,6 +1018,10 @@ export default function SellerDashboard() {
   function openShareLink(url) {
     const target = String(url || "").trim();
     if (!target) return;
+    if (/wa\.me|api\.whatsapp\.com|whatsapp:|intent:\/\//i.test(target)) {
+      launchWhatsAppLink(target);
+      return;
+    }
     window.open(target, "_blank", "noopener,noreferrer");
   }
 

@@ -8,6 +8,7 @@ import {
   getAttachmentDisplayName,
   getAttachmentTypeMeta
 } from "../../utils/attachments";
+import { buildWhatsAppBrowserLink } from "../../utils/whatsapp";
 
 const LAST_REQUIREMENT_PREFS_KEY = "buyer_last_requirement_prefs";
 const BUYER_DASHBOARD_FORCE_TAB_KEY = "buyer_dashboard_force_tab";
@@ -42,23 +43,22 @@ function saveLastRequirementPrefs({ city, category, unit }) {
 
 function buildBuyerUpdatesWaLink(rawLink, messageText) {
   const message = String(messageText || "").trim();
-  const encodedMessage = encodeURIComponent(message);
-  const fallback = `https://wa.me/918079060554?text=${encodedMessage}`;
   const input = String(rawLink || "").trim();
-  if (!input) return fallback;
+  if (!input) {
+    return buildWhatsAppBrowserLink({ text: message });
+  }
 
   if (/^\d{8,20}$/.test(input)) {
-    return `https://wa.me/${input}?text=${encodedMessage}`;
+    return buildWhatsAppBrowserLink({ phone: input, text: message });
   }
 
   try {
     const parsed = new URL(input);
-    if (!parsed.searchParams.has("text")) {
-      parsed.searchParams.set("text", message);
-    }
-    return parsed.toString();
+    const phone = parsed.searchParams.get("phone") || parsed.pathname.replace(/[^\d]/g, "");
+    const text = parsed.searchParams.get("text") || message;
+    return buildWhatsAppBrowserLink({ phone, text });
   } catch {
-    return fallback;
+    return buildWhatsAppBrowserLink({ text: message });
   }
 }
 
