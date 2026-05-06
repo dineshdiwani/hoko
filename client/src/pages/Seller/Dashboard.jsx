@@ -474,11 +474,13 @@ export default function SellerDashboard() {
       setLoading(true);
       try {
         if (isWhatsAppPublicView) {
-          console.log("[Dash] Loading data for WhatsApp:", { selectedCity, selectedCategory });
+          const publicCity = String(selectedCity || "").trim().toLowerCase() === "all" ? "" : String(selectedCity || "").trim();
+          const publicCategory = String(selectedCategory || "").trim().toLowerCase() === "all" ? "" : String(selectedCategory || "").trim();
+          console.log("[Dash] Loading data for WhatsApp:", { selectedCity: publicCity, selectedCategory: publicCategory });
           const res = await api.get("/meta/requirements", {
             params: {
-              city: selectedCity || "",
-              category: selectedCategory || "",
+              ...(publicCity ? { city: publicCity } : {}),
+              ...(publicCategory ? { category: publicCategory } : {}),
               limit: 100
             }
           });
