@@ -122,9 +122,7 @@ export default function SellerDashboard() {
     parseCategoryFromUrl(catsFromUrl)
   );
   const [cities, setCities] = useState([]);
-  const [categories, setCategories] = useState(
-    catsFromUrl ? catsFromUrl.split(",").map(c => normalizeCategoryValue(c)).filter(Boolean) : []
-  );
+  const [categories, setCategories] = useState([]);
   const [selectedCity, setSelectedCity] = useState(
     cityFromUrl ||
       String(getSession()?.city || "").trim() ||
@@ -662,7 +660,9 @@ export default function SellerDashboard() {
         
         if (!cityManuallySet) {
           const profileCity = String(session?.city || "").trim();
-          if (profileCity) {
+          if (isWhatsAppFlow && cityFromUrl) {
+            setSelectedCity(cityFromUrl);
+          } else if (profileCity) {
             setSelectedCity(profileCity);
           }
         }
@@ -683,7 +683,7 @@ export default function SellerDashboard() {
         }
       })
       .catch(() => {});
-  }, [session?.city, catsFromUrl]);
+  }, [session?.city, catsFromUrl, isWhatsAppFlow, cityFromUrl, cityManuallySet]);
 
   const visibleRequirements = requirements;
 
