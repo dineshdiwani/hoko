@@ -78,6 +78,16 @@ export default function SellerDashboard() {
   const openRequirementFromUrl =
     searchParams.get("openRequirement") || searchParams.get("postId") || "";
 
+  const normalizeCategoryValue = (value) =>
+    String(value || "")
+      .trim()
+      .toLowerCase();
+  const parseCategoryFromUrl = (value) =>
+    String(value || "")
+      .split(",")
+      .map((entry) => normalizeCategoryValue(entry))
+      .find(Boolean) || "all";
+
   // Check for WhatsApp flow - simple check for from=wa
   const isWhatsAppFlow = sourceFromUrl === "wa";
   
@@ -109,11 +119,11 @@ export default function SellerDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const persistedState = readSellerDashboardState();
   const [selectedCategory, setSelectedCategory] = useState(
-    catsFromUrl || "all"
+    parseCategoryFromUrl(catsFromUrl)
   );
   const [cities, setCities] = useState([]);
   const [categories, setCategories] = useState(
-    catsFromUrl ? catsFromUrl.split(",").map(c => c.trim()).filter(Boolean) : []
+    catsFromUrl ? catsFromUrl.split(",").map(c => normalizeCategoryValue(c)).filter(Boolean) : []
   );
   const [selectedCity, setSelectedCity] = useState(
     cityFromUrl ||
@@ -665,10 +675,15 @@ export default function SellerDashboard() {
           "Health & Safety", "Logistics & Transport", "Business Services"
         ];
         setCategories(nextCategories);
-        setSelectedCategory("all");
+        const urlCategory = parseCategoryFromUrl(catsFromUrl);
+        if (urlCategory !== "all") {
+          setSelectedCategory(urlCategory);
+        } else {
+          setSelectedCategory("all");
+        }
       })
       .catch(() => {});
-  }, [session?.city]);
+  }, [session?.city, catsFromUrl]);
 
   const visibleRequirements = requirements;
 
@@ -683,7 +698,7 @@ export default function SellerDashboard() {
     ) {
       return false;
     }
-    const normalizedCategory = normalizeCategory(req.category);
+    const normalizedCategory = normalizeCategoryValue(req.category);
     if (
       selectedCategory !== "all" &&
       normalizedCategory !== selectedCategory
@@ -710,7 +725,7 @@ export default function SellerDashboard() {
   )
     .map((cat) => {
       const label = String(cat || "").trim();
-      const value = normalizeCategory(cat);
+      const value = normalizeCategoryValue(cat);
       return {
         label,
         value,
