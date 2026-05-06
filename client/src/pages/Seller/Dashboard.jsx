@@ -90,6 +90,10 @@ export default function SellerDashboard() {
       .split(",")
       .map((entry) => normalizeCategoryValue(entry))
       .find(Boolean) || "all";
+  const compactText = (value, fallback = "-") => {
+    const text = String(value || "").trim();
+    return text || fallback;
+  };
 
   // Check for WhatsApp flow - simple check for from=wa
   const isWhatsAppFlow = sourceFromUrl === "wa";
