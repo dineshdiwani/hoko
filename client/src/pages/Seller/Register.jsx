@@ -195,8 +195,15 @@ export default function SellerRegister() {
       };
       setSession(updatedSession);
       alert("Registration submitted successfully!");
-      localStorage.removeItem("post_login_redirect");
+      const resumeTarget = String(localStorage.getItem("post_login_redirect") || "").trim();
       localStorage.removeItem("post_login_redirect_source");
+      localStorage.removeItem("login_intent_role");
+      if (resumeTarget) {
+        localStorage.removeItem("post_login_redirect");
+        window.location.href = resumeTarget;
+        return;
+      }
+      localStorage.removeItem("post_login_redirect");
       const dashboardParams = new URLSearchParams();
       if (seller.city) dashboardParams.set("city", seller.city);
       if (catsFromUrl) dashboardParams.set("cats", catsFromUrl);

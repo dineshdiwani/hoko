@@ -474,9 +474,9 @@ async function sendSellerInviteLink(mobileE164, city, categories = []) {
   params.set("mobile", mobileE164.replace("+", ""));
   if (city) params.set("city", city);
   if (categories.length > 0) params.set("cats", categories.join(","));
-  params.set("ref", "wa");
-  
-  return `${appBase}/seller/login?${params.toString()}`;
+  params.set("from", "wa");
+
+  return `${appBase}/seller/dashboard?${params.toString()}`;
 }
 
 function normalizeCityName(city) {
@@ -490,7 +490,7 @@ async function sendSellerRequirementInvite(to, requirementId, product, city, qua
     return { ok: false, reason: "unsupported_provider" };
   }
 
-  const deepLink = buildSellerDeepLink(requirementId, to);
+  const deepLink = buildSellerDashboardLink(to);
 
   const templateConfig = await WhatsAppTemplateRegistry.findOne({
     key: "seller_new_requirement_invite_v2",
@@ -587,15 +587,14 @@ function firstNonEmpty(values) {
   return "";
 }
 
-function buildSellerDeepLink(requirementId, mobileE164 = "") {
+function buildSellerDashboardLink(mobileE164 = "") {
   const appBase = resolvePublicAppUrl();
-  const reqId = encodeURIComponent(String(requirementId || "").trim());
   const mobileDigits = String(mobileE164 || "").replace(/[^\d]/g, "");
   const params = new URLSearchParams();
   if (mobileDigits) params.set("mobile", mobileDigits);
   params.set("from", "wa");
   const queryString = params.toString();
-  return `${appBase}/seller/deeplink/${reqId}${queryString ? `?${queryString}` : ""}`;
+  return `${appBase}/seller/dashboard${queryString ? `?${queryString}` : ""}`;
 }
 
 function buildRequirementLabel(requirement) {
@@ -1239,13 +1238,17 @@ async function sendSellerConfirmationTemplate(to, city, categories, loginLink) {
 
 if (isExistingSeller) {
         const sellerMobile = String(event.mobileE164 || "").replace("+", "").trim();
-        const querySuffix = `mobile=${sellerMobile}&city=${encodeURIComponent(cityToSave)}&cats=${encodeURIComponent(parsed.whatsappCategories.join(","))}&from=wa`;
-        const loginLink = `${appBase}/seller/login?${querySuffix}`;
+        const loginLink = `${appBase}/seller/dashboard?${new URLSearchParams({
+          mobile: sellerMobile,
+          city: cityToSave,
+          cats: parsed.whatsappCategories.join(","),
+          from: "wa"
+        }).toString()}`;
         const sendResult = await sendSellerConfirmationTemplate(
           event.mobileE164,
           cityToSave,
           parsed.whatsappCategories,
-          querySuffix
+          loginLink
         );
         if (!sendResult.ok) {
           await sendWhatsAppMessage({
@@ -1255,13 +1258,17 @@ if (isExistingSeller) {
         }
       } else {
         const sellerMobile = String(event.mobileE164 || "").replace("+", "").trim();
-        const querySuffix = `mobile=${sellerMobile}&city=${encodeURIComponent(cityToSave)}&cats=${encodeURIComponent(parsed.whatsappCategories.join(","))}&from=wa`;
-        const loginLink = `${appBase}/seller/login?${querySuffix}`;
+        const loginLink = `${appBase}/seller/dashboard?${new URLSearchParams({
+          mobile: sellerMobile,
+          city: cityToSave,
+          cats: parsed.whatsappCategories.join(","),
+          from: "wa"
+        }).toString()}`;
         const sendResult = await sendSellerConfirmationTemplate(
           event.mobileE164,
           cityToSave,
           parsed.whatsappCategories,
-          querySuffix
+          loginLink
         );
         if (!sendResult.ok) {
           await sendWhatsAppMessage({
@@ -1351,7 +1358,7 @@ if (isExistingSeller) {
       requirement?.moderation?.removed !== true &&
       ["link", "help", "register", "offer_intent"].includes(intent.kind)
     ) {
-      const deepLink = buildSellerDeepLink(requirement._id);
+      const deepLink = buildSellerDashboardLink(event.mobileE164);
       const replyBody =
         intent.kind === "register" && registerPayload?.isStructured
           ? buildRegisterConfirmationMessage(requirement, deepLink, registerPayload)

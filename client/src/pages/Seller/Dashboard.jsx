@@ -360,6 +360,82 @@ export default function SellerDashboard() {
     navigate(`/seller/login?${params.toString()}`);
   }
 
+  function buildWhatsAppOfferResumeTarget(req) {
+    const params = new URLSearchParams();
+    const requirementId = String(req?._id || "").trim();
+    const waMobile =
+      mobileFromUrl ||
+      normalizeMobileValue(localStorage.getItem("whatsapp_mobile") || "");
+    const reqCity = String(req?.city || "").trim();
+    const reqCategory = String(req?.category || "").trim();
+    if (requirementId) params.set("openRequirement", requirementId);
+    if (waMobile) params.set("mobile", waMobile);
+    if (reqCity) params.set("city", reqCity);
+    if (reqCategory) params.set("cats", reqCategory);
+    params.set("from", "wa");
+    return `/seller/dashboard${params.toString() ? `?${params.toString()}` : ""}`;
+  }
+
+  function goToSellerLoginForOffer(req) {
+    const requirementId = String(req?._id || "").trim();
+    if (!requirementId) return;
+
+    const waMobile =
+      mobileFromUrl ||
+      normalizeMobileValue(localStorage.getItem("whatsapp_mobile") || "");
+    const params = new URLSearchParams();
+    if (waMobile) params.set("mobile", waMobile);
+    if (String(req?.city || "").trim()) params.set("city", String(req.city).trim());
+    if (String(req?.category || "").trim()) params.set("cats", String(req.category).trim());
+    params.set("from", "wa");
+
+    const resumeTarget = buildWhatsAppOfferResumeTarget(req);
+    localStorage.setItem("post_login_redirect", resumeTarget);
+    localStorage.setItem("post_login_redirect_source", "offer");
+    localStorage.setItem("login_intent_role", "seller");
+
+    navigate(`/seller/login?${params.toString()}`, { replace: true });
+  }
+
+  function goToSellerRegisterForOffer(req) {
+    const requirementId = String(req?._id || "").trim();
+    if (!requirementId) return;
+
+    const waMobile =
+      mobileFromUrl ||
+      normalizeMobileValue(localStorage.getItem("whatsapp_mobile") || "");
+    const params = new URLSearchParams();
+    if (waMobile) params.set("mobile", waMobile);
+    if (String(req?.city || "").trim()) params.set("city", String(req.city).trim());
+    if (String(req?.category || "").trim()) params.set("cats", String(req.category).trim());
+    params.set("from", "wa");
+    params.set("requirementId", requirementId);
+
+    const resumeTarget = buildWhatsAppOfferResumeTarget(req);
+    localStorage.setItem("post_login_redirect", resumeTarget);
+    localStorage.setItem("post_login_redirect_source", "offer");
+    localStorage.setItem("login_intent_role", "seller");
+
+    navigate(`/seller/register?${params.toString()}`, { replace: true });
+  }
+
+  function handleSellerOfferClick(req, { isSample = false, isCityLocked = false } = {}) {
+    if (!req || isSample || isCityLocked) return;
+    if (!session?.token) {
+      goToSellerLoginForOffer(req);
+      return;
+    }
+    const hasSellerProfile =
+      Boolean(session?.roles?.seller) &&
+      Boolean(session?.sellerProfile?.registeredBusinessName) &&
+      Boolean(session?.sellerProfile?.managerName);
+    if (!hasSellerProfile) {
+      goToSellerRegisterForOffer(req);
+      return;
+    }
+    setActiveRequirement(req);
+  }
+
   useEffect(() => {
     console.log("[Dash] isWhatsAppFlow:", isWhatsAppFlow, "isWhatsAppPublicView:", isWhatsAppPublicView, "hasToken:", !!session?.token);
     console.log("[Dash] URL params:", { cityFromUrl, catsFromUrl, mobileFromUrl, sourceFromUrl });
@@ -1417,13 +1493,7 @@ export default function SellerDashboard() {
                         Current lowest price: Rs {lowestPrice}
                       </p>
                       <button
-                        onClick={() => {
-                          if (!session?.token) {
-                            navigateToLogin();
-                            return;
-                          }
-                          setActiveRequirement(req);
-                        }}
+                        onClick={() => handleSellerOfferClick(req, { isSample, isCityLocked })}
                         className="ui-link ui-status-warning"
                       >
                         Edit your offer now
@@ -1478,14 +1548,7 @@ export default function SellerDashboard() {
                   </div>
 
                   <button
-                    onClick={() => {
-                      if (isSample || isCityLocked) return;
-                      if (!session?.token) {
-                        navigateToLogin();
-                        return;
-                      }
-                      setActiveRequirement(req);
-                    }}
+                    onClick={() => handleSellerOfferClick(req, { isSample, isCityLocked })}
                     disabled={isSample || isCityLocked}
                     className={`mt-3 block w-fit px-4 py-2.5 rounded-xl text-center font-semibold ${
                       isSample || isCityLocked

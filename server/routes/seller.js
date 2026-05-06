@@ -953,14 +953,17 @@ router.post("/offer/public", async (req, res) => {
         if (mobileE164) {
           const appBase = String(process.env.PUBLIC_APP_URL || "https://hokoapp.in").trim();
           const sellerMobile = String(normalizeE164(mobileE164) || mobileE164 || "").replace(/[^\d]/g, "");
-          const sellerLoginLink = `${appBase}/seller/deeplink/${encodeURIComponent(requirementIdStr)}?mobile=${encodeURIComponent(sellerMobile)}&from=wa`;
+          const sellerDashboardLink = `${appBase}/seller/dashboard?${new URLSearchParams({
+            ...(sellerMobile ? { mobile: sellerMobile } : {}),
+            from: "wa"
+          }).toString()}`;
           const sellerParams = [productName];
-          console.log("[Public Offer] Sending to seller:", { to: mobileE164, templateKey: "seller_quote_received_ack", params: sellerParams, buttonUrl: sellerLoginLink });
+          console.log("[Public Offer] Sending to seller:", { to: mobileE164, templateKey: "seller_quote_received_ack", params: sellerParams, buttonUrl: sellerDashboardLink });
           await sendWhatsAppTemplate({
             to: mobileE164,
             templateKey: "seller_quote_received_ack",
             parameters: sellerParams,
-            buttonUrl: sellerLoginLink,
+            buttonUrl: sellerDashboardLink,
             requirementId: requirementIdStr
           });
         } else {
@@ -1137,14 +1140,17 @@ router.post("/offer", auth, sellerOnly, async (req, res) => {
           const requirementIdStr = String(requirement._id || "").trim();
           
           if (sellerMobileE164) {
-            const sellerParams = [sellerName, productName, priceStr];
-            const sellerDeepLink = `${String(process.env.PUBLIC_APP_URL || "https://hokoapp.in").trim()}/seller/deeplink/${encodeURIComponent(requirementIdStr)}?mobile=${encodeURIComponent(String(sellerMobileE164 || "").replace(/[^\d]/g, ""))}&from=wa`;
+          const sellerParams = [sellerName, productName, priceStr];
+            const sellerDashboardLink = `${String(process.env.PUBLIC_APP_URL || "https://hokoapp.in").trim()}/seller/dashboard?${new URLSearchParams({
+              ...(String(sellerMobileE164 || "").replace(/[^\d]/g, "") ? { mobile: String(sellerMobileE164 || "").replace(/[^\d]/g, "") } : {}),
+              from: "wa"
+            }).toString()}`;
             await sendWhatsAppTemplate({
               to: sellerMobileE164,
               templateKey: "seller_quote_received_ack_v1",
               parameters: sellerParams,
               requirementId: requirementIdStr,
-              buttonUrl: sellerDeepLink
+              buttonUrl: sellerDashboardLink
             });
           }
           
