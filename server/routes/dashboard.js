@@ -13,9 +13,16 @@ router.get("/city/:city", auth, async (req, res) => {
   const requestedCity = String(req.params.city || "").trim();
   const isAllCities =
     !requestedCity || requestedCity.toLowerCase() === "all";
+  const usePagination =
+    Object.prototype.hasOwnProperty.call(req.query || {}, "page") ||
+    Object.prototype.hasOwnProperty.call(req.query || {}, "limit");
+  const page = Math.max(Number(req.query?.page) || 1, 1);
+  const limit = Math.min(Math.max(Number(req.query?.limit) || 50, 1), 100);
+  const skip = usePagination ? (page - 1) * limit : 0;
 
   const requirementQuery = {
-    "moderation.removed": { $ne: true }
+    "moderation.removed": { $ne: true },
+    status: { $in: ["open", "active", "pending"] }
   };
 
   if (!isAllCities) {
@@ -25,7 +32,9 @@ router.get("/city/:city", auth, async (req, res) => {
 
   const requirements = (await Requirement.find(requirementQuery).sort({
     createdAt: -1
-  })).filter((requirement) => getEffectiveRequirementStatus(requirement) === "open");
+  })
+    .skip(skip)
+    .limit(usePagination ? limit : 0)).filter((requirement) => getEffectiveRequirementStatus(requirement) === "open");
 
   const requirementIds = requirements.map((r) => r._id);
   const offerCounts = await Offer.aggregate([

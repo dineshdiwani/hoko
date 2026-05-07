@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import api from "../services/api";
 import { getSession } from "../services/storage";
 import { generateSamplePostsForCity } from "../services/samplePosts";
@@ -23,15 +23,23 @@ export default function CityDashboard({
   samplePostsEnabled = true,
   onVisibleCountChange
 }) {
+  const PAGE_SIZE = 50;
   const [requirements, setRequirements] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
   const [timeFilter, setTimeFilter] = useState("all");
   const [auctionLoadingById, setAuctionLoadingById] = useState({});
   const [showingSampleData, setShowingSampleData] = useState(false);
+  const loadMoreRef = useRef(null);
   const session = getSession();
   const currentBuyerId = String(session?._id || session?.id || "");
   const sampleFlagEnabled =
     import.meta.env.DEV && samplePostsEnabled;
+  const shouldPaginate =
+    String(city || "").trim().toLowerCase() === "all" ||
+    String(category || "").trim().toLowerCase() === "all";
   async function openAttachment(attachment) {
     const newTab = window.open("", "_blank", "noopener,noreferrer");
     try {
@@ -66,7 +74,7 @@ export default function CityDashboard({
     return `${appBaseUrl}/seller/deeplink/${encodeURIComponent(reqId)}`;
   }
 
-  function buildSampleRows(targetCity) {
+  const buildSampleRows = useCallback((targetCity) => {
     const selected = String(targetCity || "").trim().toLowerCase();
     if (!selected) return [];
     if (selected === "all") {
@@ -77,7 +85,7 @@ export default function CityDashboard({
       );
     }
     return generateSamplePostsForCity(targetCity, categories, 50);
-  }
+  }, [categories, cities]);
 
   function getShareText(req) {
     const deepLink = buildShareUrl(req);
@@ -230,56 +238,105 @@ export default function CityDashboard({
     window.open(target, "_blank", "noopener,noreferrer");
   }
 
-  useEffect(() => {
-    if (!city) {
-      setRequirements([]);
-      setShowingSampleData(false);
-      return;
-    }
+  const loadCityRequirements = useCallback(
+    async ({ nextPage = 1, append = false } = {}) => {
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
+      if (!city) {
+        setRequirements([]);
+        setShowingSampleData(false);
+        setHasMore(false);
+        setLoading(false);
+        setLoadingMore(false);
+        return;
+      }
 
-    async function load() {
-      setLoading(true);
+      const shouldUseSample =
+        sampleFlagEnabled && (useSamplePosts || !session?.token);
+      if (shouldUseSample) {
+        setRequirements(buildSampleRows(city));
+        setShowingSampleData(true);
+        setHasMore(false);
+        setLoading(false);
+        setLoadingMore(false);
+        return;
+      }
+
       try {
-        const shouldUseSample =
-          sampleFlagEnabled && (useSamplePosts || !session?.token);
-        if (shouldUseSample) {
-          setRequirements(buildSampleRows(city));
-          setShowingSampleData(true);
-          return;
-        }
+        const params = shouldPaginate
+          ? { page: nextPage, limit: PAGE_SIZE }
+          : {};
         const res = await api.get(
-          `/dashboard/city/${encodeURIComponent(city)}`
+          `/dashboard/city/${encodeURIComponent(city)}`,
+          { params }
         );
         const liveRows = Array.isArray(res.data) ? res.data : [];
-        if (sampleFlagEnabled && liveRows.length === 0) {
-          setRequirements(buildSampleRows(city));
-          setShowingSampleData(true);
-          return;
+        if (!append) {
+          setRequirements(liveRows);
+        } else {
+          setRequirements((prev) => [...prev, ...liveRows]);
         }
-        setRequirements(liveRows);
         setShowingSampleData(false);
-} catch (err) {
+        setPage(nextPage);
+        setHasMore(shouldPaginate && liveRows.length >= PAGE_SIZE);
+      } catch (err) {
         if (sampleFlagEnabled) {
           setRequirements(buildSampleRows(city));
           setShowingSampleData(true);
+          setHasMore(false);
         } else {
-          setRequirements([]);
+          if (!append) {
+            setRequirements([]);
+          }
           setShowingSampleData(false);
+          setHasMore(false);
         }
       } finally {
         setLoading(false);
+        setLoadingMore(false);
       }
-    }
+    },
+    [PAGE_SIZE, buildSampleRows, city, sampleFlagEnabled, session?.token, shouldPaginate, useSamplePosts]
+  );
 
-    load();
+  useEffect(() => {
+    setLoading(true);
+    setLoadingMore(false);
+    setRequirements([]);
+    setHasMore(false);
+    setPage(1);
+    loadCityRequirements({ nextPage: 1, append: false });
+  }, [city, category, refreshToken, loadCityRequirements]);
+
+  useEffect(() => {
+    if (!shouldPaginate || !hasMore || loading || loadingMore || showingSampleData) {
+      return undefined;
+    }
+    const node = loadMoreRef.current;
+    if (!node) return undefined;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry?.isIntersecting && !loadingMore && !loading && hasMore) {
+          setLoadingMore(true);
+          loadCityRequirements({ nextPage: page + 1, append: true });
+        }
+      },
+      { rootMargin: "200px" }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
   }, [
-    city,
-    categories,
-    cities,
-    sampleFlagEnabled,
-    session?.token,
-    useSamplePosts,
-    refreshToken
+    hasMore,
+    loading,
+    loadingMore,
+    loadCityRequirements,
+    page,
+    shouldPaginate,
+    showingSampleData
   ]);
 
   const timeOptions = [
@@ -482,7 +539,7 @@ export default function CityDashboard({
         </div>
       )}
 
-{city && totalRequirements === 0 && !loading && (
+      {city && totalRequirements === 0 && !loading && (
         <EmptyState
           icon="search"
           title={String(city).toLowerCase() === "all" ? "No requirements found" : `No requirements in ${city}`}
@@ -696,6 +753,14 @@ export default function CityDashboard({
               </div>
             );
           })}
+          {shouldPaginate && hasMore && (
+            <div
+              ref={loadMoreRef}
+              className="py-4 text-center text-sm text-gray-500"
+            >
+              {loadingMore ? "Loading more posts..." : "Scroll to load more"}
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -134,7 +134,11 @@ export default function SellerDashboard() {
   const [unreadChatRequirementIds, setUnreadChatRequirementIds] = useState(new Set());
   const [reverseAuctionNotice, setReverseAuctionNotice] = useState("");
   const [showingSampleData, setShowingSampleData] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
   const [refreshToken, setRefreshToken] = useState(0);
+  const loadMoreRef = useRef(null);
   
   const allowSellerSamplePosts =
     import.meta.env.DEV;
@@ -147,6 +151,110 @@ export default function SellerDashboard() {
     setCityManuallySet(true);
     setUiCitySelection(normalized);
   }, []);
+  const shouldPaginateRequirements =
+    isWhatsAppPublicView ||
+    String(selectedCity || "").trim().toLowerCase() === "all" ||
+    String(selectedCategory || "").trim().toLowerCase() === "all";
+  const loadSellerRequirements = useCallback(
+    async ({ nextPage = 1, append = false } = {}) => {
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
+      try {
+        if (isWhatsAppPublicView) {
+          const publicCity =
+            String(selectedCity || "").trim().toLowerCase() === "all"
+              ? ""
+              : String(selectedCity || "").trim();
+          const publicCategory =
+            String(selectedCategory || "").trim().toLowerCase() === "all"
+              ? ""
+              : String(selectedCategory || "").trim();
+          const params = shouldPaginateRequirements
+            ? {
+                ...(publicCity ? { city: publicCity } : {}),
+                ...(publicCategory ? { category: publicCategory } : {}),
+                page: nextPage,
+                limit: 50
+              }
+            : {
+                ...(publicCity ? { city: publicCity } : {}),
+                ...(publicCategory ? { category: publicCategory } : {})
+              };
+          const res = await api.get("/meta/requirements", { params });
+          const rows = Array.isArray(res.data) ? res.data : [];
+          if (allowSellerSamplePosts && rows.length === 0 && !append) {
+            const samplePosts = generateSamplePostsForCity(
+              selectedCity && selectedCity !== "all" ? selectedCity : (session?.city || "Mumbai"),
+              categories.length ? categories : ["Electronics & Appliances"],
+              50
+            );
+            setRequirements(samplePosts);
+            setShowingSampleData(true);
+            setHasMore(false);
+            setPage(1);
+            return;
+          }
+          setRequirements((prev) => (append ? [...prev, ...rows] : rows));
+          setShowingSampleData(false);
+          setHasMore(shouldPaginateRequirements && rows.length >= 50);
+          setPage(nextPage);
+        } else {
+          const params = shouldPaginateRequirements
+            ? {
+                city: selectedCity || "all",
+                category: selectedCategory || "all",
+                page: nextPage,
+                limit: 50
+              }
+            : {
+                city: selectedCity || "all",
+                category: selectedCategory || "all"
+              };
+          const res = await api.get("/seller/dashboard", { params });
+          const liveRows = Array.isArray(res.data) ? res.data : [];
+
+          if (allowSellerSamplePosts && liveRows.length === 0 && !append) {
+            const samplePosts = generateSamplePostsForCity(
+              selectedCity && selectedCity !== "all" ? selectedCity : (session?.city || "Mumbai"),
+              categories.length ? categories : ["Electronics & Appliances"],
+              50
+            );
+            setRequirements(samplePosts);
+            setShowingSampleData(true);
+            setHasMore(false);
+            setPage(1);
+            return;
+          }
+
+          setRequirements((prev) => (append ? [...prev, ...liveRows] : liveRows));
+          setShowingSampleData(false);
+          setHasMore(shouldPaginateRequirements && liveRows.length >= 50);
+          setPage(nextPage);
+        }
+      } catch (err) {
+        if (!append) {
+          setRequirements([]);
+        }
+        setShowingSampleData(false);
+        setHasMore(false);
+      } finally {
+        setLoading(false);
+        setLoadingMore(false);
+      }
+    },
+    [
+      allowSellerSamplePosts,
+      categories,
+      isWhatsAppPublicView,
+      selectedCategory,
+      selectedCity,
+      session?.city,
+      shouldPaginateRequirements
+    ]
+  );
 
   useEffect(() => {
     const syncSession = () => setSessionState(getSession());
@@ -468,56 +576,48 @@ export default function SellerDashboard() {
   }, []);
 
   useEffect(() => {
-    async function load() {
-      setLoading(true);
-      try {
-        if (isWhatsAppPublicView) {
-          const publicCity = String(selectedCity || "").trim().toLowerCase() === "all" ? "" : String(selectedCity || "").trim();
-          const publicCategory = String(selectedCategory || "").trim().toLowerCase() === "all" ? "" : String(selectedCategory || "").trim();
-          const res = await api.get("/meta/requirements", {
-            params: {
-              ...(publicCity ? { city: publicCity } : {}),
-              ...(publicCategory ? { category: publicCategory } : {}),
-              limit: 100
-            }
-          });
-          const rows = Array.isArray(res.data) ? res.data : [];
-          setRequirements(rows);
-          setShowingSampleData(false);
-          setLoading(false);
-          return;
-        }
+    setRequirements([]);
+    setHasMore(false);
+    setPage(1);
+    setShowingSampleData(false);
+    loadSellerRequirements({ nextPage: 1, append: false });
+  }, [
+    selectedCity,
+    selectedCategory,
+    session?.city,
+    allowSellerSamplePosts,
+    isWhatsAppPublicView,
+    isWhatsAppFlow,
+    categories,
+    loadSellerRequirements
+  ]);
 
-        const res = await api.get("/seller/dashboard", {
-          params: {
-            city: selectedCity || "all",
-            category: selectedCategory || "all"
-          }
-        });
-        const liveRows = Array.isArray(res.data) ? res.data : [];
-
-        if (allowSellerSamplePosts && liveRows.length === 0) {
-          const samplePosts = generateSamplePostsForCity(
-            selectedCity && selectedCity !== "all" ? selectedCity : (session?.city || "Mumbai"),
-            categories.length ? categories : ["Electronics & Appliances"],
-            50
-          );
-          setRequirements(samplePosts);
-          setShowingSampleData(true);
-        } else {
-          setRequirements(liveRows);
-          setShowingSampleData(false);
-        }
-      } catch (err) {
-        setRequirements([]);
-        setShowingSampleData(false);
-      } finally {
-        setLoading(false);
-      }
+  useEffect(() => {
+    if (!shouldPaginateRequirements || !hasMore || loading || loadingMore || showingSampleData) {
+      return undefined;
     }
-
-    load();
-  }, [selectedCity, selectedCategory, session?.city, allowSellerSamplePosts, isWhatsAppPublicView, isWhatsAppFlow, categories]);
+    const node = loadMoreRef.current;
+    if (!node) return undefined;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry?.isIntersecting && !loadingMore && !loading && hasMore) {
+          loadSellerRequirements({ nextPage: page + 1, append: true });
+        }
+      },
+      { rootMargin: "200px" }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [
+    hasMore,
+    loadSellerRequirements,
+    loading,
+    loadingMore,
+    page,
+    shouldPaginateRequirements,
+    showingSampleData
+  ]);
 
   useEffect(() => {
     const openRequirement = String(
@@ -1705,6 +1805,14 @@ export default function SellerDashboard() {
                 </div>
               );
             })}
+            {shouldPaginateRequirements && hasMore && (
+              <div
+                ref={loadMoreRef}
+                className="py-4 text-center text-sm text-gray-500"
+              >
+                {loadingMore ? "Loading more requirements..." : "Scroll to load more"}
+              </div>
+            )}
           </div>
           </div>
         </div>

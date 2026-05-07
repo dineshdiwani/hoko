@@ -1597,14 +1597,21 @@ router.get("/dashboard", auth, sellerOnly, async (req, res) => {
   const requestedCityNormalized = normalizeText(requestedCity);
   const requestedCategory = String(req.query?.category || "").trim();
   const requestedCategoryNormalized = normalizeText(requestedCategory);
+  const usePagination =
+    Object.prototype.hasOwnProperty.call(req.query || {}, "page") ||
+    Object.prototype.hasOwnProperty.call(req.query || {}, "limit");
+  const page = Math.max(Number(req.query?.page) || 1, 1);
+  const limit = Math.min(Math.max(Number(req.query?.limit) || 50, 1), 100);
+  const skip = usePagination ? (page - 1) * limit : 0;
   const isAllCities =
     hasCityParam &&
     (!requestedCityNormalized || requestedCityNormalized === "all");
   const isAllCategories =
     !requestedCategoryNormalized || requestedCategoryNormalized === "all";
 
-const requirementQuery = {
-    "moderation.removed": { $ne: true }
+  const requirementQuery = {
+    "moderation.removed": { $ne: true },
+    status: { $in: ["open", "active", "pending"] }
   };
 
   if (!isAllCategories) {
@@ -1616,7 +1623,9 @@ const requirementQuery = {
 
   const requirementsRaw = await Requirement.find(requirementQuery).sort({
     createdAt: -1
-  });
+  })
+    .skip(skip)
+    .limit(usePagination ? limit : 0);
   const acceptedBuyerCityRequirementIds =
     await getAcceptedBuyerCityRequirementIds(requirementsRaw);
 const requirements = requirementsRaw.filter((requirement) => {

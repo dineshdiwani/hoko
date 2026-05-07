@@ -6,7 +6,8 @@ import { getSession } from "../../services/auth";
 import {
   updateSession,
   getSellerDashboardCategories,
-  setSellerDashboardCategories
+  setSellerDashboardCategories,
+  setUiCitySelection
 } from "../../services/storage";
 
 export default function SellerProfile() {
@@ -143,6 +144,7 @@ const res = await api.post("/seller/profile", {
         preferredCurrency:
           res.data?.preferredCurrency || profile.preferredCurrency
       });
+      setUiCitySelection(res.data?.city || profile.city || "");
       alert("Seller profile updated");
     } catch {
       alert("Failed to update profile");

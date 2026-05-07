@@ -27,7 +27,13 @@ router.get("/options", async (req, res) => {
 
 router.get("/requirements", async (req, res) => {
   try {
-    const { city, category, limit = 50 } = req.query;
+    const { city, category } = req.query;
+    const usePagination =
+      Object.prototype.hasOwnProperty.call(req.query || {}, "page") ||
+      Object.prototype.hasOwnProperty.call(req.query || {}, "limit");
+    const page = Math.max(Number(req.query?.page) || 1, 1);
+    const limit = Math.min(Math.max(Number(req.query?.limit) || 50, 1), 100);
+    const skip = usePagination ? (page - 1) * limit : 0;
     const query = {
       "moderation.removed": { $ne: true },
       status: { $in: ["open", "active", "pending"] }
@@ -46,7 +52,8 @@ router.get("/requirements", async (req, res) => {
     
     const requirements = await Requirement.find(query)
       .sort({ createdAt: -1 })
-      .limit(parseInt(limit))
+      .skip(skip)
+      .limit(usePagination ? limit : 0)
       .select("_id product productName category city quantity unit type makeBrand brand typeModel details createdAt")
       .lean();
     

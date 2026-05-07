@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
 import { fetchOptions } from "../../services/options";
 import { getSession } from "../../services/auth";
-import { updateSession } from "../../services/storage";
+import { updateSession, setUiCitySelection } from "../../services/storage";
 
 export default function BuyerProfile() {
   const navigate = useNavigate();
@@ -75,6 +75,7 @@ export default function BuyerProfile() {
         preferredCurrency:
           res.data?.preferredCurrency || profile.preferredCurrency
       });
+      setUiCitySelection(res.data?.city || profile.city || "");
       alert("Buyer profile updated");
     } catch {
       alert("Failed to update profile");
