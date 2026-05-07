@@ -64,6 +64,14 @@ That generates the Play Store upload bundle:
 client/android/app/build/outputs/bundle/release/app-release.aab
 ```
 
+For the in-app download link, the release APK is copied to:
+
+```text
+client/public/apk/app-release.apk
+```
+
+The web app serves that file at `/apk/app-release.apk` after `npm run build`.
+
 ## Before Play Store upload
 
 - Replace launcher icons and splash assets with production branding in Android Studio.
@@ -89,8 +97,8 @@ keytool -genkeypair -v -keystore hoko-upload-keystore.jks -alias hoko-upload -ke
 Android release versioning is controlled in [gradle.properties](/abs/path/D:/hoko/client/android/gradle.properties):
 
 ```text
-HOKO_VERSION_CODE=1
-HOKO_VERSION_NAME=1.0.0
+HOKO_VERSION_CODE=2
+HOKO_VERSION_NAME=1.0.1
 ```
 
 Increase `HOKO_VERSION_CODE` for every Play Store upload.

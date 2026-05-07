@@ -517,7 +517,7 @@ const [showAppBanner, setShowAppBanner] = useState(true);
                 </p>
                 <div className="flex flex-wrap gap-2">
                   <a
-                    href="/apk/app-debug.apk"
+                    href="/apk/app-release.apk"
                     className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg transition-colors"
                     download
                   >
