@@ -72,6 +72,11 @@ export default function SellerDashboard() {
     String(value || "")
       .trim()
       .toLowerCase();
+  const normalizeSellerCityFilter = (value) => {
+    const raw = String(value || "").trim();
+    if (!raw || raw.toLowerCase() === "all") return "all";
+    return raw;
+  };
   const parseCategoryFromUrl = (value) =>
     String(value || "")
       .split(",")
@@ -122,9 +127,9 @@ export default function SellerDashboard() {
   const [cities, setCities] = useState([]);
   const [categories, setCategories] = useState([]);
   const [selectedCity, setSelectedCity] = useState(
-    cityFromUrl
-      ? cityFromUrl
-      : String(getUiCitySelection(session?.city || "all")).trim() || "all"
+    normalizeSellerCityFilter(
+      cityFromUrl || getUiCitySelection(session?.city || "all")
+    )
   );
   const [cityManuallySet, setCityManuallySet] = useState(false);
   const [activeSmartTab, setActiveSmartTab] = useState("all");
@@ -146,7 +151,7 @@ export default function SellerDashboard() {
   const currentUserId = session?._id || session?.id || session?.userId || null;
   const lastSyncedProfileCityRef = useRef(String(session?.city || "").trim());
   const handleCityChange = useCallback((nextCity) => {
-    const normalized = String(nextCity || "").trim() || "all";
+    const normalized = normalizeSellerCityFilter(nextCity);
     setSelectedCity(normalized);
     setCityManuallySet(true);
     setUiCitySelection(normalized);
