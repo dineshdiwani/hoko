@@ -1436,7 +1436,7 @@ export default function SellerDashboard() {
             <div className="grid grid-cols-2 gap-3">
               <div className="app-stat">
                 <p className="ui-label text-[var(--ui-muted)]">Total Matches</p>
-                <p className="ui-heading text-hoko-brand">{filteredRequirements.length}</p>
+                <p className="ui-heading text-hoko-brand">{totalCount}</p>
               </div>
               <div className="app-stat">
                 <p className="ui-label text-[var(--ui-muted)]">Live Auctions</p>
