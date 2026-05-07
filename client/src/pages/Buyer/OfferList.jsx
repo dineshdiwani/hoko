@@ -23,7 +23,6 @@ export default function OfferList() {
   const [chatOpen, setChatOpen] = useState(false);
   const [chatSeller, setChatSeller] = useState(null);
   const [startingAuction, setStartingAuction] = useState(false);
-  const [showAuctionHint, setShowAuctionHint] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [reviewTarget, setReviewTarget] = useState(null);
   const [reportOpen, setReportOpen] = useState(false);
@@ -32,6 +31,14 @@ export default function OfferList() {
   const [sellerLoading, setSellerLoading] = useState(false);
   const [sellerDetails, setSellerDetails] = useState(null);
   const sellerModalRef = useRef(null);
+  const auctionButtonRef = useRef(null);
+  const [auctionTooltip, setAuctionTooltip] = useState({
+    visible: false,
+    text: "",
+    left: 0,
+    top: 0,
+    placement: "below"
+  });
   const getDialableMobile = (value) =>
     String(value || "").trim().replace(/[^\d+]/g, "");
   const normalizeOutcomeStatus = (value) => {
@@ -66,6 +73,53 @@ export default function OfferList() {
       className: "border border-slate-200 bg-slate-50 text-slate-700"
     };
   };
+  const updateAuctionTooltipPosition = () => {
+    const button = auctionButtonRef.current;
+    if (!button) return;
+    const rect = button.getBoundingClientRect();
+    const tooltipWidth = Math.min(window.innerWidth * 0.9, 352);
+    const edgePadding = 12;
+    const centeredLeft = rect.left + rect.width / 2;
+    const clampedLeft = Math.max(
+      edgePadding + tooltipWidth / 2,
+      Math.min(window.innerWidth - edgePadding - tooltipWidth / 2, centeredLeft)
+    );
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    const placeAbove = spaceBelow < 88 && spaceAbove > spaceBelow;
+    setAuctionTooltip((prev) => ({
+      ...prev,
+      left: clampedLeft,
+      top: placeAbove ? rect.top - 10 : rect.bottom + 10,
+      placement: placeAbove ? "above" : "below"
+    }));
+  };
+  const showAuctionTooltip = (text) => {
+    setAuctionTooltip({
+      visible: true,
+      text,
+      left: 0,
+      top: 0,
+      placement: "below"
+    });
+    requestAnimationFrame(updateAuctionTooltipPosition);
+  };
+  const hideAuctionTooltip = () => {
+    setAuctionTooltip((prev) => ({
+      ...prev,
+      visible: false
+    }));
+  };
+  useEffect(() => {
+    if (!auctionTooltip.visible) return undefined;
+    const handleViewportChange = () => updateAuctionTooltipPosition();
+    window.addEventListener("resize", handleViewportChange);
+    window.addEventListener("scroll", handleViewportChange, true);
+    return () => {
+      window.removeEventListener("resize", handleViewportChange);
+      window.removeEventListener("scroll", handleViewportChange, true);
+    };
+  }, [auctionTooltip.visible, auctionTooltip.text]);
   const getSellerIdentityParts = (offer) => {
     const sellerDetails = offer?.sellerDetails || {};
     const parts = [];
@@ -420,57 +474,88 @@ export default function OfferList() {
         )}
         <div
           className="relative inline-flex"
-          onMouseEnter={() => {
-            if (showDisabledInvokeHint) setShowAuctionHint(true);
-          }}
-          onMouseLeave={() => setShowAuctionHint(false)}
         >
-          <button
-            onClick={(e) => {
-              if (showDisabledInvokeHint) {
-                e.preventDefault();
-                e.stopPropagation();
-                setShowAuctionHint(true);
-                return;
-              }
-              if (auctionActive) {
-                stopReverseAuction();
-              } else {
-                startReverseAuction();
-              }
-            }}
-            className={`mt-3 ml-2 text-sm rounded-xl px-4 py-2 font-semibold transition ${
-              auctionActive
-                ? canStopAuction
-                  ? "bg-red-600 text-white"
-                  : "bg-gray-300 text-gray-600 cursor-not-allowed"
-                : canInvokeAuction
-                ? "btn-primary"
-                : "bg-gray-300 text-gray-600 cursor-not-allowed"
-            }`}
-            aria-disabled={showDisabledInvokeHint || (auctionActive ? !canStopAuction : startingAuction)}
-            disabled={auctionActive ? !canStopAuction : startingAuction}
-            title={
-              showDisabledInvokeHint
-                ? "You must receive 3 or more offers before you invoke reverse auction."
-                : auctionActive
-                ? "Stop reverse auction"
-                : "Invoke reverse auction"
+          <div
+            className="relative ml-2 inline-flex"
+            onMouseEnter={() =>
+              showAuctionTooltip(
+                showDisabledInvokeHint
+                  ? "You must receive 3 or more offers before you invoke reverse auction."
+                  : auctionActive
+                  ? "Stop reverse auction"
+                  : "Invoke reverse auction"
+              )
             }
+            onMouseLeave={hideAuctionTooltip}
+            onFocusCapture={() =>
+              showAuctionTooltip(
+                showDisabledInvokeHint
+                  ? "You must receive 3 or more offers before you invoke reverse auction."
+                  : auctionActive
+                  ? "Stop reverse auction"
+                  : "Invoke reverse auction"
+              )
+            }
+            onBlurCapture={hideAuctionTooltip}
+            onScroll={hideAuctionTooltip}
           >
-            {startingAuction
-              ? auctionActive
-                ? "Stopping..."
-                : "Invoking..."
-              : auctionActive
-              ? "Stop Reverse Auction"
-              : "Invoke Reverse Auction"}
-          </button>
-          {showDisabledInvokeHint && showAuctionHint && (
-            <div className="absolute left-1/2 top-full z-20 mt-2 w-[min(90vw,22rem)] -translate-x-1/2 rounded-lg bg-black px-3 py-2 text-center text-xs text-white shadow-lg whitespace-normal break-words">
-              You must receive 3 or more offers before you invoke reverse auction.
-            </div>
-          )}
+            <button
+              ref={auctionButtonRef}
+              onClick={(e) => {
+                if (showDisabledInvokeHint) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  showAuctionTooltip(
+                    "You must receive 3 or more offers before you invoke reverse auction."
+                  );
+                  return;
+                }
+                if (auctionActive) {
+                  stopReverseAuction();
+                } else {
+                  startReverseAuction();
+                }
+              }}
+              onMouseMove={updateAuctionTooltipPosition}
+              className={`mt-3 text-sm rounded-xl px-4 py-2 font-semibold transition ${
+                auctionActive
+                  ? canStopAuction
+                    ? "bg-red-600 text-white"
+                    : "bg-gray-300 text-gray-600 cursor-not-allowed"
+                  : canInvokeAuction
+                  ? "btn-primary"
+                  : "bg-gray-300 text-gray-600 cursor-not-allowed"
+              }`}
+              aria-describedby="reverse-auction-tooltip"
+              aria-disabled={showDisabledInvokeHint || (auctionActive ? !canStopAuction : startingAuction)}
+              disabled={auctionActive ? !canStopAuction : startingAuction}
+            >
+              {startingAuction
+                ? auctionActive
+                  ? "Stopping..."
+                  : "Invoking..."
+                : auctionActive
+                ? "Stop Reverse Auction"
+                : "Invoke Reverse Auction"}
+            </button>
+            {auctionTooltip.visible && (
+              <div
+                id="reverse-auction-tooltip"
+                role="tooltip"
+                className="fixed z-50 w-[min(90vw,22rem)] rounded-lg bg-black px-3 py-2 text-center text-xs text-white shadow-lg whitespace-normal break-words"
+                style={{
+                  left: `${auctionTooltip.left}px`,
+                  top: `${auctionTooltip.top}px`,
+                  transform:
+                    auctionTooltip.placement === "above"
+                      ? "translate(-50%, -100%)"
+                      : "translate(-50%, 0)"
+                }}
+              >
+                {auctionTooltip.text}
+              </div>
+            )}
+          </div>
         </div>
       </div>
       </div>
