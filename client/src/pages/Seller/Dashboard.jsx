@@ -99,8 +99,6 @@ export default function SellerDashboard() {
   // Check for WhatsApp flow - simple check for from=wa
   const isWhatsAppFlow = sourceFromUrl === "wa";
   
-  console.log("[Dash] URL params - sourceFromUrl:", sourceFromUrl, "cityFromUrl:", cityFromUrl, "catsFromUrl:", catsFromUrl, "mobileFromUrl:", mobileFromUrl, "isWhatsAppFlow:", isWhatsAppFlow);
-  
   // Handle WhatsApp deep link - set mobile in localStorage for later use
   useEffect(() => {
     if (!isWhatsAppFlow) return;
@@ -181,8 +179,6 @@ export default function SellerDashboard() {
     const redirectSource = localStorage.getItem("post_login_redirect_source");
     if (redirectSource !== "offer") return;
     
-    console.log("[Dash] Found pending offer after login, submitting...");
-    
     // Clear the pending offer and redirect
     localStorage.removeItem("pending_seller_offer_intent");
     localStorage.removeItem("pending_offer_data");
@@ -224,8 +220,6 @@ export default function SellerDashboard() {
     // Check if we have requirementId to submit to
     const requirementId = searchParams.get("requirementId") || "";
     if (!requirementId) return;
-    
-    console.log("[Dash] Auto-submitting offer for requirement:", requirementId);
     
     // Clear the autoSubmit param
     const nextParams = new URLSearchParams(location.search);
@@ -461,11 +455,8 @@ export default function SellerDashboard() {
   }
 
   useEffect(() => {
-    console.log("[Dash] isWhatsAppFlow:", isWhatsAppFlow, "isWhatsAppPublicView:", isWhatsAppPublicView, "hasToken:", !!session?.token);
-    console.log("[Dash] URL params:", { cityFromUrl, catsFromUrl, mobileFromUrl, sourceFromUrl });
     // NEVER redirect for WhatsApp flow - let them see the dashboard
     if (isWhatsAppFlow || isWhatsAppPublicView) {
-      console.log("[Dash] WhatsApp flow - staying on dashboard");
       return;
     }
     // For logged-in users, also stay on dashboard
@@ -500,7 +491,6 @@ export default function SellerDashboard() {
         if (isWhatsAppPublicView) {
           const publicCity = String(selectedCity || "").trim().toLowerCase() === "all" ? "" : String(selectedCity || "").trim();
           const publicCategory = String(selectedCategory || "").trim().toLowerCase() === "all" ? "" : String(selectedCategory || "").trim();
-          console.log("[Dash] Loading data for WhatsApp:", { selectedCity: publicCity, selectedCategory: publicCategory });
           const res = await api.get("/meta/requirements", {
             params: {
               ...(publicCity ? { city: publicCity } : {}),
@@ -508,7 +498,6 @@ export default function SellerDashboard() {
               limit: 100
             }
           });
-          console.log("[Dash] API response status:", res.status, "data count:", Array.isArray(res.data) ? res.data.length : 0, "first item:", Array.isArray(res.data) && res.data[0] ? res.data[0].product : "none");
           const rows = Array.isArray(res.data) ? res.data : [];
           setRequirements(rows);
           setShowingSampleData(false);
@@ -1212,7 +1201,6 @@ export default function SellerDashboard() {
               <NotificationCenter onNotificationClick={handleNotificationClick} />
 
             <div className="relative" ref={menuRef}>
-              {console.log("[Dash] Render check:", { hasToken: !!session?.token, isWhatsAppPublicView, navigateFn: !!navigateToLogin }) || null}
               {!session?.token && isWhatsAppPublicView ? (
                 <button
                   onClick={() => navigateToLogin()}

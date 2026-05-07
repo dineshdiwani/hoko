@@ -8,12 +8,6 @@ const jwt = require("jsonwebtoken");
 const path = require("path");
 const fs = require("fs");
 
-console.log("[START] CWD:", process.cwd());
-console.log("[START] __dirname:", __dirname);
-const envPath = path.join(__dirname, ".env");
-console.log("[START] .env exists:", fs.existsSync(envPath));
-console.log("[START] Loading:", envPath);
-
 if (process.env.SENTRY_DSN) {
   const Sentry = require("@sentry/node");
   Sentry.init({
@@ -51,9 +45,6 @@ const {
 if (!process.env.DOTENV_CONFIG_PATH) {
   dotenv.config({ path: path.join(__dirname, ".env") });
 }
-
-console.log("[ENV] Loaded from:", path.join(__dirname, ".env"));
-console.log("[ENV] FAST2SMS_OTP_ROUTE:", process.env.FAST2SMS_OTP_ROUTE);
 
 process.on("uncaughtException", (err) => {
   console.error("UNCAUGHT EXCEPTION:", err);
