@@ -147,6 +147,21 @@ function BuyerOfferRouteHandler() {
   return <OfferList />;
 }
 
+function SellerRequirementRedirect() {
+  const { id } = useParams();
+  const target = String(id || "").trim();
+  return (
+    <Navigate
+      to={
+        target
+          ? `/seller/dashboard?openRequirement=${encodeURIComponent(target)}`
+          : "/seller/dashboard"
+      }
+      replace
+    />
+  );
+}
+
 function AppShell() {
   const location = useLocation();
   const hideGlobalLogo = location.pathname === "/";
@@ -312,6 +327,7 @@ function AppShell() {
           {/* Landing */}
           <Route path="/" element={<BuyerWelcome />} />
           <Route path="/auth" element={<Navigate to="/buyer/login" replace />} />
+          <Route path="/login" element={<Navigate to="/auth" replace />} />
           <Route
             path="/dashboard"
             element={<Navigate to="/buyer/dashboard" replace />}
@@ -385,6 +401,10 @@ function AppShell() {
           }
         />
         <Route
+          path="/buyer/chat/:chatId"
+          element={<Navigate to="/buyer/dashboard" replace />}
+        />
+        <Route
           path="/buyer/requirement/:id/compare"
           element={
             requireBuyer() ? (
@@ -412,6 +432,22 @@ function AppShell() {
           element={
             <SellerDashboardWrapper />
           }
+        />
+        <Route
+          path="/seller/requirement/:id"
+          element={<SellerRequirementRedirect />}
+        />
+        <Route
+          path="/seller/requirement/:id/offers"
+          element={<SellerRequirementRedirect />}
+        />
+        <Route
+          path="/seller/offers"
+          element={<Navigate to="/seller/dashboard" replace />}
+        />
+        <Route
+          path="/seller/chat/:chatId"
+          element={<Navigate to="/seller/dashboard" replace />}
         />
 
         <Route

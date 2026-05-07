@@ -23,9 +23,9 @@ function formatTime(dateString) {
 function getNavUrl(notif) {
   const data = notif?.data || {};
   if (data.url) return data.url;
-  if (data.requirementId) return `/buyer/requirement/${data.requirementId}`;
-  if (data.offerId) return `/buyer/requirement/${data.requirementId || ""}`;
-  if (data.chatId) return `/buyer/chat/${data.chatId}`;
+  if (data.requirementId) return `/buyer/requirement/${data.requirementId}/offers`;
+  if (data.offerId) return `/buyer/requirement/${data.requirementId || ""}/offers`;
+  if (data.chatId) return `/buyer/dashboard`;
   return "/buyer/dashboard?tab=posts";
 }
 

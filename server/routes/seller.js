@@ -28,8 +28,9 @@ const { normalizeOfferInvitedFrom, getEffectiveRequirementStatus } = require("..
 const { notifyNewOffer, notifyReverseAuction } = require("../services/adminNotifications");
 const { setOtp, verifyOtp: verifyOtpCode } = require("../utils/otpStore");
 const { sendOtpEmail } = require("../utils/sendEmail");
-const { sendOtpSms } = require("../utils/sendSms");
+const { sendOtpSms, sendBulkSms } = require("../utils/sendSms");
 const WhatsAppTemplateRegistry = require("../models/WhatsAppTemplateRegistry");
+const { resolvePublicAppUrl } = require("../utils/publicAppUrl");
 
 const offerUploadDir = path.join(__dirname, "../uploads/offers");
 if (!fs.existsSync(offerUploadDir)) {
@@ -113,6 +114,91 @@ try {
   } catch (err) {
     console.error(`[WhatsApp] Failed to send ${templateKey} to ${to}:`, err?.message);
   }
+}
+
+async function sendSellerOnboardingAck({ mobile, email, businessName, city, whatsappConsent }) {
+  const sellerName = String(businessName || "Seller").trim();
+  const targetMobile = String(mobile || "").trim();
+  const targetEmail = String(email || "").trim().toLowerCase();
+  const appBase = resolvePublicAppUrl();
+  const dashboardLink = `${appBase}/seller/dashboard?from=wa`;
+  const body = [
+    `Welcome to Hoko, ${sellerName}!`,
+    "",
+    "Your seller profile is ready.",
+    city ? `City: ${city}` : "",
+    "",
+    `Open your seller dashboard: ${dashboardLink}`
+  ].filter(Boolean).join("\n");
+
+  const tasks = [];
+  if (whatsappConsent && targetMobile) {
+    tasks.push(
+      sendWhatsAppMessage({
+        to: targetMobile,
+        body
+      })
+    );
+    tasks.push(
+      sendBulkSms({
+        numbers: [targetMobile],
+        message: body
+      })
+    );
+  }
+  if (targetEmail) {
+    tasks.push(
+      sendEmailToRecipient({
+        to: targetEmail,
+        subject: "Your Hoko seller profile is ready",
+        text: body
+      })
+    );
+  }
+
+  await Promise.allSettled(tasks);
+}
+
+async function sendSellerOfferAckSideChannels({
+  mobile,
+  email,
+  productName,
+  price,
+  requirementId
+}) {
+  const targetMobile = String(mobile || "").trim();
+  const targetEmail = String(email || "").trim().toLowerCase();
+  const appBase = resolvePublicAppUrl();
+  const dashboardLink = `${appBase}/seller/dashboard?openRequirement=${encodeURIComponent(String(requirementId || "").trim())}`;
+  const body = [
+    "Your offer has been submitted successfully.",
+    "",
+    `Requirement: ${String(productName || "Requirement").trim()}`,
+    `Offer price: Rs ${String(price || "").trim()}`,
+    "",
+    `Open your seller dashboard: ${dashboardLink}`
+  ].join("\n");
+
+  const tasks = [];
+  if (targetMobile) {
+    tasks.push(
+      sendBulkSms({
+        numbers: [targetMobile],
+        message: body
+      })
+    );
+  }
+  if (targetEmail) {
+    tasks.push(
+      sendEmailToRecipient({
+        to: targetEmail,
+        subject: `Offer received for ${String(productName || "your requirement").trim()}`,
+        text: body
+      })
+    );
+  }
+
+  await Promise.allSettled(tasks);
 }
 
 const offerAttachmentStorage = multer.diskStorage({
@@ -304,7 +390,16 @@ function mapRequirementForSeller(
     inviteMode === "anywhere" && effectiveInviteMode === "city";
   data.offerBlockedByCity = blockedByCity;
   data.offerAllowedForSeller = !blockedByCity;
-  data.buyerId = data.buyerId;
+  delete data.buyer;
+  delete data.buyerName;
+  delete data.buyerMobile;
+  delete data.buyerEmail;
+  delete data.mobile;
+  delete data.email;
+  delete data.phone;
+  delete data.contactMobile;
+  delete data.contactEmail;
+  delete data.name;
   return data;
 }
 function normalizeText(value) {
@@ -392,6 +487,16 @@ router.post("/onboard", auth, async (req, res) => {
       { new: true }
     );
 
+    setImmediate(() => {
+      sendSellerOnboardingAck({
+        mobile: mobileValue,
+        email: emailValue,
+        businessName: registeredBusinessNameValue,
+        city: cityValue,
+        whatsappConsent: whatsappConsent === true
+      }).catch(() => {});
+    });
+
     return res.json({
       sellerProfile: user?.sellerProfile || {},
       city: user?.city,
@@ -430,6 +535,16 @@ router.post("/onboard", auth, async (req, res) => {
         process.env.JWT_SECRET,
         { expiresIn: "30d" }
       );
+
+      setImmediate(() => {
+        sendSellerOnboardingAck({
+          mobile: mobileValue,
+          email: emailValue,
+          businessName: registeredBusinessNameValue,
+          city: cityValue,
+          whatsappConsent: whatsappConsent === true
+        }).catch(() => {});
+      });
 
       return res.json({
         sellerProfile: mergedUser?.sellerProfile || {},
@@ -949,6 +1064,7 @@ router.post("/offer/public", async (req, res) => {
         const productName = String(requirement.product || requirement.productName || "your requirement").trim();
         const priceStr = String(price || "0").trim();
         const requirementIdStr = String(requirement._id || "").trim();
+        const channelTasks = [];
         
         if (mobileE164) {
           const appBase = String(process.env.PUBLIC_APP_URL || "https://hokoapp.in").trim();
@@ -959,16 +1075,28 @@ router.post("/offer/public", async (req, res) => {
           }).toString()}`;
           const sellerParams = [productName];
           console.log("[Public Offer] Sending to seller:", { to: mobileE164, templateKey: "seller_quote_received_ack", params: sellerParams, buttonUrl: sellerDashboardLink });
-          await sendWhatsAppTemplate({
-            to: mobileE164,
-            templateKey: "seller_quote_received_ack",
-            parameters: sellerParams,
-            buttonUrl: sellerDashboardLink,
-            requirementId: requirementIdStr
-          });
+          channelTasks.push(
+            sendWhatsAppTemplate({
+              to: mobileE164,
+              templateKey: "seller_quote_received_ack",
+              parameters: sellerParams,
+              buttonUrl: sellerDashboardLink,
+              requirementId: requirementIdStr
+            })
+          );
         } else {
           console.log("[Public Offer] No seller mobile, skipping seller notification");
         }
+
+        channelTasks.push(
+          sendSellerOfferAckSideChannels({
+            mobile: mobileE164,
+            email,
+            productName,
+            price,
+            requirementId: requirementIdStr
+          })
+        );
         
         const buyer = await User.findById(requirement.buyerId).select("mobile name").lean();
         const buyerMobileE164 = normalizeE164(buyer?.mobile);
@@ -978,15 +1106,19 @@ router.post("/offer/public", async (req, res) => {
           const buyerOfferLink = `${appBase}/buyer/requirement/${requirementIdStr}/offers`;
           const buyerParams = [buyerName, productName, priceStr, buyerOfferLink];
           console.log("[Public Offer] Sending to buyer:", { to: buyerMobileE164, templateKey: "_buyer_first_offer_alert", params: buyerParams });
-          await sendWhatsAppTemplate({
-            to: buyerMobileE164,
-            templateKey: "_buyer_first_offer_alert",
-            parameters: buyerParams,
-            requirementId: requirementIdStr
-          });
+          channelTasks.push(
+            sendWhatsAppTemplate({
+              to: buyerMobileE164,
+              templateKey: "_buyer_first_offer_alert",
+              parameters: buyerParams,
+              requirementId: requirementIdStr
+            })
+          );
         } else {
           console.log("[Public Offer] No buyer mobile found");
         }
+
+        await Promise.allSettled(channelTasks);
       })().catch((err) => console.error("[WhatsApp] Offer notification error:", err));
     });
 
@@ -1138,6 +1270,7 @@ router.post("/offer", auth, sellerOnly, async (req, res) => {
           const productName = String(requirement.product || requirement.productName || "your requirement").trim();
           const priceStr = String(price || "").trim();
           const requirementIdStr = String(requirement._id || "").trim();
+          const channelTasks = [];
           
           if (sellerMobileE164) {
           const sellerParams = [sellerName, productName, priceStr];
@@ -1145,26 +1278,42 @@ router.post("/offer", auth, sellerOnly, async (req, res) => {
               ...(String(sellerMobileE164 || "").replace(/[^\d]/g, "") ? { mobile: String(sellerMobileE164 || "").replace(/[^\d]/g, "") } : {}),
               from: "wa"
             }).toString()}`;
-            await sendWhatsAppTemplate({
-              to: sellerMobileE164,
-              templateKey: "seller_quote_received_ack_v1",
-              parameters: sellerParams,
-              requirementId: requirementIdStr,
-              buttonUrl: sellerDashboardLink
-            });
+            channelTasks.push(
+              sendWhatsAppTemplate({
+                to: sellerMobileE164,
+                templateKey: "seller_quote_received_ack_v1",
+                parameters: sellerParams,
+                requirementId: requirementIdStr,
+                buttonUrl: sellerDashboardLink
+              })
+            );
           }
+
+          channelTasks.push(
+            sendSellerOfferAckSideChannels({
+              mobile: req.user?.mobile,
+              email: req.user?.email,
+              productName,
+              price,
+              requirementId: requirementIdStr
+            })
+          );
           
           const buyerMobileE164 = normalizeE164(buyer?.mobile);
           if (buyerMobileE164) {
             const buyerName = String(buyer?.name || "Buyer").trim();
             const buyerParams = [buyerName, productName, priceStr, requirementIdStr];
-            await sendWhatsAppTemplate({
-              to: buyerMobileE164,
-              templateKey: "_buyer_first_offer_alert_v2",
-              parameters: buyerParams,
-              requirementId: requirementIdStr
-            });
+            channelTasks.push(
+              sendWhatsAppTemplate({
+                to: buyerMobileE164,
+                templateKey: "_buyer_first_offer_alert_v2",
+                parameters: buyerParams,
+                requirementId: requirementIdStr
+              })
+            );
           }
+
+          await Promise.allSettled(channelTasks);
         })().catch((err) => console.error("[WhatsApp] Offer notification error:", err));
       });
 

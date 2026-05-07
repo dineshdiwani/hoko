@@ -69,6 +69,11 @@ export default function SellerDashboard() {
   const sourceFromUrl = String(searchParams.get("from") || "").trim().toLowerCase();
   const cityFromUrl = searchParams.get("city") || "";
   const catsFromUrl = searchParams.get("cats") || "";
+  const openChatFromUrl =
+    searchParams.get("openChat") === "1" || searchParams.get("chat") === "1";
+  const chatRequirementFromUrl = searchParams.get("chatRequirementId") || "";
+  const chatPeerFromUrl = searchParams.get("chatPeerId") || "";
+  const chatPeerNameFromUrl = searchParams.get("chatPeerName") || "";
   const normalizeMobileValue = (value) => {
     const raw = String(value || "").trim();
     if (!raw) return "";
@@ -184,6 +189,7 @@ export default function SellerDashboard() {
     localStorage.removeItem("pending_offer_data");
     localStorage.removeItem("post_login_redirect");
     localStorage.removeItem("post_login_redirect_source");
+    localStorage.removeItem(`seller_offer_draft:${String(pendingOffer.requirementId).trim()}`);
     
     // Submit the offer
     const submitOffer = async () => {
@@ -833,13 +839,9 @@ export default function SellerDashboard() {
   function getShareText(req) {
     const reqId = String(req?._id || "").trim();
     if (!reqId) return "";
-    const mobile = String(
-      req?.mobile || req?.contactMobile || req?.phone || req?.buyerMobile || ""
-    ).trim();
     const packed = encodeURIComponent(
       JSON.stringify({
         postId: reqId,
-        mobile,
         city: String(req?.city || ""),
         product: String(req?.product || req?.productName || ""),
         category: String(req?.category || ""),
@@ -871,12 +873,8 @@ export default function SellerDashboard() {
     query.set("openRequirement", reqId);
     const city = String(req?.city || "").trim();
     const category = String(req?.category || "").trim();
-    const mobile = String(
-      req?.mobile || req?.contactMobile || req?.phone || req?.buyerMobile || ""
-    ).trim();
     if (city) query.set("city", city);
     if (category) query.set("cats", category);
-    if (mobile) query.set("mobile", mobile);
     const deepLink = `${appBaseUrl}/seller/dashboard?${query.toString()}`;
     const product = String(req?.product || req?.productName || "PRODUCT / SERVICE").trim();
     const quantityValue = String(req?.quantity || "").trim();
@@ -911,10 +909,6 @@ export default function SellerDashboard() {
     const query = new URLSearchParams();
     const city = String(req?.city || "").trim();
     const category = String(req?.category || "").trim();
-    const mobile = String(
-      req?.mobile || req?.contactMobile || req?.phone || req?.buyerMobile || ""
-    ).trim();
-    if (mobile) query.set("mobile", mobile);
     if (city) query.set("city", city);
     if (category) query.set("cats", category);
     const deepLink = `${appBaseUrl}/seller/deeplink/${encodeURIComponent(reqId)}${query.toString() ? `?${query.toString()}` : ""}`;
@@ -970,12 +964,8 @@ export default function SellerDashboard() {
     query.set("openRequirement", reqId);
     const city = String(req?.city || "").trim();
     const category = String(req?.category || "").trim();
-    const mobile = String(
-      req?.mobile || req?.contactMobile || req?.phone || req?.buyerMobile || ""
-    ).trim();
     if (city) query.set("city", city);
     if (category) query.set("cats", category);
-    if (mobile) query.set("mobile", mobile);
     const deepLink = `${appBaseUrl}/seller/dashboard?${query.toString()}`;
     const whatsappText = encodeURIComponent(getWhatsAppShareText(req));
     const socialText = encodeURIComponent(getSocialShareText(req));
@@ -1146,6 +1136,44 @@ export default function SellerDashboard() {
       openRequirementWithHighlights(requirementId, changedFields);
     }
   }
+
+  useEffect(() => {
+    if (!session?.token || !openChatFromUrl) return;
+    const requirementId = String(chatRequirementFromUrl || "").trim();
+    const peerId = String(chatPeerFromUrl || "").trim();
+    if (!requirementId || !peerId || chatOpen) return;
+
+    setChatPeer({
+      id: peerId,
+      name: String(chatPeerNameFromUrl || "Buyer").trim() || "Buyer"
+    });
+    setChatRequirementId(requirementId);
+    setChatOpen(true);
+
+    const nextParams = new URLSearchParams(location.search);
+    nextParams.delete("openChat");
+    nextParams.delete("chat");
+    nextParams.delete("chatRequirementId");
+    nextParams.delete("chatPeerId");
+    nextParams.delete("chatPeerName");
+    navigate(
+      {
+        pathname: location.pathname,
+        search: nextParams.toString()
+      },
+      { replace: true }
+    );
+  }, [
+    session?.token,
+    openChatFromUrl,
+    chatRequirementFromUrl,
+    chatPeerFromUrl,
+    chatPeerNameFromUrl,
+    chatOpen,
+    navigate,
+    location.pathname,
+    location.search
+  ]);
 
   return (
     <div className="page dashboard-layout">
@@ -1541,6 +1569,23 @@ export default function SellerDashboard() {
                                 Updated {new Date(req.myOfferOutcomeUpdatedAt).toLocaleString()}
                               </span>
                             )}
+                          </div>
+                        )}
+                        {req.myOffer && (
+                          <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                              Offer outcome
+                            </p>
+                            <p className="ui-body text-[var(--ui-text)] mt-1">
+                              Buyer decision on your offer is currently{" "}
+                              <span className={`font-semibold ${myOfferOutcomeClassName}`}>
+                                {myOfferOutcomeLabel}
+                              </span>
+                              .
+                            </p>
+                            <p className="ui-body text-[var(--ui-muted)] mt-1">
+                              Check this card for updates or open the offer notification to review the requirement.
+                            </p>
                           </div>
                         )}
                         {showAuctionForSeller && (

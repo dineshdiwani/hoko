@@ -227,8 +227,11 @@ function submitRequirement() {
           <div className="flex w-full lg:w-auto flex-wrap items-center justify-start lg:justify-end gap-2">
             {isLoggedIn && (
               <NotificationCenter
-                onNotificationClick={() =>
-                  navigate(session?.role === "seller" ? "/seller/dashboard" : "/buyer/dashboard")
+                onNotificationClick={(notification) =>
+                  navigate(
+                    notification?.data?.url ||
+                      (session?.role === "seller" ? "/seller/dashboard" : "/buyer/dashboard")
+                  )
                 }
               />
             )}

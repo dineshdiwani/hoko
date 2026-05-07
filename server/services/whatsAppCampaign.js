@@ -5,6 +5,7 @@ const WhatsAppLead = require("../models/WhatsAppLead");
 const WhatsAppDeliveryLog = require("../models/WhatsAppDeliveryLog");
 const { sendWhatsAppMessage } = require("../utils/sendWhatsApp");
 const { sendEmailToRecipient } = require("../utils/sendEmail");
+const { sendBulkSms } = require("../utils/sendSms");
 const { resolvePublicAppUrl } = require("../utils/publicAppUrl");
 
 function normalizeText(value) {
@@ -116,16 +117,24 @@ function normalizeChannels(input) {
   const requested = input && typeof input === "object" ? input : {};
   const whatsapp = requested.whatsapp !== false;
   const email = requested.email === true;
-  if (!whatsapp && !email) {
-    return { whatsapp: true, email: false };
+  const smsEnabledByDefault =
+    String(process.env.SELLER_REQUIREMENT_SMS_NOTIFICATIONS || "")
+      .trim()
+      .toLowerCase() === "true";
+  const sms =
+    requested.sms === true ||
+    (requested.sms !== false && smsEnabledByDefault);
+  if (!whatsapp && !email && !sms) {
+    return { whatsapp: true, email: false, sms: false };
   }
-  return { whatsapp, email };
+  return { whatsapp, email, sms };
 }
 
 function createChannelStats() {
   return {
     whatsapp: { attempted: 0, sent: 0, failed: 0, skipped: 0 },
-    email: { attempted: 0, sent: 0, failed: 0, skipped: 0 }
+    email: { attempted: 0, sent: 0, failed: 0, skipped: 0 },
+    sms: { attempted: 0, sent: 0, failed: 0, skipped: 0 }
   };
 }
 
@@ -539,6 +548,73 @@ async function triggerWhatsAppCampaignForRequirement(
             status: "failed",
             reason: summarizeSendError(emailResult?.error),
             provider: "email",
+            city: String(requirement?.city || "").trim(),
+            category: String(requirement?.category || "").trim(),
+            product: requirementProduct,
+            createdByAdminId: adminId || null
+          });
+        }
+      }
+    }
+
+    if (selectedChannels.sms) {
+      const targetMobile = String(contact?.mobileE164 || "").trim();
+      if (!targetMobile) {
+        skipped += 1;
+        channelStats.sms.skipped += 1;
+        await createDeliveryLog({
+          requirementId: requirement._id,
+          campaignRunId: run._id,
+          triggerType: run.triggerType,
+          channel: "sms",
+          mobileE164: "",
+          email: String(contact?.email || "").trim(),
+          status: "skipped",
+          reason: "missing_mobile",
+          provider: "sms",
+          city: String(requirement?.city || "").trim(),
+          category: String(requirement?.category || "").trim(),
+          product: requirementProduct,
+          createdByAdminId: adminId || null
+        });
+      } else {
+        attempted += 1;
+        channelStats.sms.attempted += 1;
+        const smsResult = await sendBulkSms({
+          numbers: [targetMobile],
+          message: body
+        });
+        if (smsResult?.sent > 0) {
+          sent += 1;
+          channelStats.sms.sent += 1;
+          await createDeliveryLog({
+            requirementId: requirement._id,
+            campaignRunId: run._id,
+            triggerType: run.triggerType,
+            channel: "sms",
+            mobileE164: targetMobile,
+            email: String(contact?.email || "").trim(),
+            status: "sent",
+            reason: "",
+            provider: "sms",
+            city: String(requirement?.city || "").trim(),
+            category: String(requirement?.category || "").trim(),
+            product: requirementProduct,
+            createdByAdminId: adminId || null
+          });
+        } else {
+          failed += 1;
+          channelStats.sms.failed += 1;
+          await createDeliveryLog({
+            requirementId: requirement._id,
+            campaignRunId: run._id,
+            triggerType: run.triggerType,
+            channel: "sms",
+            mobileE164: targetMobile,
+            email: String(contact?.email || "").trim(),
+            status: "failed",
+            reason: summarizeSendError(smsResult?.failures?.[0]?.reason || smsResult?.error),
+            provider: "sms",
             city: String(requirement?.city || "").trim(),
             category: String(requirement?.category || "").trim(),
             product: requirementProduct,

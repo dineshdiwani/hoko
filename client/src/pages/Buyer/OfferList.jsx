@@ -66,6 +66,19 @@ export default function OfferList() {
       className: "border border-slate-200 bg-slate-50 text-slate-700"
     };
   };
+  const getSellerIdentityParts = (offer) => {
+    const sellerDetails = offer?.sellerDetails || {};
+    const parts = [];
+    const businessName = String(
+      offer?.sellerFirm || sellerDetails?.registeredBusinessName || ""
+    ).trim();
+    const ownerName = String(sellerDetails?.ownerName || "").trim();
+    const city = String(offer?.sellerCity || sellerDetails?.city || "").trim();
+    if (businessName) parts.push(businessName);
+    if (ownerName) parts.push(`Owner: ${ownerName}`);
+    if (city) parts.push(`City: ${city}`);
+    return parts;
+  };
 
   /* ---------------- FETCH DATA ---------------- */
   useEffect(() => {
@@ -550,6 +563,11 @@ export default function OfferList() {
                     >
                       {offer.sellerFirm}
                     </button>
+                    {getSellerIdentityParts(offer).length > 0 && (
+                      <p className="mt-1 text-sm text-slate-600 break-words">
+                        {getSellerIdentityParts(offer).join(" · ")}
+                      </p>
+                    )}
                     <p className="text-xs text-indigo-700 mt-1">
                       Tap seller name to view full seller details
                     </p>

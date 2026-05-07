@@ -64,14 +64,15 @@ api.interceptors.response.use(
         
         // Store current location for post-login redirect
         const currentPath = window.location.pathname;
+        const currentUrl = `${window.location.pathname}${window.location.search || ""}`;
         if (currentPath.startsWith("/seller")) {
-          window.location.href = "/seller/login";
+          window.location.href = `/seller/login?redirect=${encodeURIComponent(currentUrl)}`;
         } else if (currentPath.startsWith("/buyer")) {
-          window.location.href = "/buyer/login";
+          window.location.href = `/buyer/login?redirect=${encodeURIComponent(currentUrl)}`;
         } else if (currentPath.startsWith("/admin")) {
-          window.location.href = "/admin/login";
+          window.location.href = `/admin/login?redirect=${encodeURIComponent(currentUrl)}`;
         } else {
-          window.location.href = "/login";
+          window.location.href = "/auth";
         }
       } else if (status === 403) {
         console.warn("[API] Access denied:", error.response.data?.message);

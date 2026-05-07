@@ -7,6 +7,58 @@ import {
   getAttachmentTypeMeta
 } from "../utils/attachments";
 
+const SELLER_OFFER_DRAFT_KEY_PREFIX = "seller_offer_draft";
+
+function getSellerOfferDraftKey(requirementId) {
+  const raw = String(requirementId || "").trim();
+  return raw ? `${SELLER_OFFER_DRAFT_KEY_PREFIX}:${raw}` : "";
+}
+
+function readSellerOfferDraft(requirementId) {
+  const key = getSellerOfferDraftKey(requirementId);
+  if (!key) return null;
+  try {
+    const parsed = JSON.parse(localStorage.getItem(key) || "{}");
+    if (!parsed || typeof parsed !== "object" || !Object.keys(parsed).length) {
+      return null;
+    }
+    return {
+      price: String(parsed.price || "").trim(),
+      message: String(parsed.message || "").trim(),
+      deliveryTime: String(parsed.deliveryTime || "").trim(),
+      paymentTerms: String(parsed.paymentTerms || "").trim(),
+      savedAt: Number(parsed.savedAt || 0) || 0
+    };
+  } catch {
+    return null;
+  }
+}
+
+function saveSellerOfferDraft(requirementId, draft) {
+  const key = getSellerOfferDraftKey(requirementId);
+  if (!key) return;
+  try {
+    localStorage.setItem(
+      key,
+      JSON.stringify({
+        price: String(draft.price || "").trim(),
+        message: String(draft.message || "").trim(),
+        deliveryTime: String(draft.deliveryTime || "").trim(),
+        paymentTerms: String(draft.paymentTerms || "").trim(),
+        savedAt: Date.now()
+      })
+    );
+  } catch {}
+}
+
+function clearSellerOfferDraft(requirementId) {
+  const key = getSellerOfferDraftKey(requirementId);
+  if (!key) return;
+  try {
+    localStorage.removeItem(key);
+  } catch {}
+}
+
 export default function OfferModal({
   open,
   onClose,
@@ -38,11 +90,12 @@ export default function OfferModal({
   const hasHighlights = changedFieldSet.size > 0;
   const highlightBlockClass = "rounded-lg border border-amber-300 bg-amber-50";
   const highlightTextClass = "text-amber-900";
+  const savedDraft = readSellerOfferDraft(requirementId);
 
-  const [price, setPrice] = useState("");
-  const [note, setNote] = useState("");
-  const [deliveryTime, setDeliveryTime] = useState("");
-  const [paymentTerms, setPaymentTerms] = useState("");
+  const [price, setPrice] = useState(savedDraft?.price || "");
+  const [note, setNote] = useState(savedDraft?.message || "");
+  const [deliveryTime, setDeliveryTime] = useState(savedDraft?.deliveryTime || "");
+  const [paymentTerms, setPaymentTerms] = useState(savedDraft?.paymentTerms || "");
   const [file, setFile] = useState(null);
   const [offerAttachments, setOfferAttachments] = useState([]);
   const [cameraOpen, setCameraOpen] = useState(false);
@@ -55,6 +108,15 @@ export default function OfferModal({
     ? requirement.attachments
     : [];
   const session = getSession();
+
+  useEffect(() => {
+    saveSellerOfferDraft(requirementId, {
+      price,
+      message: note,
+      deliveryTime,
+      paymentTerms
+    });
+  }, [requirementId, price, note, deliveryTime, paymentTerms]);
 
   function buildResumeTarget() {
     const next = new URLSearchParams();
@@ -275,11 +337,17 @@ export default function OfferModal({
     setCameraOpen(false);
   }
 
-const submitOffer = async () => {
+  const submitOffer = async () => {
     if (!price) {
       alert("Please enter price");
       return;
     }
+    saveSellerOfferDraft(requirementId, {
+      price,
+      message: note,
+      deliveryTime,
+      paymentTerms
+    });
 
     // Auction price validation
     if (
@@ -353,6 +421,7 @@ const submitOffer = async () => {
       });
       setOfferAttachments(nextAttachments);
       setFile(null);
+      clearSellerOfferDraft(requirementId);
     } catch (err) {
       alert(
         err?.response?.data?.message || "Failed to submit offer. Try again."

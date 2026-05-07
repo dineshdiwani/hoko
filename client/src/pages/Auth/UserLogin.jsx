@@ -8,6 +8,33 @@ import { isNativeAppRuntime } from "../../utils/runtime";
 import { ensureNativePushRegistration, isNativePushEnabled } from "../../services/nativePush";
 import { CapacitorSmsRetriever } from "@shaher/capacitor-sms-retriever";
 
+const BUYER_PENDING_REQUIREMENT_KEY = "buyer_pending_requirement_data";
+const BUYER_REQUIREMENT_DRAFT_KEY = "buyer_requirement_form_draft";
+
+function readPendingRequirementData() {
+  try {
+    const sessionData = sessionStorage.getItem("pending_requirement_data");
+    if (sessionData) return sessionData;
+  } catch {}
+  try {
+    return localStorage.getItem(BUYER_PENDING_REQUIREMENT_KEY) || "";
+  } catch {
+    return "";
+  }
+}
+
+function clearPendingRequirementData() {
+  try {
+    sessionStorage.removeItem("pending_requirement_data");
+  } catch {}
+  try {
+    localStorage.removeItem(BUYER_PENDING_REQUIREMENT_KEY);
+  } catch {}
+  try {
+    localStorage.removeItem(BUYER_REQUIREMENT_DRAFT_KEY);
+  } catch {}
+}
+
 export default function UserLogin({ role = "buyer" }) {
   const isSeller = role === "seller";
   const currentRole = isSeller ? "seller" : "buyer";
@@ -175,7 +202,15 @@ export default function UserLogin({ role = "buyer" }) {
   useEffect(() => {
     const session = getSession();
     if (session?.role === currentRole && session?.token) {
+      const shouldResumeSellerFlow =
+        isSeller &&
+        Boolean(postLoginRedirect) &&
+        useSellerPostLoginRedirect;
       const urlRedirect = searchParams.get("redirect");
+      if (shouldResumeSellerFlow) {
+        navigate(buildSellerResumeRedirect(), { replace: true });
+        return;
+      }
       if (urlRedirect && !isSeller) {
         navigate(urlRedirect, { replace: true });
       } else {
@@ -431,7 +466,7 @@ useEffect(() => {
   }
 
   async function completePendingBuyerRequirementLogin({ user, token, profile, loginCity }) {
-    const pendingRequirementData = sessionStorage.getItem("pending_requirement_data");
+    const pendingRequirementData = readPendingRequirementData();
     if (!pendingRequirementData || isSeller) return false;
 
     try {
@@ -469,7 +504,7 @@ useEffect(() => {
       };
 
       const reqRes = await api.post("/buyer/requirement", reqPayload);
-      sessionStorage.removeItem("pending_requirement_data");
+      clearPendingRequirementData();
 
       if (reqRes.data?._id) {
         setBuyerDashboardDefaultTab(requirementCity || sessionCity);
@@ -479,7 +514,7 @@ useEffect(() => {
       }
     } catch (err) {
       console.error("[Login] Failed to post pending requirement:", err);
-      sessionStorage.removeItem("pending_requirement_data");
+      clearPendingRequirementData();
     }
 
     setBuyerDashboardDefaultTab(loginCity || user?.city || "");

@@ -6,6 +6,7 @@ import { fetchOptions } from "../../services/options";
 
 const PENDING_OFFER_KEY = "pending_seller_offer_intent";
 const POST_LOGIN_REDIRECT_SOURCE_KEY = "post_login_redirect_source";
+const SELLER_OFFER_DRAFT_KEY_PREFIX = "seller_offer_draft";
 const OBJECT_ID_REGEX = /^[a-f0-9]{24}$/i;
 const MAX_IMAGE_BYTES = 100 * 1024;
 function extractObjectId(value) {
@@ -46,6 +47,62 @@ function readPendingOfferIntent() {
 function clearPendingOfferIntent() {
   localStorage.removeItem(PENDING_OFFER_KEY);
   localStorage.removeItem("pending_offer_data");
+}
+
+function getSellerOfferDraftKey(requirementId) {
+  const raw = String(requirementId || "").trim();
+  return raw ? `${SELLER_OFFER_DRAFT_KEY_PREFIX}:${raw}` : "";
+}
+
+function readSellerOfferDraft(requirementId) {
+  const key = getSellerOfferDraftKey(requirementId);
+  if (!key) return null;
+  try {
+    const parsed = JSON.parse(localStorage.getItem(key) || "{}");
+    if (!parsed || typeof parsed !== "object" || !Object.keys(parsed).length) {
+      return null;
+    }
+    return {
+      price: String(parsed.price || "").trim(),
+      message: String(parsed.message || "").trim(),
+      deliveryTime: String(parsed.deliveryTime || "").trim(),
+      paymentTerms: String(parsed.paymentTerms || "").trim(),
+      mobile: String(parsed.mobile || "").trim(),
+      sellerName: String(parsed.sellerName || "").trim(),
+      sellerCity: String(parsed.sellerCity || "").trim(),
+      savedAt: Number(parsed.savedAt || 0) || 0
+    };
+  } catch {
+    return null;
+  }
+}
+
+function saveSellerOfferDraft(requirementId, form) {
+  const key = getSellerOfferDraftKey(requirementId);
+  if (!key) return;
+  try {
+    localStorage.setItem(
+      key,
+      JSON.stringify({
+        price: String(form.price || "").trim(),
+        message: String(form.message || "").trim(),
+        deliveryTime: String(form.deliveryTime || "").trim(),
+        paymentTerms: String(form.paymentTerms || "").trim(),
+        mobile: String(form.mobile || "").trim(),
+        sellerName: String(form.sellerName || "").trim(),
+        sellerCity: String(form.sellerCity || "").trim(),
+        savedAt: Date.now()
+      })
+    );
+  } catch {}
+}
+
+function clearSellerOfferDraft(requirementId) {
+  const key = getSellerOfferDraftKey(requirementId);
+  if (!key) return;
+  try {
+    localStorage.removeItem(key);
+  } catch {}
 }
 
 export default function SellerDeepLink() {
@@ -120,6 +177,10 @@ export default function SellerDeepLink() {
     : routeRequirementId || queryPostId;
   const city = String(packedData.city || params.get("city") || "").trim();
   const resumeCategory = String(catsFromUrl || packedData.category || "").trim();
+  const savedDraft = useMemo(
+    () => readSellerOfferDraft(requirementIdValue),
+    [requirementIdValue]
+  );
   const queryPreview = useMemo(
     () => ({
       _id: requirementIdValue,
@@ -146,14 +207,29 @@ export default function SellerDeepLink() {
     [packedData, params, city, requirementIdValue]
   );
 
+  useEffect(() => {
+    if (!savedDraft) return;
+    setForm((prev) => ({
+      price: prev.price || savedDraft.price || "",
+      message: prev.message || savedDraft.message || "",
+      deliveryTime: prev.deliveryTime || savedDraft.deliveryTime || "",
+      paymentTerms: prev.paymentTerms || savedDraft.paymentTerms || "",
+      mobile: prev.mobile || savedDraft.mobile || "",
+      sellerName: prev.sellerName || savedDraft.sellerName || "",
+      sellerCity: prev.sellerCity || savedDraft.sellerCity || ""
+    }));
+  }, [savedDraft]);
+
   const buildRedirectTarget = () => {
     const next = new URLSearchParams();
     const effectiveMobile = mobileFromUrl || mobileFromPayload;
+    const effectiveCity = cityFromUrl || city;
+    const effectiveCats = resumeCategory;
+    if (requirementIdValue) next.set("openRequirement", requirementIdValue);
     if (effectiveMobile) next.set("mobile", effectiveMobile);
-    if (city) next.set("city", city);
-    if (resumeCategory) next.set("cats", resumeCategory);
-    next.set("resume", "1");
-    return `/seller/deeplink/${encodeURIComponent(requirementIdValue)}?${next.toString()}`;
+    if (effectiveCity) next.set("city", effectiveCity);
+    if (effectiveCats) next.set("cats", effectiveCats);
+    return `/seller/dashboard${next.toString() ? `?${next.toString()}` : ""}`;
   };
 
   const savePendingOfferIntent = (payload) => {
@@ -169,7 +245,7 @@ export default function SellerDeepLink() {
   const redirectToAuthOrRegister = (payload) => {
     savePendingOfferIntent(payload);
     localStorage.setItem("post_login_redirect", buildRedirectTarget());
-    localStorage.setItem(POST_LOGIN_REDIRECT_SOURCE_KEY, "deeplink");
+    localStorage.setItem(POST_LOGIN_REDIRECT_SOURCE_KEY, "offer");
     localStorage.setItem("login_intent_role", "seller");
 
     const session = getSession();
@@ -255,6 +331,7 @@ export default function SellerDeepLink() {
           attachments: nextAttachments
         });
         clearPendingOfferIntent();
+        clearSellerOfferDraft(requirementIdValue);
         setAttachments([]);
         alert(
           isAuto
@@ -401,6 +478,7 @@ useEffect(() => {
           sellerCity: String(pendingPayload.sellerCity || session?.city || cityFromUrl || "")
         }, { isAuto: true });
         clearPendingOfferIntent();
+        clearSellerOfferDraft(requirementIdValue);
         return;
       }
       setDraftLoaded(true);
@@ -470,6 +548,11 @@ useEffect(() => {
     };
   }, [loading, requirementIdValue, draftLoaded]);
 
+  useEffect(() => {
+    if (!requirementIdValue || loading || submitting) return;
+    saveSellerOfferDraft(requirementIdValue, form);
+  }, [form, requirementIdValue, loading, submitting]);
+
   const handleSubmit = () => {
     if (submitting) return;
     const payload = {
@@ -481,6 +564,7 @@ useEffect(() => {
       sellerName: String(form.sellerName || "").trim(),
       sellerCity: String(form.sellerCity || "").trim()
     };
+    saveSellerOfferDraft(requirementIdValue, payload);
 
     if (!payload.price || Number(payload.price) <= 0) {
       alert("Please enter a valid offer price.");

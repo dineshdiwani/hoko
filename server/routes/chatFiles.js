@@ -121,6 +121,18 @@ router.post("/upload", auth, uploadSingleFile, async (req, res) => {
     }
 
     const sellerId = from === buyerId ? to : from;
+    const peerId = String(fromUser?._id || from || "").trim();
+    const peerName = String(fromUser?.name || (fromUser?.roles?.seller ? "Seller" : "Buyer") || "").trim();
+    const chatUrlBase = toUser?.roles?.seller ? "/seller/dashboard" : "/buyer/dashboard";
+    const chatQuery = new URLSearchParams({
+      openChat: "1",
+      chatRequirementId: String(requirementId || "").trim(),
+      chatPeerId: peerId
+    });
+    if (peerName) {
+      chatQuery.set("chatPeerName", peerName);
+    }
+    const chatUrl = `${chatUrlBase}?${chatQuery.toString()}`;
     const offer = await Offer.findOne({
       requirementId,
       sellerId,
@@ -184,27 +196,27 @@ router.post("/upload", auth, uploadSingleFile, async (req, res) => {
             requirementId: requirementId || null,
             entityType: "requirement",
             entityId: requirementId || null,
-            url: toUser?.roles?.seller ? "/seller/dashboard" : "/buyer/dashboard"
+            chatPeerId: peerId,
+            chatPeerName: peerName,
+            url: chatUrl
           })
         });
         if (io) {
           io.to(String(to)).emit(
             "notification",
             serializeNotification(notif, {
-              fallbackUrl: toUser?.roles?.seller ? "/seller/dashboard" : "/buyer/dashboard"
+              fallbackUrl: chatUrl
             })
           );
         }
 
         if (chatPushEnabled) {
           try {
-            const destination =
-              toUser?.roles?.seller ? "/seller/dashboard" : "/buyer/dashboard";
             await sendPush(String(to), {
               title: "New Chat File",
               body: "A file was shared in your chat",
               data: {
-                url: destination
+                url: chatUrl
               }
             });
           } catch {

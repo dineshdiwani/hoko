@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { getSession, logout } from "../../services/auth";
 import { onSessionUpdated, setSession, updateSession } from "../../services/storage";
 import MyPosts from "./MyPosts";
@@ -76,9 +76,15 @@ function normalizeDashboardTab(value) {
 
 export default function BuyerDashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const requestedTab = normalizeDashboardTab(searchParams.get("tab"));
   const highlightId = searchParams.get("highlight") || "";
+  const openChatFromUrl =
+    searchParams.get("openChat") === "1" || searchParams.get("chat") === "1";
+  const chatRequirementFromUrl = searchParams.get("chatRequirementId") || "";
+  const chatPeerFromUrl = searchParams.get("chatPeerId") || "";
+  const chatPeerNameFromUrl = searchParams.get("chatPeerName") || "";
   const [session, setSessionState] = useState(() => getSession());
   const [sessionVersion, setSessionVersion] = useState(0);
   const [refreshToken, setRefreshToken] = useState(0);
@@ -248,6 +254,44 @@ const [showAppBanner, setShowAppBanner] = useState(true);
       navigate(`/buyer/requirement/${encodeURIComponent(String(requirementId))}/offers`);
     }
   }
+
+  useEffect(() => {
+    if (!session?.token || !openChatFromUrl) return;
+    const requirementId = String(chatRequirementFromUrl || "").trim();
+    const peerId = String(chatPeerFromUrl || "").trim();
+    if (!requirementId || !peerId || chatOpen) return;
+
+    setChatSeller({
+      id: peerId,
+      name: String(chatPeerNameFromUrl || "Seller").trim() || "Seller"
+    });
+    setChatRequirementId(requirementId);
+    setChatOpen(true);
+
+    const nextParams = new URLSearchParams(location.search);
+    nextParams.delete("openChat");
+    nextParams.delete("chat");
+    nextParams.delete("chatRequirementId");
+    nextParams.delete("chatPeerId");
+    nextParams.delete("chatPeerName");
+    navigate(
+      {
+        pathname: location.pathname,
+        search: nextParams.toString()
+      },
+      { replace: true }
+    );
+  }, [
+    session?.token,
+    openChatFromUrl,
+    chatRequirementFromUrl,
+    chatPeerFromUrl,
+    chatPeerNameFromUrl,
+    chatOpen,
+    navigate,
+    location.pathname,
+    location.search
+  ]);
 
   const triggerRefresh = useCallback(() => {
     setRefreshToken((prev) => prev + 1);

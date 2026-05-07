@@ -93,6 +93,8 @@ export default function AdminDashboard() {
     }
   });
   const [reports, setReports] = useState([]);
+  const [overview, setOverview] = useState(null);
+  const [summaryStats, setSummaryStats] = useState(null);
   const [expandedUsers, setExpandedUsers] = useState(new Set());
   const [notificationFile, setNotificationFile] = useState(null);
   const [whatsAppSummary, setWhatsAppSummary] = useState({
@@ -135,6 +137,19 @@ export default function AdminDashboard() {
   const [showLegalPreviewModal, setShowLegalPreviewModal] = useState(false);
   const [legalPreviewType, setLegalPreviewType] = useState("terms");
   const navigate = useNavigate();
+
+  const formatNumber = (value) => {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return "0";
+    return new Intl.NumberFormat("en-IN").format(numeric);
+  };
+
+  const formatLatestRun = (run) => {
+    if (!run) return "No campaign runs yet";
+    const status = String(run.status || "unknown").replace(/_/g, " ");
+    const channel = String(run.channel || "whatsapp").toUpperCase();
+    return `${status} - ${channel}`;
+  };
 
   const parseOptionList = (value) =>
     String(value || "")
@@ -204,6 +219,8 @@ export default function AdminDashboard() {
       "offers",
       "chats",
       "reports",
+      "overview",
+      "summaryStats",
       "options",
       "whatsAppSummary",
       "campaignRuns",
@@ -215,6 +232,8 @@ export default function AdminDashboard() {
       api.get("/admin/offers"),
       api.get("/admin/chats"),
       api.get("/admin/reports"),
+      api.get("/admin/analytics/overview"),
+      api.get("/admin/stats"),
       api.get("/admin/options"),
       api.get("/admin/whatsapp/contacts/summary"),
       api.get("/admin/whatsapp/campaign-runs"),
@@ -232,6 +251,8 @@ export default function AdminDashboard() {
     setOffers(Array.isArray(responseMap.offers) ? responseMap.offers : []);
     setChats(Array.isArray(responseMap.chats) ? responseMap.chats : []);
     setReports(Array.isArray(responseMap.reports) ? responseMap.reports : []);
+    setOverview(responseMap.overview || null);
+    setSummaryStats(responseMap.summaryStats || null);
 
     if (responseMap.options) {
       const data = responseMap.options;
@@ -850,6 +871,91 @@ export default function AdminDashboard() {
       <div className="dashboard-shell dashboard-main">
 
         <div className="dashboard-flow">
+        <div className="dashboard-panel p-4">
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+            <div>
+              <h2 className="ui-heading dashboard-section-title">Basic Admin Visibility</h2>
+              <p className="ui-body text-gray-600">
+                At-a-glance platform counts and notification health. Read-only only.
+              </p>
+            </div>
+            <div className="text-sm text-gray-500 ui-body">
+              Latest campaign: <span className="font-semibold text-gray-800">{formatLatestRun(campaignRuns[0])}</span>
+            </div>
+          </div>
+          <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-3 mt-4">
+            <div className="rounded-lg border border-gray-200 bg-white p-3">
+              <div className="text-xs uppercase tracking-wide text-gray-500">Users</div>
+              <div className="mt-1 text-2xl font-semibold text-gray-900">{formatNumber(overview?.totalUsers)}</div>
+              <div className="mt-1 text-sm text-gray-600">
+                Buyers {formatNumber(overview?.totalBuyers)} - Sellers {formatNumber(overview?.totalSellers)}
+              </div>
+            </div>
+            <div className="rounded-lg border border-gray-200 bg-white p-3">
+              <div className="text-xs uppercase tracking-wide text-gray-500">Marketplace</div>
+              <div className="mt-1 text-2xl font-semibold text-gray-900">{formatNumber(overview?.totalRequirements)}</div>
+              <div className="mt-1 text-sm text-gray-600">
+                Offers {formatNumber(overview?.totalOffers)} - Avg {overview?.avgOffersPerRequirement || "0"} / req
+              </div>
+            </div>
+            <div className="rounded-lg border border-gray-200 bg-white p-3">
+              <div className="text-xs uppercase tracking-wide text-gray-500">Seller Health</div>
+              <div className="mt-1 text-2xl font-semibold text-gray-900">{formatNumber(overview?.approvedSellers)}</div>
+              <div className="mt-1 text-sm text-gray-600">
+                Pending {formatNumber(overview?.pendingSellers)} - Reviews {formatNumber(summaryStats?.reviews)}
+              </div>
+            </div>
+            <div className="rounded-lg border border-gray-200 bg-white p-3">
+              <div className="text-xs uppercase tracking-wide text-gray-500">Content Load</div>
+              <div className="mt-1 text-2xl font-semibold text-gray-900">{formatNumber(summaryStats?.messages)}</div>
+              <div className="mt-1 text-sm text-gray-600">
+                Chats {formatNumber(chats.length)} - Reports {formatNumber(reports.length)}
+              </div>
+            </div>
+          </div>
+          <div className="grid md:grid-cols-3 gap-3 mt-3">
+            <div className="rounded-lg border border-gray-200 bg-slate-50 p-3">
+              <div className="text-xs uppercase tracking-wide text-gray-500">Admin Alerts</div>
+              <div className="mt-1 text-sm text-gray-700">
+                Status{" "}
+                <span className={`font-semibold ${options.adminNotifications?.enabled !== false ? "text-green-700" : "text-amber-700"}`}>
+                  {options.adminNotifications?.enabled !== false ? "Enabled" : "Disabled"}
+                </span>
+              </div>
+              <div className="mt-1 text-sm text-gray-700">
+                Email{" "}
+                <span className={`font-semibold ${options.emailNotifications?.enabled ? "text-green-700" : "text-amber-700"}`}>
+                  {options.emailNotifications?.enabled ? "Enabled" : "Disabled"}
+                </span>
+              </div>
+            </div>
+            <div className="rounded-lg border border-gray-200 bg-slate-50 p-3">
+              <div className="text-xs uppercase tracking-wide text-gray-500">WhatsApp Coverage</div>
+              <div className="mt-1 text-sm text-gray-700">
+                Contacts <span className="font-semibold text-gray-800">{formatNumber(whatsAppSummary?.total)}</span>
+              </div>
+              <div className="mt-1 text-sm text-gray-700">
+                Last updated{" "}
+                <span className="font-semibold text-gray-800">
+                  {formatDateTime(whatsAppSummary?.lastUpdatedAt)}
+                </span>
+              </div>
+            </div>
+            <div className="rounded-lg border border-gray-200 bg-slate-50 p-3">
+              <div className="text-xs uppercase tracking-wide text-gray-500">Campaigns</div>
+              <div className="mt-1 text-sm text-gray-700">
+                Runs <span className="font-semibold text-gray-800">{formatNumber(campaignRuns.length)}</span>
+              </div>
+              <div className="mt-1 text-sm text-gray-700">
+                Last run{" "}
+                <span className="font-semibold text-gray-800">
+                  {formatLatestRun(campaignRuns[0])}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="dashboard-panel p-4">
           <h2 className="ui-heading dashboard-section-title">Admin Settings</h2>
           <div className="grid md:grid-cols-3 gap-3">
@@ -1489,10 +1595,3 @@ export default function AdminDashboard() {
     </div>
   );
 }
-
-
-
-
-
-
-

@@ -488,10 +488,39 @@ async function sendBuyerConfirmationSms(mobileE164, requirementId) {
   }
 }
 
-async function sendBuyerRequirementPostNotification(mobileE164, requirementId) {
+async function sendBuyerRequirementEmail(email, requirementId) {
+  const targetEmail = String(email || "").trim().toLowerCase();
+  if (!targetEmail || !/\S+@\S+\.\S+/.test(targetEmail)) {
+    return { ok: false, skipped: true, reason: "invalid_email" };
+  }
+
+  const appBase = resolvePublicAppUrl();
+  const dashboardLink = `${appBase}/buyer/dashboard?tab=posts&ref=${requirementId}`;
+  try {
+    const result = await sendEmailToRecipient({
+      to: targetEmail,
+      subject: "Your Hoko requirement is live",
+      text: [
+        "Your requirement has been posted successfully.",
+        "",
+        `Track offers here: ${dashboardLink}`,
+        "",
+        "You will receive updates as sellers respond."
+      ].join("\n")
+    });
+    return result;
+  } catch (err) {
+    return { ok: false, error: err?.message || "send_failed" };
+  }
+}
+
+async function sendBuyerRequirementPostNotification(mobileE164, requirementId, email = "") {
   const waResult = await sendBuyerRequirementConfirmation(mobileE164, requirementId);
   if (!waResult.ok) {
     await sendBuyerConfirmationSms(mobileE164, requirementId);
+  }
+  if (email) {
+    await sendBuyerRequirementEmail(email, requirementId);
   }
 }
 
@@ -616,8 +645,9 @@ router.post("/requirement/public", async (req, res) => {
     }
   });
 
+  const buyerEmail = String(req.body?.email || "").trim();
   const ackResult = await sendRequirementAckTemplate(mobileE164, requirement._id);
-  sendBuyerRequirementPostNotification(mobileE164, requirement._id);
+  sendBuyerRequirementPostNotification(mobileE164, requirement._id, buyerEmail);
 
   setImmediate(async () => {
     try {
@@ -1203,7 +1233,11 @@ router.post("/requirement", auth, buyerOnly, async (req, res) => {
 
   const buyerMobile = req.user.mobile || "";
   if (buyerMobile) {
-    sendBuyerRequirementPostNotification(buyerMobile, requirement._id);
+    sendBuyerRequirementPostNotification(
+      buyerMobile,
+      requirement._id,
+      String(req.user.email || "").trim()
+    );
   }
 
   const io = req.app.get("io");
@@ -1255,7 +1289,7 @@ router.post("/requirement", auth, buyerOnly, async (req, res) => {
           entityId: String(requirement._id),
           category: normalizedCategory,
           offerInvitedFrom,
-          url: "/seller/dashboard"
+          url: `/seller/dashboard?openRequirement=${encodeURIComponent(String(requirement._id))}`
         })
       }));
 
@@ -1290,7 +1324,7 @@ router.post("/requirement", auth, buyerOnly, async (req, res) => {
               title: "New Buyer Post",
               body: `New post in ${requirement.category || "your"} category: ${requirementName}`,
               data: {
-                url: "/seller/dashboard"
+                url: `/seller/dashboard?openRequirement=${encodeURIComponent(String(requirement._id))}`
               }
             });
           } catch {
@@ -1497,7 +1531,7 @@ router.put("/requirement/:id", auth, buyerOnly, async (req, res) => {
             entityId: String(requirement._id),
             productName: requirementName,
             changedFields,
-            url: "/seller/dashboard"
+            url: `/seller/dashboard?openRequirement=${encodeURIComponent(String(requirement._id))}`
           })
         })
       )
@@ -1533,7 +1567,7 @@ router.put("/requirement/:id", auth, buyerOnly, async (req, res) => {
             title: "Requirement Updated",
             body: message,
             data: {
-              url: "/seller/dashboard"
+              url: `/seller/dashboard?openRequirement=${encodeURIComponent(String(requirement._id))}`
             }
           });
         } catch {
@@ -2609,7 +2643,7 @@ router.post("/requirement/:id/reverse-auction/start", auth, buyerOnly, async (re
           lowestPrice: displayLowest,
           currencyCode,
           currencySymbol,
-          url: "/seller/dashboard"
+          url: `/seller/dashboard?openRequirement=${encodeURIComponent(String(requirement._id))}`
         })
       })
     )
@@ -2644,7 +2678,7 @@ router.post("/requirement/:id/reverse-auction/start", auth, buyerOnly, async (re
         await sendPush(String(sellerId), {
           title: `Reverse Auction: ${requirementName}`,
           body: message,
-          data: { url: "/seller/dashboard" }
+          data: { url: `/seller/dashboard?openRequirement=${encodeURIComponent(String(requirement._id))}` }
         });
       } catch {
         // Ignore push delivery failures per seller and continue.
@@ -2945,7 +2979,7 @@ router.post("/offers/:offerId/outcome", auth, buyerOnly, async (req, res) => {
             entityId: String(requirement._id),
             offerId: String(item.offerId || offer._id),
             productName: requirementName,
-            url: "/seller/dashboard"
+            url: `/seller/dashboard?openRequirement=${encodeURIComponent(String(requirement._id))}`
           })
         })
       )

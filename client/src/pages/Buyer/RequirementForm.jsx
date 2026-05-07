@@ -12,6 +12,8 @@ import { buildWhatsAppBrowserLink } from "../../utils/whatsapp";
 
 const LAST_REQUIREMENT_PREFS_KEY = "buyer_last_requirement_prefs";
 const BUYER_DASHBOARD_FORCE_TAB_KEY = "buyer_dashboard_force_tab";
+const BUYER_REQUIREMENT_DRAFT_KEY = "buyer_requirement_form_draft";
+const BUYER_PENDING_REQUIREMENT_KEY = "buyer_pending_requirement_data";
 
 function readLastRequirementPrefs() {
   try {
@@ -38,6 +40,55 @@ function saveLastRequirementPrefs({ city, category, unit }) {
         unit: String(unit || "").trim()
       })
     );
+  } catch {}
+}
+
+function readSavedBuyerRequirementDraft() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(BUYER_REQUIREMENT_DRAFT_KEY) || "{}");
+    return {
+      mobile: String(parsed.mobile || "").trim(),
+      email: String(parsed.email || "").trim(),
+      city: String(parsed.city || "").trim(),
+      category: String(parsed.category || "").trim(),
+      product: String(parsed.product || "").trim(),
+      makeBrand: String(parsed.makeBrand || "").trim(),
+      typeModel: String(parsed.typeModel || "").trim(),
+      quantity: String(parsed.quantity || "").trim(),
+      unit: String(parsed.unit || "").trim(),
+      details: String(parsed.details || "").trim(),
+      offerInvitedFrom: String(parsed.offerInvitedFrom || "city").trim()
+    };
+  } catch {
+    return null;
+  }
+}
+
+function saveBuyerRequirementDraft(form) {
+  try {
+    localStorage.setItem(
+      BUYER_REQUIREMENT_DRAFT_KEY,
+      JSON.stringify({
+        mobile: String(form.mobile || "").trim(),
+        email: String(form.email || "").trim(),
+        city: String(form.city || "").trim(),
+        category: String(form.category || "").trim(),
+        product: String(form.product || "").trim(),
+        makeBrand: String(form.makeBrand || "").trim(),
+        typeModel: String(form.typeModel || "").trim(),
+        quantity: String(form.quantity || "").trim(),
+        unit: String(form.unit || "").trim(),
+        details: String(form.details || "").trim(),
+        offerInvitedFrom: String(form.offerInvitedFrom || "city").trim()
+      })
+    );
+  } catch {}
+}
+
+function clearBuyerRequirementDraft() {
+  try {
+    localStorage.removeItem(BUYER_REQUIREMENT_DRAFT_KEY);
+    localStorage.removeItem(BUYER_PENDING_REQUIREMENT_KEY);
   } catch {}
 }
 
@@ -82,19 +133,22 @@ export default function RequirementForm({ isPublic = false }) {
   const isLoggedIn = Boolean(session?.token);
   const sessionCity = String(session?.city || "").trim();
   const needsProfileEmail = Boolean(session?.mobile && !session?.email);
+  const savedDraft = !isEditMode ? readSavedBuyerRequirementDraft() : null;
 
   const [form, setForm] = useState({
-    mobile: "",
-    email: "",
-    city: isPublic ? "" : cityFromUrl || "",
-    category: "",
-    product: productFromUrl || "",
-    makeBrand: "",
-    typeModel: "",
-    quantity: "",
-    unit: "",
-    details: "",
-    offerInvitedFrom: "city"
+    mobile: savedDraft?.mobile || "",
+    email: savedDraft?.email || "",
+    city: isPublic
+      ? (cityFromUrl || savedDraft?.city || "")
+      : (savedDraft?.city || cityFromUrl || ""),
+    category: savedDraft?.category || "",
+    product: productFromUrl || savedDraft?.product || "",
+    makeBrand: savedDraft?.makeBrand || "",
+    typeModel: savedDraft?.typeModel || "",
+    quantity: savedDraft?.quantity || "",
+    unit: savedDraft?.unit || "",
+    details: savedDraft?.details || "",
+    offerInvitedFrom: savedDraft?.offerInvitedFrom || "city"
   });
   const [submitted, setSubmitted] = useState(false);
   const [attachments, setAttachments] = useState([]);
@@ -286,6 +340,11 @@ useEffect(() => {
       localStorage.removeItem("draft_requirement_text");
     }
   }, [form.product, isEditMode]);
+
+  useEffect(() => {
+    if (isEditMode) return;
+    saveBuyerRequirementDraft(form);
+  }, [form, isEditMode]);
 
   useEffect(() => {
     try {
@@ -574,6 +633,8 @@ useEffect(() => {
         category: payload.category,
         unit: payload.type
       });
+      clearBuyerRequirementDraft();
+      sessionStorage.removeItem("pending_requirement_data");
 
       // For logged-in users, navigate to dashboard
       if (session?.token) {
@@ -653,6 +714,38 @@ useEffect(() => {
       offerInvitedFrom: form.offerInvitedFrom || "city",
       ref: tempRequirementRef
     }));
+    saveBuyerRequirementDraft({
+      mobile: form.mobile,
+      email: form.email,
+      city: form.city,
+      category: form.category,
+      product: form.product,
+      makeBrand: form.makeBrand,
+      typeModel: form.typeModel,
+      quantity: form.quantity,
+      unit: form.unit,
+      details: form.details,
+      offerInvitedFrom: form.offerInvitedFrom || "city"
+    });
+    try {
+      localStorage.setItem(
+        BUYER_PENDING_REQUIREMENT_KEY,
+        JSON.stringify({
+          mobile: form.mobile,
+          city: form.city,
+          category: form.category,
+          productName: form.product,
+          product: form.product,
+          makeBrand: form.makeBrand,
+          typeModel: form.typeModel,
+          quantity: form.quantity,
+          unit: form.unit,
+          details: form.details,
+          offerInvitedFrom: form.offerInvitedFrom || "city",
+          ref: tempRequirementRef
+        })
+      );
+    } catch {}
 
     const loginParams = new URLSearchParams();
     if (form.mobile) loginParams.set("mobile", form.mobile);

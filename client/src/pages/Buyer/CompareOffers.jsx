@@ -76,6 +76,17 @@ export default function CompareOffers() {
 
     const rowDefs = [
       {
+        field: "Seller Business",
+        valueForOffer: (offer) =>
+          formatValue(
+            offer.sellerFirm || offer.sellerDetails?.registeredBusinessName
+          )
+      },
+      {
+        field: "Seller Owner",
+        valueForOffer: (offer) => formatValue(offer.sellerDetails?.ownerName)
+      },
+      {
         field: "Requirement City",
         valueForOffer: () => requirementBase.city
       },
@@ -130,7 +141,8 @@ export default function CompareOffers() {
       },
       {
         field: "Seller City",
-        valueForOffer: (offer) => formatValue(offer.sellerCity)
+        valueForOffer: (offer) =>
+          formatValue(offer.sellerCity || offer.sellerDetails?.city)
       }
     ];
 
@@ -301,4 +313,3 @@ export default function CompareOffers() {
     </div>
   );
 }
-

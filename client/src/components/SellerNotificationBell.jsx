@@ -23,9 +23,9 @@ function formatTime(dateString) {
 function getNavUrl(notif) {
   const data = notif?.data || {};
   if (data.url) return data.url;
-  if (data.requirementId) return `/seller/requirement/${data.requirementId}`;
-  if (data.offerId) return `/seller/offers`;
-  if (data.chatId) return `/seller/chat/${data.chatId}`;
+  if (data.requirementId) return `/seller/dashboard?openRequirement=${data.requirementId}`;
+  if (data.offerId) return `/seller/dashboard`;
+  if (data.chatId) return `/seller/dashboard`;
   return "/seller/dashboard";
 }
 
