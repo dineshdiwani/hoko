@@ -83,14 +83,14 @@ The web app serves that file at `/apk/app-release.apk` after `npm run build`.
 1. Create a keystore, for example:
 
 ```bash
-keytool -genkeypair -v -keystore hoko-upload-keystore.jks -alias hoko-upload -keyalg RSA -keysize 2048 -validity 10000
+keytool -genkeypair -v -keystore hoko-play-upload.jks -alias hoko-play-upload -keyalg RSA -keysize 2048 -validity 10000
 ```
 
 2. Copy [keystore.properties.example](/abs/path/D:/hoko/client/android/keystore.properties.example) to `client/android/keystore.properties`.
 
 3. Update `storeFile`, `storePassword`, `keyAlias`, and `keyPassword`.
 
-4. Put the keystore file in a safe location outside git, for example `client/keystore/hoko-upload-keystore.jks`.
+4. Put the keystore file in a safe location outside git, for example `client/android/app/keystore/hoko-play-upload.jks`.
 
 ## Versioning
 
