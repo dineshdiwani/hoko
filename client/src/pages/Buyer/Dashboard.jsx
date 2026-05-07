@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { getSession, logout } from "../../services/auth";
-import { onSessionUpdated, setSession, updateSession } from "../../services/storage";
+import {
+  getUiCitySelection,
+  onSessionUpdated,
+  setSession,
+  setUiCitySelection,
+  updateSession
+} from "../../services/storage";
 import MyPosts from "./MyPosts";
 import OffersReceived from "./OffersReceived";
 import CityDashboard from "../CityDashboard";
@@ -28,7 +34,6 @@ function readBuyerDashboardState() {
   if (typeof window === "undefined") {
     return {
       activeTab: "posts",
-      city: "",
       selectedCategory: "all"
     };
   }
@@ -40,7 +45,6 @@ function readBuyerDashboardState() {
         : "posts";
     return {
       activeTab: safeTab,
-      city: normalizeBuyerCityFilter(raw?.city),
       selectedCategory: String(raw?.selectedCategory || "all")
         .trim()
         .toLowerCase() || "all"
@@ -48,7 +52,6 @@ function readBuyerDashboardState() {
   } catch {
     return {
       activeTab: "posts",
-      city: "",
       selectedCategory: "all"
     };
   }
@@ -96,7 +99,7 @@ export default function BuyerDashboard() {
     forcedTab || requestedTab || persistedState.activeTab
   );
   const [city, setCity] = useState(
-    normalizeBuyerCityFilter(persistedState.city || session?.city || "")
+    normalizeBuyerCityFilter(getUiCitySelection(session?.city || ""))
   );
   const [selectedCategory, setSelectedCategory] = useState(
     persistedState.selectedCategory || "all"
@@ -116,8 +119,13 @@ export default function BuyerDashboard() {
   const [chatOpen, setChatOpen] = useState(false);
   const [chatSeller, setChatSeller] = useState(null);
   const [chatRequirementId, setChatRequirementId] = useState(null);
-const [showAppBanner, setShowAppBanner] = useState(true);
+  const [showAppBanner, setShowAppBanner] = useState(true);
   const menuRef = useRef(null);
+  const handleCityChange = useCallback((nextCity) => {
+    const normalized = normalizeBuyerCityFilter(nextCity);
+    setCity(normalized);
+    setUiCitySelection(normalized || "all");
+  }, []);
 
   useEffect(() => {
     const syncSession = () => setSessionState(getSession());
@@ -131,17 +139,18 @@ const [showAppBanner, setShowAppBanner] = useState(true);
   }, []);
 
    useEffect(() => {
-    const latestProfileCity = String(session?.city || "").trim();
-    if (!latestProfileCity) return;
-    setCity((prev) => {
-      const current = String(prev || "").trim();
-      if (!current) return current;
+      const latestProfileCity = String(session?.city || "").trim();
+      if (!latestProfileCity) return;
+      setCity((prev) => {
+        const current = String(prev || "").trim();
+        if (!current) return current;
       const previousDefault = String(lastSyncedProfileCityRef.current || "").trim();
       const shouldFollowDefault =
         current.toLowerCase() === "all" ||
         current.toLowerCase() === previousDefault.toLowerCase();
       if (shouldFollowDefault) {
         lastSyncedProfileCityRef.current = latestProfileCity;
+        setUiCitySelection(latestProfileCity);
         return latestProfileCity;
       }
       return prev;
@@ -312,12 +321,11 @@ const [showAppBanner, setShowAppBanner] = useState(true);
         BUYER_DASHBOARD_STATE_KEY,
         JSON.stringify({
           activeTab,
-          city,
           selectedCategory
         })
       );
     } catch {}
-  }, [activeTab, city, selectedCategory]);
+  }, [activeTab, selectedCategory]);
 
   // Ensure defaults are valid after session/token changes without overwriting persisted selections.
   useEffect(() => {
@@ -727,7 +735,7 @@ const [showAppBanner, setShowAppBanner] = useState(true);
             cities={cities}
             categories={categories}
             refreshToken={refreshToken}
-            onCityChange={setCity}
+            onCityChange={handleCityChange}
             onCategoryChange={setSelectedCategory}
           />
         )}
@@ -738,7 +746,7 @@ const [showAppBanner, setShowAppBanner] = useState(true);
             category={selectedCategory}
             categories={categories}
             cities={cities}
-            onCityChange={setCity}
+            onCityChange={handleCityChange}
             onCategoryChange={setSelectedCategory}
             useSamplePosts={useSampleCityPosts}
             samplePostsEnabled={import.meta.env.DEV}
@@ -752,7 +760,7 @@ const [showAppBanner, setShowAppBanner] = useState(true);
             cities={cities}
             categories={categories}
             refreshToken={refreshToken}
-            onCityChange={setCity}
+            onCityChange={handleCityChange}
             onCategoryChange={setSelectedCategory}
           />
         )}

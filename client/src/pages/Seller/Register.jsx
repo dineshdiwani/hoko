@@ -5,7 +5,9 @@ import api from "../../services/api";
 import {
   getSession,
   setSession,
-  setSellerDashboardCategories
+  setSellerDashboardCategories,
+  getUiCitySelection,
+  setUiCitySelection
 } from "../../services/storage";
 
 export default function SellerRegister() {
@@ -32,7 +34,13 @@ export default function SellerRegister() {
     ownerName: "",
     website: "",
     taxId: "",
-    city: "",
+    city:
+      cityFromUrl ||
+      (() => {
+        const sharedCity = String(getUiCitySelection(sessionCity || localStorage.getItem("whatsapp_city") || "")).trim();
+        if (sharedCity && sharedCity.toLowerCase() !== "all") return sharedCity;
+        return sessionCity || localStorage.getItem("whatsapp_city") || "";
+      })(),
     categories: [],
     whatsappConsent: false
   });
@@ -194,6 +202,7 @@ export default function SellerRegister() {
         roles: { ...(session?.roles || {}), seller: true }
       };
       setSession(updatedSession);
+      setUiCitySelection(res.data.city || city);
       alert("Registration submitted successfully!");
       const resumeTarget = String(localStorage.getItem("post_login_redirect") || "").trim();
       localStorage.removeItem("post_login_redirect_source");
@@ -335,7 +344,11 @@ export default function SellerRegister() {
               <select
                 className={`w-full border p-2 rounded ${submitted && !seller.city ? "border-red-500" : ""}`}
                 value={seller.city}
-                onChange={(e) => setSeller({ ...seller, city: e.target.value })}
+                onChange={(e) => {
+                  const nextCity = e.target.value;
+                  setSeller({ ...seller, city: nextCity });
+                  setUiCitySelection(nextCity);
+                }}
                 required
               >
                 <option value="">Select City *</option>

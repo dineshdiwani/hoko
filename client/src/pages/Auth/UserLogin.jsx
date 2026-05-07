@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { getSession, setSession } from "../../services/storage";
+import { getSession, setSession, setUiCitySelection } from "../../services/storage";
 import { fetchOptions } from "../../services/options";
 import api from "../../services/api";
 import GoogleLoginButton from "../../components/GoogleLoginButton";
@@ -1168,6 +1168,7 @@ useEffect(() => {
                 
                 // Save to localStorage first
                 setSession(finalSession);
+                setUiCitySelection(city);
                 
                 const isSellerRole = pendingCitySession?.role === "seller";
                 
@@ -1189,6 +1190,7 @@ useEffect(() => {
                       ...finalSession,
                       city: res.data.city
                     });
+                    setUiCitySelection(res.data.city);
                   }
                 } catch (e) {
                   if (!isSellerRole) {
@@ -1203,6 +1205,7 @@ useEffect(() => {
                   } else {
                     try {
                       await api.post("/seller/profile", { city });
+                      setUiCitySelection(city);
                     } catch {}
                   }
                   console.warn("Profile update error:", e.response?.data || e.message);

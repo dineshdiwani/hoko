@@ -7,7 +7,8 @@ import {
   getSettings,
   updateSettings,
   setSession,
-  updateSession
+  updateSession,
+  setUiCitySelection
 } from "../../services/storage";
 import {
   buildNotificationHelpText,
@@ -227,6 +228,7 @@ export default function BuyerSettings() {
           mobile: data.user.mobile,
           token: data.token
         });
+        setUiCitySelection(data.user.city || profile.city || session.city || "");
         alert("Account merged successfully! Your posts have been combined.");
         navigate("/buyer/dashboard");
         return;
@@ -255,6 +257,7 @@ export default function BuyerSettings() {
         city: data.city || profile.city,
         preferredCurrency: data.preferredCurrency || profile.preferredCurrency
       });
+      setUiCitySelection(data.city || profile.city || session.city || "");
       updateSettings({ buyer: prefs });
       alert("Settings saved");
     } catch (err) {

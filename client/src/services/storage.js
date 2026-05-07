@@ -6,6 +6,8 @@ const SETTINGS_KEY = "hoko_settings";
 const SEEN_NOTIFICATION_IDS_KEY = "hoko_seen_notification_ids";
 const NATIVE_PUSH_TOKEN_KEY = "hoko_native_push_token";
 const SESSION_UPDATED_EVENT = "hoko_session_updated";
+const UI_CITY_SELECTION_EVENT = "hoko_ui_city_selection_updated";
+let uiCitySelection = "";
 
 function notifySessionUpdated() {
   if (typeof window === "undefined") return;
@@ -40,6 +42,36 @@ export function onSessionUpdated(handler) {
   if (typeof window === "undefined") return () => {};
   window.addEventListener(SESSION_UPDATED_EVENT, handler);
   return () => window.removeEventListener(SESSION_UPDATED_EVENT, handler);
+}
+
+export function getUiCitySelection(fallback = "") {
+  const shared = String(uiCitySelection || "").trim();
+  if (shared) return shared;
+  return String(fallback || "").trim();
+}
+
+export function setUiCitySelection(city) {
+  const next = String(city || "").trim();
+  if (next === uiCitySelection) return uiCitySelection;
+  uiCitySelection = next;
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent(UI_CITY_SELECTION_EVENT, { detail: { city: next } }));
+  }
+  return uiCitySelection;
+}
+
+export function clearUiCitySelection() {
+  if (!uiCitySelection) return;
+  uiCitySelection = "";
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent(UI_CITY_SELECTION_EVENT, { detail: { city: "" } }));
+  }
+}
+
+export function onUiCitySelectionUpdated(handler) {
+  if (typeof window === "undefined") return () => {};
+  window.addEventListener(UI_CITY_SELECTION_EVENT, handler);
+  return () => window.removeEventListener(UI_CITY_SELECTION_EVENT, handler);
 }
 
 export function getSellerDashboardCategories() {

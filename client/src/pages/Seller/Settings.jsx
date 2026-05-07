@@ -7,7 +7,8 @@ import {
   getSettings,
   updateSettings,
   setSellerDashboardCategories,
-  updateSession
+  updateSession,
+  setUiCitySelection
 } from "../../services/storage";
 import {
   buildNotificationHelpText,
@@ -301,6 +302,7 @@ setProfile({
           session?.preferredCurrency ||
           "INR"
       });
+      setUiCitySelection(res.data?.city || profile.city || session?.city || "");
       updateSettings({ seller: prefs });
       alert("Settings saved");
     } catch {

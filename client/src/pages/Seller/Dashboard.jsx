@@ -8,7 +8,13 @@ import {
 } from "../../services/notifications";
 import { fetchOptions } from "../../services/options";
 import { getSession, logout } from "../../services/auth";
-import { getSellerDashboardCategories, onSessionUpdated, setSession } from "../../services/storage";
+import {
+  getSellerDashboardCategories,
+  getUiCitySelection,
+  onSessionUpdated,
+  setSession,
+  setUiCitySelection
+} from "../../services/storage";
 import { generateSamplePostsForCity } from "../../services/samplePosts";
 import NotificationCenter from "../../components/NotificationCenter";
 import OfferModal from "../../components/OfferModal";
@@ -32,31 +38,6 @@ import {
 } from "../../utils/notifications";
 
 
-
-const SELLER_DASHBOARD_STATE_KEY = "seller_dashboard_state";
-
-function readSellerDashboardState() {
-  if (typeof window === "undefined") {
-    return {
-      selectedCity: "all",
-      selectedCategory: "all"
-    };
-  }
-  try {
-    const raw = JSON.parse(localStorage.getItem(SELLER_DASHBOARD_STATE_KEY) || "{}");
-    return {
-      selectedCity: String(raw?.selectedCity || "all").trim() || "all",
-      selectedCategory: String(raw?.selectedCategory || "all")
-        .trim()
-        .toLowerCase() || "all"
-    };
-  } catch {
-    return {
-      selectedCity: "all",
-      selectedCategory: "all"
-    };
-  }
-}
 
 export default function SellerDashboard() {
   const navigate = useNavigate();
@@ -135,16 +116,15 @@ export default function SellerDashboard() {
   const [switching, setSwitching] = useState(false);
   const [dashboardCategories, setDashboardCategories] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const persistedState = readSellerDashboardState();
   const [selectedCategory, setSelectedCategory] = useState(
     parseCategoryFromUrl(catsFromUrl)
   );
   const [cities, setCities] = useState([]);
   const [categories, setCategories] = useState([]);
   const [selectedCity, setSelectedCity] = useState(
-    cityFromUrl ||
-      String(getSession()?.city || "").trim() ||
-      "all"
+    cityFromUrl
+      ? cityFromUrl
+      : String(getUiCitySelection(session?.city || "all")).trim() || "all"
   );
   const [cityManuallySet, setCityManuallySet] = useState(false);
   const [activeSmartTab, setActiveSmartTab] = useState("all");
@@ -161,6 +141,12 @@ export default function SellerDashboard() {
 
   const currentUserId = session?._id || session?.id || session?.userId || null;
   const lastSyncedProfileCityRef = useRef(String(session?.city || "").trim());
+  const handleCityChange = useCallback((nextCity) => {
+    const normalized = String(nextCity || "").trim() || "all";
+    setSelectedCity(normalized);
+    setCityManuallySet(true);
+    setUiCitySelection(normalized);
+  }, []);
 
   useEffect(() => {
     const syncSession = () => setSessionState(getSession());
@@ -252,6 +238,9 @@ export default function SellerDashboard() {
         !current ||
         current.toLowerCase() === "all" ||
         current.toLowerCase() === previousDefault.toLowerCase();
+      if (shouldFollowDefault) {
+        setUiCitySelection(latestProfileCity);
+      }
       return shouldFollowDefault ? latestProfileCity : prev;
     });
     lastSyncedProfileCityRef.current = latestProfileCity;
@@ -477,18 +466,6 @@ export default function SellerDashboard() {
     const stored = getSellerDashboardCategories();
     setDashboardCategories(stored);
   }, []);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(
-        SELLER_DASHBOARD_STATE_KEY,
-        JSON.stringify({
-          selectedCity: cityManuallySet ? selectedCity : (session?.city || "all"),
-          selectedCategory
-        })
-      );
-    } catch {}
-  }, [selectedCity, selectedCategory, session?.city, cityManuallySet]);
 
   useEffect(() => {
     async function load() {
@@ -1192,10 +1169,7 @@ export default function SellerDashboard() {
               </span>
               <select
                 value={selectedCity}
-                onChange={(e) => {
-                  setSelectedCity(e.target.value);
-                  setCityManuallySet(true);
-                }}
+                onChange={(e) => handleCityChange(e.target.value)}
                 className="app-select ui-body w-[calc(50%-0.25rem)] md:w-auto"
                 aria-label="Filter posts by city"
                 title="Filter posts by city"
