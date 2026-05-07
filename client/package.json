@@ -10,6 +10,7 @@
     "android:sync": "vite build && npx cap sync android",
     "android:open": "npx cap open android",
     "android:run": "vite build && npx cap run android",
+    "android:release": "powershell -ExecutionPolicy Bypass -File deploy-android.ps1",
     "deploy:android": "powershell -ExecutionPolicy Bypass -File deploy-android.ps1"
   },
   "dependencies": {
