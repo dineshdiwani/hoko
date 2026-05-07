@@ -29,10 +29,12 @@ export default function CityDashboard({
   const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
+  const [totalCount, setTotalCount] = useState(0);
   const [timeFilter, setTimeFilter] = useState("all");
   const [auctionLoadingById, setAuctionLoadingById] = useState({});
   const [showingSampleData, setShowingSampleData] = useState(false);
   const loadMoreRef = useRef(null);
+  const loadedCountRef = useRef(0);
   const session = getSession();
   const currentBuyerId = String(session?._id || session?.id || "");
   const sampleFlagEnabled =
@@ -249,6 +251,8 @@ export default function CityDashboard({
         setRequirements([]);
         setShowingSampleData(false);
         setHasMore(false);
+        setTotalCount(0);
+        loadedCountRef.current = 0;
         setLoading(false);
         setLoadingMore(false);
         return;
@@ -257,49 +261,66 @@ export default function CityDashboard({
       const shouldUseSample =
         sampleFlagEnabled && (useSamplePosts || !session?.token);
       if (shouldUseSample) {
-        setRequirements(buildSampleRows(city));
+        const sampleRows = buildSampleRows(city);
+        setRequirements(sampleRows);
         setShowingSampleData(true);
         setHasMore(false);
+        setTotalCount(sampleRows.length);
+        loadedCountRef.current = sampleRows.length;
         setLoading(false);
         setLoadingMore(false);
         return;
       }
 
       try {
-        const params = shouldPaginate
-          ? { page: nextPage, limit: PAGE_SIZE }
-          : {};
+        const params = {
+          ...(shouldPaginate ? { page: nextPage, limit: PAGE_SIZE } : {}),
+          ...(category && String(category).trim().toLowerCase() !== "all"
+            ? { category }
+            : {})
+        };
         const res = await api.get(
           `/dashboard/city/${encodeURIComponent(city)}`,
           { params }
         );
         const liveRows = Array.isArray(res.data) ? res.data : [];
+        const nextTotal = Number(res?.headers?.["x-total-count"] || liveRows.length || 0);
+        const nextLoadedCount = append
+          ? loadedCountRef.current + liveRows.length
+          : liveRows.length;
         if (!append) {
           setRequirements(liveRows);
         } else {
           setRequirements((prev) => [...prev, ...liveRows]);
         }
+        loadedCountRef.current = nextLoadedCount;
         setShowingSampleData(false);
         setPage(nextPage);
-        setHasMore(shouldPaginate && liveRows.length >= PAGE_SIZE);
+        setTotalCount(Number.isFinite(nextTotal) ? nextTotal : 0);
+        setHasMore(shouldPaginate && nextLoadedCount < nextTotal);
       } catch (err) {
         if (sampleFlagEnabled) {
-          setRequirements(buildSampleRows(city));
+          const sampleRows = buildSampleRows(city);
+          setRequirements(sampleRows);
           setShowingSampleData(true);
           setHasMore(false);
+          setTotalCount(sampleRows.length);
+          loadedCountRef.current = sampleRows.length;
         } else {
           if (!append) {
             setRequirements([]);
           }
           setShowingSampleData(false);
           setHasMore(false);
+          setTotalCount(0);
+          loadedCountRef.current = 0;
         }
       } finally {
         setLoading(false);
         setLoadingMore(false);
       }
     },
-    [PAGE_SIZE, buildSampleRows, city, sampleFlagEnabled, session?.token, shouldPaginate, useSamplePosts]
+    [PAGE_SIZE, buildSampleRows, category, city, sampleFlagEnabled, session?.token, shouldPaginate, useSamplePosts]
   );
 
   useEffect(() => {
@@ -307,6 +328,8 @@ export default function CityDashboard({
     setLoadingMore(false);
     setRequirements([]);
     setHasMore(false);
+    setTotalCount(0);
+    loadedCountRef.current = 0;
     setPage(1);
     loadCityRequirements({ nextPage: 1, append: false });
   }, [city, category, refreshToken, loadCityRequirements]);
@@ -321,7 +344,6 @@ export default function CityDashboard({
       (entries) => {
         const [entry] = entries;
         if (entry?.isIntersecting && !loadingMore && !loading && hasMore) {
-          setLoadingMore(true);
           loadCityRequirements({ nextPage: page + 1, append: true });
         }
       },
@@ -391,14 +413,14 @@ export default function CityDashboard({
       matchesCategoryFilter(req) &&
       matchesCityFilter(req)
   );
-  const totalRequirements = filteredRequirements.length;
+  const totalRequirements = totalCount;
   const liveAuctions = filteredRequirements.filter(
     (req) => req.reverseAuction?.active || req.reverseAuctionActive
   ).length;
 
   useEffect(() => {
-    onVisibleCountChange?.(filteredRequirements.length);
-  }, [filteredRequirements.length, onVisibleCountChange]);
+    onVisibleCountChange?.(totalRequirements);
+  }, [onVisibleCountChange, totalRequirements]);
 
   /* ---------------- LOADING ---------------- */
   if (loading) {

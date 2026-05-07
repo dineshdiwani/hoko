@@ -11,8 +11,11 @@ function escapeRegex(value) {
 
 router.get("/city/:city", auth, async (req, res) => {
   const requestedCity = String(req.params.city || "").trim();
+  const requestedCategory = String(req.query?.category || "").trim();
   const isAllCities =
     !requestedCity || requestedCity.toLowerCase() === "all";
+  const isAllCategories =
+    !requestedCategory || requestedCategory.toLowerCase() === "all";
   const usePagination =
     Object.prototype.hasOwnProperty.call(req.query || {}, "page") ||
     Object.prototype.hasOwnProperty.call(req.query || {}, "limit");
@@ -29,6 +32,14 @@ router.get("/city/:city", auth, async (req, res) => {
     const cityRegex = new RegExp(`^${escapeRegex(requestedCity)}$`, "i");
     requirementQuery.city = cityRegex;
   }
+  if (!isAllCategories) {
+    requirementQuery.category = new RegExp(
+      `^${escapeRegex(requestedCategory)}$`,
+      "i"
+    );
+  }
+
+  const totalCount = await Requirement.countDocuments(requirementQuery);
 
   const requirements = (await Requirement.find(requirementQuery).sort({
     createdAt: -1
@@ -57,6 +68,7 @@ router.get("/city/:city", auth, async (req, res) => {
     return item;
   });
 
+  res.set("X-Total-Count", String(totalCount));
   res.json(data);
 });
 

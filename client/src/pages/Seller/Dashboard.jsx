@@ -139,6 +139,7 @@ export default function SellerDashboard() {
   const [unreadChatRequirementIds, setUnreadChatRequirementIds] = useState(new Set());
   const [reverseAuctionNotice, setReverseAuctionNotice] = useState("");
   const [showingSampleData, setShowingSampleData] = useState(false);
+  const [totalCount, setTotalCount] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
@@ -190,6 +191,7 @@ export default function SellerDashboard() {
               };
           const res = await api.get("/meta/requirements", { params });
           const rows = Array.isArray(res.data) ? res.data : [];
+          const nextTotal = Number(res?.headers?.["x-total-count"] || rows.length || 0);
           if (allowSellerSamplePosts && rows.length === 0 && !append) {
             const samplePosts = generateSamplePostsForCity(
               selectedCity && selectedCity !== "all" ? selectedCity : (session?.city || "Mumbai"),
@@ -200,10 +202,12 @@ export default function SellerDashboard() {
             setShowingSampleData(true);
             setHasMore(false);
             setPage(1);
+            setTotalCount(samplePosts.length);
             return;
           }
           setRequirements((prev) => (append ? [...prev, ...rows] : rows));
           setShowingSampleData(false);
+          setTotalCount(Number.isFinite(nextTotal) ? nextTotal : 0);
           setHasMore(shouldPaginateRequirements && rows.length >= 50);
           setPage(nextPage);
         } else {
@@ -220,6 +224,7 @@ export default function SellerDashboard() {
               };
           const res = await api.get("/seller/dashboard", { params });
           const liveRows = Array.isArray(res.data) ? res.data : [];
+          const nextTotal = Number(res?.headers?.["x-total-count"] || liveRows.length || 0);
 
           if (allowSellerSamplePosts && liveRows.length === 0 && !append) {
             const samplePosts = generateSamplePostsForCity(
@@ -231,11 +236,13 @@ export default function SellerDashboard() {
             setShowingSampleData(true);
             setHasMore(false);
             setPage(1);
+            setTotalCount(samplePosts.length);
             return;
           }
 
           setRequirements((prev) => (append ? [...prev, ...liveRows] : liveRows));
           setShowingSampleData(false);
+          setTotalCount(Number.isFinite(nextTotal) ? nextTotal : 0);
           setHasMore(shouldPaginateRequirements && liveRows.length >= 50);
           setPage(nextPage);
         }
@@ -245,6 +252,7 @@ export default function SellerDashboard() {
         }
         setShowingSampleData(false);
         setHasMore(false);
+        setTotalCount(0);
       } finally {
         setLoading(false);
         setLoadingMore(false);
@@ -1263,7 +1271,9 @@ export default function SellerDashboard() {
         <div className="dashboard-shell dashboard-layout-header-row pl-16 md:pl-20">
           <div>
             <h1 className="ui-heading">Seller Dashboard</h1>
-            <p className="ui-label text-[var(--ui-muted)]">Matching buyer requirements</p>
+            <p className="ui-label text-[var(--ui-muted)]">
+              Matching buyer requirements {loading ? "..." : `(${totalCount})`}
+            </p>
           </div>
 
           <div className="flex items-center flex-wrap md:flex-nowrap gap-2 w-full md:w-auto">

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
 import { getSession } from "../../services/storage";
@@ -14,19 +14,56 @@ export default function OffersReceived({
   onVisibleCountChange
 }) {
   const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [totalCount, setTotalCount] = useState(0);
   const session = getSession();
   const buyerId = session?._id;
   const navigate = useNavigate();
+  const loadMoreRef = useRef(null);
+  const loadedCountRef = useRef(0);
+  const PAGE_SIZE = 50;
 
-useEffect(() => {
-    if (!buyerId) {
-      return;
-    }
-api
-      .get(`/buyer/my-posts/${buyerId}`)
-      .then(async (res) => {
-        const postsData = res.data || [];
-        
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadPosts({ nextPage = 1, append = false } = {}) {
+      if (!buyerId) {
+        loadedCountRef.current = 0;
+        setPosts([]);
+        setTotalCount(0);
+        setHasMore(false);
+        setLoading(false);
+        setLoadingMore(false);
+        return;
+      }
+
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
+
+      try {
+        const params = {
+          page: nextPage,
+          limit: PAGE_SIZE
+        };
+        const selectedCity = String(city || "").trim();
+        const selectedCat = String(selectedCategory || "all").trim();
+        if (selectedCity && selectedCity.toLowerCase() !== "all") {
+          params.city = selectedCity;
+        }
+        if (selectedCat && selectedCat.toLowerCase() !== "all") {
+          params.category = selectedCat;
+        }
+
+        const res = await api.get(`/buyer/my-posts/${buyerId}`, { params });
+        if (cancelled) return;
+
+        const postsData = Array.isArray(res.data) ? res.data : [];
         const enriched = await Promise.all(
           postsData.map(async (post) => {
             const postId = post._id || post.id;
@@ -34,35 +71,131 @@ api
             try {
               const offers = await api.get(`/dashboard/offers/${postId}`);
               return { ...post, offerCount: offers.data?.length || 0 };
-            } catch (e) {
+            } catch {
               return { ...post, offerCount: 0 };
             }
           })
         );
-        setPosts(enriched);
-      })
-      .catch((err) => {
-        setPosts([]);
-      });
-  }, [buyerId, refreshToken]);
 
-  const filteredPosts = posts.filter((post) => {
-    const cityMatch =
-      !city ||
-      String(city).trim().toLowerCase() === "all" ||
-      String(post.city || "").trim().toLowerCase() ===
-        String(city).trim().toLowerCase();
-    const categoryMatch =
-      !selectedCategory ||
-      selectedCategory === "all" ||
-      String(post.category || "").trim().toLowerCase() ===
-        String(selectedCategory).trim().toLowerCase();
-    return cityMatch && categoryMatch;
-  });
+        const nextTotal = Number(res?.headers?.["x-total-count"] || enriched.length || 0);
+        const nextLoadedCount = append
+          ? loadedCountRef.current + enriched.length
+          : enriched.length;
+
+        if (!append) {
+          setPosts(enriched);
+        } else {
+          setPosts((prev) => [...prev, ...enriched]);
+        }
+
+        loadedCountRef.current = nextLoadedCount;
+        setTotalCount(Number.isFinite(nextTotal) ? nextTotal : 0);
+        setPage(nextPage);
+        setHasMore(nextLoadedCount < nextTotal);
+      } catch {
+        if (!append) {
+          setPosts([]);
+          setTotalCount(0);
+          loadedCountRef.current = 0;
+        }
+        setHasMore(false);
+      } finally {
+        setLoading(false);
+        setLoadingMore(false);
+      }
+    }
+
+    loadedCountRef.current = 0;
+    setPosts([]);
+    setTotalCount(0);
+    setHasMore(false);
+    setPage(1);
+    loadPosts({ nextPage: 1, append: false });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [buyerId, city, selectedCategory, refreshToken]);
+
+  const filteredPosts = posts;
 
   useEffect(() => {
-    onVisibleCountChange?.(filteredPosts.length);
-  }, [filteredPosts.length, onVisibleCountChange]);
+    onVisibleCountChange?.(totalCount);
+  }, [onVisibleCountChange, totalCount]);
+
+  useEffect(() => {
+    if (!hasMore || loading || loadingMore) return undefined;
+    const node = loadMoreRef.current;
+    if (!node) return undefined;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry?.isIntersecting && !loadingMore && !loading && hasMore) {
+          setLoadingMore(true);
+          const params = {
+            page: page + 1,
+            limit: PAGE_SIZE
+          };
+          const selectedCity = String(city || "").trim();
+          const selectedCat = String(selectedCategory || "all").trim();
+          if (selectedCity && selectedCity.toLowerCase() !== "all") {
+            params.city = selectedCity;
+          }
+          if (selectedCat && selectedCat.toLowerCase() !== "all") {
+            params.category = selectedCat;
+          }
+          api
+            .get(`/buyer/my-posts/${buyerId}`, { params })
+            .then(async (res) => {
+              const postsData = Array.isArray(res.data) ? res.data : [];
+              const enriched = await Promise.all(
+                postsData.map(async (post) => {
+                  const postId = post._id || post.id;
+                  if (!postId) return { ...post, offerCount: 0 };
+                  try {
+                    const offers = await api.get(`/dashboard/offers/${postId}`);
+                    return { ...post, offerCount: offers.data?.length || 0 };
+                  } catch {
+                    return { ...post, offerCount: 0 };
+                  }
+                })
+              );
+              const nextTotal = Number(res?.headers?.["x-total-count"] || enriched.length || 0);
+              const nextLoadedCount = loadedCountRef.current + enriched.length;
+              setPosts((prev) => [...prev, ...enriched]);
+              loadedCountRef.current = nextLoadedCount;
+              setTotalCount(Number.isFinite(nextTotal) ? nextTotal : 0);
+              setPage((prevPage) => prevPage + 1);
+              setHasMore(nextLoadedCount < nextTotal);
+            })
+            .catch(() => {
+              setHasMore(false);
+            })
+            .finally(() => {
+              setLoadingMore(false);
+            });
+        }
+      },
+      { rootMargin: "200px" }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [buyerId, city, hasMore, loading, loadingMore, page, selectedCategory]);
+
+  if (loading) {
+    return (
+      <div className="page">
+        <div className="page-shell max-w-4xl">
+          <h2 className="page-hero mb-4">Offers Received</h2>
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-24 rounded-2xl bg-gray-200 animate-pulse" />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="page">
@@ -98,11 +231,11 @@ api
         </select>
       </div>
 
-      {posts.length === 0 && (
+      {totalCount === 0 && (
         <p className="text-gray-500">No posts yet.</p>
       )}
 
-      {posts.length > 0 && filteredPosts.length === 0 && (
+      {totalCount > 0 && filteredPosts.length === 0 && (
         <p className="text-gray-500">No posts match the selected city/category filters.</p>
       )}
 
@@ -137,6 +270,11 @@ api
         </div>
         );
       })}
+      {hasMore && (
+        <div ref={loadMoreRef} className="py-4 text-center text-sm text-gray-500">
+          {loadingMore ? "Loading more posts..." : "Scroll to load more posts"}
+        </div>
+      )}
       </div>
     </div>
   );

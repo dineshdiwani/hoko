@@ -1,5 +1,5 @@
 // auth.js
-import { getSession, clearSession } from "./storage";
+import { getSession, clearSession, clearUiCitySelection } from "./storage";
 import { disconnectSocket } from "./socket";
 import { unregisterNativePushToken } from "./nativePush";
 
@@ -33,5 +33,6 @@ export function logout(navigate) {
   disconnectSocket();
   unregisterNativePushToken().catch(() => {});
   clearSession();
+  clearUiCitySelection();
   navigate("/");
 }

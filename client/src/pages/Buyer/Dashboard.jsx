@@ -370,85 +370,45 @@ export default function BuyerDashboard() {
 
     async function loadTabCounts() {
       try {
-        const postsRes = await api.get(`/buyer/my-posts/${session._id}`);
-        if (cancelled) return;
-
-        const posts = Array.isArray(postsRes.data) ? postsRes.data : [];
-        const normalizedCity = String(city || "").trim().toLowerCase();
-        const normalizedCategory = String(selectedCategory || "all")
-          .trim()
-          .toLowerCase();
-        const matchesFilters = (item) => {
-          const cityMatch =
-            !normalizedCity ||
-            normalizedCity === "all" ||
-            String(item?.city || "")
-              .trim()
-              .toLowerCase() === normalizedCity;
-          const categoryMatch =
-            !normalizedCategory ||
-            normalizedCategory === "all" ||
-            String(item?.category || "")
-              .trim()
-              .toLowerCase() === normalizedCategory;
-          return cityMatch && categoryMatch;
+        const buyerCity = String(city || "").trim();
+        const buyerCategory = String(selectedCategory || "all").trim();
+        const buyerParams = {
+          page: 1,
+          limit: 1
         };
-
-        const filteredPosts = posts.filter(matchesFilters);
-        const offersByPost = await Promise.all(
-          filteredPosts.map(async (post) => {
-            const postId = post?._id || post?.id;
-            if (!postId) return 0;
-            try {
-              const offersRes = await api.get(`/dashboard/offers/${postId}`);
-              return Array.isArray(offersRes.data) ? offersRes.data.length : 0;
-            } catch {
-              return 0;
-            }
-          })
-        );
-        if (cancelled) return;
-
-        const cityShouldUseSample = import.meta.env.DEV && posts.length === 0;
-
-        let cityCount = 0;
-        if (!cityShouldUseSample && city) {
-          try {
-            const targetCities =
-              String(city).trim().toLowerCase() === "all"
-                ? cities.filter(Boolean)
-                : [city];
-            const cityResults = await Promise.all(
-              targetCities.map((cityName) =>
-                api
-                  .get(`/dashboard/city/${encodeURIComponent(cityName)}`)
-                  .then((res) => (Array.isArray(res.data) ? res.data : []))
-                  .catch(() => [])
-              )
-            );
-            if (!cancelled) {
-              cityCount = cityResults
-                .flat()
-                .filter(matchesFilters).length;
-            }
-          } catch {
-            cityCount = 0;
-          }
+        if (buyerCity && buyerCity.toLowerCase() !== "all") {
+          buyerParams.city = buyerCity;
+        }
+        if (buyerCategory && buyerCategory.toLowerCase() !== "all") {
+          buyerParams.category = buyerCategory;
         }
 
+        const [postsRes, cityRes] = await Promise.all([
+          api.get(`/buyer/my-posts/${session._id}`, { params: buyerParams }),
+          api.get(`/dashboard/city/${encodeURIComponent(buyerCity || "all")}`, {
+            params: {
+              ...(buyerCategory && buyerCategory.toLowerCase() !== "all"
+                ? { category: buyerCategory }
+                : {}),
+              page: 1,
+              limit: 1
+            }
+          })
+        ]);
         if (cancelled) return;
 
+        const postsCount = Number(postsRes?.headers?.["x-total-count"] || 0);
+        const offersCount = Number(postsRes?.headers?.["x-total-offer-count"] || 0);
+        const cityCount = Number(cityRes?.headers?.["x-total-count"] || 0);
+
         setTabCounts({
-          posts: filteredPosts.length,
+          posts: Number.isFinite(postsCount) ? postsCount : 0,
           city: cityCount,
-          offers: offersByPost.reduce(
-            (sum, count) => sum + Number(count || 0),
-            0
-          )
+          offers: Number.isFinite(offersCount) ? offersCount : 0
         });
       } catch {
         if (!cancelled) {
-          setTabCounts((prev) => ({ ...prev, posts: 0, offers: 0 }));
+          setTabCounts((prev) => ({ ...prev, posts: 0, city: 0, offers: 0 }));
         }
       }
     }
@@ -460,7 +420,6 @@ export default function BuyerDashboard() {
     };
   }, [
     city,
-    cities,
     refreshToken,
     selectedCategory,
     session?._id,

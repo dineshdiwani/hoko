@@ -5,9 +5,31 @@ const SELLER_DASHBOARD_CATEGORIES_KEY =
 const SETTINGS_KEY = "hoko_settings";
 const SEEN_NOTIFICATION_IDS_KEY = "hoko_seen_notification_ids";
 const NATIVE_PUSH_TOKEN_KEY = "hoko_native_push_token";
+const UI_CITY_SELECTION_KEY = "hoko_ui_city_selection";
 const SESSION_UPDATED_EVENT = "hoko_session_updated";
 const UI_CITY_SELECTION_EVENT = "hoko_ui_city_selection_updated";
 let uiCitySelection = "";
+
+function getSessionStorageValue(key) {
+  if (typeof window === "undefined") return "";
+  try {
+    return String(window.sessionStorage.getItem(key) || "").trim();
+  } catch {
+    return "";
+  }
+}
+
+function setSessionStorageValue(key, value) {
+  if (typeof window === "undefined") return;
+  try {
+    const next = String(value || "").trim();
+    if (next) {
+      window.sessionStorage.setItem(key, next);
+    } else {
+      window.sessionStorage.removeItem(key);
+    }
+  } catch {}
+}
 
 function notifySessionUpdated() {
   if (typeof window === "undefined") return;
@@ -45,7 +67,9 @@ export function onSessionUpdated(handler) {
 }
 
 export function getUiCitySelection(fallback = "") {
-  const shared = String(uiCitySelection || "").trim();
+  const shared = String(
+    getSessionStorageValue(UI_CITY_SELECTION_KEY) || uiCitySelection || ""
+  ).trim();
   if (shared) return shared;
   return String(fallback || "").trim();
 }
@@ -54,6 +78,7 @@ export function setUiCitySelection(city) {
   const next = String(city || "").trim();
   if (next === uiCitySelection) return uiCitySelection;
   uiCitySelection = next;
+  setSessionStorageValue(UI_CITY_SELECTION_KEY, next);
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent(UI_CITY_SELECTION_EVENT, { detail: { city: next } }));
   }
@@ -61,8 +86,8 @@ export function setUiCitySelection(city) {
 }
 
 export function clearUiCitySelection() {
-  if (!uiCitySelection) return;
   uiCitySelection = "";
+  setSessionStorageValue(UI_CITY_SELECTION_KEY, "");
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent(UI_CITY_SELECTION_EVENT, { detail: { city: "" } }));
   }

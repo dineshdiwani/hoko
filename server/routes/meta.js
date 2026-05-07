@@ -49,6 +49,8 @@ router.get("/requirements", async (req, res) => {
       // Use case-insensitive partial match for flexibility
       query.category = { $regex: String(category).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), $options: "i" };
     }
+
+    const totalCount = await Requirement.countDocuments(query);
     
     const requirements = await Requirement.find(query)
       .sort({ createdAt: -1 })
@@ -56,7 +58,7 @@ router.get("/requirements", async (req, res) => {
       .limit(usePagination ? limit : 0)
       .select("_id product productName category city quantity unit type makeBrand brand typeModel details createdAt")
       .lean();
-    
+    res.set("X-Total-Count", String(totalCount));
     res.json(requirements);
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch requirements" });

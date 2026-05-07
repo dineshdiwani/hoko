@@ -1364,9 +1364,37 @@ router.get("/my-posts/:buyerId", auth, buyerOnly, async (req, res) => {
   ) {
     return res.status(403).json({ message: "Not allowed" });
   }
-  const posts = await Requirement.find({
+  const requestedCity = String(req.query?.city || "").trim();
+  const requestedCategory = String(req.query?.category || "").trim();
+  const usePagination =
+    Object.prototype.hasOwnProperty.call(req.query || {}, "page") ||
+    Object.prototype.hasOwnProperty.call(req.query || {}, "limit");
+  const page = Math.max(Number(req.query?.page) || 1, 1);
+  const limit = Math.min(Math.max(Number(req.query?.limit) || 50, 1), 100);
+  const skip = usePagination ? (page - 1) * limit : 0;
+  const requirementQuery = {
     buyerId: req.user._id
-  }).sort({ createdAt: -1 });
+  };
+
+  if (requestedCity && requestedCity.toLowerCase() !== "all") {
+    requirementQuery.city = new RegExp(`^\\s*${escapeRegex(requestedCity)}\\s*$`, "i");
+  }
+  if (requestedCategory && requestedCategory.toLowerCase() !== "all") {
+    requirementQuery.category = new RegExp(
+      `^\\s*${escapeRegex(requestedCategory)}\\s*$`,
+      "i"
+    );
+  }
+
+  const totalCount = await Requirement.countDocuments(requirementQuery);
+  const posts = await Requirement.find(requirementQuery)
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(usePagination ? limit : 0);
+
+  const allMatchingRequirementIds = await Requirement.find(requirementQuery)
+    .select("_id")
+    .lean();
 
   const requirementIds = posts.map((p) => p._id);
   const offerCounts = await Offer.aggregate([
@@ -1382,6 +1410,22 @@ router.get("/my-posts/:buyerId", auth, buyerOnly, async (req, res) => {
   const countMap = new Map(
     offerCounts.map((row) => [String(row._id), row.count])
   );
+
+  let totalOfferCount = 0;
+  if (allMatchingRequirementIds.length) {
+    const totalOfferCounts = await Offer.aggregate([
+      {
+        $match: {
+          requirementId: {
+            $in: allMatchingRequirementIds.map((item) => item._id)
+          },
+          "moderation.removed": { $ne: true }
+        }
+      },
+      { $group: { _id: null, count: { $sum: 1 } } }
+    ]);
+    totalOfferCount = Number(totalOfferCounts?.[0]?.count || 0);
+  }
 
   const offers = await Offer.find({
     requirementId: { $in: requirementIds },
@@ -1418,6 +1462,8 @@ router.get("/my-posts/:buyerId", auth, buyerOnly, async (req, res) => {
     return data;
   });
 
+  res.set("X-Total-Count", String(totalCount));
+  res.set("X-Total-Offer-Count", String(totalOfferCount));
   res.json(withCounts);
 });
 

@@ -23,6 +23,10 @@ export default function MyPosts({
   const navigate = useNavigate();
   const [requirements, setRequirements] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [totalCount, setTotalCount] = useState(0);
   const [sellerModalOpen, setSellerModalOpen] = useState(false);
   const [sellerLoading, setSellerLoading] = useState(false);
   const [sellerDetails, setSellerDetails] = useState(null);
@@ -30,6 +34,9 @@ export default function MyPosts({
   const [auctionHintReqId, setAuctionHintReqId] = useState("");
   const [compareHintReqId, setCompareHintReqId] = useState("");
   const modalRef = useRef(null);
+  const loadMoreRef = useRef(null);
+  const loadedCountRef = useRef(0);
+  const PAGE_SIZE = 50;
   const getDialableMobile = (value) =>
     String(value || "").trim().replace(/[^\d+]/g, "");
   const normalizeRequirementStatus = (value) => {
@@ -86,27 +93,84 @@ export default function MyPosts({
   }
 
   useEffect(() => {
-    async function load() {
-      setLoading(true);
-      try {
-        const session = getSession();
-        if (session?._id) {
-          const res = await api.get(
-            `/buyer/my-posts/${session._id}`
-          );
-          setRequirements(res.data || []);
-        } else {
-          setRequirements([]);
-        }
-      } catch (err) {
+    let cancelled = false;
+
+    async function loadRequirements({ nextPage = 1, append = false } = {}) {
+      const session = getSession();
+      if (!session?._id) {
+        loadedCountRef.current = 0;
         setRequirements([]);
+        setTotalCount(0);
+        setHasMore(false);
+        setLoading(false);
+        setLoadingMore(false);
+        return;
+      }
+
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
+
+      try {
+        const params = {
+          page: nextPage,
+          limit: PAGE_SIZE
+        };
+        const selectedCity = String(city || "").trim();
+        const selectedCat = String(selectedCategory || "all").trim();
+        if (selectedCity && selectedCity.toLowerCase() !== "all") {
+          params.city = selectedCity;
+        }
+        if (selectedCat && selectedCat.toLowerCase() !== "all") {
+          params.category = selectedCat;
+        }
+
+        const res = await api.get(`/buyer/my-posts/${session._id}`, { params });
+        if (cancelled) return;
+
+        const rows = Array.isArray(res.data) ? res.data : [];
+        const nextTotal = Number(res?.headers?.["x-total-count"] || rows.length || 0);
+        const nextLoadedCount = append
+          ? loadedCountRef.current + rows.length
+          : rows.length;
+        if (!append) {
+          setRequirements(rows);
+        } else {
+          setRequirements((prev) => {
+            const next = [...prev, ...rows];
+            return next;
+          });
+        }
+        loadedCountRef.current = nextLoadedCount;
+        setTotalCount(Number.isFinite(nextTotal) ? nextTotal : 0);
+        setPage(nextPage);
+        setHasMore(nextLoadedCount < nextTotal);
+      } catch {
+        if (!append) {
+          setRequirements([]);
+          setTotalCount(0);
+          loadedCountRef.current = 0;
+        }
+        setHasMore(false);
       } finally {
         setLoading(false);
+        setLoadingMore(false);
       }
     }
 
-    load();
-  }, [refreshToken]);
+    loadedCountRef.current = 0;
+    setPage(1);
+    setHasMore(false);
+    setTotalCount(0);
+    setRequirements([]);
+    loadRequirements({ nextPage: 1, append: false });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [city, selectedCategory, refreshToken]);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -127,23 +191,63 @@ export default function MyPosts({
       );
   }, [sellerModalOpen]);
 
-  const filteredRequirements = requirements.filter((req) => {
-    const cityMatch =
-      !city ||
-      String(city).trim().toLowerCase() === "all" ||
-      String(req.city || "").trim().toLowerCase() ===
-        String(city).trim().toLowerCase();
-    const categoryMatch =
-      !selectedCategory ||
-      selectedCategory === "all" ||
-      String(req.category || "").trim().toLowerCase() ===
-        String(selectedCategory).trim().toLowerCase();
-    return cityMatch && categoryMatch;
-  });
+  const filteredRequirements = requirements;
 
   useEffect(() => {
-    onVisibleCountChange?.(filteredRequirements.length);
-  }, [filteredRequirements.length, onVisibleCountChange]);
+    onVisibleCountChange?.(totalCount);
+  }, [onVisibleCountChange, totalCount]);
+
+  useEffect(() => {
+    if (!hasMore || loading || loadingMore) return undefined;
+    const node = loadMoreRef.current;
+    if (!node) return undefined;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry?.isIntersecting && !loadingMore && !loading && hasMore) {
+          setLoadingMore(true);
+          const session = getSession();
+          if (!session?._id) return;
+          const params = {
+            page: page + 1,
+            limit: PAGE_SIZE
+          };
+          const selectedCity = String(city || "").trim();
+          const selectedCat = String(selectedCategory || "all").trim();
+          if (selectedCity && selectedCity.toLowerCase() !== "all") {
+            params.city = selectedCity;
+          }
+          if (selectedCat && selectedCat.toLowerCase() !== "all") {
+            params.category = selectedCat;
+          }
+          api
+            .get(`/buyer/my-posts/${session._id}`, { params })
+            .then((res) => {
+              const rows = Array.isArray(res.data) ? res.data : [];
+              const nextTotal = Number(res?.headers?.["x-total-count"] || rows.length || 0);
+              const nextLoadedCount = loadedCountRef.current + rows.length;
+              setRequirements((prev) => {
+                const next = [...prev, ...rows];
+                return next;
+              });
+              loadedCountRef.current = nextLoadedCount;
+              setTotalCount(Number.isFinite(nextTotal) ? nextTotal : 0);
+              setPage((prevPage) => prevPage + 1);
+              setHasMore(nextLoadedCount < nextTotal);
+            })
+            .catch(() => {
+              setHasMore(false);
+            })
+            .finally(() => {
+              setLoadingMore(false);
+            });
+        }
+      },
+      { rootMargin: "200px" }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [PAGE_SIZE, city, hasMore, loading, loadingMore, page, selectedCategory]);
 
   async function openSellerDetails(sellerId) {
     if (!sellerId) return;
@@ -175,6 +279,8 @@ export default function MyPosts({
       setRequirements((prev) =>
         prev.filter((req) => String(req._id || req.id) !== String(reqId))
       );
+      loadedCountRef.current = Math.max(loadedCountRef.current - 1, 0);
+      setTotalCount((prev) => Math.max(prev - 1, 0));
     } catch {
       alert("Failed to delete requirement");
     }
@@ -254,7 +360,7 @@ export default function MyPosts({
   }
 
   /* ---------------- EMPTY STATE ---------------- */
-  if (requirements.length === 0 && !loading) {
+  if (totalCount === 0 && !loading) {
     return (
       <EmptyState
         icon="clipboard"
@@ -311,7 +417,7 @@ export default function MyPosts({
       )}
 
       <div className="space-y-4">
-        {filteredRequirements.map((req) => {
+      {filteredRequirements.map((req) => {
         const attachments = Array.isArray(req.attachments)
           ? req.attachments
           : [];
@@ -675,6 +781,14 @@ export default function MyPosts({
           </div>
         );
         })}
+        {hasMore && (
+          <div
+            ref={loadMoreRef}
+            className="py-4 text-center text-sm text-gray-500"
+          >
+            {loadingMore ? "Loading more posts..." : "Scroll to load more posts"}
+          </div>
+        )}
       </div>
 
       {sellerModalOpen && (

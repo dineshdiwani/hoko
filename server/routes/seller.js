@@ -1628,7 +1628,10 @@ router.get("/dashboard", auth, sellerOnly, async (req, res) => {
     .limit(usePagination ? limit : 0);
   const acceptedBuyerCityRequirementIds =
     await getAcceptedBuyerCityRequirementIds(requirementsRaw);
-const requirements = requirementsRaw.filter((requirement) => {
+  const allRequirementsRaw = usePagination
+    ? await Requirement.find(requirementQuery).sort({ createdAt: -1 })
+    : requirementsRaw;
+  const requirements = requirementsRaw.filter((requirement) => {
     if (getEffectiveRequirementStatus(requirement) !== "open") {
       return false;
     }
@@ -1652,6 +1655,30 @@ const requirements = requirementsRaw.filter((requirement) => {
     return true;
   });
 
+  const totalCount = allRequirementsRaw.filter((requirement) => {
+    if (getEffectiveRequirementStatus(requirement) !== "open") {
+      return false;
+    }
+    if (
+      !isAllCities &&
+      requestedCityNormalized &&
+      !shouldRequirementMatchRequestedCity(
+        requirement,
+        requestedCity,
+        acceptedBuyerCityRequirementIds
+      )
+    ) {
+      return false;
+    }
+    if (
+      !isAllCategories &&
+      normalizeText(requirement?.category) !== requestedCategoryNormalized
+    ) {
+      return false;
+    }
+    return true;
+  }).length;
+
   const requirementIds = requirements.map((r) => r._id);
   const offers = await Offer.find({
     sellerId: req.user._id,
@@ -1670,6 +1697,7 @@ const requirements = requirementsRaw.filter((requirement) => {
     )
   );
 
+  res.set("X-Total-Count", String(totalCount));
   res.json(mapped);
 });
 
