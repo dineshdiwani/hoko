@@ -528,7 +528,7 @@ export default function BuyerDashboard() {
                 </p>
                 <div className="flex flex-wrap gap-2">
                   <a
-                    href="https://dineshdiwani.github.io/hoko/apk/app-release.apk"
+                    href="https://raw.githubusercontent.com/dineshdiwani/hoko/main/client/public/apk/app-release.apk"
                     className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg transition-colors"
                     download
                   >
