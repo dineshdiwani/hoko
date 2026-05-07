@@ -359,19 +359,6 @@ export default function MyPosts({
     );
   }
 
-  /* ---------------- EMPTY STATE ---------------- */
-  if (totalCount === 0 && !loading) {
-    return (
-      <EmptyState
-        icon="clipboard"
-        title="No requirements posted yet"
-        description="Start by posting your first requirement and connect with sellers across India."
-        action={() => navigate("/buyer/requirement/new")}
-        actionLabel="Post your first requirement"
-      />
-    );
-  }
-
   /* ---------------- LIST ---------------- */
   return (
     <>
@@ -408,9 +395,27 @@ export default function MyPosts({
             </select>
           </label>
         </div>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500">
+          <span>Total posts: {totalCount}</span>
+          <span>
+            {requirements.length < totalCount
+              ? `Showing ${requirements.length} loaded. Scroll to load more.`
+              : `Showing all ${totalCount} posts.`}
+          </span>
+        </div>
       </div>
 
-      {filteredRequirements.length === 0 && (
+      {totalCount === 0 && (
+        <EmptyState
+          icon="clipboard"
+          title="No requirements posted yet"
+          description="Start by posting your first requirement and connect with sellers across India."
+          action={() => navigate("/buyer/requirement/new")}
+          actionLabel="Post your first requirement"
+        />
+      )}
+
+      {totalCount > 0 && filteredRequirements.length === 0 && (
         <div className="text-center py-8 text-gray-500">
           No posts match the selected city/category filters.
         </div>
