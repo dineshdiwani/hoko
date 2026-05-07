@@ -66,6 +66,37 @@ export default function BuyerSettings() {
   const [contactOtp, setContactOtp] = useState("");
   const [contactOtpSending, setContactOtpSending] = useState(false);
   const initialContactRef = useRef({ email: "", mobile: "" });
+  const initialProfileRef = useRef({
+    name: "",
+    city: "",
+    preferredCurrency: "INR",
+    prefsSignature: ""
+  });
+
+  function buildPrefsSignature(value) {
+    const snapshot = {
+      hideProfileUntilApproved: Boolean(value?.hideProfileUntilApproved),
+      chatOnlyAfterOfferAcceptance: Boolean(value?.chatOnlyAfterOfferAcceptance),
+      postAutoExpiryDays: Number(value?.postAutoExpiryDays || 30),
+      documentAutoDeleteDays: Number(value?.documentAutoDeleteDays || 30),
+      notificationToggles: {
+        pushEnabled: Boolean(value?.notificationToggles?.pushEnabled),
+        newOffer: Boolean(value?.notificationToggles?.newOffer),
+        chat: Boolean(value?.notificationToggles?.chat),
+        statusUpdate: Boolean(value?.notificationToggles?.statusUpdate),
+        reminder: Boolean(value?.notificationToggles?.reminder)
+      },
+      emailNotificationToggles: {
+        enabled: Boolean(value?.emailNotificationToggles?.enabled),
+        newOffer: Boolean(value?.emailNotificationToggles?.newOffer)
+      },
+      smsNotificationToggles: {
+        enabled: Boolean(value?.smsNotificationToggles?.enabled),
+        newOffer: Boolean(value?.smsNotificationToggles?.newOffer)
+      }
+    };
+    return JSON.stringify(snapshot);
+  }
 
   useEffect(() => {
     if (!session?.token) {
@@ -106,6 +137,19 @@ export default function BuyerSettings() {
             ...(data.buyerSettings?.notificationToggles || {})
           }
         });
+        initialProfileRef.current = {
+          name: String(data.name || "").trim(),
+          city: String(data.city || session.city || "").trim(),
+          preferredCurrency: String(data.preferredCurrency || session.preferredCurrency || "INR").trim(),
+          prefsSignature: buildPrefsSignature({
+            ...DEFAULT_PREFS,
+            ...(data.buyerSettings || {}),
+            notificationToggles: {
+              ...DEFAULT_PREFS.notificationToggles,
+              ...(data.buyerSettings?.notificationToggles || {})
+            }
+          })
+        };
         setTerms({
           acceptedAt: data.terms?.acceptedAt || localStorage.getItem("terms_accepted_at") || "",
           versionDate: data.terms?.versionDate || ""
@@ -113,14 +157,21 @@ export default function BuyerSettings() {
       })
       .catch(() => {
         const stored = getSettings();
-        setPrefs((prev) => ({
-          ...prev,
+        const fallbackPrefs = {
+          ...DEFAULT_PREFS,
           ...(stored.buyer || {}),
           notificationToggles: {
-            ...prev.notificationToggles,
+            ...DEFAULT_PREFS.notificationToggles,
             ...(stored?.buyer?.notificationToggles || {})
           }
-        }));
+        };
+        setPrefs(fallbackPrefs);
+        initialProfileRef.current = {
+          name: String(session.name || "").trim(),
+          city: String(session.city || "").trim(),
+          preferredCurrency: String(session.preferredCurrency || "INR").trim(),
+          prefsSignature: buildPrefsSignature(fallbackPrefs)
+        };
       });
 
   }, [navigate, session?.token, session?._id]);
@@ -159,6 +210,14 @@ export default function BuyerSettings() {
     const mobile = String(profile.mobile || "").trim();
     const initialEmail = String(initialContactRef.current.email || "").trim();
     const initialMobile = String(initialContactRef.current.mobile || "").trim();
+    const currentCity = String(profile.city || "").trim();
+    const currentSignature = buildPrefsSignature(prefs);
+    const cityOnlyChange =
+      currentCity &&
+      currentCity !== String(initialProfileRef.current.city || "").trim() &&
+      String(profile.name || "").trim() === String(initialProfileRef.current.name || "").trim() &&
+      String(profile.preferredCurrency || "INR").trim() === String(initialProfileRef.current.preferredCurrency || "INR").trim() &&
+      currentSignature === String(initialProfileRef.current.prefsSignature || "");
     const changingEmail = email && email !== initialEmail;
     const changingMobile = mobile && mobile !== initialMobile;
 
@@ -175,6 +234,32 @@ export default function BuyerSettings() {
         alert(err?.response?.data?.message || "Failed to send OTP");
       } finally {
         setContactOtpSending(false);
+      }
+      return;
+    }
+
+    if (cityOnlyChange) {
+      setSaving(true);
+      try {
+        const res = await api.post("/buyer/profile/city", { city: currentCity });
+        const data = res.data || {};
+        setProfile((prev) => ({
+          ...prev,
+          city: data.city || prev.city
+        }));
+        updateSession({
+          city: data.city || currentCity
+        });
+        setUiCitySelection(data.city || currentCity || session.city || "");
+        initialProfileRef.current = {
+          ...initialProfileRef.current,
+          city: String(data.city || currentCity).trim()
+        };
+        alert("Settings saved");
+      } catch (err) {
+        alert(err?.response?.data?.message || "Failed to save settings");
+      } finally {
+        setSaving(false);
       }
       return;
     }
@@ -251,6 +336,20 @@ export default function BuyerSettings() {
       initialContactRef.current = {
         email: data.email || email || initialEmail,
         mobile: data.mobile || mobile || initialMobile
+      };
+      initialProfileRef.current = {
+        name: String(data.name || profile.name || "").trim(),
+        city: String(data.city || profile.city || session.city || "").trim(),
+        preferredCurrency: String(data.preferredCurrency || profile.preferredCurrency || "INR").trim(),
+        prefsSignature: buildPrefsSignature({
+          ...prefs,
+          ...(data.buyerSettings || {}),
+          notificationToggles: {
+            ...DEFAULT_PREFS.notificationToggles,
+            ...(data.buyerSettings?.notificationToggles || {}),
+            ...(prefs.notificationToggles || {})
+          }
+        })
       };
       updateSession({
         name: data.name || profile.name,

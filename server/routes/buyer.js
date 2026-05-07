@@ -1727,14 +1727,38 @@ router.delete("/requirement/:id", auth, buyerOnly, async (req, res) => {
  * Update buyer city
  */
 router.post("/profile/city", auth, buyerOnly, async (req, res) => {
-  const { city } = req.body || {};
-  const cityValue = String(city || "").trim();
-  if (!cityValue) {
-    return res.status(400).json({ message: "City required" });
+  try {
+    const { city } = req.body || {};
+    const cityValue = String(city || "").trim();
+    if (!cityValue) {
+      return res.status(400).json({ message: "City required" });
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user._id,
+      {
+        $set: {
+          city: cityValue,
+          "buyerSettings.defaultCity": cityValue
+        }
+      },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "Buyer profile not found" });
+    }
+
+    res.json({
+      city: updatedUser.city,
+      buyerSettings: {
+        defaultCity: updatedUser.buyerSettings?.defaultCity || cityValue
+      }
+    });
+  } catch (err) {
+    console.error("[Buyer Profile City] Update failed:", err);
+    return res.status(500).json({ message: "Failed to update buyer profile city" });
   }
-  req.user.city = cityValue;
-  await req.user.save();
-  res.json({ city: req.user.city });
 });
 
 /**
