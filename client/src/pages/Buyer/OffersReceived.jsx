@@ -49,6 +49,7 @@ api
   const filteredPosts = posts.filter((post) => {
     const cityMatch =
       !city ||
+      String(city).trim().toLowerCase() === "all" ||
       String(post.city || "").trim().toLowerCase() ===
         String(city).trim().toLowerCase();
     const categoryMatch =
@@ -75,7 +76,7 @@ api
           onChange={(e) => onCityChange?.(e.target.value)}
           className="w-full sm:w-auto max-w-full px-4 py-2.5 rounded-xl border text-sm bg-white"
         >
-          <option value="">All cities</option>
+          <option value="all">All cities</option>
           {cities.map((c) => (
             <option key={c} value={c}>
               {c}

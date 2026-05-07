@@ -26,7 +26,7 @@ const BUYER_DASHBOARD_FORCE_TAB_KEY = "buyer_dashboard_force_tab";
 
 function normalizeBuyerCityFilter(value) {
   const raw = String(value || "").trim();
-  if (!raw || raw.toLowerCase() === "all") return "";
+  if (!raw || raw.toLowerCase() === "all") return "all";
   return raw;
 }
 
@@ -99,7 +99,7 @@ export default function BuyerDashboard() {
     forcedTab || requestedTab || persistedState.activeTab
   );
   const [city, setCity] = useState(
-    normalizeBuyerCityFilter(getUiCitySelection(session?.city || ""))
+    normalizeBuyerCityFilter(getUiCitySelection(session?.city || "")) || "all"
   );
   const [selectedCategory, setSelectedCategory] = useState(
     persistedState.selectedCategory || "all"
@@ -124,7 +124,7 @@ export default function BuyerDashboard() {
   const handleCityChange = useCallback((nextCity) => {
     const normalized = normalizeBuyerCityFilter(nextCity);
     setCity(normalized);
-    setUiCitySelection(normalized || "all");
+    setUiCitySelection(normalized);
   }, []);
 
   useEffect(() => {
@@ -138,12 +138,12 @@ export default function BuyerDashboard() {
     };
   }, []);
 
-   useEffect(() => {
-      const latestProfileCity = String(session?.city || "").trim();
-      if (!latestProfileCity) return;
-      setCity((prev) => {
-        const current = String(prev || "").trim();
-        if (!current) return current;
+  useEffect(() => {
+    const latestProfileCity = String(session?.city || "").trim();
+    if (!latestProfileCity) return;
+    setCity((prev) => {
+      const current = String(prev || "").trim();
+      if (!current) return current;
       const previousDefault = String(lastSyncedProfileCityRef.current || "").trim();
       const shouldFollowDefault =
         current.toLowerCase() === "all" ||
@@ -607,7 +607,9 @@ export default function BuyerDashboard() {
               Buyer Dashboard
             </h1>
             <p className="ui-label text-gray-500">
-              {city || "Set city"}
+              {String(city || "").trim().toLowerCase() === "all"
+                ? "All cities"
+                : city || "Set city"}
             </p>
           </div>
 

@@ -130,6 +130,7 @@ export default function MyPosts({
   const filteredRequirements = requirements.filter((req) => {
     const cityMatch =
       !city ||
+      String(city).trim().toLowerCase() === "all" ||
       String(req.city || "").trim().toLowerCase() ===
         String(city).trim().toLowerCase();
     const categoryMatch =
@@ -277,7 +278,7 @@ export default function MyPosts({
               onChange={(e) => onCityChange?.(e.target.value)}
               className="w-full max-w-full px-4 py-2.5 rounded-xl border text-sm bg-white"
             >
-              <option value="">All cities</option>
+              <option value="all">All cities</option>
               {cities.map((c) => (
                 <option key={c} value={c}>
                   {c}
