@@ -682,7 +682,13 @@ export default function BuyerDashboard() {
 
       {/* FAB */}
       <button
-        onClick={() => navigate("/buyer/requirement/new")}
+        onClick={() => {
+          localStorage.removeItem("buyer_requirement_form_draft");
+          localStorage.removeItem("buyer_pending_requirement_data");
+          sessionStorage.removeItem("pending_requirement_data");
+          localStorage.removeItem("draft_requirement_text");
+          navigate("/buyer/requirement/new");
+        }}
         className="dashboard-layout-fab btn-brand w-14 h-14 rounded-full shadow-lg text-3xl flex items-center justify-center"
       >
         +

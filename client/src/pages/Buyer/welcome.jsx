@@ -80,6 +80,9 @@ export default function BuyerWelcome() {
       alert("Please type in your requirement");
       return;
     }
+    localStorage.removeItem("buyer_requirement_form_draft");
+    localStorage.removeItem("buyer_pending_requirement_data");
+    sessionStorage.removeItem("pending_requirement_data");
     localStorage.setItem("draft_requirement_text", text.trim());
     
     // Go directly to requirement form - login will be prompted after form submit
@@ -201,6 +204,9 @@ export default function BuyerWelcome() {
               onClick={async () => {
                 clearSellerLoginIntent();
                 localStorage.removeItem("draft_requirement_text");
+                localStorage.removeItem("buyer_requirement_form_draft");
+                localStorage.removeItem("buyer_pending_requirement_data");
+                sessionStorage.removeItem("pending_requirement_data");
                 if (isLoggedIn) {
                   if (session?.role === "buyer") {
                     goToBuyerDashboard();

@@ -410,7 +410,13 @@ export default function MyPosts({
           icon="clipboard"
           title="No requirements posted yet"
           description="Start by posting your first requirement and connect with sellers across India."
-          action={() => navigate("/buyer/requirement/new")}
+          action={() => {
+            localStorage.removeItem("buyer_requirement_form_draft");
+            localStorage.removeItem("buyer_pending_requirement_data");
+            sessionStorage.removeItem("pending_requirement_data");
+            localStorage.removeItem("draft_requirement_text");
+            navigate("/buyer/requirement/new");
+          }}
           actionLabel="Post your first requirement"
         />
       )}

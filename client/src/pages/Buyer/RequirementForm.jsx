@@ -138,6 +138,38 @@ function normalizeMobileValue(value) {
   return raw.replace(/[^\d]/g, "");
 }
 
+function buildFreshRequirementFormState({
+  isLoggedIn,
+  isPublic,
+  sessionMobile,
+  sessionEmail,
+  sessionCity,
+  mobileFromUrl,
+  cityFromUrl,
+  productFromUrl,
+  savedDraft
+}) {
+  return {
+    mobile: isLoggedIn
+      ? (sessionMobile || savedDraft?.mobile || mobileFromUrl || "")
+      : (savedDraft?.mobile || mobileFromUrl || ""),
+    email: isLoggedIn
+      ? (sessionEmail || savedDraft?.email || "")
+      : (savedDraft?.email || ""),
+    city: isPublic
+      ? (cityFromUrl || savedDraft?.city || "")
+      : (savedDraft?.city || cityFromUrl || ""),
+    category: savedDraft?.category || "",
+    product: productFromUrl || savedDraft?.product || "",
+    makeBrand: savedDraft?.makeBrand || "",
+    typeModel: savedDraft?.typeModel || "",
+    quantity: savedDraft?.quantity || "",
+    unit: savedDraft?.unit || "",
+    details: savedDraft?.details || "",
+    offerInvitedFrom: savedDraft?.offerInvitedFrom || "city"
+  };
+}
+
 export default function RequirementForm({ isPublic = false }) {
   const navigate = useNavigate();
   const { id: requirementId } = useParams();
@@ -164,30 +196,47 @@ export default function RequirementForm({ isPublic = false }) {
   const sessionCity = String(session?.city || "").trim();
   const sessionMobile = normalizeMobileValue(session?.mobile || "");
   const sessionEmail = String(session?.email || "").trim();
-  const needsBuyerMobile = isLoggedIn && !sessionMobile;
-  const needsBuyerEmail = isLoggedIn && !sessionEmail;
+  const sessionRoles = session?.roles || {};
+  const sessionLoginMethods = session?.loginMethods || {};
+  const [buyerProfile, setBuyerProfile] = useState(null);
+  const profileReady = !isLoggedIn || buyerProfile !== null;
+  const effectiveEmail = String(
+    buyerProfile?.email || sessionEmail || ""
+  ).trim();
+  const effectiveMobile = normalizeMobileValue(
+    buyerProfile?.mobile || sessionMobile || ""
+  );
+  const needsBuyerMobile = isLoggedIn && profileReady && Boolean(effectiveEmail) && !effectiveMobile;
+  const needsBuyerEmail = isLoggedIn && profileReady && Boolean(effectiveMobile) && !effectiveEmail;
   const showBuyerContactFields = !isLoggedIn || needsBuyerMobile || needsBuyerEmail;
   const savedDraft = shouldRestoreDraft ? readSavedBuyerRequirementDraft() : null;
+  const freshFormState = useMemo(
+    () =>
+      buildFreshRequirementFormState({
+        isLoggedIn,
+        isPublic,
+        sessionMobile,
+        sessionEmail,
+        sessionCity,
+        mobileFromUrl,
+        cityFromUrl,
+        productFromUrl,
+        savedDraft
+      }),
+    [
+      cityFromUrl,
+      isLoggedIn,
+      isPublic,
+      mobileFromUrl,
+      productFromUrl,
+      savedDraft,
+      sessionCity,
+      sessionEmail,
+      sessionMobile
+    ]
+  );
 
-  const [form, setForm] = useState({
-    mobile: isLoggedIn
-      ? (sessionMobile || savedDraft?.mobile || mobileFromUrl || "")
-      : (savedDraft?.mobile || mobileFromUrl || ""),
-    email: isLoggedIn
-      ? (sessionEmail || savedDraft?.email || "")
-      : (savedDraft?.email || ""),
-    city: isPublic
-      ? (cityFromUrl || savedDraft?.city || "")
-      : (savedDraft?.city || cityFromUrl || ""),
-    category: savedDraft?.category || "",
-    product: productFromUrl || savedDraft?.product || "",
-    makeBrand: savedDraft?.makeBrand || "",
-    typeModel: savedDraft?.typeModel || "",
-    quantity: savedDraft?.quantity || "",
-    unit: savedDraft?.unit || "",
-    details: savedDraft?.details || "",
-    offerInvitedFrom: savedDraft?.offerInvitedFrom || "city"
-  });
+  const [form, setForm] = useState(freshFormState);
   const [submitted, setSubmitted] = useState(false);
   const [attachments, setAttachments] = useState([]);
   const [existingAttachments, setExistingAttachments] = useState([]);
@@ -318,6 +367,64 @@ useEffect(() => {
 
     loadRequirement();
   }, [isEditMode, navigate, requirementId]);
+
+  useEffect(() => {
+    if (!isEditMode && !shouldRestoreDraft) {
+      setForm(freshFormState);
+    }
+  }, [freshFormState, isEditMode, shouldRestoreDraft]);
+
+  useEffect(() => {
+    if (!isLoggedIn) {
+      setBuyerProfile(null);
+      return;
+    }
+
+    let cancelled = false;
+    setBuyerProfile(null);
+
+    async function loadBuyerProfile() {
+      try {
+        const res = await api.get("/buyer/profile");
+        if (cancelled) return;
+        const profile = res?.data || {};
+        setBuyerProfile(profile);
+        setForm((prev) => ({
+          ...prev,
+          email: prev.email || String(profile.email || "").trim(),
+          mobile: prev.mobile || normalizeMobileValue(profile.mobile || ""),
+          city: prev.city || String(profile.city || "").trim()
+        }));
+        updateSession({
+          email: String(profile.email || sessionEmail || "").trim(),
+          mobile: normalizeMobileValue(profile.mobile || sessionMobile || ""),
+          city: String(profile.city || sessionCity || "").trim(),
+          roles: profile.roles || sessionRoles,
+          loginMethods: profile.loginMethods || sessionLoginMethods
+        });
+      } catch {
+        if (!cancelled) {
+          setBuyerProfile({
+            email: sessionEmail,
+            mobile: sessionMobile,
+            city: sessionCity,
+            loginMethods: sessionLoginMethods
+          });
+          setForm((prev) => ({
+            ...prev,
+            email: prev.email || sessionEmail,
+            mobile: prev.mobile || sessionMobile,
+            city: prev.city || sessionCity
+          }));
+        }
+      }
+    }
+
+    loadBuyerProfile();
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoggedIn, sessionCity, sessionEmail, sessionMobile]);
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -634,6 +741,12 @@ useEffect(() => {
     e.preventDefault();
     setSubmitted(true);
 
+    if (isLoggedIn && !profileReady) {
+      alert("Loading your account details. Please try again in a moment.");
+      setSubmitted(false);
+      return;
+    }
+
     const submittedMobile = normalizeMobileValue(
       isLoggedIn ? (sessionMobile || form.mobile) : form.mobile
     );
@@ -756,6 +869,12 @@ useEffect(() => {
     e.preventDefault();
     setSubmitted(true);
     const submittedMobile = normalizeMobileValue(form.mobile);
+
+    if (isLoggedIn && !profileReady) {
+      alert("Loading your account details. Please try again in a moment.");
+      setSubmitted(false);
+      return;
+    }
 
     if (
       !submittedMobile ||
