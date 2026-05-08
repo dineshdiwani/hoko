@@ -405,6 +405,47 @@ function mapRequirementForSeller(
 function normalizeText(value) {
   return String(value || "").trim().toLowerCase();
 }
+
+function getRangeStart(date) {
+  const next = new Date(date);
+  next.setHours(0, 0, 0, 0);
+  return next;
+}
+
+function getSmartTabDateQuery(smartTab) {
+  const tab = String(smartTab || "").trim().toLowerCase();
+  const now = new Date();
+  if (tab === "today") {
+    return { createdAt: { $gte: getRangeStart(now) } };
+  }
+  if (tab === "week") {
+    const start = getRangeStart(now);
+    const day = start.getDay();
+    const diffToMonday = day === 0 ? -6 : 1 - day;
+    start.setDate(start.getDate() + diffToMonday);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 7);
+    return { createdAt: { $gte: start, $lt: end } };
+  }
+  if (tab === "month") {
+    const start = getRangeStart(now);
+    start.setDate(1);
+    const end = new Date(start);
+    end.setMonth(end.getMonth() + 1);
+    return { createdAt: { $gte: start, $lt: end } };
+  }
+  if (tab === "year") {
+    const start = getRangeStart(now);
+    start.setMonth(0, 1);
+    const end = new Date(start);
+    end.setFullYear(end.getFullYear() + 1);
+    return { createdAt: { $gte: start, $lt: end } };
+  }
+  if (tab === "auctions") {
+    return { "reverseAuction.active": true };
+  }
+  return {};
+}
 function normalizeCityKey(value) {
   return String(value || "")
     .toLowerCase()
@@ -1597,6 +1638,7 @@ router.get("/dashboard", auth, sellerOnly, async (req, res) => {
   const requestedCityNormalized = normalizeText(requestedCity);
   const requestedCategory = String(req.query?.category || "").trim();
   const requestedCategoryNormalized = normalizeText(requestedCategory);
+  const smartTab = String(req.query?.smartTab || "all").trim().toLowerCase();
   const usePagination =
     Object.prototype.hasOwnProperty.call(req.query || {}, "page") ||
     Object.prototype.hasOwnProperty.call(req.query || {}, "limit");
@@ -1620,17 +1662,18 @@ router.get("/dashboard", auth, sellerOnly, async (req, res) => {
       "i"
     );
   }
+  Object.assign(requirementQuery, getSmartTabDateQuery(smartTab));
 
   const requirementsRaw = await Requirement.find(requirementQuery).sort({
     createdAt: -1
   })
     .skip(skip)
     .limit(usePagination ? limit : 0);
-  const acceptedBuyerCityRequirementIds =
-    await getAcceptedBuyerCityRequirementIds(requirementsRaw);
   const allRequirementsRaw = usePagination
     ? await Requirement.find(requirementQuery).sort({ createdAt: -1 })
     : requirementsRaw;
+  const acceptedBuyerCityRequirementIds =
+    await getAcceptedBuyerCityRequirementIds(allRequirementsRaw);
   const requirements = requirementsRaw.filter((requirement) => {
     if (getEffectiveRequirementStatus(requirement) !== "open") {
       return false;

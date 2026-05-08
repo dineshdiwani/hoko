@@ -157,10 +157,7 @@ export default function SellerDashboard() {
     setCityManuallySet(true);
     setUiCitySelection(normalized);
   }, []);
-  const shouldPaginateRequirements =
-    isWhatsAppPublicView ||
-    String(selectedCity || "").trim().toLowerCase() === "all" ||
-    String(selectedCategory || "").trim().toLowerCase() === "all";
+  const shouldPaginateRequirements = true;
   const loadSellerRequirements = useCallback(
     async ({ nextPage = 1, append = false } = {}) => {
       if (append) {
@@ -178,17 +175,12 @@ export default function SellerDashboard() {
             String(selectedCategory || "").trim().toLowerCase() === "all"
               ? ""
               : String(selectedCategory || "").trim();
-          const params = shouldPaginateRequirements
-            ? {
-                ...(publicCity ? { city: publicCity } : {}),
-                ...(publicCategory ? { category: publicCategory } : {}),
-                page: nextPage,
-                limit: 50
-              }
-            : {
-                ...(publicCity ? { city: publicCity } : {}),
-                ...(publicCategory ? { category: publicCategory } : {})
-              };
+          const params = {
+            ...(publicCity ? { city: publicCity } : {}),
+            ...(publicCategory ? { category: publicCategory } : {}),
+            page: nextPage,
+            limit: 50
+          };
           const res = await api.get("/meta/requirements", { params });
           const rows = Array.isArray(res.data) ? res.data : [];
           const nextTotal = Number(res?.headers?.["x-total-count"] || rows.length || 0);
@@ -211,17 +203,13 @@ export default function SellerDashboard() {
           setHasMore(shouldPaginateRequirements && rows.length >= 50);
           setPage(nextPage);
         } else {
-          const params = shouldPaginateRequirements
-            ? {
-                city: selectedCity || "all",
-                category: selectedCategory || "all",
-                page: nextPage,
-                limit: 50
-              }
-            : {
-                city: selectedCity || "all",
-                category: selectedCategory || "all"
-              };
+          const params = {
+            city: selectedCity || "all",
+            category: selectedCategory || "all",
+            smartTab: activeSmartTab,
+            page: nextPage,
+            limit: 50
+          };
           const res = await api.get("/seller/dashboard", { params });
           const liveRows = Array.isArray(res.data) ? res.data : [];
           const nextTotal = Number(res?.headers?.["x-total-count"] || liveRows.length || 0);
@@ -262,6 +250,7 @@ export default function SellerDashboard() {
       allowSellerSamplePosts,
       categories,
       isWhatsAppPublicView,
+      activeSmartTab,
       selectedCategory,
       selectedCity,
       session?.city,
@@ -597,6 +586,7 @@ export default function SellerDashboard() {
   }, [
     selectedCity,
     selectedCategory,
+    activeSmartTab,
     session?.city,
     allowSellerSamplePosts,
     isWhatsAppPublicView,
@@ -821,8 +811,6 @@ export default function SellerDashboard() {
   const liveAuctions = filteredRequirements.filter(
     (req) => req.myOffer && req.reverseAuction?.active === true
   ).length;
-  const visibleMatchCount = filteredRequirements.length;
-  const smartTabMatchCount = smartTabRequirements.length;
   const categoryFilterOptions = (
     categories.length ? categories : dashboardCategories
   )
@@ -1268,7 +1256,7 @@ export default function SellerDashboard() {
           <div>
             <h1 className="ui-heading">Seller Dashboard</h1>
             <p className="ui-label text-[var(--ui-muted)]">
-              Matching buyer requirements {loading ? "..." : `(${visibleMatchCount})`}
+              Matching buyer requirements {loading ? "..." : `(${totalCount})`}
             </p>
           </div>
 
@@ -1432,7 +1420,7 @@ export default function SellerDashboard() {
             <div className="grid grid-cols-2 gap-3">
               <div className="app-stat">
                 <p className="ui-label text-[var(--ui-muted)]">Total Matches</p>
-                <p className="ui-heading text-hoko-brand">{visibleMatchCount}</p>
+                <p className="ui-heading text-hoko-brand">{totalCount}</p>
               </div>
               <div className="app-stat">
                 <p className="ui-label text-[var(--ui-muted)]">Live Auctions</p>
@@ -1454,8 +1442,8 @@ export default function SellerDashboard() {
               </span>
               <span className="app-chip">
                 {activeSmartTab === "all"
-                  ? `All time: ${smartTabMatchCount}`
-                  : `${smartTabs.find((tab) => tab.key === activeSmartTab)?.label || "Selected"}: ${smartTabMatchCount}`}
+                  ? `All time: ${totalCount}`
+                  : `${smartTabs.find((tab) => tab.key === activeSmartTab)?.label || "Selected"}: ${totalCount}`}
               </span>
             </div>
           )}
