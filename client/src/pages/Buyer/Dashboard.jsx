@@ -664,6 +664,12 @@ export default function BuyerDashboard() {
             useSamplePosts={useSampleCityPosts}
             samplePostsEnabled={import.meta.env.DEV}
             refreshToken={refreshToken}
+            onVisibleCountChange={(count) =>
+              setTabCounts((prev) => ({
+                ...prev,
+                city: Number.isFinite(Number(count)) ? Number(count) : 0
+              }))
+            }
           />
         )}
         {activeTab === "offers" && (

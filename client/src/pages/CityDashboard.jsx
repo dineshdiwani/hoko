@@ -268,6 +268,7 @@ export default function CityDashboard({
       try {
         const params = {
           ...(shouldPaginate ? { page: nextPage, limit: PAGE_SIZE } : {}),
+          ...(timeFilter && timeFilter !== "all" ? { timeFilter } : {}),
           ...(category && String(category).trim().toLowerCase() !== "all"
             ? { category }
             : {})
@@ -313,7 +314,7 @@ export default function CityDashboard({
         setLoadingMore(false);
       }
     },
-    [PAGE_SIZE, buildSampleRows, category, city, sampleFlagEnabled, session?.token, shouldPaginate, useSamplePosts]
+    [PAGE_SIZE, buildSampleRows, category, city, sampleFlagEnabled, session?.token, shouldPaginate, timeFilter, useSamplePosts]
   );
 
   useEffect(() => {
@@ -325,7 +326,7 @@ export default function CityDashboard({
     loadedCountRef.current = 0;
     setPage(1);
     loadCityRequirements({ nextPage: 1, append: false });
-  }, [city, category, refreshToken, loadCityRequirements]);
+  }, [city, category, refreshToken, timeFilter, loadCityRequirements]);
 
   useEffect(() => {
     if (!shouldPaginate || !hasMore || loading || loadingMore || showingSampleData) {
@@ -517,6 +518,7 @@ export default function CityDashboard({
             className={`app-chip ${timeFilter === option.key ? "app-chip-active" : ""}`}
           >
             {option.label}
+            {timeFilter === option.key ? ` (${totalRequirements})` : ""}
           </button>
         ))}
       </div>

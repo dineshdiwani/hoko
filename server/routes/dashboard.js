@@ -9,9 +9,30 @@ function escapeRegex(value) {
   return String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+function getTimeFilterDateQuery(timeFilter) {
+  const key = String(timeFilter || "all").trim().toLowerCase();
+  if (key === "today") {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    return { createdAt: { $gte: start } };
+  }
+  if (key === "week") {
+    const start = new Date();
+    start.setDate(start.getDate() - 7);
+    return { createdAt: { $gte: start } };
+  }
+  if (key === "month") {
+    const start = new Date();
+    start.setDate(start.getDate() - 30);
+    return { createdAt: { $gte: start } };
+  }
+  return {};
+}
+
 router.get("/city/:city", auth, async (req, res) => {
   const requestedCity = String(req.params.city || "").trim();
   const requestedCategory = String(req.query?.category || "").trim();
+  const requestedTimeFilter = String(req.query?.timeFilter || "all").trim();
   const isAllCities =
     !requestedCity || requestedCity.toLowerCase() === "all";
   const isAllCategories =
@@ -38,6 +59,7 @@ router.get("/city/:city", auth, async (req, res) => {
       "i"
     );
   }
+  Object.assign(requirementQuery, getTimeFilterDateQuery(requestedTimeFilter));
 
   const totalCount = await Requirement.countDocuments(requirementQuery);
 
