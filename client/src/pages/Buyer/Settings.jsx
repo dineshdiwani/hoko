@@ -73,6 +73,11 @@ export default function BuyerSettings() {
     prefsSignature: ""
   });
 
+  function goToDashboard() {
+    localStorage.setItem("buyer_dashboard_force_tab", "posts");
+    navigate("/buyer/dashboard?tab=posts", { replace: true });
+  }
+
   function buildPrefsSignature(value) {
     const snapshot = {
       hideProfileUntilApproved: Boolean(value?.hideProfileUntilApproved),
@@ -315,7 +320,7 @@ export default function BuyerSettings() {
         });
         setUiCitySelection(data.user.city || profile.city || session.city || "");
         alert("Account merged successfully! Your posts have been combined.");
-        navigate("/buyer/dashboard");
+        goToDashboard();
         return;
       }
       
@@ -473,7 +478,7 @@ export default function BuyerSettings() {
         <div className="flex items-center justify-between mb-6">
           <h1 className="page-hero">Buyer Settings</h1>
           <button
-            onClick={() => navigate("/buyer/dashboard")}
+            onClick={goToDashboard}
             className="btn-secondary w-auto px-4"
           >
             Back to Dashboard

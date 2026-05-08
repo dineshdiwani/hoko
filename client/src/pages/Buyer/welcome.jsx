@@ -27,6 +27,11 @@ export default function BuyerWelcome() {
     localStorage.removeItem("post_login_redirect_source");
   }
 
+  function goToBuyerDashboard() {
+    localStorage.setItem("buyer_dashboard_force_tab", "posts");
+    navigate("/buyer/dashboard?tab=posts", { replace: true });
+  }
+
   useEffect(() => {
     if (isLoggedIn) {
       setIntroPhase("done");
@@ -198,7 +203,7 @@ export default function BuyerWelcome() {
                 localStorage.removeItem("draft_requirement_text");
                 if (isLoggedIn) {
                   if (session?.role === "buyer") {
-                    navigate("/buyer/dashboard");
+                    goToBuyerDashboard();
                     return;
                   }
                   if (session?.roles?.buyer) {
@@ -217,7 +222,7 @@ export default function BuyerWelcome() {
                         mobile: res.data.user.mobile || "",
                         token: res.data.token
                       });
-                      navigate("/buyer/dashboard");
+                      goToBuyerDashboard();
                       return;
                     } catch {
                       alert("Unable to switch to buyer role");

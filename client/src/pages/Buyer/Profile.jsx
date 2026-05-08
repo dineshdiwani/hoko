@@ -9,6 +9,11 @@ export default function BuyerProfile() {
   const navigate = useNavigate();
   const session = getSession();
 
+  function goToDashboard() {
+    localStorage.setItem("buyer_dashboard_force_tab", "posts");
+    navigate("/buyer/dashboard?tab=posts", { replace: true });
+  }
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [cities, setCities] = useState([]);
@@ -90,7 +95,7 @@ export default function BuyerProfile() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
           <h1 className="page-hero">Buyer Profile</h1>
           <button
-            onClick={() => navigate("/buyer/dashboard")}
+            onClick={goToDashboard}
             className="btn-secondary w-auto px-4"
           >
             Back to Dashboard

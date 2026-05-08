@@ -92,6 +92,25 @@ function clearBuyerRequirementDraft() {
   } catch {}
 }
 
+function hasRequirementResumeContext({
+  tempRequirementRef,
+  mobileFromUrl,
+  cityFromUrl
+}) {
+  if (typeof window === "undefined") return false;
+  try {
+    if (sessionStorage.getItem("pending_requirement_data")) return true;
+  } catch {}
+  try {
+    if (localStorage.getItem(BUYER_PENDING_REQUIREMENT_KEY)) return true;
+  } catch {}
+  return Boolean(
+    String(tempRequirementRef || "").trim() ||
+      String(mobileFromUrl || "").trim() ||
+      String(cityFromUrl || "").trim()
+  );
+}
+
 function buildBuyerUpdatesWaLink(rawLink, messageText) {
   const message = String(messageText || "").trim();
   const input = String(rawLink || "").trim();
@@ -135,6 +154,11 @@ export default function RequirementForm({ isPublic = false }) {
     tempRequirementRef = idMatch[1];
   }
   const isEditMode = Boolean(requirementId);
+  const shouldRestoreDraft = !isEditMode && hasRequirementResumeContext({
+    tempRequirementRef,
+    mobileFromUrl,
+    cityFromUrl
+  });
   const session = getSession();
   const isLoggedIn = Boolean(session?.token);
   const sessionCity = String(session?.city || "").trim();
@@ -143,7 +167,7 @@ export default function RequirementForm({ isPublic = false }) {
   const needsBuyerMobile = isLoggedIn && !sessionMobile;
   const needsBuyerEmail = isLoggedIn && !sessionEmail;
   const showBuyerContactFields = !isLoggedIn || needsBuyerMobile || needsBuyerEmail;
-  const savedDraft = !isEditMode ? readSavedBuyerRequirementDraft() : null;
+  const savedDraft = shouldRestoreDraft ? readSavedBuyerRequirementDraft() : null;
 
   const [form, setForm] = useState({
     mobile: isLoggedIn
@@ -285,7 +309,7 @@ useEffect(() => {
         );
       } catch {
         alert("Unable to load requirement for editing.");
-        navigate("/buyer/dashboard", { replace: true });
+        navigate("/buyer/dashboard?tab=posts", { replace: true });
       } finally {
         setLoadingRequirement(false);
       }
@@ -356,9 +380,15 @@ useEffect(() => {
   }, [form.product, isEditMode]);
 
   useEffect(() => {
-    if (isEditMode) return;
+    if (!isEditMode && !shouldRestoreDraft) {
+      clearBuyerRequirementDraft();
+    }
+  }, [isEditMode, shouldRestoreDraft]);
+
+  useEffect(() => {
+    if (isEditMode || !shouldRestoreDraft) return;
     saveBuyerRequirementDraft(form);
-  }, [form, isEditMode]);
+  }, [form, isEditMode, shouldRestoreDraft]);
 
   useEffect(() => {
     try {
@@ -751,26 +781,6 @@ useEffect(() => {
       details: form.details,
       offerInvitedFrom: form.offerInvitedFrom || "city"
     });
-    try {
-      localStorage.setItem(
-        BUYER_PENDING_REQUIREMENT_KEY,
-        JSON.stringify({
-          mobile: submittedMobile,
-          city: form.city,
-          category: form.category,
-          productName: form.product,
-          product: form.product,
-          makeBrand: form.makeBrand,
-          typeModel: form.typeModel,
-          quantity: form.quantity,
-          unit: form.unit,
-          details: form.details,
-          offerInvitedFrom: form.offerInvitedFrom || "city",
-          ref: tempRequirementRef
-        })
-      );
-    } catch {}
-
     const loginParams = new URLSearchParams();
     if (submittedMobile) loginParams.set("mobile", submittedMobile);
     loginParams.set("redirect", "/buyer/dashboard?tab=posts");
