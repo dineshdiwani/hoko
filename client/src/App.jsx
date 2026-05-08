@@ -162,6 +162,22 @@ function SellerRequirementRedirect() {
   );
 }
 
+function SellerFacebookRedirect() {
+  const { id } = useParams();
+  const location = useLocation();
+  const target = String(id || "").trim();
+  return (
+    <Navigate
+      to={
+        target
+          ? `/seller/deeplink/${encodeURIComponent(target)}${location.search || ""}`
+          : "/seller/login"
+      }
+      replace
+    />
+  );
+}
+
 function AppShell() {
   const location = useLocation();
   const hideGlobalLogo = location.pathname === "/";
@@ -425,6 +441,10 @@ function AppShell() {
         <Route
           path="/seller/deeplink/:requirementId"
           element={<SellerDeepLink />}
+        />
+        <Route
+          path="/seller/facebook/:requirementId"
+          element={<SellerFacebookRedirect />}
         />
 
         <Route
