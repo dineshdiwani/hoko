@@ -821,6 +821,8 @@ export default function SellerDashboard() {
   const liveAuctions = filteredRequirements.filter(
     (req) => req.myOffer && req.reverseAuction?.active === true
   ).length;
+  const visibleMatchCount = filteredRequirements.length;
+  const smartTabMatchCount = smartTabRequirements.length;
   const categoryFilterOptions = (
     categories.length ? categories : dashboardCategories
   )
@@ -1266,7 +1268,7 @@ export default function SellerDashboard() {
           <div>
             <h1 className="ui-heading">Seller Dashboard</h1>
             <p className="ui-label text-[var(--ui-muted)]">
-              Matching buyer requirements {loading ? "..." : `(${totalCount})`}
+              Matching buyer requirements {loading ? "..." : `(${visibleMatchCount})`}
             </p>
           </div>
 
@@ -1430,7 +1432,7 @@ export default function SellerDashboard() {
             <div className="grid grid-cols-2 gap-3">
               <div className="app-stat">
                 <p className="ui-label text-[var(--ui-muted)]">Total Matches</p>
-                <p className="ui-heading text-hoko-brand">{totalCount}</p>
+                <p className="ui-heading text-hoko-brand">{visibleMatchCount}</p>
               </div>
               <div className="app-stat">
                 <p className="ui-label text-[var(--ui-muted)]">Live Auctions</p>
@@ -1449,6 +1451,11 @@ export default function SellerDashboard() {
               </span>
               <span className="app-chip">
                 {isWhatsAppPublicView ? "WhatsApp public view" : "App view"}
+              </span>
+              <span className="app-chip">
+                {activeSmartTab === "all"
+                  ? `All time: ${smartTabMatchCount}`
+                  : `${smartTabs.find((tab) => tab.key === activeSmartTab)?.label || "Selected"}: ${smartTabMatchCount}`}
               </span>
             </div>
           )}
