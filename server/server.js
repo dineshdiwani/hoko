@@ -875,6 +875,42 @@ const baseDir = path.join(__dirname, "uploads", "buyer-documents");
 /* -------------------- DYNAMIC OG TAGS FOR SOCIAL SCRAPERS -------------------- */
 const CRITERIA_QUERY = /^(facebookexternalhit|facebookcatalog|LinkedInBot|Twitterbot|WhatsApp|GoogleBot|bingbot|Slackbot|Discordbot|TelegramBot)/i;
 
+function escapeHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function buildRequirementSharePreview(requirement, baseUrl) {
+  const productName = String(requirement?.productName || requirement?.name || "Product").trim();
+  const quantityValue = String(requirement?.quantity || "").trim();
+  const quantityType = String(requirement?.type || requirement?.unit || "pcs").trim();
+  const makeBrand = String(requirement?.makeBrand || requirement?.brand || "").trim();
+  const typeModel = String(requirement?.typeModel || "").trim();
+  const category = String(requirement?.category || "").trim();
+  const city = String(requirement?.city || "").trim();
+  const quantityText = [quantityValue, quantityType].filter(Boolean).join(" ").trim();
+  const makeModelText = [makeBrand, typeModel].filter(Boolean).join(" ").trim();
+  const titleParts = [quantityText, productName, makeModelText, city].filter(Boolean);
+  const ogTitle = `URGENT: ${titleParts.join(" | ")}`.slice(0, 120);
+  const ogDescription = [
+    `Looking for: ${productName}`,
+    quantityText ? `Qty: ${quantityText}` : "",
+    makeModelText ? `Make/Brand: ${makeModelText}` : "",
+    category ? `Category: ${category}` : "",
+    city ? `Buyer City: ${city}` : "",
+    `Reply now: ${baseUrl}/seller/deeplink/${encodeURIComponent(String(requirement?._id || "").trim())}`
+  ]
+    .filter(Boolean)
+    .join(" | ")
+    .slice(0, 220);
+
+  return { ogTitle, ogDescription };
+}
+
 app.get("/seller/deeplink/:id", async (req, res, next) => {
   const reqId = String(req.params.id || "").trim();
   const userAgent = String(req.headers["user-agent"] || "");
@@ -890,16 +926,7 @@ app.get("/seller/deeplink/:id", async (req, res, next) => {
 
     if (requirement) {
       const baseUrl = process.env.APP_URL || "https://hokoapp.in";
-      const productName = requirement.productName || requirement.name || "Product";
-      const quantity = requirement.quantity || "";
-      const quantityType = requirement.type || requirement.unit || "pcs";
-      const makeBrand = requirement.makeBrand || requirement.brand || "";
-      const typeModel = requirement.typeModel || "";
-      const category = requirement.category || "";
-      const city = requirement.city || "";
-      const requirementType = requirement.requirementType || requirement.postType || "";
-      const ogTitle = `URGENT: ${quantity} ${quantityType} ${productName} | ${makeBrand} ${typeModel} | ${city}`;
-      const ogDescription = `Looking for: ${productName}\nQty: ${quantity} ${quantityType}\nMake/Brand: ${makeBrand} ${typeModel}\nCategory: ${category}\nBuyer City: ${city}\n\nSuppliers: Share Best Price | Delivery Timeline | Availability\n\nReply Now: ${baseUrl}/seller/deeplink/${reqId}`;
+      const { ogTitle, ogDescription } = buildRequirementSharePreview(requirement, baseUrl);
       const ogUrl = `${baseUrl}/seller/deeplink/${reqId}`;
       const ogImage = `${baseUrl}/logo.jpg`;
 
@@ -910,17 +937,18 @@ app.get("/seller/deeplink/:id", async (req, res, next) => {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="HOKO">
-  <meta property="og:title" content="${ogTitle}">
-  <meta property="og:description" content="${ogDescription}">
-  <meta property="og:url" content="${ogUrl}">
-  <meta property="og:image" content="${ogImage}">
+  <meta property="og:title" content="${escapeHtml(ogTitle)}">
+  <meta property="og:description" content="${escapeHtml(ogDescription)}">
+  <meta property="og:url" content="${escapeHtml(ogUrl)}">
+  <meta property="og:image" content="${escapeHtml(ogImage)}">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
+  <meta name="description" content="${escapeHtml(ogDescription)}">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="${ogTitle}">
-  <meta name="twitter:description" content="${ogDescription}">
-  <meta name="twitter:image" content="${ogImage}">
-  <title>${ogTitle}</title>
+  <meta name="twitter:title" content="${escapeHtml(ogTitle)}">
+  <meta name="twitter:description" content="${escapeHtml(ogDescription)}">
+  <meta name="twitter:image" content="${escapeHtml(ogImage)}">
+  <title>${escapeHtml(ogTitle)}</title>
 </head>
 <body>
   <p>Redirecting...</p>
