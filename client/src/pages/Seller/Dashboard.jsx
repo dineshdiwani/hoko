@@ -1056,7 +1056,8 @@ export default function SellerDashboard() {
     const category = String(req?.category || "").trim();
     if (city) query.set("city", city);
     if (category) query.set("cats", category);
-    const deepLink = `${appBaseUrl}/seller/dashboard?${query.toString()}`;
+    const sharePath = `${appBaseUrl}/seller/deeplink/${encodeURIComponent(reqId)}`;
+    const deepLink = `${sharePath}?${query.toString()}`;
     const facebookShareUrl = `${deepLink}${deepLink.includes("?") ? "&" : "?"}share=facebook`;
     const whatsappText = encodeURIComponent(getWhatsAppShareText(req));
     const socialText = encodeURIComponent(getSocialShareText(req));
