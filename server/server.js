@@ -975,6 +975,34 @@ app.get("/seller/deeplink/:id", async (req, res, next) => {
   return next();
 });
 
+app.get("/robots.txt", (req, res) => {
+  res
+    .type("text/plain")
+    .set("Cache-Control", "public, max-age=3600")
+    .send(
+      [
+        "User-agent: facebookexternalhit",
+        "Allow: /",
+        "",
+        "User-agent: Meta-ExternalAgent",
+        "Allow: /",
+        "",
+        "User-agent: Meta-ExternalFetcher",
+        "Allow: /",
+        "",
+        "User-agent: *",
+        "Allow: /",
+        "",
+        "# Disallow admin and API routes",
+        "Disallow: /api/",
+        "Disallow: /admin/",
+        "",
+        "# Allow crawling of public pages",
+        "Sitemap: https://hokoapp.in/api/sitemap"
+      ].join("\n")
+    );
+});
+
 /* -------------------- CLIENT STATIC (SPA/PWA) -------------------- */
 const clientDistPath = path.resolve(__dirname, "..", "client", "dist");
 if (fs.existsSync(clientDistPath)) {
