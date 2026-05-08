@@ -1064,14 +1064,8 @@ export default function SellerDashboard() {
     const socialTextRaw = getSocialShareText(req);
     const url = encodeURIComponent(deepLink);
     const facebookEncodedUrl = encodeURIComponent(facebookPreviewUrl);
-    const facebookQuote = encodeURIComponent(getFacebookQuoteText(req).slice(0, 450));
     const linkedinShareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${url}`;
-    const facebookAppId = String(import.meta.env.VITE_FACEBOOK_APP_ID || "").trim();
-    const facebookLink = facebookAppId
-      ? `https://www.facebook.com/dialog/share?app_id=${encodeURIComponent(
-          facebookAppId
-        )}&display=popup&href=${facebookEncodedUrl}&quote=${facebookQuote}`
-      : `https://www.facebook.com/sharer/sharer.php?u=${facebookEncodedUrl}&quote=${facebookQuote}`;
+    const facebookLink = `https://www.facebook.com/sharer/sharer.php?u=${facebookEncodedUrl}`;
     return {
       whatsapp: `https://wa.me/?text=${whatsappText}`,
       facebook: facebookLink,
