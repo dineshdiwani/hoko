@@ -1058,14 +1058,18 @@ export default function SellerDashboard() {
     if (category) query.set("cats", category);
     const sharePath = `${appBaseUrl}/seller/deeplink/${encodeURIComponent(reqId)}`;
     const deepLink = `${sharePath}?${query.toString()}`;
-    const facebookPreviewUrl = `${appBaseUrl}/seller/facebook/${encodeURIComponent(reqId)}`;
     const whatsappText = encodeURIComponent(getWhatsAppShareText(req));
     const socialText = encodeURIComponent(getSocialShareText(req));
     const socialTextRaw = getSocialShareText(req);
     const url = encodeURIComponent(deepLink);
-    const facebookEncodedUrl = encodeURIComponent(facebookPreviewUrl);
+    const facebookQuote = encodeURIComponent(getFacebookQuoteText(req).slice(0, 450));
     const linkedinShareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${url}`;
-    const facebookLink = `https://www.facebook.com/sharer/sharer.php?u=${facebookEncodedUrl}`;
+    const facebookAppId = String(import.meta.env.VITE_FACEBOOK_APP_ID || "").trim();
+    const facebookLink = facebookAppId
+      ? `https://www.facebook.com/dialog/share?app_id=${encodeURIComponent(
+          facebookAppId
+        )}&display=popup&href=${url}&quote=${facebookQuote}`
+      : `https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${facebookQuote}`;
     return {
       whatsapp: `https://wa.me/?text=${whatsappText}`,
       facebook: facebookLink,

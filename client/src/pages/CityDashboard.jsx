@@ -204,13 +204,17 @@ export default function CityDashboard({
   function getShareLinks(req) {
     const socialShareText = getSocialShareText(req);
     const shareUrl = buildShareUrl(req);
-    const facebookShareUrl = `${shareUrl.replace(/\/seller\/deeplink\/([^/?#]+).*$/i, "/seller/facebook/$1")}`;
     const encodedSocialText = encodeURIComponent(socialShareText);
     const encodedWhatsAppText = encodeURIComponent(getWhatsAppShareText(req));
     const encodedUrl = encodeURIComponent(shareUrl);
-    const encodedFacebookUrl = encodeURIComponent(facebookShareUrl);
+    const encodedFacebookQuote = encodeURIComponent(getFacebookQuoteText(req).slice(0, 450));
     const linkedinShareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`;
-    const facebookLink = `https://www.facebook.com/sharer/sharer.php?u=${encodedFacebookUrl}`;
+    const facebookAppId = String(import.meta.env.VITE_FACEBOOK_APP_ID || "").trim();
+    const facebookLink = facebookAppId
+      ? `https://www.facebook.com/dialog/share?app_id=${encodeURIComponent(
+          facebookAppId
+        )}&display=popup&href=${encodedUrl}&quote=${encodedFacebookQuote}`
+      : `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedFacebookQuote}`;
     return {
       whatsapp: `https://wa.me/?text=${encodedWhatsAppText}`,
       facebook: facebookLink,
