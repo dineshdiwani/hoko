@@ -647,8 +647,7 @@ useEffect(() => {
         });
         const uploadRes = await api.post(
           "/buyer/requirement/attachments",
-          formData,
-          { headers: { "Content-Type": "multipart/form-data" } }
+          formData
         );
         attachmentUrls =
           uploadRes?.data?.files?.map((f) => f.url) || [];
