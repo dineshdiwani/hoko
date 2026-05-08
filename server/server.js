@@ -873,7 +873,7 @@ const baseDir = path.join(__dirname, "uploads", "buyer-documents");
 });
 
 /* -------------------- DYNAMIC OG TAGS FOR SOCIAL SCRAPERS -------------------- */
-const CRITERIA_QUERY = /^(facebookexternalhit|facebookcatalog|LinkedInBot|Twitterbot|WhatsApp|GoogleBot|bingbot|Slackbot|Discordbot|TelegramBot)/i;
+const CRITERIA_QUERY = /^(facebookexternalhit|facebookcatalog|facebookplatform|facebot|Meta-ExternalAgent|Meta-ExternalFetcher|LinkedInBot|Twitterbot|WhatsApp|GoogleBot|bingbot|Slackbot|Discordbot|TelegramBot)/i;
 
 function escapeHtml(value) {
   return String(value || "")
