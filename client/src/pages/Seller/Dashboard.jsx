@@ -1060,22 +1060,9 @@ export default function SellerDashboard() {
     const whatsappText = encodeURIComponent(getWhatsAppShareText(req));
     const socialText = encodeURIComponent(getSocialShareText(req));
     const socialTextRaw = getSocialShareText(req);
-    const facebookQuote = encodeURIComponent(getFacebookQuoteText(req).slice(0, 450));
     const url = encodeURIComponent(deepLink);
-    const encodedTitle = encodeURIComponent("URGENT BUYER REQUIREMENT");
-    const encodedSummary = encodeURIComponent(socialTextRaw.slice(0, 256));
     const linkedinShareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${url}`;
-    const facebookAppId = String(import.meta.env.VITE_FACEBOOK_APP_ID || "").trim();
-    const shareTitle = "URGENT BUYER REQUIREMENT";
-    const facebookLink = facebookAppId
-      ? `https://www.facebook.com/dialog/share?app_id=${encodeURIComponent(
-          facebookAppId
-        )}&display=popup&href=${url}&quote=${encodeURIComponent(
-          `${shareTitle}\n\nLooking for: ${req?.productName || req?.product || "Product"}\nQty: ${req?.quantity || ""} ${req?.type || req?.unit || ""}\nMake/Model: ${req?.makeBrand || req?.brand || ""} ${req?.typeModel || ""}\nCity: ${req?.city || ""}\n\nBest Price | Delivery Timeline | Availability Status\n\nReply now: ${deepLink}`
-        )}`
-      : `https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${encodeURIComponent(
-          `${shareTitle}\n\nLooking for: ${req?.productName || req?.product || "Product"}\nQty: ${req?.quantity || ""} ${req?.type || req?.unit || ""}\nMake/Model: ${req?.makeBrand || req?.brand || ""} ${req?.typeModel || ""}\nCity: ${req?.city || ""}\n\nBest Price | Delivery Timeline | Availability Status\n\nReply now: ${deepLink}`
-        )}`;
+    const facebookLink = `https://www.facebook.com/sharer/sharer.php?u=${url}`;
     return {
       whatsapp: `https://wa.me/?text=${whatsappText}`,
       facebook: facebookLink,
