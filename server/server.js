@@ -873,7 +873,7 @@ const baseDir = path.join(__dirname, "uploads", "buyer-documents");
 });
 
 /* -------------------- DYNAMIC OG TAGS FOR SOCIAL SCRAPERS -------------------- */
-const CRITERIA_QUERY = /^(facebookexternalhit|facebookcatalog|facebookplatform|Facebot|Meta-ExternalAgent|Meta-ExternalFetcher|LinkedInBot|Twitterbot|WhatsApp|GoogleBot|bingbot|Slackbot|Discordbot|TelegramBot)/i;
+const CRITERIA_QUERY = /^(facebookexternalhit|facebookcatalog|LinkedInBot|Twitterbot|WhatsApp|GoogleBot|bingbot|Slackbot|Discordbot|TelegramBot)/i;
 
 function escapeHtml(value) {
   return String(value || "")
@@ -919,7 +919,6 @@ function renderRequirementOgPage({ ogTitle, ogDescription, ogUrl, ogImage, canon
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="HOKO">
-  <meta property="fb:app_id" content="${escapeHtml(process.env.FACEBOOK_APP_ID || process.env.VITE_FACEBOOK_APP_ID || "")}">
   <meta property="og:title" content="${escapeHtml(ogTitle)}">
   <meta property="og:description" content="${escapeHtml(ogDescription)}">
   <meta property="og:url" content="${escapeHtml(ogUrl)}">
@@ -971,34 +970,6 @@ app.get("/seller/deeplink/:id", async (req, res, next) => {
     }
   } catch (err) {
     console.error("[OG ERROR]", err.message);
-  }
-
-  return next();
-});
-
-app.get("/seller/facebook/:id", async (req, res, next) => {
-  const reqId = String(req.params.id || "").trim();
-  try {
-    const Requirement = require("./models/Requirement");
-    const requirement = await Requirement.findById(reqId).lean();
-    if (!requirement) return next();
-
-    const baseUrl = process.env.APP_URL || "https://hokoapp.in";
-    const { ogTitle, ogDescription } = buildRequirementSharePreview(requirement, baseUrl);
-    const ogUrl = `${baseUrl}/seller/facebook/${reqId}`;
-    const ogImage = `${baseUrl}/logo.jpg`;
-
-    return res
-      .set("Content-Type", "text/html")
-      .send(renderRequirementOgPage({
-        ogTitle,
-        ogDescription,
-        ogUrl,
-        ogImage,
-        canonicalUrl: `${baseUrl}/seller/deeplink/${reqId}`
-      }));
-  } catch (err) {
-    console.error("[FB OG ERROR]", err.message);
   }
 
   return next();
