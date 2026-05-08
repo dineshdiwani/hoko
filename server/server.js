@@ -155,7 +155,8 @@ const corsOptions = {
   },
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   credentials: true,
-  allowedHeaders: ["Content-Type", "Authorization"]
+  allowedHeaders: ["Content-Type", "Authorization"],
+  exposedHeaders: ["X-Total-Count", "X-Total-Offer-Count"]
 };
 
 /* -------------------- MIDDLEWARE (ORDER MATTERS) -------------------- */
