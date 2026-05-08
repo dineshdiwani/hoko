@@ -163,9 +163,9 @@ function SellerRequirementRedirect() {
 }
 
 function SellerFacebookRedirect() {
-  const { id } = useParams();
+  const { requirementId } = useParams();
   const location = useLocation();
-  const target = String(id || "").trim();
+  const target = String(requirementId || "").trim();
   return (
     <Navigate
       to={
