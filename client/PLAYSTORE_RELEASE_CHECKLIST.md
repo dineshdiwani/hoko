@@ -19,8 +19,6 @@ cd client\\android
 gradlew.bat bundleRelease
 ```
 
-If you also want the public download link updated, build the release APK and copy it to `client/public/apk/app-release.apk` before deploying the web bundle.
-
 ## Device Validation
 
 - Test buyer login

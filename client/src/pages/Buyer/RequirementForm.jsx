@@ -113,6 +113,12 @@ function buildBuyerUpdatesWaLink(rawLink, messageText) {
   }
 }
 
+function normalizeMobileValue(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  return raw.replace(/[^\d]/g, "");
+}
+
 export default function RequirementForm({ isPublic = false }) {
   const navigate = useNavigate();
   const { id: requirementId } = useParams();
@@ -132,12 +138,20 @@ export default function RequirementForm({ isPublic = false }) {
   const session = getSession();
   const isLoggedIn = Boolean(session?.token);
   const sessionCity = String(session?.city || "").trim();
-  const needsProfileEmail = Boolean(session?.mobile && !session?.email);
+  const sessionMobile = normalizeMobileValue(session?.mobile || "");
+  const sessionEmail = String(session?.email || "").trim();
+  const needsBuyerMobile = isLoggedIn && !sessionMobile;
+  const needsBuyerEmail = isLoggedIn && !sessionEmail;
+  const showBuyerContactFields = !isLoggedIn || needsBuyerMobile || needsBuyerEmail;
   const savedDraft = !isEditMode ? readSavedBuyerRequirementDraft() : null;
 
   const [form, setForm] = useState({
-    mobile: savedDraft?.mobile || "",
-    email: savedDraft?.email || "",
+    mobile: isLoggedIn
+      ? (sessionMobile || savedDraft?.mobile || mobileFromUrl || "")
+      : (savedDraft?.mobile || mobileFromUrl || ""),
+    email: isLoggedIn
+      ? (sessionEmail || savedDraft?.email || "")
+      : (savedDraft?.email || ""),
     city: isPublic
       ? (cityFromUrl || savedDraft?.city || "")
       : (savedDraft?.city || cityFromUrl || ""),
@@ -281,14 +295,14 @@ useEffect(() => {
   }, [isEditMode, navigate, requirementId]);
 
   useEffect(() => {
-    if (mobileFromUrl) {
+    if (isLoggedIn) {
+      setForm((prev) => ({
+        ...prev,
+        mobile: sessionMobile || prev.mobile,
+        email: sessionEmail || prev.email
+      }));
+    } else if (mobileFromUrl) {
       setForm((prev) => ({ ...prev, mobile: mobileFromUrl }));
-    } else if (session?.mobile) {
-      setForm((prev) => ({ ...prev, mobile: session.mobile.replace("+", "") }));
-    }
-
-    if (session?.email) {
-      setForm((prev) => ({ ...prev, email: session.email }));
     }
 
     if (session?.city && isPublic && !cityFromUrl && !form.city) {
@@ -329,7 +343,7 @@ useEffect(() => {
     
     loadCityFromDatabase();
     fetchMobileFromRef();
-  }, [tempRequirementRef, isPublic, mobileFromUrl, cityFromUrl, session]);
+  }, [tempRequirementRef, isPublic, mobileFromUrl, cityFromUrl, session, isLoggedIn, sessionMobile, sessionEmail]);
 
   useEffect(() => {
     const draft = localStorage.getItem("draft_requirement_text");
@@ -565,8 +579,17 @@ useEffect(() => {
     e.preventDefault();
     setSubmitted(true);
 
+    const submittedMobile = normalizeMobileValue(
+      isLoggedIn ? (sessionMobile || form.mobile) : form.mobile
+    );
+    const submittedEmail = String(
+      isLoggedIn ? (sessionEmail || form.email) : form.email
+    ).trim();
+
     if (
-      !form.mobile ||
+      (!isLoggedIn && !submittedMobile) ||
+      (needsBuyerMobile && !submittedMobile) ||
+      (needsBuyerEmail && !submittedEmail) ||
       !form.city ||
       !form.category ||
       !form.product ||
@@ -578,7 +601,7 @@ useEffect(() => {
       return;
     }
 
-    if (needsProfileEmail && !/\S+@\S+\.\S+/.test(String(form.email || ""))) {
+    if ((needsBuyerEmail || (!isLoggedIn && form.email)) && submittedEmail && !/\S+@\S+\.\S+/.test(submittedEmail)) {
       alert("Please enter your email id");
       setSubmitted(false);
       return;
@@ -602,8 +625,8 @@ useEffect(() => {
       }
 
       const payload = {
-        mobile: form.mobile,
-        email: needsProfileEmail ? form.email : session?.email || "",
+        mobile: submittedMobile,
+        email: submittedEmail || "",
         city: form.city,
         category: form.category,
         productName: form.product,
@@ -644,16 +667,16 @@ useEffect(() => {
             city: payload.city,
             buyerSettings: {
               defaultCity: payload.city
-            }
+            },
+            ...(needsBuyerEmail && submittedEmail ? { email: submittedEmail } : {}),
+            ...(needsBuyerMobile && submittedMobile ? { mobile: submittedMobile } : {})
           });
         } catch {}
-        if (payload.email || payload.mobile) {
-          updateSession({
-            ...(payload.email ? { email: payload.email } : {}),
-            ...(payload.mobile ? { mobile: payload.mobile } : {}),
-            city: payload.city
-          });
-        }
+        updateSession({
+          ...(submittedEmail ? { email: submittedEmail } : {}),
+          ...(submittedMobile ? { mobile: submittedMobile } : {}),
+          city: payload.city
+        });
         navigate("/buyer/dashboard?tab=posts", { replace: true });
         return;
       }
@@ -678,9 +701,10 @@ useEffect(() => {
   async function handlePublicSubmit(e) {
     e.preventDefault();
     setSubmitted(true);
+    const submittedMobile = normalizeMobileValue(form.mobile);
 
     if (
-      !form.mobile ||
+      !submittedMobile ||
       !form.city ||
       !form.category ||
       !form.product ||
@@ -701,7 +725,7 @@ useEffect(() => {
     // User not logged in - redirect to login
     // Store the requirement data in sessionStorage to be retrieved after login
     sessionStorage.setItem("pending_requirement_data", JSON.stringify({
-      mobile: form.mobile,
+      mobile: submittedMobile,
       city: form.city,
       category: form.category,
       productName: form.product,
@@ -715,7 +739,7 @@ useEffect(() => {
       ref: tempRequirementRef
     }));
     saveBuyerRequirementDraft({
-      mobile: form.mobile,
+      mobile: submittedMobile,
       email: form.email,
       city: form.city,
       category: form.category,
@@ -731,7 +755,7 @@ useEffect(() => {
       localStorage.setItem(
         BUYER_PENDING_REQUIREMENT_KEY,
         JSON.stringify({
-          mobile: form.mobile,
+          mobile: submittedMobile,
           city: form.city,
           category: form.category,
           productName: form.product,
@@ -748,7 +772,7 @@ useEffect(() => {
     } catch {}
 
     const loginParams = new URLSearchParams();
-    if (form.mobile) loginParams.set("mobile", form.mobile);
+    if (submittedMobile) loginParams.set("mobile", submittedMobile);
     loginParams.set("redirect", "/buyer/dashboard?tab=posts");
     localStorage.setItem(BUYER_DASHBOARD_FORCE_TAB_KEY, "posts");
     navigate(`/buyer/login?${loginParams.toString()}`, { replace: true });
@@ -796,42 +820,66 @@ useEffect(() => {
             </h2>
 
         <div className="grid gap-3 md:grid-cols-2">
-          {/* Mobile - auto-filled from WhatsApp or editable for email login */}
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {session?.mobile ? "Mobile Number (verified)" : "Mobile Number"}
-            </label>
-            <input
-              name="mobile"
-              type="tel"
-              value={form.mobile}
-              readOnly={Boolean(session?.mobile)}
-              onChange={(e) => setForm({...form, mobile: e.target.value})}
-              placeholder={session?.mobile ? "" : "Enter your mobile number"}
-              className={`w-full px-3 py-2 border rounded-xl text-sm ${session?.mobile ? "bg-gray-50" : ""}`}
-              required
-            />
-            {!session?.mobile && (
-              <p className="text-xs text-gray-500 mt-1">Required for posting requirement</p>
-            )}
-          </div>
+          {isLoggedIn && showBuyerContactFields && (
+            <div className="md:col-span-2 grid gap-3 md:grid-cols-2">
+              {needsBuyerMobile && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Mobile Number
+                  </label>
+                  <input
+                    name="mobile"
+                    type="tel"
+                    value={form.mobile}
+                    onChange={(e) => setForm({...form, mobile: e.target.value})}
+                    placeholder="Enter your mobile number"
+                    className="w-full px-3 py-2 border rounded-xl text-sm"
+                    required
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    We will save this to your profile for future use.
+                  </p>
+                </div>
+              )}
 
-          {needsProfileEmail && (
+              {needsBuyerEmail && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Email ID
+                  </label>
+                  <input
+                    name="email"
+                    type="email"
+                    value={form.email}
+                    onChange={(e) => setForm({...form, email: e.target.value})}
+                    placeholder="Enter your email id"
+                    className="w-full px-3 py-2 border rounded-xl text-sm"
+                    required
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    We will save this to your profile for future use.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {!isLoggedIn && (
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Email ID
+                Mobile Number
               </label>
               <input
-                name="email"
-                type="email"
-                value={form.email}
-                onChange={(e) => setForm({...form, email: e.target.value})}
-                placeholder="Enter your email id"
+                name="mobile"
+                type="tel"
+                value={form.mobile}
+                onChange={(e) => setForm({...form, mobile: e.target.value})}
+                placeholder="Enter your mobile number"
                 className="w-full px-3 py-2 border rounded-xl text-sm"
                 required
               />
               <p className="text-xs text-gray-500 mt-1">
-                We will save this to your profile for future use.
+                Required for posting requirement.
               </p>
             </div>
           )}

@@ -6,6 +6,7 @@ import {
   getAttachmentDisplayName,
   getAttachmentTypeMeta
 } from "../utils/attachments";
+import { captureSpeechInput } from "../services/speechInput";
 
 function formatTime(value) {
   if (!value) return "";
@@ -119,6 +120,37 @@ function dedupeMessagesForDisplay(items) {
   return deduped;
 }
 
+function getQuickReplyTemplates(role) {
+  const normalizedRole = String(role || "").toLowerCase();
+  if (normalizedRole === "seller") {
+    return [
+      "Available in stock",
+      "Best price is Rs ...",
+      "Can deliver by tomorrow",
+      "Please share your location",
+      "Call me to confirm details",
+      "I can offer a discount on bulk order"
+    ];
+  }
+
+  return [
+    "Please share your best price",
+    "Can you deliver today?",
+    "Need invoice included",
+    "Please share your catalog",
+    "Call me on WhatsApp",
+    "What is your minimum order?"
+  ];
+}
+
+function appendQuickReply(currentText, template) {
+  const base = String(currentText || "").trim();
+  const insert = String(template || "").trim();
+  if (!insert) return base;
+  if (!base) return insert;
+  return `${base}${base.endsWith(" ") ? "" : " "}${insert}`.trim();
+}
+
 export default function ChatModal({
   open,
   onClose,
@@ -134,8 +166,8 @@ export default function ChatModal({
   const [uploading, setUploading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [loading, setLoading] = useState(false);
-  const recognitionRef = useRef(null);
   const messagesEndRef = useRef(null);
+  const textRef = useRef(null);
   const sendInFlightRef = useRef(false);
   const lastSendRef = useRef({ key: "", at: 0 });
 
@@ -143,6 +175,10 @@ export default function ChatModal({
   const currentUserId =
     session?._id || session?.userId || session?.id || null;
   const peerUserId = sellerId ? String(sellerId) : null;
+  const quickReplyTemplates = useMemo(
+    () => getQuickReplyTemplates(session?.role),
+    [session?.role]
+  );
 
   const groupedMessages = useMemo(() => {
     const normalized = dedupeMessagesForDisplay(messages);
@@ -251,52 +287,32 @@ export default function ChatModal({
     };
   }, [open, peerUserId, currentUserId, requirementId]);
 
-  useEffect(() => {
-    if (!open) return;
-    const SpeechRecognition =
-      window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) return;
-
-    const recognition = new SpeechRecognition();
-    recognition.lang = "en-IN";
-    recognition.interimResults = false;
-    recognition.continuous = false;
-
-    recognition.onresult = (event) => {
-      const transcript = event.results?.[0]?.[0]?.transcript || "";
-      setText((prev) => (prev ? `${prev} ${transcript}`.trim() : transcript));
-    };
-
-    recognition.onerror = () => {
-      setIsListening(false);
-    };
-
-    recognition.onend = () => {
-      setIsListening(false);
-    };
-
-    recognitionRef.current = recognition;
-  }, [open]);
-
   if (!open) return null;
 
-  function toggleMic() {
-    const recognition = recognitionRef.current;
-    if (!recognition) {
-      alert("Speech to text is not supported in this browser.");
-      return;
-    }
-    if (isListening) {
-      recognition.stop();
-      setIsListening(false);
-      return;
-    }
+  async function toggleMic() {
+    if (isListening) return;
+    setIsListening(true);
     try {
-      recognition.start();
-      setIsListening(true);
-    } catch {
+      const transcript = await captureSpeechInput({ language: "en-IN" });
+      if (transcript.trim()) {
+        setText((prev) => (prev ? `${prev} ${transcript}`.trim() : transcript));
+      }
+    } catch (err) {
+      const message = String(err?.message || "");
+      if (!message.includes("Voice input stopped.")) {
+        alert(message || "Speech to text failed.");
+      }
+    } finally {
       setIsListening(false);
     }
+  }
+
+  function applyQuickReply(template) {
+    const nextText = appendQuickReply(text, template);
+    setText(nextText);
+    requestAnimationFrame(() => {
+      textRef.current?.focus?.();
+    });
   }
 
   async function uploadFiles(fileList) {
@@ -565,6 +581,21 @@ export default function ChatModal({
         </div>
 
         <div className="px-4 pb-3">
+          <p className="text-xs text-gray-500 mb-2">
+            Quick replies for {session?.role === "seller" ? "seller" : "buyer"}
+          </p>
+          <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
+            {quickReplyTemplates.map((template) => (
+              <button
+                key={template}
+                type="button"
+                onClick={() => applyQuickReply(template)}
+                className="whitespace-nowrap rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 hover:border-gray-300"
+              >
+                {template}
+              </button>
+            ))}
+          </div>
           <p className="text-xs text-gray-500 mb-2">Quick counter</p>
           <div className="flex gap-2 mb-2">
             <input
@@ -609,6 +640,7 @@ export default function ChatModal({
         <div className="p-4 border-t flex gap-3 items-end">
           <div className="flex-1">
             <textarea
+              ref={textRef}
               rows={4}
               className="w-full border rounded-lg px-3 py-2 text-sm resize-none"
               value={text}

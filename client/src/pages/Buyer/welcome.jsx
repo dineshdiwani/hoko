@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { getSession, setSession } from "../../services/storage";
 import api from "../../services/api";
 import NotificationCenter from "../../components/NotificationCenter";
+import { captureSpeechInput } from "../../services/speechInput";
 
 export default function BuyerWelcome() {
   const logoSrc = "/logo.png";
@@ -19,11 +20,7 @@ export default function BuyerWelcome() {
     isMobileViewport && !isLoggedIn ? "play" : "done"
   );
   const introVideoRef = useRef(null);
-  const recognitionRef = useRef(null);
   const navigate = useNavigate();
-  const SpeechRecognition =
-    typeof window !== "undefined" &&
-    (window.SpeechRecognition || window.webkitSpeechRecognition);
   function clearSellerLoginIntent() {
     localStorage.removeItem("login_intent_role");
     localStorage.removeItem("post_login_redirect");
@@ -73,7 +70,7 @@ export default function BuyerWelcome() {
     video.playbackRate = Math.max(0.5, Math.min(nextRate, 8));
   }
 
-function submitRequirement() {
+  function submitRequirement() {
     if (!text.trim()) {
       alert("Please type in your requirement");
       return;
@@ -84,73 +81,32 @@ function submitRequirement() {
     navigate("/buyer/requirement/new");
   }
 
-  const startVoiceInput = async () => {
-    if (!SpeechRecognition) {
-      alert("Speech recognition is not supported in this browser.");
-      return;
-    }
-    if (listening && recognitionRef.current) {
-      recognitionRef.current.stop();
-      return;
-    }
-    
-    // Request microphone permission first
+  async function startVoiceInput() {
+    if (listening) return;
+    setListening(true);
+    setSpeechStatus("Listening...");
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.getTracks().forEach(track => track.stop());
-    } catch (micErr) {
-      const micCode = String(micErr?.name || "");
-      if (micCode === "NotAllowedError" || micCode === "PermissionDeniedError") {
-        setSpeechStatus("Mic permission denied. Allow microphone access in browser settings.");
-        return;
+      const transcript = await captureSpeechInput({ language: "en-IN" });
+      if (transcript.trim()) {
+        setText((prev) => `${prev}${prev ? " " : ""}${transcript}`.trim());
+        setSpeechStatus("Voice captured");
+      } else {
+        setSpeechStatus("No speech detected. Try again.");
       }
-    }
-    
-    const recognition = new SpeechRecognition();
-    recognitionRef.current = recognition;
-    recognition.lang = "en-IN";
-    recognition.interimResults = false;
-    recognition.continuous = false;
-
-    recognition.onstart = () => {
-      setListening(true);
-      setSpeechStatus("Listening...");
-    };
-    recognition.onerror = (event) => {
-      setListening(false);
-      const code = String(event?.error || "");
-      if (code === "not-allowed" || code === "service-not-allowed") {
+    } catch (err) {
+      const message = String(err?.message || "");
+      if (message.includes("permission")) {
         setSpeechStatus("Mic permission denied. Allow microphone access.");
-      } else if (code === "no-speech") {
+      } else if (message.includes("No speech detected")) {
         setSpeechStatus("No speech detected. Try again.");
       } else {
         setSpeechStatus("Voice input failed. Try again.");
       }
-    };
-    recognition.onend = () => {
+    } finally {
       setListening(false);
-      recognitionRef.current = null;
       setTimeout(() => setSpeechStatus(""), 1500);
-    };
-    recognition.onresult = (event) => {
-      let transcript = "";
-      for (let i = event.resultIndex; i < event.results.length; i += 1) {
-        transcript += event.results[i][0].transcript || "";
-      }
-      if (transcript.trim()) {
-        setText((prev) => `${prev}${prev ? " " : ""}${transcript}`.trim());
-        setSpeechStatus("Voice captured");
-      }
-    };
-
-    try {
-      recognition.start();
-    } catch {
-      setListening(false);
-      recognitionRef.current = null;
-      setSpeechStatus("Mic could not start. Please try again.");
     }
-  };
+  }
 
   return (
     <div className="mf-theme">

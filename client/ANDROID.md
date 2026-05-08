@@ -38,6 +38,8 @@ Sync web code into Android:
 npm run android:sync --prefix client
 ```
 
+That command now clears stale copied web assets from `android/app/src/main/assets/public` before rebuilding and syncing, so deleted web files do not linger inside the Android app.
+
 Open Android Studio:
 
 ```bash
@@ -64,13 +66,13 @@ That generates the Play Store upload bundle:
 client/android/app/build/outputs/bundle/release/app-release.aab
 ```
 
-For the in-app download link, the release APK is copied to:
+The release APK stays in the Android build output:
 
 ```text
-client/public/apk/app-release.apk
+client/android/app/build/outputs/apk/release/app-release.apk
 ```
 
-The web app serves that file at `/apk/app-release.apk` after `npm run build`.
+Do not copy the release APK into `client/public/`, or it will be bundled back into the web app and inflate the Android package size.
 
 ## Before Play Store upload
 
