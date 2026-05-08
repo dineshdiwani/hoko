@@ -203,6 +203,7 @@ export default function RequirementForm({ isPublic = false }) {
   const [cities, setCities] = useState([]);
   const [categories, setCategories] = useState([]);
   const [units, setUnits] = useState([]);
+  const lastCityLookupMobileRef = useRef("");
 
   
   const buyerUpdatesMessage = "Send updates on my post";
@@ -329,45 +330,69 @@ useEffect(() => {
       setForm((prev) => ({ ...prev, mobile: mobileFromUrl }));
     }
 
-    if (session?.city && isPublic && !cityFromUrl && !form.city) {
-      setForm((prev) => ({ ...prev, city: session.city }));
+    if (sessionCity && isPublic && !cityFromUrl) {
+      setForm((prev) => (prev.city ? prev : { ...prev, city: sessionCity }));
     }
-    
+  }, [cityFromUrl, isLoggedIn, isPublic, mobileFromUrl, sessionCity, sessionEmail, sessionMobile]);
+
+  useEffect(() => {
+    if (!isPublic || !tempRequirementRef) return;
+    if (form.mobile) return;
+
+    let cancelled = false;
+
     async function fetchMobileFromRef() {
-      if (!isPublic || !tempRequirementRef || form.mobile) return;
-      
       try {
-        const res = await api.get(`/buyer/temp-requirement/${tempRequirementRef}`);
+        const res = await api.get(
+          `/buyer/temp-requirement/${tempRequirementRef}`
+        );
         const tempData = res?.data;
-        if (tempData?.mobileE164) {
+        if (!cancelled && tempData?.mobileE164) {
           const mobile = tempData.mobileE164.replace("+", "");
-          setForm((prev) => ({ ...prev, mobile }));
+          setForm((prev) => (prev.mobile ? prev : { ...prev, mobile }));
         }
-      } catch (err) {
-        if (mobileFromUrl) {
-          setForm((prev) => ({ ...prev, mobile: mobileFromUrl }));
+      } catch {
+        if (!cancelled && mobileFromUrl) {
+          setForm((prev) => (prev.mobile ? prev : { ...prev, mobile: mobileFromUrl }));
         }
       }
     }
-    
-    async function loadCityFromDatabase() {
-      const mobile = form.mobile || mobileFromUrl;
-      if (!mobile || !isPublic) return;
-      
-      try {
-        const res = await api.get(`/buyer/user-by-mobile?mobile=${encodeURIComponent(mobile)}`);
-        const userData = res?.data;
-        if (userData?.exists && userData?.city) {
-          setForm((prev) => ({ ...prev, city: userData.city }));
-        }
-      } catch (err) {
-        // User not found - new user, city stays empty
-      }
-    }
-    
-    loadCityFromDatabase();
+
     fetchMobileFromRef();
-  }, [tempRequirementRef, isPublic, mobileFromUrl, cityFromUrl, session, isLoggedIn, sessionMobile, sessionEmail]);
+    return () => {
+      cancelled = true;
+    };
+  }, [form.mobile, isPublic, mobileFromUrl, tempRequirementRef]);
+
+  useEffect(() => {
+    if (!isPublic) return;
+    const mobile = normalizeMobileValue(form.mobile || mobileFromUrl);
+    if (!mobile || mobile.length < 8) return;
+    if (!tempRequirementRef && !mobileFromUrl) return;
+    if (lastCityLookupMobileRef.current === mobile) return;
+
+    lastCityLookupMobileRef.current = mobile;
+    let cancelled = false;
+
+    async function loadCityFromDatabase() {
+      try {
+        const res = await api.get(
+          `/buyer/user-by-mobile?mobile=${encodeURIComponent(mobile)}`
+        );
+        const userData = res?.data;
+        if (!cancelled && userData?.exists && userData?.city) {
+          setForm((prev) => (prev.city ? prev : { ...prev, city: userData.city }));
+        }
+      } catch {
+        // User not found or backend temporarily unavailable. Leave city unchanged.
+      }
+    }
+
+    loadCityFromDatabase();
+    return () => {
+      cancelled = true;
+    };
+  }, [form.mobile, isPublic, mobileFromUrl, tempRequirementRef]);
 
   useEffect(() => {
     const draft = localStorage.getItem("draft_requirement_text");
