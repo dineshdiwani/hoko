@@ -204,7 +204,7 @@ export default function CityDashboard({
   function getShareLinks(req) {
     const socialShareText = getSocialShareText(req);
     const shareUrl = buildShareUrl(req);
-    const facebookShareUrl = `${shareUrl}${shareUrl.includes("?") ? "&" : "?"}share=facebook`;
+    const facebookShareUrl = `${shareUrl.replace(/\/seller\/deeplink\/([^/?#]+).*$/i, "/seller/facebook/$1")}`;
     const encodedSocialText = encodeURIComponent(socialShareText);
     const encodedWhatsAppText = encodeURIComponent(getWhatsAppShareText(req));
     const encodedUrl = encodeURIComponent(shareUrl);

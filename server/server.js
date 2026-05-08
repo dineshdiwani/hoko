@@ -911,6 +911,36 @@ function buildRequirementSharePreview(requirement, baseUrl) {
   return { ogTitle, ogDescription };
 }
 
+function renderRequirementOgPage({ ogTitle, ogDescription, ogUrl, ogImage, canonicalUrl }) {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="HOKO">
+  <meta property="fb:app_id" content="${escapeHtml(process.env.FACEBOOK_APP_ID || process.env.VITE_FACEBOOK_APP_ID || "")}">
+  <meta property="og:title" content="${escapeHtml(ogTitle)}">
+  <meta property="og:description" content="${escapeHtml(ogDescription)}">
+  <meta property="og:url" content="${escapeHtml(ogUrl)}">
+  <meta property="og:image" content="${escapeHtml(ogImage)}">
+  <meta property="og:image:secure_url" content="${escapeHtml(ogImage)}">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="description" content="${escapeHtml(ogDescription)}">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="${escapeHtml(ogTitle)}">
+  <meta name="twitter:description" content="${escapeHtml(ogDescription)}">
+  <meta name="twitter:image" content="${escapeHtml(ogImage)}">
+  <link rel="canonical" href="${escapeHtml(canonicalUrl)}">
+  <title>${escapeHtml(ogTitle)}</title>
+</head>
+<body>
+  <p>Redirecting...</p>
+</body>
+</html>`;
+}
+
 app.get("/seller/deeplink/:id", async (req, res, next) => {
   const reqId = String(req.params.id || "").trim();
   const userAgent = String(req.headers["user-agent"] || "");
@@ -929,36 +959,46 @@ app.get("/seller/deeplink/:id", async (req, res, next) => {
       const { ogTitle, ogDescription } = buildRequirementSharePreview(requirement, baseUrl);
       const ogUrl = `${baseUrl}/seller/deeplink/${reqId}`;
       const ogImage = `${baseUrl}/logo.jpg`;
-
-      const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta property="og:type" content="website">
-  <meta property="og:site_name" content="HOKO">
-  <meta property="og:title" content="${escapeHtml(ogTitle)}">
-  <meta property="og:description" content="${escapeHtml(ogDescription)}">
-  <meta property="og:url" content="${escapeHtml(ogUrl)}">
-  <meta property="og:image" content="${escapeHtml(ogImage)}">
-  <meta property="og:image:width" content="1200">
-  <meta property="og:image:height" content="630">
-  <meta name="description" content="${escapeHtml(ogDescription)}">
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="${escapeHtml(ogTitle)}">
-  <meta name="twitter:description" content="${escapeHtml(ogDescription)}">
-  <meta name="twitter:image" content="${escapeHtml(ogImage)}">
-  <title>${escapeHtml(ogTitle)}</title>
-</head>
-<body>
-  <p>Redirecting...</p>
-</body>
-</html>`;
-
-      return res.set("Content-Type", "text/html").send(html);
+      return res
+        .set("Content-Type", "text/html")
+        .send(renderRequirementOgPage({
+          ogTitle,
+          ogDescription,
+          ogUrl,
+          ogImage,
+          canonicalUrl: ogUrl
+        }));
     }
   } catch (err) {
     console.error("[OG ERROR]", err.message);
+  }
+
+  return next();
+});
+
+app.get("/seller/facebook/:id", async (req, res, next) => {
+  const reqId = String(req.params.id || "").trim();
+  try {
+    const Requirement = require("./models/Requirement");
+    const requirement = await Requirement.findById(reqId).lean();
+    if (!requirement) return next();
+
+    const baseUrl = process.env.APP_URL || "https://hokoapp.in";
+    const { ogTitle, ogDescription } = buildRequirementSharePreview(requirement, baseUrl);
+    const ogUrl = `${baseUrl}/seller/facebook/${reqId}`;
+    const ogImage = `${baseUrl}/logo.jpg`;
+
+    return res
+      .set("Content-Type", "text/html")
+      .send(renderRequirementOgPage({
+        ogTitle,
+        ogDescription,
+        ogUrl,
+        ogImage,
+        canonicalUrl: `${baseUrl}/seller/deeplink/${reqId}`
+      }));
+  } catch (err) {
+    console.error("[FB OG ERROR]", err.message);
   }
 
   return next();
