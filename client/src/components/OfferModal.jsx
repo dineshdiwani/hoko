@@ -476,7 +476,8 @@ export default function OfferModal({
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 pb-24 md:pb-6 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden">
+        <div className="flex-1 overflow-y-auto p-6 pb-4">
         {hasHighlights && (
           <div className="mb-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
             Buyer updated this post. Changed fields are highlighted below.
@@ -764,41 +765,8 @@ export default function OfferModal({
             </div>
           </div>
         )}
-
-        <div className="hidden md:flex gap-3">
-          <button
-            onClick={onClose}
-            className="flex-1 border rounded-xl py-2"
-          >
-            Cancel
-          </button>
-
-          <button
-            onClick={submitOffer}
-            className="flex-1 btn-brand rounded-xl py-2"
-            disabled={submittingOffer}
-          >
-            {submittingOffer
-              ? "Submitting..."
-              : existingOffer
-              ? "Update Offer"
-              : "Submit Offer"}
-          </button>
-          {/* "Cannot beat price" button - only show if auction active */}
-          {isAuctionActive && (
-            <button
-              onClick={() => {
-                markDeclined();
-                onClose();
-              }}
-              className="flex-1 border rounded-xl py-2 text-gray-600 hover:bg-gray-100"
-            >
-              Cannot beat price
-            </button>
-          )}
         </div>
-
-        <div className="md:hidden fixed left-0 right-0 bottom-0 z-50 border-t border-[var(--ui-border)] bg-white/95 backdrop-blur p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+        <div className="shrink-0 border-t border-[var(--ui-border)] bg-white/95 backdrop-blur p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
           <div className="flex gap-2">
             <button
               onClick={onClose}
@@ -818,6 +786,17 @@ export default function OfferModal({
                 : "Submit Offer"}
             </button>
           </div>
+          {isAuctionActive && (
+            <button
+              onClick={() => {
+                markDeclined();
+                onClose();
+              }}
+              className="mt-2 w-full rounded-xl border py-3 text-sm text-gray-600 hover:bg-gray-100"
+            >
+              Cannot beat price
+            </button>
+          )}
         </div>
         {cameraOpen && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
