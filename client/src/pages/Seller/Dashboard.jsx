@@ -564,6 +564,10 @@ export default function SellerDashboard() {
   function handleSellerOfferClick(req, { isSample = false, isCityLocked = false } = {}) {
     if (!req || isSample || isCityLocked) return;
     if (!session?.token) {
+      if (isWhatsAppPublicView) {
+        setActiveRequirement(req);
+        return;
+      }
       goToSellerLoginForOffer(req);
       return;
     }
@@ -1843,8 +1847,10 @@ export default function SellerDashboard() {
                           ? "bg-gray-200 text-gray-600 cursor-not-allowed"
                           : req.myOffer
                           ? "bg-green-600 text-white active:scale-95"
-                          : !session?.token
+                          : !session?.token && !isWhatsAppPublicView
                           ? "bg-blue-600 text-white active:scale-95"
+                          : !session?.token && isWhatsAppPublicView
+                          ? "btn-brand active:scale-95"
                           : "btn-brand active:scale-95"
                       }`}
                     >
@@ -1852,8 +1858,10 @@ export default function SellerDashboard() {
                         ? "Preview Only (Sample Post)"
                         : isCityLocked
                         ? "Offer Locked (City)"
-                        : !session?.token
+                        : !session?.token && !isWhatsAppPublicView
                         ? "Login to Submit Offer"
+                        : !session?.token && isWhatsAppPublicView
+                        ? "Submit Offer"
                         : req.myOffer
                         ? "Submitted Offer / Edit Offer"
                         : "Submit Offer"}
