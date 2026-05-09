@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import api from "../services/api";
-import { getSession } from "../services/storage";
+import { getSession, setSession } from "../services/storage";
 import { refreshSession } from "../services/sessionRefresh";
 import {
   extractAttachmentFileName,
@@ -102,6 +102,7 @@ export default function OfferModal({
   const [offerAttachments, setOfferAttachments] = useState([]);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [cameraError, setCameraError] = useState("");
+  const [submittingOffer, setSubmittingOffer] = useState(false);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const [existingOffer, setExistingOffer] = useState(false);
@@ -339,7 +340,56 @@ export default function OfferModal({
     setCameraOpen(false);
   }
 
+  async function ensureSellerSession() {
+    const session = getSession();
+    if (!session?.token) {
+      return { ok: false, reason: "login" };
+    }
+
+    if (!session?.roles?.seller) {
+      return { ok: false, reason: "register" };
+    }
+
+    let nextSession = session;
+    if (session.role !== "seller") {
+      const res = await api.post("/auth/switch-role", { role: "seller" });
+      const nextUser = res?.data?.user || {};
+      nextSession = {
+        ...session,
+        _id: nextUser._id || session._id,
+        role: nextUser.role || "seller",
+        roles: nextUser.roles || session.roles,
+        email: nextUser.email || session.email,
+        city: nextUser.city || session.city,
+        name: nextUser.name || session.name,
+        mobile: nextUser.mobile || session.mobile || "",
+        preferredCurrency: nextUser.preferredCurrency || session.preferredCurrency || "INR",
+        sellerProfile: nextUser.sellerProfile || session.sellerProfile || {},
+        token: res?.data?.token || session.token
+      };
+      setSession(nextSession);
+    }
+
+    if (!isCompleteSellerProfile(nextSession)) {
+      const refreshed = await refreshSession().catch(() => null);
+      if (refreshed?.user) {
+        nextSession = {
+          ...nextSession,
+          ...refreshed.user
+        };
+        setSession(nextSession);
+      }
+    }
+
+    return {
+      ok: isCompleteSellerProfile(nextSession),
+      reason: isCompleteSellerProfile(nextSession) ? "" : "register",
+      session: nextSession
+    };
+  }
+
   const submitOffer = async () => {
+    if (submittingOffer) return;
     if (!price) {
       alert("Please enter price");
       return;
@@ -359,60 +409,30 @@ export default function OfferModal({
     ) {
       alert("Price must be lower than current lowest price");
       return;
-}
-    
-    // Check if seller is logged in
-    const session = JSON.parse(localStorage.getItem("hoko_session") || "null");
-    
-    // Not logged in - redirect to login
-    if (!session?.token) {
-      savePendingOfferIntent();
-      if (!localStorage.getItem("post_login_redirect")) {
-        const currentTarget = buildResumeTarget();
-        localStorage.setItem("post_login_redirect", currentTarget);
-      }
-      if (!localStorage.getItem("post_login_redirect_source")) {
-        localStorage.setItem("post_login_redirect_source", "offer");
-      }
-      localStorage.setItem("login_intent_role", "seller");
-      const params = buildAuthParams();
-      window.location.href = `/seller/login${params.toString() ? `?${params.toString()}` : ""}`;
-      return;
-    }
-    
-    // Logged in but no seller profile - redirect to registration
-    let effectiveSession = session;
-    if (!isCompleteSellerProfile(effectiveSession)) {
-      try {
-        const refreshed = await refreshSession();
-        if (refreshed?.user) {
-          effectiveSession = {
-            ...effectiveSession,
-            ...refreshed.user
-          };
-        }
-      } catch {}
     }
 
-    const hasSellerProfile = isCompleteSellerProfile(effectiveSession);
-    
-    if (!hasSellerProfile) {
-      savePendingOfferIntent();
-      if (!localStorage.getItem("post_login_redirect")) {
-        const currentTarget = buildResumeTarget();
-        localStorage.setItem("post_login_redirect", currentTarget);
-      }
-      if (!localStorage.getItem("post_login_redirect_source")) {
-        localStorage.setItem("post_login_redirect_source", "offer");
-      }
-      localStorage.setItem("login_intent_role", "seller");
-      const params = buildAuthParams();
-      params.set("requirementId", requirementId);
-      window.location.href = `/seller/register${params.toString() ? `?${params.toString()}` : ""}`;
-      return;
-    }
-
+    setSubmittingOffer(true);
     try {
+      const sellerSession = await ensureSellerSession();
+      if (!sellerSession.ok) {
+        savePendingOfferIntent();
+        if (!localStorage.getItem("post_login_redirect")) {
+          const currentTarget = buildResumeTarget();
+          localStorage.setItem("post_login_redirect", currentTarget);
+        }
+        if (!localStorage.getItem("post_login_redirect_source")) {
+          localStorage.setItem("post_login_redirect_source", "offer");
+        }
+        localStorage.setItem("login_intent_role", "seller");
+        const params = buildAuthParams();
+        params.set("requirementId", requirementId);
+        const target = sellerSession.reason === "login"
+          ? `/seller/login${params.toString() ? `?${params.toString()}` : ""}`
+          : `/seller/register${params.toString() ? `?${params.toString()}` : ""}`;
+        window.location.href = target;
+        return;
+      }
+
       let nextAttachments = Array.isArray(offerAttachments)
         ? [...offerAttachments]
         : [];
@@ -442,6 +462,8 @@ export default function OfferModal({
         err?.response?.data?.message || "Failed to submit offer. Try again."
       );
       return;
+    } finally {
+      setSubmittingOffer(false);
     }
 
     alert("Offer submitted successfully!");
@@ -462,6 +484,11 @@ export default function OfferModal({
         <h2 className="text-xl font-bold mb-4">
           {existingOffer ? "Edit Offer" : "Submit Offer"}
         </h2>
+        {submittingOffer && (
+          <div className="mb-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800">
+            Submitting your offer. Please keep this window open.
+          </div>
+        )}
         <p
           className={`text-sm text-gray-600 mb-3 ${
             changedFieldSet.has("product") ? `${highlightBlockClass} px-2 py-1 ${highlightTextClass}` : ""
@@ -748,8 +775,13 @@ export default function OfferModal({
           <button
             onClick={submitOffer}
             className="flex-1 btn-brand rounded-xl py-2"
+            disabled={submittingOffer}
           >
-            {existingOffer ? "Update Offer" : "Submit Offer"}
+            {submittingOffer
+              ? "Submitting..."
+              : existingOffer
+              ? "Update Offer"
+              : "Submit Offer"}
           </button>
           {/* "Cannot beat price" button - only show if auction active */}
           {isAuctionActive && (
@@ -776,8 +808,13 @@ export default function OfferModal({
             <button
               onClick={submitOffer}
               className="flex-1 btn-brand rounded-xl py-3 text-sm"
+              disabled={submittingOffer}
             >
-              {existingOffer ? "Update Offer" : "Submit Offer"}
+              {submittingOffer
+                ? "Submitting..."
+                : existingOffer
+                ? "Update Offer"
+                : "Submit Offer"}
             </button>
           </div>
         </div>
