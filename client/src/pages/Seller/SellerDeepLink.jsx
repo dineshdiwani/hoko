@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import api from "../../services/api";
 import { getSession, setSession, clearSession } from "../../services/storage";
+import { refreshSession } from "../../services/sessionRefresh";
 import { fetchOptions } from "../../services/options";
 import { saveDeferredDeepLink } from "../../services/deepLinks";
 
@@ -255,7 +256,7 @@ export default function SellerDeepLink() {
     localStorage.setItem(PENDING_OFFER_KEY, JSON.stringify(record));
   };
 
-  const redirectToAuthOrRegister = (payload) => {
+  const redirectToAuthOrRegister = async (payload) => {
     savePendingOfferIntent(payload);
     localStorage.setItem("post_login_redirect", buildRedirectTarget());
     localStorage.setItem(POST_LOGIN_REDIRECT_SOURCE_KEY, "offer");
@@ -272,7 +273,11 @@ export default function SellerDeepLink() {
     });
 
     const session = getSession();
-    const isSeller = session?.role === "seller" || Boolean(session?.roles?.seller);
+    const refreshed = await refreshSession().catch(() => null);
+    const effectiveSession = refreshed?.user
+      ? { ...session, ...refreshed.user }
+      : session;
+    const isSeller = effectiveSession?.role === "seller" || Boolean(effectiveSession?.roles?.seller);
     if (!session?.token) {
       const effectiveMobile = mobileFromUrl || mobileFromPayload;
       const loginParams = new URLSearchParams();
@@ -282,7 +287,7 @@ export default function SellerDeepLink() {
       navigate(`/seller/login?${loginParams.toString()}`, { replace: true });
       return;
     }
-    if (session?.token && !isSeller) {
+    if (effectiveSession?.token && !isSeller) {
       const effectiveMobile = mobileFromUrl || mobileFromPayload;
       const registerParams = new URLSearchParams();
       registerParams.set("requirementId", requirementIdValue);

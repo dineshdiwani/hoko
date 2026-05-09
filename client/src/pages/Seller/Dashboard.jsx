@@ -15,6 +15,7 @@ import {
   setSession,
   setUiCitySelection
 } from "../../services/storage";
+import { refreshSession } from "../../services/sessionRefresh";
 import { generateSamplePostsForCity } from "../../services/samplePosts";
 import NotificationCenter from "../../components/NotificationCenter";
 import OfferModal from "../../components/OfferModal";
@@ -36,6 +37,7 @@ import {
   getNotificationRequirementId,
   getNotificationState
 } from "../../utils/notifications";
+import { isCompleteSellerProfile } from "../../utils/sellerProfile";
 
 
 
@@ -564,12 +566,24 @@ export default function SellerDashboard() {
       goToSellerLoginForOffer(req);
       return;
     }
-    const hasSellerProfile =
-      Boolean(session?.roles?.seller) &&
-      Boolean(session?.sellerProfile?.registeredBusinessName) &&
-      Boolean(session?.sellerProfile?.managerName);
+    const hasSellerProfile = isCompleteSellerProfile(session);
     if (!hasSellerProfile) {
-      goToSellerRegisterForOffer(req);
+      refreshSession()
+        .then((response) => {
+          const refreshedSession = {
+            ...session,
+            ...(response?.user || {})
+          };
+          if (isCompleteSellerProfile(refreshedSession)) {
+            setSession(refreshedSession);
+            setActiveRequirement(req);
+            return;
+          }
+          goToSellerRegisterForOffer(req);
+        })
+        .catch(() => {
+          goToSellerRegisterForOffer(req);
+        });
       return;
     }
     setActiveRequirement(req);

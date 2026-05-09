@@ -8,6 +8,7 @@ import { isNativeAppRuntime } from "../../utils/runtime";
 import { ensureNativePushRegistration, isNativePushEnabled } from "../../services/nativePush";
 import { CapacitorSmsRetriever } from "@shaher/capacitor-sms-retriever";
 import { getDeferredDeepLink, clearDeferredDeepLink, buildDeferredDeepLinkUrl } from "../../services/deepLinks";
+import { isCompleteSellerProfile } from "../../utils/sellerProfile";
 
 const BUYER_PENDING_REQUIREMENT_KEY = "buyer_pending_requirement_data";
 const BUYER_REQUIREMENT_DRAFT_KEY = "buyer_requirement_form_draft";
@@ -147,11 +148,14 @@ export default function UserLogin({ role = "buyer" }) {
   
   const redirect = finalRedirect;
 
-  function hasCompleteSellerProfile(user) {
-    return Boolean(
-      user?.sellerProfile?.registeredBusinessName &&
-      user?.sellerProfile?.managerName
-    );
+  function hasCompleteSellerProfile(user, profile = null) {
+    return isCompleteSellerProfile({
+      ...user,
+      sellerProfile: {
+        ...(profile || {}),
+        ...(user?.sellerProfile || {})
+      }
+    });
   }
 
   function buildSellerResumeRedirect() {
@@ -649,7 +653,7 @@ useEffect(() => {
         }
 
         if (isSeller && isSellerWhatsAppFlow) {
-          if (!hasCompleteSellerProfile(user) && !profile?.registeredBusinessName) {
+          if (!hasCompleteSellerProfile(user, profile)) {
             setSession({
               _id: user._id,
               role: user.role || currentRole,
@@ -776,7 +780,7 @@ useEffect(() => {
         }
 
         if (shouldResumeSellerFlow) {
-          if (!hasCompleteSellerProfile(user) && !profile?.registeredBusinessName) {
+          if (!hasCompleteSellerProfile(user, profile)) {
             navigate(buildSellerRegisterRedirect(), { replace: true });
             return;
           }
@@ -830,7 +834,7 @@ useEffect(() => {
         }
         if (isSeller && isSellerWhatsAppFlow) {
           const sellerProfile = user.sellerProfile || {};
-          if (!hasCompleteSellerProfile(user) && !sellerProfile.registeredBusinessName) {
+          if (!hasCompleteSellerProfile(user, sellerProfile)) {
             setSession({
               _id: user._id,
               role: currentRole,
@@ -1257,10 +1261,7 @@ useEffect(() => {
                   }
                 }
 
-                const sellerProfileComplete = Boolean(
-                  pendingCitySession?.sellerProfile?.registeredBusinessName &&
-                  pendingCitySession?.sellerProfile?.managerName
-                );
+                const sellerProfileComplete = hasCompleteSellerProfile(pendingCitySession);
                 const shouldResumeSellerFlow =
                   isSellerRole && useSellerPostLoginRedirect;
                 if (shouldResumeSellerFlow) {

@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import api from "../services/api";
 import { getSession } from "../services/storage";
+import { refreshSession } from "../services/sessionRefresh";
 import {
   extractAttachmentFileName,
   getAttachmentDisplayName,
   getAttachmentTypeMeta
 } from "../utils/attachments";
+import { isCompleteSellerProfile } from "../utils/sellerProfile";
 
 const SELLER_OFFER_DRAFT_KEY_PREFIX = "seller_offer_draft";
 
@@ -379,7 +381,20 @@ export default function OfferModal({
     }
     
     // Logged in but no seller profile - redirect to registration
-    const hasSellerProfile = session?.sellerProfile?.registeredBusinessName && session?.sellerProfile?.managerName;
+    let effectiveSession = session;
+    if (!isCompleteSellerProfile(effectiveSession)) {
+      try {
+        const refreshed = await refreshSession();
+        if (refreshed?.user) {
+          effectiveSession = {
+            ...effectiveSession,
+            ...refreshed.user
+          };
+        }
+      } catch {}
+    }
+
+    const hasSellerProfile = isCompleteSellerProfile(effectiveSession);
     
     if (!hasSellerProfile) {
       savePendingOfferIntent();

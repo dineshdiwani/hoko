@@ -19,6 +19,7 @@ const {
 const { notifyNewBuyer, notifyNewSeller } = require("../services/adminNotifications");
 const { normalizeE164 } = require("../utils/sendWhatsApp");
 const { sendOtpSms } = require("../utils/sendSms");
+const { isCompleteSellerProfile } = require("../utils/sellerProfile");
 
 function normalizeEmail(email) {
   return String(email || "").trim().toLowerCase();
@@ -335,7 +336,7 @@ router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
     
     const normalizedRole = role === "seller" ? "seller" : "buyer";
     if (normalizedRole === "seller") {
-      const hasSellerProfile = Boolean(user.roles?.seller) || Boolean(user.sellerProfile?.registeredBusinessName);
+      const hasSellerProfile = isCompleteSellerProfile(user);
       if (!hasSellerProfile) {
         const token = jwt.sign(
           { id: user._id, role: normalizedRole, tokenVersion: user.tokenVersion || 0 },
@@ -383,7 +384,7 @@ router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
       actorRole: normalizedRole,
       userId: user._id,
       source: "auth.verify-otp.email",
-      payload: { role: normalizedRole, hasSellerProfile: Boolean(user.roles?.seller || user.sellerProfile?.registeredBusinessName) }
+      payload: { role: normalizedRole, hasSellerProfile: isCompleteSellerProfile(user) }
     });
     
     const mergeResult = await mergeSoftUserRequirements(user._id, mobileE164);
@@ -438,10 +439,7 @@ router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
   }
 
   if (normalizedRole === "seller") {
-    const hasSellerProfile =
-      Boolean(user.roles?.seller) ||
-      Boolean(user.sellerProfile?.registeredBusinessName) ||
-      Boolean(user.sellerProfile?.taxId);
+    const hasSellerProfile = isCompleteSellerProfile(user);
     if (!hasSellerProfile) {
       const token = jwt.sign(
         { id: user._id, role: normalizedRole, tokenVersion: user.tokenVersion || 0 },
@@ -619,14 +617,11 @@ router.post("/google", async (req, res) => {
       } else if (city) {
         user.city = city;
       }
-      if (normalizedRole === "seller") {
-        const hasSellerProfile =
-          Boolean(user.roles?.seller) ||
-          Boolean(user.sellerProfile?.registeredBusinessName) ||
-          Boolean(user.sellerProfile?.taxId);
-        if (!hasSellerProfile) {
-          return res.status(403).json({
-            message: "Complete seller registration before Google login"
+    if (normalizedRole === "seller") {
+      const hasSellerProfile = isCompleteSellerProfile(user);
+      if (!hasSellerProfile) {
+        return res.status(403).json({
+          message: "Complete seller registration before Google login"
           });
         }
         user.roles.seller = true;
@@ -703,17 +698,10 @@ router.post("/switch-role", auth, async (req, res) => {
   
   if (nextRole === "seller") {
     const sellerProfile = currentUser?.sellerProfile || {};
-    const hasCategories =
-      Array.isArray(sellerProfile.categories) &&
-      sellerProfile.categories.filter((item) => String(item || "").trim()).length > 0;
-const hasSellerProfile = Boolean(
-      String(currentUser?.email || "").trim() &&
-        String(currentUser?.mobile || "").trim() &&
-        String(currentUser?.city || "").trim() &&
-        String(sellerProfile.registeredBusinessName || "").trim() &&
-        String(sellerProfile.managerName || "").trim() &&
-        hasCategories
-    );
+    const hasSellerProfile = isCompleteSellerProfile({
+      ...currentUser,
+      sellerProfile
+    });
     if (!hasSellerProfile) {
       return res.status(403).json({
         message: "Seller onboarding required"

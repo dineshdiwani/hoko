@@ -45,3 +45,30 @@ export async function refreshSessionIfNeeded() {
 
   return response.data;
 }
+
+export async function refreshSession() {
+  const session = getSession();
+  if (!session?.token) {
+    return null;
+  }
+
+  const response = await api.post("/auth/refresh");
+  const nextUser = response?.data?.user || {};
+  const nextToken = String(response?.data?.token || "").trim();
+  if (!nextToken) {
+    return null;
+  }
+
+  setSession({
+    ...session,
+    ...nextUser,
+    token: nextToken,
+    role: nextUser.role || session.role,
+    roles: nextUser.roles || session.roles,
+    sellerProfile: nextUser.sellerProfile || session.sellerProfile || {},
+    mobile: nextUser.mobile || session.mobile || "",
+    city: nextUser.city || session.city || ""
+  });
+
+  return response.data;
+}

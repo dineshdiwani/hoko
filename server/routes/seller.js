@@ -27,6 +27,7 @@ const {
 const { normalizeRequirementAttachmentsForResponse } = require("../utils/attachments");
 const { normalizeE164, sendViaGupshupTemplate, sendWhatsAppMessage } = require("../utils/sendWhatsApp");
 const { normalizeOfferInvitedFrom, getEffectiveRequirementStatus } = require("../utils/sharedUtils");
+const { isCompleteSellerProfile } = require("../utils/sellerProfile");
 const { notifyNewOffer, notifyReverseAuction } = require("../services/adminNotifications");
 const { setOtp, verifyOtp: verifyOtpCode } = require("../utils/otpStore");
 const { sendOtpEmail } = require("../utils/sendEmail");
@@ -1836,7 +1837,7 @@ router.get("/check-mobile", async (req, res) => {
   }
   
   const hasSellerRole = Boolean(user.roles?.seller);
-  const hasSellerProfile = hasSellerRole && user.sellerProfile?.registeredBusinessName && user.sellerProfile?.managerName;
+  const hasSellerProfile = hasSellerRole && isCompleteSellerProfile(user);
   
   res.json({
     exists: true,
