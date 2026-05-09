@@ -1352,16 +1352,11 @@ router.post("/offer", offerLimiter, auth, sellerOnly, async (req, res) => {
       requirement.reverseAuctionActive = Boolean(auctionWasActive);
       requirement.currentLowestPrice = nextLowest;
 
-      await requirement.save();
-
-      notifyNewOffer(
-        price,
-        requirement.productName || requirement.product,
-        req.user?.sellerProfile?.registeredBusinessName || req.user?.name || "Seller",
-        req.user?.mobile || "",
-        requirement.city,
-        requirement._id
-      );
+      try {
+        await requirement.save();
+      } catch (err) {
+        console.error("[Seller Offer] requirement save failed:", err?.message || err);
+      }
 
       const sellerMobileE164 = normalizeE164(req.user?.mobile);
       if (sellerMobileE164) {
@@ -1376,26 +1371,40 @@ router.post("/offer", offerLimiter, auth, sellerOnly, async (req, res) => {
               status: "submitted"
             }
           }
-        );
+        ).catch((err) => console.error("[Seller Offer] pending draft update failed:", err?.message || err));
       }
 
       setImmediate(() => {
         (async () => {
+          try {
+            notifyNewOffer(
+              price,
+              requirement.productName || requirement.product,
+              req.user?.sellerProfile?.registeredBusinessName || req.user?.name || "Seller",
+              req.user?.mobile || "",
+              requirement.city,
+              requirement._id
+            );
+          } catch (err) {
+            console.error("[Seller Offer] notifyNewOffer failed:", err?.message || err);
+          }
+
           const sellerName = String(req.user?.name || req.user?.sellerProfile?.registeredBusinessName || "Seller").trim();
           const productName = String(requirement.product || requirement.productName || "your requirement").trim();
           const priceStr = String(price || "").trim();
           const requirementIdStr = String(requirement._id || "").trim();
           const channelTasks = [];
+          const sellerMobileE164Bg = normalizeE164(req.user?.mobile);
           
-          if (sellerMobileE164) {
-          const sellerParams = [sellerName, productName, priceStr];
+          if (sellerMobileE164Bg) {
+            const sellerParams = [sellerName, productName, priceStr];
             const sellerDashboardLink = `${String(process.env.PUBLIC_APP_URL || "https://hokoapp.in").trim()}/seller/dashboard?${new URLSearchParams({
-              ...(String(sellerMobileE164 || "").replace(/[^\d]/g, "") ? { mobile: String(sellerMobileE164 || "").replace(/[^\d]/g, "") } : {}),
+              ...(String(sellerMobileE164Bg || "").replace(/[^\d]/g, "") ? { mobile: String(sellerMobileE164Bg || "").replace(/[^\d]/g, "") } : {}),
               from: "wa"
             }).toString()}`;
             channelTasks.push(
               sendWhatsAppTemplate({
-                to: sellerMobileE164,
+                to: sellerMobileE164Bg,
                 templateKey: "seller_quote_received_ack_v1",
                 parameters: sellerParams,
                 requirementId: requirementIdStr,
@@ -1429,7 +1438,7 @@ router.post("/offer", offerLimiter, auth, sellerOnly, async (req, res) => {
           }
 
           await Promise.allSettled(channelTasks);
-        })().catch((err) => console.error("[WhatsApp] Offer notification error:", err));
+        })().catch((err) => console.error("[WhatsApp] Offer notification error:", err?.message || err));
       });
 
       const io = req.app.get("io");
@@ -1479,7 +1488,7 @@ router.post("/offer", offerLimiter, auth, sellerOnly, async (req, res) => {
           title: "New Offer Received",
           body: `A seller submitted an offer of Rs ${price}`,
           data: { url: "/buyer/dashboard" }
-        });
+        }).catch((err) => console.error("[Seller Offer] buyer push failed:", err?.message || err));
       }
 
       // Non-blocking admin email side-channel for operations visibility.
@@ -1526,10 +1535,10 @@ router.post("/offer", offerLimiter, auth, sellerOnly, async (req, res) => {
           if (tasks.length) {
             await Promise.allSettled(tasks);
           }
-        })().catch(() => {});
+        })().catch((err) => console.error("[Seller Offer] admin email side-channel failed:", err?.message || err));
       });
     }
-    res.json(offer);
+    return res.json(offer);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Failed to submit offer" });
