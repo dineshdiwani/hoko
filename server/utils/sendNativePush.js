@@ -1,5 +1,6 @@
 const NativePushToken = require("../models/NativePushToken");
 const { getFirebaseMessaging } = require("./firebaseAdmin");
+const { withRetry } = require("./retry");
 
 function stringifyData(value) {
   if (!value || typeof value !== "object") return {};
@@ -47,17 +48,20 @@ module.exports = async function sendNativePush(userId, payload) {
     tag: String(payload?.tag || "").trim()
   });
 
-  const response = await messaging.sendEachForMulticast({
-    tokens,
-    notification: {
-      title,
-      body
-    },
-    data,
-    android: {
-      priority: "high"
-    }
-  });
+  const response = await withRetry(
+    () => messaging.sendEachForMulticast({
+      tokens,
+      notification: {
+        title,
+        body
+      },
+      data,
+      android: {
+        priority: "high"
+      }
+    }),
+    { maxAttempts: 3, baseDelayMs: 350 }
+  );
 
   const invalidTokens = [];
   response.responses.forEach((item, index) => {

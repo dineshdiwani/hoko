@@ -18,8 +18,10 @@ const WhatsAppBuyerContact = require("../models/WhatsAppBuyerContact");
 const WhatsAppTemplateRegistry = require("../models/WhatsAppTemplateRegistry");
 const WhatsAppCampaignRun = require("../models/WhatsAppCampaignRun");
 const WhatsAppDeliveryLog = require("../models/WhatsAppDeliveryLog");
+const OutboundDeliveryLog = require("../models/OutboundDeliveryLog");
 const OptedInSeller = require("../models/OptedInSeller");
 const AdminAuditLog = require("../models/AdminAuditLog");
+const AppEvent = require("../models/AppEvent");
 const adminAuth = require("../middleware/adminAuth");
 const { requireAdminPermission } = require("../middleware/adminPermission");
 const { otpSendLimiter, otpVerifyLimiter } = require("../middleware/rateLimit");
@@ -725,6 +727,74 @@ router.patch("/admins/:id", adminAuth, requireAdminPermission("admins.manage"), 
 router.get("/users", adminAuth, requireAdminPermission("users.read"), async (req, res) => {
   const users = await User.find().sort({ createdAt: -1 });
   res.json(users);
+});
+
+router.get("/events", adminAuth, requireAdminPermission("reports.read"), async (req, res) => {
+  const limit = Math.min(Math.max(Number(req.query?.limit) || 100, 1), 500);
+  const eventType = String(req.query?.eventType || "").trim();
+  const userId = String(req.query?.userId || "").trim();
+  const requirementId = String(req.query?.requirementId || "").trim();
+  const offerId = String(req.query?.offerId || "").trim();
+  const query = {};
+
+  if (eventType) query.eventType = eventType;
+  if (userId) query.userId = userId;
+  if (requirementId) query.requirementId = requirementId;
+  if (offerId) query.offerId = offerId;
+
+  const events = await AppEvent.find(query)
+    .sort({ createdAt: -1 })
+    .limit(limit)
+    .lean();
+
+  res.json({ events });
+});
+
+router.get("/delivery-logs", adminAuth, requireAdminPermission("reports.read"), async (req, res) => {
+  const limit = Math.min(Math.max(Number(req.query?.limit) || 50, 1), 200);
+  const channel = String(req.query?.channel || "").trim().toLowerCase();
+  const status = String(req.query?.status || "").trim().toLowerCase();
+  const eventType = String(req.query?.eventType || "").trim();
+  const target = String(req.query?.target || "").trim();
+  const query = {};
+
+  if (channel) query.channel = channel;
+  if (status) query.status = status;
+  if (eventType) query.eventType = eventType;
+  if (target) query.target = target;
+
+  const [items, summaryRows] = await Promise.all([
+    OutboundDeliveryLog.find(query)
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .lean(),
+    OutboundDeliveryLog.aggregate([
+      { $match: query },
+      { $group: { _id: { channel: "$channel", status: "$status" }, count: { $sum: 1 } } }
+    ])
+  ]);
+
+  const summary = {
+    total: 0,
+    whatsapp: { attempted: 0, sent: 0, failed: 0, skipped: 0 },
+    sms: { attempted: 0, sent: 0, failed: 0, skipped: 0 },
+    email: { attempted: 0, sent: 0, failed: 0, skipped: 0 },
+    push: { attempted: 0, sent: 0, failed: 0, skipped: 0 }
+  };
+
+  for (const row of summaryRows) {
+    const channelKey = String(row?._id?.channel || "");
+    const statusKey = String(row?._id?.status || "");
+    const count = Number(row?.count || 0);
+    if (!summary[channelKey]) continue;
+    if (Object.prototype.hasOwnProperty.call(summary[channelKey], statusKey)) {
+      summary[channelKey][statusKey] += count;
+    }
+    summary[channelKey].attempted += count;
+    summary.total += count;
+  }
+
+  res.json({ items, summary });
 });
 
 router.get("/push/subscriptions/summary", adminAuth, requireAdminPermission("users.read"), async (req, res) => {

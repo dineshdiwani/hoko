@@ -10,6 +10,7 @@ const Requirement = require("../models/Requirement");
 const Offer = require("../models/Offer");
 const User = require("../models/User");
 const Notification = require("../models/Notification");
+const { claimNotificationGuard } = require("../utils/notificationGuard");
 const ChatMessage = require("../models/ChatMessage");
 const PlatformSettings = require("../models/PlatformSettings");
 const TempRequirement = require("../models/TempRequirement");
@@ -31,7 +32,7 @@ const {
 } = require("../utils/attachments");
 const sendPush = require("../utils/sendPush");
 const { sendAdminEventEmail, sendEmailToRecipient } = require("../utils/sendEmail");
-const { sendOtpSms } = require("../utils/sendSms");
+const { sendOtpSms, sendEventSms } = require("../utils/sendSms");
 const { triggerWhatsAppCampaignForRequirement } = require("../services/whatsAppCampaign");
 const { notifyMatchingSellers } = require("./whatsapp");
 const { notifyNewRequirement, notifyNewOffer } = require("../services/adminNotifications");
@@ -43,9 +44,15 @@ const {
 } = require("../utils/sharedUtils");
 const auth = require("../middleware/auth");
 const buyerOnly = require("../middleware/buyerOnly");
-const { otpSendLimiter, otpVerifyLimiter } = require("../middleware/rateLimit");
+const { otpSendLimiter, otpVerifyLimiter, requirementCreateLimiter } = require("../middleware/rateLimit");
 const { setOtp, verifyOtp: verifyOtpCode } = require("../utils/otpStore");
 const { sendOtpEmail } = require("../utils/sendEmail");
+const { recordAppEvent } = require("../utils/appEvents");
+const {
+  claimActionGuard,
+  attachActionReference,
+  releaseActionGuard
+} = require("../utils/actionGuard");
 
 const uploadDir = path.join(__dirname, "../uploads/requirements");
 if (!fs.existsSync(uploadDir)) {
@@ -475,11 +482,16 @@ async function sendBuyerRequirementConfirmation(mobileE164, requirementId) {
 async function sendBuyerConfirmationSms(mobileE164, requirementId) {
   const appBase = resolvePublicAppUrl();
   const dashboardLink = `${appBase}/buyer/dashboard?tab=posts&ref=${requirementId}`;
-  const smsBody = `Your requirement is live! Sellers will compete to offer you the best price. Manage & track it here: ${dashboardLink}`;
 
   try {
-    const { sendBulkSms } = require("../utils/sendSms");
-    await sendBulkSms({ numbers: [mobileE164], message: smsBody });
+    await sendEventSms({
+      mobile: mobileE164,
+      variables: [
+        "Requirement is live!",
+        "Sellers will compete to offer you the best price. Manage and track it from your dashboard.",
+        dashboardLink
+      ]
+    });
     console.log(`[Buyer SMS] Sent confirmation SMS to ${mobileE164}`);
     return { ok: true };
   } catch (err) {
@@ -1139,7 +1151,7 @@ router.post(
 /**
  * Create buyer requirement
  */
-router.post("/requirement", auth, buyerOnly, async (req, res) => {
+router.post("/requirement", requirementCreateLimiter, auth, buyerOnly, async (req, res) => {
   const { productName, product, quantity, category, city, email, mobile } = req.body || {};
 
   if (!productName && !product) {
@@ -1190,33 +1202,105 @@ router.post("/requirement", auth, buyerOnly, async (req, res) => {
   ].filter(Boolean);
   const flaggedReason = checkTextForFlags(textParts.join(" "), moderationRules);
 
-  const requirement = await Requirement.create({
-    ...req.body,
-    status: "open",
-    statusUpdatedAt: new Date(),
-    expiresAt: (() => {
-      const buyerSettings = getFreshBuyerSettings(req.user);
-      const days = clamp(
-        buyerSettings.postAutoExpiryDays,
-        MIN_POST_AUTO_EXPIRY_DAYS,
-        MAX_POST_AUTO_EXPIRY_DAYS,
-        30
-      );
-      const next = new Date();
-      next.setDate(next.getDate() + days);
-      return next;
-    })(),
-    offerInvitedFrom: normalizeOfferInvitedFrom(req.body?.offerInvitedFrom),
-    attachments: normalizeRequirementAttachmentValues(req.body?.attachments),
-    buyerId: req.user._id,
-    mobile: req.user.mobile || "",
-    moderation: flaggedReason
-      ? {
-          flagged: true,
-          flaggedAt: new Date(),
-          flaggedReason
+  const requirementFingerprintParts = [
+    req.user._id,
+    req.user.mobile || "",
+    productName || product || "",
+    quantity || "",
+    category || "",
+    city || "",
+    req.body?.details || "",
+    req.body?.brand || "",
+    req.body?.makeBrand || "",
+    req.body?.typeModel || "",
+    req.body?.type || ""
+  ];
+  const requirementGuard = await claimActionGuard({
+    actionType: "buyer_requirement_create",
+    actorId: req.user._id,
+    payloadParts: requirementFingerprintParts,
+    ttlMs: 15000,
+    referenceType: "requirement"
+  });
+
+  if (!requirementGuard.claimed) {
+    const existingRequirement = requirementGuard.guard?.referenceId
+      ? await Requirement.findById(requirementGuard.guard.referenceId).lean()
+      : await Requirement.findOne({
+          buyerId: req.user._id,
+          productName: { $in: [productName, product] },
+          quantity,
+          category,
+          city,
+          createdAt: { $gte: new Date(Date.now() - 15000) }
+        }).sort({ createdAt: -1 }).lean();
+
+    if (existingRequirement) {
+      return res.json({
+        ...mapRequirementLifecycle(existingRequirement),
+        user: {
+          _id: req.user._id,
+          email: req.user.email || "",
+          mobile: req.user.mobile || "",
+          city: req.user.city || "",
+          preferredCurrency: req.user.preferredCurrency || "INR",
+          roles: req.user.roles || {},
+          name: req.user.name || ""
         }
-      : undefined
+      });
+    }
+
+    return res.status(409).json({
+      message: "Duplicate requirement submission detected. Please wait a moment and try again."
+    });
+  }
+
+  let requirement = null;
+  try {
+    requirement = await Requirement.create({
+      ...req.body,
+      status: "open",
+      statusUpdatedAt: new Date(),
+      expiresAt: (() => {
+        const buyerSettings = getFreshBuyerSettings(req.user);
+        const days = clamp(
+          buyerSettings.postAutoExpiryDays,
+          MIN_POST_AUTO_EXPIRY_DAYS,
+          MAX_POST_AUTO_EXPIRY_DAYS,
+          30
+        );
+        const next = new Date();
+        next.setDate(next.getDate() + days);
+        return next;
+      })(),
+      offerInvitedFrom: normalizeOfferInvitedFrom(req.body?.offerInvitedFrom),
+      attachments: normalizeRequirementAttachmentValues(req.body?.attachments),
+      buyerId: req.user._id,
+      mobile: req.user.mobile || "",
+      moderation: flaggedReason
+        ? {
+            flagged: true,
+            flaggedAt: new Date(),
+            flaggedReason
+          }
+        : undefined
+    });
+    await attachActionReference(requirementGuard.key, "requirement", requirement._id);
+  } catch (err) {
+    await releaseActionGuard(requirementGuard.key);
+    throw err;
+  }
+  recordAppEvent({
+    eventType: "requirement_created",
+    actorRole: "buyer",
+    userId: req.user._id,
+    requirementId: requirement._id,
+    source: "buyer.requirement.create",
+    payload: {
+      category: requirement.category || "",
+      city: requirement.city || "",
+      product: requirement.productName || requirement.product || ""
+    }
   });
   res.json({
     ...mapRequirementLifecycle(requirement),
@@ -1276,28 +1360,51 @@ router.post("/requirement", auth, buyerOnly, async (req, res) => {
       const sellerIds = await User.find(sellerQuery).distinct("_id");
       if (!sellerIds.length) return;
 
-      const notificationDocs = sellerIds.map((sellerId) => ({
-        userId: sellerId,
-        fromUserId: req.user._id,
-        requirementId: requirement._id,
-        type: "new_post",
-        message: `New post in ${requirement.category || "your"} category: ${requirementName}`,
-        data: buildNotificationData("new_post", {
-          action: "open_requirement",
-          requirementId: String(requirement._id),
-          entityType: "requirement",
-          entityId: String(requirement._id),
-          category: normalizedCategory,
-          offerInvitedFrom,
-          url: `/seller/dashboard?openRequirement=${encodeURIComponent(String(requirement._id))}`
-        })
-      }));
+      const eligibleSellerIds = [];
+      const notificationDocs = [];
+      for (const sellerId of sellerIds) {
+        const guardKey = `seller:new_post:${requirement._id}:${sellerId}`;
+        const guard = await claimNotificationGuard(guardKey, 10 * 60 * 1000, "new_post");
+        if (!guard.ok) continue;
+        eligibleSellerIds.push(sellerId);
+        notificationDocs.push({
+          userId: sellerId,
+          fromUserId: req.user._id,
+          requirementId: requirement._id,
+          type: "new_post",
+          message: `New post in ${requirement.category || "your"} category: ${requirementName}`,
+          data: buildNotificationData("new_post", {
+            action: "open_requirement",
+            requirementId: String(requirement._id),
+            entityType: "requirement",
+            entityId: String(requirement._id),
+            category: normalizedCategory,
+            offerInvitedFrom,
+            url: `/seller/dashboard?openRequirement=${encodeURIComponent(String(requirement._id))}`
+          })
+        });
+      }
+
+      if (!notificationDocs.length) return;
 
       const notifications = await Notification.insertMany(notificationDocs);
+      recordAppEvent({
+        eventType: "lead_sent",
+        actorRole: "buyer",
+        userId: req.user._id,
+        requirementId: requirement._id,
+        source: "buyer.requirement.notify_sellers",
+        payload: {
+          sellerCount: eligibleSellerIds.length,
+          category: normalizedCategory,
+          city: String(requirement.city || "").trim(),
+          offerInvitedFrom
+        }
+      });
 
       if (io) {
         notifications.forEach((notification, idx) => {
-          const sellerId = sellerIds[idx];
+          const sellerId = eligibleSellerIds[idx];
           if (!sellerId) return;
           io.to(String(sellerId)).emit(
             "notification",
@@ -1314,7 +1421,7 @@ router.post("/requirement", auth, buyerOnly, async (req, res) => {
       );
 
       await Promise.all(
-        sellerIds.map(async (sellerId) => {
+        eligibleSellerIds.map(async (sellerId) => {
           try {
             const sellerDoc = sellerSettingsById.get(String(sellerId));
             if (!shouldNotifySellerEvent(sellerDoc, "lead")) {
@@ -1562,9 +1669,13 @@ router.put("/requirement/:id", auth, buyerOnly, async (req, res) => {
 
   if (sellerIds.length > 0) {
     const message = `Buyer updated requirement: ${requirementName}. Please review and update your offer if needed.`;
-    const notifications = await Promise.all(
-      sellerIds.map((sellerId) =>
-        Notification.create({
+    const notifications = [];
+    for (const sellerId of sellerIds) {
+      const guardKey = `seller:requirement_updated:${requirement._id}:${sellerId}`;
+      const guard = await claimNotificationGuard(guardKey, 5 * 60 * 1000, "requirement_updated");
+      if (!guard.ok) continue;
+      notifications.push(
+        await Notification.create({
           userId: sellerId,
           message,
           type: "requirement_updated",
@@ -1580,8 +1691,8 @@ router.put("/requirement/:id", auth, buyerOnly, async (req, res) => {
             url: `/seller/dashboard?openRequirement=${encodeURIComponent(String(requirement._id))}`
           })
         })
-      )
-    );
+      );
+    }
 
     const io = req.app.get("io");
     if (io) {
@@ -2697,8 +2808,11 @@ router.post("/requirement/:id/reverse-auction/start", auth, buyerOnly, async (re
   );
 
   const notifications = await Promise.all(
-    sellerIds.map((sellerId) =>
-      Notification.create({
+    sellerIds.map(async (sellerId) => {
+      const guardKey = `seller:reverse_auction:${requirement._id}:${sellerId}`;
+      const guard = await claimNotificationGuard(guardKey, 5 * 60 * 1000, "reverse_auction_invoked");
+      if (!guard.ok) return null;
+      return Notification.create({
         userId: sellerId,
         message,
         type: "reverse_auction_invoked",
@@ -2715,8 +2829,8 @@ router.post("/requirement/:id/reverse-auction/start", auth, buyerOnly, async (re
           currencySymbol,
           url: `/seller/dashboard?openRequirement=${encodeURIComponent(String(requirement._id))}`
         })
-      })
-    )
+      });
+    })
   );
 
   const io = req.app.get("io");
@@ -2941,6 +3055,18 @@ router.post("/requirements/:id/claim", auth, buyerOnly, async (req, res) => {
       mobile: tempReq.mobileE164 || "",
       status: "open"
     });
+    recordAppEvent({
+      eventType: "requirement_created",
+      actorRole: "buyer",
+      userId: userId,
+      requirementId: newReq._id,
+      source: "buyer.requirement.claim",
+      payload: {
+        category: newReq.category || "",
+        city: newReq.city || "",
+        product: newReq.productName || newReq.product || ""
+      }
+    });
     await TempRequirement.findByIdAndUpdate(requirementId, {
       $set: { status: "claimed", requirementId: newReq._id }
     });
@@ -3002,6 +3128,18 @@ router.post("/offers/:offerId/outcome", auth, buyerOnly, async (req, res) => {
   offer.outcomeUpdatedByBuyerId = req.user._id;
   if (outcomeStatus === "selected") {
     offer.contactEnabledByBuyer = true;
+    recordAppEvent({
+      eventType: "offer_accepted",
+      actorRole: "buyer",
+      userId: req.user._id,
+      requirementId: requirement._id,
+      offerId: offer._id,
+      source: "buyer.offer.outcome",
+      payload: {
+        sellerId: String(offer.sellerId || ""),
+        contactEnabledByBuyer: true
+      }
+    });
   }
   await offer.save();
 
@@ -3125,6 +3263,62 @@ router.post("/requirements/:id/enable-contact", auth, buyerOnly, async (req, res
     }
   );
 
+  const targetOffers = offerId
+    ? await Offer.find({ requirementId: requirement._id, _id: offerId }).select("_id sellerId").lean()
+    : await Offer.find(filter).select("_id sellerId").lean();
+  const targetSellerIds = Array.from(
+    new Set(
+      targetOffers
+        .map((item) => String(item.sellerId || "").trim())
+        .filter(Boolean)
+    )
+  );
+
+  recordAppEvent({
+    eventType: "contact_shared_enabled",
+    actorRole: "buyer",
+    userId: req.user._id,
+    requirementId: requirement._id,
+    source: "buyer.requirement.enable-contact",
+    payload: {
+      offerCount: result.modifiedCount || 0,
+      sellerCount: targetSellerIds.length,
+      offerId: offerId || null
+    }
+  });
+
+  if (targetSellerIds.length) {
+    const io = req.app.get("io");
+    const notifications = await Promise.all(
+      targetSellerIds.map((sellerId) =>
+        Notification.create({
+          userId: sellerId,
+          fromUserId: req.user._id,
+          requirementId: requirement._id,
+          type: "offer_outcome_updated",
+          message: `Buyer enabled contact for ${requirement.product || requirement.productName || "your offer"}`,
+          data: buildNotificationData("offer_outcome_updated", {
+            state: "selected",
+            requirementId: String(requirement._id),
+            entityType: "requirement",
+            entityId: String(requirement._id),
+            url: `/seller/dashboard?openRequirement=${encodeURIComponent(String(requirement._id))}`
+          })
+        })
+      )
+    );
+    if (io) {
+      notifications.forEach((notification, idx) => {
+        const sellerId = targetSellerIds[idx];
+        if (!sellerId) return;
+        io.to(String(sellerId)).emit(
+          "notification",
+          serializeNotification(notification, { fallbackUrl: "/seller/dashboard" })
+        );
+      });
+    }
+  }
+
   res.json({
     success: true,
     updated: result.modifiedCount || 0
@@ -3162,6 +3356,18 @@ router.post("/requirements/:id/disable-contact", auth, buyerOnly, async (req, re
       $set: { contactEnabledByBuyer: false }
     }
   );
+
+  recordAppEvent({
+    eventType: "contact_shared_disabled",
+    actorRole: "buyer",
+    userId: req.user._id,
+    requirementId: requirement._id,
+    source: "buyer.requirement.disable-contact",
+    payload: {
+      offerCount: result.modifiedCount || 0,
+      offerId: String(req.body?.offerId || "").trim() || null
+    }
+  });
 
   res.json({
     success: true,

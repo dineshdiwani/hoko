@@ -23,6 +23,10 @@ const ChatMessageSchema = new mongoose.Schema(
       default: "text"
     },
     message: { type: String, required: true },
+    tempId: {
+      type: String,
+      default: ""
+    },
     attachment: {
       filename: { type: String, default: "" },
       originalName: { type: String, default: "" },
@@ -57,5 +61,9 @@ const ChatMessageSchema = new mongoose.Schema(
 ChatMessageSchema.index({ requirementId: 1, createdAt: -1 });
 ChatMessageSchema.index({ fromUserId: 1, toUserId: 1 });
 ChatMessageSchema.index({ isRead: 1 });
+ChatMessageSchema.index(
+  { requirementId: 1, fromUserId: 1, tempId: 1 },
+  { unique: true, sparse: true }
+);
 
 module.exports = mongoose.model("ChatMessage", ChatMessageSchema);

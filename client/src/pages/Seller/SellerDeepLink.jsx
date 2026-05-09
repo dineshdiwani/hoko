@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import api from "../../services/api";
 import { getSession, setSession, clearSession } from "../../services/storage";
 import { fetchOptions } from "../../services/options";
+import { saveDeferredDeepLink } from "../../services/deepLinks";
 
 const PENDING_OFFER_KEY = "pending_seller_offer_intent";
 const POST_LOGIN_REDIRECT_SOURCE_KEY = "post_login_redirect_source";
@@ -218,6 +219,20 @@ export default function SellerDeepLink() {
     }));
   }, [savedDraft]);
 
+  useEffect(() => {
+    if (!requirementIdValue) return;
+    saveDeferredDeepLink({
+      path: `/seller/deeplink/${encodeURIComponent(requirementIdValue)}`,
+      source: "seller_deeplink",
+      role: "seller",
+      query: {
+        city: cityFromUrl || city || "",
+        cats: resumeCategory || "",
+        mobile: mobileFromUrl || mobileFromPayload || ""
+      }
+    });
+  }, [requirementIdValue, cityFromUrl, city, resumeCategory, mobileFromUrl, mobileFromPayload]);
+
   const buildRedirectTarget = () => {
     const next = new URLSearchParams();
     const effectiveMobile = mobileFromUrl || mobileFromPayload;
@@ -245,6 +260,16 @@ export default function SellerDeepLink() {
     localStorage.setItem("post_login_redirect", buildRedirectTarget());
     localStorage.setItem(POST_LOGIN_REDIRECT_SOURCE_KEY, "offer");
     localStorage.setItem("login_intent_role", "seller");
+    saveDeferredDeepLink({
+      path: "/seller/deeplink/" + encodeURIComponent(requirementIdValue),
+      source: "seller_offer",
+      role: "seller",
+      query: {
+        city: cityFromUrl || city || "",
+        cats: resumeCategory || "",
+        mobile: mobileFromUrl || mobileFromPayload || ""
+      }
+    });
 
     const session = getSession();
     const isSeller = session?.role === "seller" || Boolean(session?.roles?.seller);

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import socket, { connectSocket } from "../services/socket";
 import {
   fetchNotifications,
@@ -7,11 +7,24 @@ import {
   clearNotifications
 } from "../services/notifications";
 import { getSession } from "../services/storage";
-import { getNotificationBadgeMeta } from "../utils/notifications";
+import { getNotificationBadgeMeta, getNotificationCategory, getNotificationEvent } from "../utils/notifications";
 
-export default function NotificationCenter({ onNotificationClick }) {
+function matchesReEngagement(notification) {
+  const category = getNotificationCategory(notification);
+  const event = String(getNotificationEvent(notification) || "").toLowerCase();
+  const message = String(notification?.message || "").toLowerCase();
+  return (
+    category === "lead" ||
+    category === "requirement" ||
+    /reminder|reactivation|re-engagement/.test(event) ||
+    /reminder|reactivation|lead/.test(message)
+  );
+}
+
+export default function NotificationCenter({ onNotificationClick, showSellerQuickFilters = false }) {
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const [activeFilter, setActiveFilter] = useState("all");
   const menuRef = useRef(null);
 
   function mergeNotifications(nextItems) {
@@ -131,6 +144,22 @@ export default function NotificationCenter({ onNotificationClick }) {
   const unreadCount = notifications.filter(
     (n) => !n.read
   ).length;
+  const filteredNotifications = useMemo(() => {
+    if (!showSellerQuickFilters || activeFilter === "all") {
+      return notifications;
+    }
+    if (activeFilter === "re_engagement") {
+      return notifications.filter(matchesReEngagement);
+    }
+    return notifications;
+  }, [activeFilter, notifications, showSellerQuickFilters]);
+  const filterCounts = useMemo(
+    () => ({
+      all: notifications.length,
+      re_engagement: notifications.filter(matchesReEngagement).length
+    }),
+    [notifications]
+  );
 
   function renderNotificationItem(notification, index) {
     const badgeMeta = getNotificationBadgeMeta(notification);
@@ -198,6 +227,34 @@ export default function NotificationCenter({ onNotificationClick }) {
 
       {open && (
         <div className="fixed top-16 left-2 right-2 w-auto sm:absolute sm:top-auto sm:left-auto sm:right-0 sm:w-80 mt-2 bg-white shadow-lg rounded-lg border z-50 max-h-96 overflow-auto">
+          {showSellerQuickFilters && (
+            <div className="px-3 py-2 border-b bg-gray-50">
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveFilter("all")}
+                  className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+                    activeFilter === "all"
+                      ? "bg-gray-900 text-white"
+                      : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-100"
+                  }`}
+                >
+                  All {filterCounts.all > 0 ? `(${filterCounts.all})` : ""}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveFilter("re_engagement")}
+                  className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+                    activeFilter === "re_engagement"
+                      ? "bg-emerald-600 text-white"
+                      : "bg-white text-emerald-700 border border-emerald-200 hover:bg-emerald-50"
+                  }`}
+                >
+                  Re-engagement {filterCounts.re_engagement > 0 ? `(${filterCounts.re_engagement})` : ""}
+                </button>
+              </div>
+            </div>
+          )}
           {notifications.length > 0 && (
             <div className="px-3 py-2 border-b bg-gray-50 flex items-center justify-end">
               <button
@@ -210,13 +267,13 @@ export default function NotificationCenter({ onNotificationClick }) {
             </div>
           )}
 
-          {notifications.length === 0 && (
+          {filteredNotifications.length === 0 && (
             <p className="p-4 text-gray-500">
               No notifications
             </p>
           )}
 
-          {notifications.map(renderNotificationItem)}
+          {filteredNotifications.map(renderNotificationItem)}
         </div>
       )}
     </div>

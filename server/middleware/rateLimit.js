@@ -35,3 +35,11 @@ exports.offerLimiter = rateLimit({
   keyGenerator: safeKeyGenerator
 });
 
+exports.requirementCreateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: Number(process.env.REQUIREMENT_CREATE_RATE_LIMIT_MAX || 6),
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: safeKeyGenerator
+});
+

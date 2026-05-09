@@ -2,7 +2,8 @@ const express = require("express");
 const router = express.Router();
 const adminAuth = require("../middleware/adminAuth");
 const MissedCallLead = require("../models/MissedCallLead");
-const { sendBulkSms } = require("../utils/sendSms");
+const { sendEventSms } = require("../utils/sendSms");
+const { resolvePublicAppUrl } = require("../utils/publicAppUrl");
 
 function parseMobile(value) {
   if (!value) return null;
@@ -91,17 +92,40 @@ router.post("/send-welcome", adminAuth, async (req, res) => {
     }
 
     const mobiles = leads.map((l) => l.mobileE164);
-    const results = await sendBulkSms({
-      numbers: mobiles,
-      message: message.trim()
-    });
+    const appBase = resolvePublicAppUrl();
+    const deepLink = `${appBase}/seller/login?src=missed_call`;
+    const results = [];
+
+    for (const mobile of mobiles) {
+      try {
+        await sendEventSms({
+          mobile,
+          variables: [
+            "Thanks for calling Hoko",
+            message.trim(),
+            deepLink
+          ]
+        });
+        results.push({ mobile, sent: true });
+      } catch (err) {
+        results.push({
+          mobile,
+          sent: false,
+          error: err?.message || "send_failed"
+        });
+      }
+    }
 
     await MissedCallLead.updateMany(
       { _id: { $in: leads.map((l) => l._id) } },
       { $set: { status: "contacted", followUpAt: new Date() } }
     );
 
-    res.json(results);
+    res.json({
+      sent: results.filter((item) => item.sent).length,
+      failed: results.filter((item) => !item.sent).length,
+      results
+    });
   } catch (err) {
     console.error("Send welcome error:", err);
     res.status(500).json({ message: err.message || "Failed to send" });

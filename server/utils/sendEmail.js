@@ -1,4 +1,6 @@
 const nodemailer = require("nodemailer");
+const { withRetry } = require("./retry");
+const { scheduleOutboundLog } = require("./outboundDeliveryLog");
 
 function isValidEmail(value) {
   return /\S+@\S+\.\S+/.test(String(value || "").trim());
@@ -75,17 +77,45 @@ async function sendOtpEmail({ email, otp, subject }) {
       </p>
     </div>
   `;
-  const info = await transport.sendMail({
-    from: sender.from,
-    to: email,
-    envelope: {
-      from: sender.envelopeFrom,
-      to: email
-    },
-    ...(sender.replyTo ? { replyTo: sender.replyTo } : {}),
-    subject: subject || "Your Hoko OTP",
-    text: `Your OTP is ${otp}. It is valid for a short time.`,
-    html
+  let info;
+  try {
+    info = await withRetry(
+      () => transport.sendMail({
+        from: sender.from,
+        to: email,
+        envelope: {
+          from: sender.envelopeFrom,
+          to: email
+        },
+        ...(sender.replyTo ? { replyTo: sender.replyTo } : {}),
+        subject: subject || "Your Hoko OTP",
+        text: `Your OTP is ${otp}. It is valid for a short time.`,
+        html
+      }),
+      { maxAttempts: 2, baseDelayMs: 300 }
+    );
+  } catch (error) {
+    scheduleOutboundLog({
+      channel: "email",
+      eventType: "auth_otp",
+      target: email,
+      status: "failed",
+      provider: "smtp",
+      attempts: 2,
+      messagePreview: `OTP email to ${email}`,
+      error: error?.message || error
+    });
+    throw error;
+  }
+
+  scheduleOutboundLog({
+    channel: "email",
+    eventType: "auth_otp",
+    target: email,
+    status: "sent",
+    provider: "smtp",
+    attempts: 1,
+    messagePreview: `OTP email to ${email}`
   });
   return {
     ok: Array.isArray(info?.accepted) ? info.accepted.length > 0 : true,
@@ -103,21 +133,49 @@ async function sendEmailToRecipient({ to, subject, text, html }) {
   }
 
   const sender = resolveSender();
-  const info = await transport.sendMail({
-    from: sender.from,
-    to: target,
-    envelope: {
-      from: sender.envelopeFrom,
-      to: target
-    },
-    ...(sender.replyTo ? { replyTo: sender.replyTo } : {}),
-    subject: String(subject || "Hoko notification").slice(0, 180),
-    text: String(text || "").trim() || "Hoko event notification",
-    html:
-      html ||
-      `<div style="font-family:Arial,sans-serif;color:#0f172a;line-height:1.5;white-space:pre-line;">${String(
-        text || ""
-      )}</div>`
+  let info;
+  try {
+    info = await withRetry(
+      () => transport.sendMail({
+        from: sender.from,
+        to: target,
+        envelope: {
+          from: sender.envelopeFrom,
+          to: target
+        },
+        ...(sender.replyTo ? { replyTo: sender.replyTo } : {}),
+        subject: String(subject || "Hoko notification").slice(0, 180),
+        text: String(text || "").trim() || "Hoko event notification",
+        html:
+          html ||
+          `<div style="font-family:Arial,sans-serif;color:#0f172a;line-height:1.5;white-space:pre-line;">${String(
+            text || ""
+          )}</div>`
+      }),
+      { maxAttempts: 2, baseDelayMs: 300 }
+    );
+  } catch (error) {
+    scheduleOutboundLog({
+      channel: "email",
+      eventType: "event_email",
+      target,
+      status: "failed",
+      provider: "smtp",
+      attempts: 2,
+      messagePreview: subject || text || "Hoko event notification",
+      error: error?.message || error
+    });
+    throw error;
+  }
+
+  scheduleOutboundLog({
+    channel: "email",
+    eventType: "event_email",
+    target,
+    status: "sent",
+    provider: "smtp",
+    attempts: 1,
+    messagePreview: subject || text || "Hoko event notification"
   });
   return {
     ok: Array.isArray(info?.accepted) ? info.accepted.length > 0 : true,

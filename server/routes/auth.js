@@ -4,8 +4,14 @@ const User = require("../models/User");
 const Requirement = require("../models/Requirement");
 const TempRequirement = require("../models/TempRequirement");
 const router = express.Router();
-const { setOtp, verifyOtp } = require("../utils/otpStore");
+const {
+  setOtp,
+  verifyOtp,
+  claimOtpSend,
+  releaseOtpSend
+} = require("../utils/otpStore");
 const { sendAdminEventEmail, sendOtpEmail } = require("../utils/sendEmail");
+const { recordAppEvent } = require("../utils/appEvents");
 const {
   otpSendLimiter,
   otpVerifyLimiter
@@ -25,6 +31,8 @@ function generateOtp() {
 const OTP_TTL_MS =
   Number(process.env.OTP_TTL_MINUTES || 5) * 60 * 1000;
 const OTP_MAX_ATTEMPTS = Number(process.env.OTP_MAX_ATTEMPTS || 5);
+const OTP_SEND_COOLDOWN_MS =
+  Number(process.env.OTP_SEND_COOLDOWN_SECONDS || 30) * 1000;
 const DEFAULT_ROLES = {
   buyer: true,
   seller: false,
@@ -188,6 +196,15 @@ router.post("/login", otpSendLimiter, async (req, res) => {
     if (!mobileE164) {
       return res.status(400).json({ message: "Invalid mobile number" });
     }
+    const cooldownKey = `login:${mobileE164}`;
+    const cooldown = claimOtpSend(cooldownKey, OTP_SEND_COOLDOWN_MS);
+    if (!cooldown.ok) {
+      const retryAfterSeconds = Math.max(1, Math.ceil((cooldown.retryAfterMs || 0) / 1000));
+      return res.status(429).json({
+        message: "Please wait before requesting another OTP",
+        retryAfterSeconds
+      });
+    }
     let user = await User.findOne({ mobile: mobileE164 });
     if (!user) {
       user = await User.create({
@@ -198,12 +215,19 @@ router.post("/login", otpSendLimiter, async (req, res) => {
       });
     }
 const otp = generateOtp();
-    console.log("[AUTH] Sending OTP to:", mobileE164, "route:", process.env.FAST2SMS_OTP_ROUTE);
+    console.log("[AUTH] Sending OTP to:", mobileE164, "via Fast2SMS DLT");
     try {
       const mobileDigits = mobileE164.replace(/^\+/, "");
       await sendOtpSms({ mobile: mobileDigits, otp });
+      recordAppEvent({
+        eventType: "otp_sent",
+        actorRole: "buyer",
+        source: "auth.login.sms",
+        payload: { mobile: mobileE164 }
+      });
     } catch (err) {
       console.error("[AUTH] OTP SMS send failed:", err.message);
+      releaseOtpSend(cooldownKey);
       const body = { message: "Failed to send OTP" };
       if (process.env.NODE_ENV !== "production") {
         body.error = err?.response || err?.message || "Unknown Fast2SMS error";
@@ -219,6 +243,15 @@ const otp = generateOtp();
 
   if (!normalizedEmail) {
     return res.status(400).json({ message: "Email required" });
+  }
+  const cooldownKey = `login:${normalizedEmail}`;
+  const cooldown = claimOtpSend(cooldownKey, OTP_SEND_COOLDOWN_MS);
+  if (!cooldown.ok) {
+    const retryAfterSeconds = Math.max(1, Math.ceil((cooldown.retryAfterMs || 0) / 1000));
+    return res.status(429).json({
+      message: "Please wait before requesting another OTP",
+      retryAfterSeconds
+    });
   }
 
 let user = await User.findOne({ email: normalizedEmail });
@@ -253,15 +286,22 @@ let user = await User.findOne({ email: normalizedEmail });
 
   const otp = generateOtp();
   try {
-    await sendOtpEmail({
-      email: normalizedEmail,
-      otp,
-      subject: "Your Hoko login OTP"
-    });
-    setOtp(`login:${normalizedEmail}`, otp, OTP_TTL_MS);
-    return res.json({ success: true });
+      await sendOtpEmail({
+        email: normalizedEmail,
+        otp,
+        subject: "Your Hoko login OTP"
+      });
+      recordAppEvent({
+        eventType: "otp_sent",
+        actorRole: normalizedRole,
+        source: "auth.login.email",
+        payload: { email: normalizedEmail, role: normalizedRole }
+      });
+      setOtp(`login:${normalizedEmail}`, otp, OTP_TTL_MS);
+      return res.json({ success: true });
   } catch (err) {
     console.error("OTP email send failed:", err.message);
+    releaseOtpSend(cooldownKey);
     const body = { message: "Failed to send OTP" };
     if (process.env.NODE_ENV !== "production") {
       body.error = err?.response || err?.message || "Unknown SMTP error";
@@ -302,6 +342,13 @@ router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
           process.env.JWT_SECRET,
           { expiresIn: "7d" }
         );
+        recordAppEvent({
+          eventType: "otp_verified",
+          actorRole: normalizedRole,
+          userId: user._id,
+          source: "auth.verify-otp.mobile",
+          payload: { role: normalizedRole, hasSellerProfile: false }
+        });
         return res.status(200).json({
           success: true,
           requiresSellerRegistration: true,
@@ -331,6 +378,13 @@ router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
+    recordAppEvent({
+      eventType: "otp_verified",
+      actorRole: normalizedRole,
+      userId: user._id,
+      source: "auth.verify-otp.email",
+      payload: { role: normalizedRole, hasSellerProfile: Boolean(user.roles?.seller || user.sellerProfile?.registeredBusinessName) }
+    });
     
     const mergeResult = await mergeSoftUserRequirements(user._id, mobileE164);
     return res.json({
@@ -602,6 +656,13 @@ router.post("/google", async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
+    recordAppEvent({
+      eventType: "login_success",
+      actorRole: normalizedRole,
+      userId: user._id,
+      source: "auth.google",
+      payload: { email }
+    });
 
     res.json({
       token,
@@ -665,6 +726,12 @@ const hasSellerProfile = Boolean(
     process.env.JWT_SECRET,
     { expiresIn: "7d" }
   );
+  recordAppEvent({
+    eventType: "role_switched",
+    actorRole: nextRole,
+    userId: req.user._id,
+    source: "auth.switch-role"
+  });
 
   res.json({
     token,
@@ -678,6 +745,41 @@ const hasSellerProfile = Boolean(
       sellerProfile: currentUser.sellerProfile
     }
   });
+});
+
+router.post("/refresh", auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).lean();
+    if (!user) {
+      return res.status(401).json({ message: "Invalid user" });
+    }
+
+    const role = req.user.role === "seller" && user.roles?.seller ? "seller" : "buyer";
+    const token = jwt.sign(
+      { id: user._id, role, tokenVersion: user.tokenVersion || 0 },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    return res.json({
+      token,
+      user: {
+        _id: user._id,
+        email: user.email,
+        role,
+        roles: user.roles,
+        city: user.city,
+        preferredCurrency: user.preferredCurrency || "INR",
+        sellerProfile: user.sellerProfile,
+        mobile: user.mobile,
+        termsAccepted: user.termsAccepted,
+        name: user.name,
+        googleProfile: user.googleProfile
+      }
+    });
+  } catch (err) {
+    return res.status(500).json({ message: "Session refresh failed" });
+  }
 });
 
 router.get("/terms-version", async (req, res) => {

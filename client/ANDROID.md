@@ -110,6 +110,22 @@ Increase `HOKO_VERSION_CODE` for every Play Store upload.
 - Google login inside a WebView can require a native or browser-based mobile auth flow. Test it on-device before publishing.
 - Social previews still depend on the public hosted website URL, which is correct for shared links from the app.
 
+## Deep link verification
+
+The Android manifest already includes HTTPS intent filters for `hokoapp.in` and `www.hokoapp.in`.
+
+To make app links auto-verify on device, the hosted server must expose:
+
+- `https://hokoapp.in/.well-known/assetlinks.json`
+- `https://hokoapp.in/.well-known/apple-app-site-association`
+
+Set these server env values before production release:
+
+- `ANDROID_PACKAGE_NAME=com.hoko.app`
+- `ANDROID_SHA256_CERT_FINGERPRINTS=<release-cert-fingerprint>`
+- `APPLE_APP_ID_PREFIX=<apple-team-prefix>`
+- `APPLE_BUNDLE_ID=com.hoko.app`
+
 ## Firebase Push Setup
 
 Android background/system notifications require Firebase. The repo is wired for it, but you must provide the credentials.

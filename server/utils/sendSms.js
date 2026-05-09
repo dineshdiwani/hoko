@@ -1,5 +1,6 @@
 const axios = require("axios");
 const querystring = require("querystring");
+const { resolvePublicAppUrl } = require("./publicAppUrl");
 
 function normalizeIndianMobile(mobile) {
   const digits = String(mobile || "").replace(/\D/g, "");
@@ -10,65 +11,37 @@ function normalizeIndianMobile(mobile) {
   return normalized;
 }
 
-function resolveOtpPayload(otp, mobile) {
-  const envRoute = process.env.FAST2SMS_OTP_ROUTE;
-  console.log("[resolveOtpPayload] env.FAST2SMS_OTP_ROUTE:", envRoute);
-  const route = String(envRoute || "otp")
-    .trim()
-    .toLowerCase();
+function normalizeVariables(values) {
+  if (!Array.isArray(values)) return [];
+  return values
+    .map((value) => String(value ?? "").trim())
+    .filter((value) => value.length > 0);
+}
 
-  console.log("[resolveOtpPayload] resolved route:", route);
+function resolveDltPayload({ mobile, messageId, variables = [] }) {
+  const senderId = String(process.env.FAST2SMS_SENDER_ID || "").trim();
+  const approvedMessageId = String(messageId || "").trim();
+  const normalizedVariables = normalizeVariables(variables);
 
-  if (route === "otp") {
-    return {
-      variables_values: String(otp),
-      route: "otp",
-      numbers: mobile
-    };
+  if (!senderId) {
+    throw new Error("FAST2SMS_SENDER_ID not set");
+  }
+  if (!approvedMessageId) {
+    throw new Error("Approved DLT message ID not set");
   }
 
-  if (route === "dlt") {
-    const senderId = String(process.env.FAST2SMS_SENDER_ID || "").trim();
-    const messageId = String(process.env.FAST2SMS_DLT_MESSAGE_ID || "").trim();
-    if (!senderId || !messageId) {
-      return {
-        variables_values: String(otp),
-        route: "otp",
-        numbers: mobile
-      };
-    }
-    return {
-      sender_id: senderId,
-      message: messageId,
-      variables_values: String(otp),
-      route: "dlt",
-      numbers: mobile
-    };
+  const payload = {
+    sender_id: senderId,
+    message: approvedMessageId,
+    route: "dlt",
+    numbers: mobile
+  };
+
+  if (normalizedVariables.length > 0) {
+    payload.variables_values = normalizedVariables.join("|");
   }
 
-  if (route === "dlt_manual") {
-    const senderId = String(process.env.FAST2SMS_SENDER_ID || "").trim();
-    const entityId = String(process.env.FAST2SMS_DLT_ENTITY_ID || "").trim();
-    const templateId = String(process.env.FAST2SMS_DLT_TEMPLATE_ID || "").trim();
-    const templateText = String(process.env.FAST2SMS_DLT_MESSAGE_TEXT || "").trim();
-    if (!senderId || !entityId || !templateId || !templateText) {
-      return {
-        variables_values: String(otp),
-        route: "otp",
-        numbers: mobile
-      };
-    }
-    return {
-      sender_id: senderId,
-      message: templateText.replace(/\{\{OTP\}\}/g, String(otp)),
-      template_id: templateId,
-      entity_id: entityId,
-      route: "dlt_manual",
-      numbers: mobile
-    };
-  }
-
-  throw new Error(`Unsupported FAST2SMS_OTP_ROUTE: ${route}`);
+  return payload;
 }
 
 async function sendOtpSms({ mobile, otp }) {
@@ -77,10 +50,12 @@ async function sendOtpSms({ mobile, otp }) {
   if (!apiKey) {
     throw new Error("FAST2SMS_API_KEY not set");
   }
-  console.log("[sendOtpSms] apiKey exists:", !!apiKey);
-  console.log("[sendOtpSms] OTP_ROUTE env:", process.env.FAST2SMS_OTP_ROUTE);
   const normalizedMobile = normalizeIndianMobile(mobile);
-  const payload = resolveOtpPayload(otp, normalizedMobile);
+  const payload = resolveDltPayload({
+    mobile: normalizedMobile,
+    messageId: process.env.FAST2SMS_DLT_MESSAGE_ID,
+    variables: [otp]
+  });
   
   console.log("[sendSms] Payload:", payload);
   
@@ -102,6 +77,51 @@ async function sendOtpSms({ mobile, otp }) {
   });
 
   console.log("[sendSms] Response:", res.data);
+
+  if (!res.data || res.data.return !== true) {
+    const msg =
+      Array.isArray(res.data?.message)
+        ? res.data.message[0]
+        : res.data?.message ||
+      "Fast2SMS send failed";
+    throw new Error(msg);
+  }
+
+  return true;
+}
+
+async function sendEventSms({ mobile, messageId, variables = [] }) {
+  const apiKey = process.env.FAST2SMS_API_KEY;
+  if (!apiKey) {
+    throw new Error("FAST2SMS_API_KEY not set");
+  }
+
+  const normalizedMobile = normalizeIndianMobile(mobile);
+  const payload = resolveDltPayload({
+    mobile: normalizedMobile,
+    messageId: messageId || process.env.FAST2SMS_DLT_EVENT_MESSAGE_ID,
+    variables
+  });
+
+  console.log("[sendEventSms] Payload:", payload);
+
+  const body = querystring.stringify(payload);
+  const res = await axios.post(
+    "https://www.fast2sms.com/dev/bulkV2",
+    body,
+    {
+      headers: {
+        authorization: apiKey,
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
+      timeout: 10000
+    }
+  ).catch(err => {
+    console.error("[sendEventSms] API error:", err.response?.data || err.message);
+    throw err;
+  });
+
+  console.log("[sendEventSms] Response:", res.data);
 
   if (!res.data || res.data.return !== true) {
     const msg =
@@ -204,4 +224,10 @@ async function sendBulkSms({ numbers, message, templateId }) {
   return results;
 }
 
-module.exports = { sendOtpSms, sendBulkSms };
+function buildPublicDeepLink(path) {
+  const baseUrl = resolvePublicAppUrl();
+  const cleanPath = String(path || "").trim().replace(/^\/+/, "");
+  return `${baseUrl}/${cleanPath}`;
+}
+
+module.exports = { sendOtpSms, sendEventSms, sendBulkSms, buildPublicDeepLink };

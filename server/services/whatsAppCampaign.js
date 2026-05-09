@@ -5,7 +5,7 @@ const WhatsAppLead = require("../models/WhatsAppLead");
 const WhatsAppDeliveryLog = require("../models/WhatsAppDeliveryLog");
 const { sendWhatsAppMessage } = require("../utils/sendWhatsApp");
 const { sendEmailToRecipient } = require("../utils/sendEmail");
-const { sendBulkSms } = require("../utils/sendSms");
+const { sendEventSms } = require("../utils/sendSms");
 const { resolvePublicAppUrl } = require("../utils/publicAppUrl");
 
 function normalizeText(value) {
@@ -580,11 +580,27 @@ async function triggerWhatsAppCampaignForRequirement(
       } else {
         attempted += 1;
         channelStats.sms.attempted += 1;
-        const smsResult = await sendBulkSms({
-          numbers: [targetMobile],
-          message: body
-        });
-        if (smsResult?.sent > 0) {
+        let smsSent = false;
+        let smsError = null;
+        try {
+          await sendEventSms({
+            mobile: targetMobile,
+            variables: [
+              "New requirement alert",
+              [
+                `Product: ${requirementProduct}`,
+                requirement?.city ? `City: ${requirement.city}` : "",
+                requirement?.quantity ? `Qty: ${requirement.quantity}` : ""
+              ].filter(Boolean).join(" | "),
+              `${resolvePublicAppUrl()}/seller/deeplink/${encodeURIComponent(String(requirement?._id || "").trim())}`
+            ]
+          });
+          smsSent = true;
+        } catch (err) {
+          smsError = err;
+        }
+
+        if (smsSent) {
           sent += 1;
           channelStats.sms.sent += 1;
           await createDeliveryLog({
@@ -613,7 +629,7 @@ async function triggerWhatsAppCampaignForRequirement(
             mobileE164: targetMobile,
             email: String(contact?.email || "").trim(),
             status: "failed",
-            reason: summarizeSendError(smsResult?.failures?.[0]?.reason || smsResult?.error),
+            reason: summarizeSendError(smsError?.message || smsError),
             provider: "sms",
             city: String(requirement?.city || "").trim(),
             category: String(requirement?.category || "").trim(),

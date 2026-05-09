@@ -9,12 +9,14 @@ const Offer = require("../models/Offer");
 const Requirement = require("../models/Requirement");
 const User = require("../models/User");
 const Notification = require("../models/Notification");
+const { claimNotificationGuard } = require("../utils/notificationGuard");
 const ChatMessage = require("../models/ChatMessage");
 const PlatformSettings = require("../models/PlatformSettings");
 const PendingOfferDraft = require("../models/PendingOfferDraft");
 const OptedInSeller = require("../models/OptedInSeller");
 const auth = require("../middleware/auth");
 const sellerOnly = require("../middleware/sellerOnly");
+const { offerLimiter } = require("../middleware/rateLimit");
 const sendPush = require("../utils/sendPush");
 const { sendAdminEventEmail, sendEmailToRecipient } = require("../utils/sendEmail");
 const { getModerationRules, checkTextForFlags } = require("../utils/moderation");
@@ -28,9 +30,15 @@ const { normalizeOfferInvitedFrom, getEffectiveRequirementStatus } = require("..
 const { notifyNewOffer, notifyReverseAuction } = require("../services/adminNotifications");
 const { setOtp, verifyOtp: verifyOtpCode } = require("../utils/otpStore");
 const { sendOtpEmail } = require("../utils/sendEmail");
-const { sendOtpSms, sendBulkSms } = require("../utils/sendSms");
+const { sendOtpSms, sendEventSms } = require("../utils/sendSms");
 const WhatsAppTemplateRegistry = require("../models/WhatsAppTemplateRegistry");
 const { resolvePublicAppUrl } = require("../utils/publicAppUrl");
+const { recordAppEvent } = require("../utils/appEvents");
+const {
+  claimActionGuard,
+  attachActionReference,
+  releaseActionGuard
+} = require("../utils/actionGuard");
 
 const offerUploadDir = path.join(__dirname, "../uploads/offers");
 if (!fs.existsSync(offerUploadDir)) {
@@ -122,6 +130,11 @@ async function sendSellerOnboardingAck({ mobile, email, businessName, city, what
   const targetEmail = String(email || "").trim().toLowerCase();
   const appBase = resolvePublicAppUrl();
   const dashboardLink = `${appBase}/seller/dashboard?from=wa`;
+  const sellerProfileSummary = [
+    city ? `City: ${city}.` : "",
+    "Your seller profile is ready.",
+    "Open your seller dashboard."
+  ].filter(Boolean).join(" ");
   const body = [
     `Welcome to Hoko, ${sellerName}!`,
     "",
@@ -140,9 +153,13 @@ async function sendSellerOnboardingAck({ mobile, email, businessName, city, what
       })
     );
     tasks.push(
-      sendBulkSms({
-        numbers: [targetMobile],
-        message: body
+      sendEventSms({
+        mobile: targetMobile,
+        variables: [
+          `Welcome to Hoko, ${sellerName}!`,
+          sellerProfileSummary,
+          dashboardLink
+        ]
       })
     );
   }
@@ -170,6 +187,10 @@ async function sendSellerOfferAckSideChannels({
   const targetEmail = String(email || "").trim().toLowerCase();
   const appBase = resolvePublicAppUrl();
   const dashboardLink = `${appBase}/seller/dashboard?openRequirement=${encodeURIComponent(String(requirementId || "").trim())}`;
+  const offerSummary = [
+    `Requirement: ${String(productName || "Requirement").trim()}`,
+    `Offer price: Rs ${String(price || "").trim()}`
+  ].join(" | ");
   const body = [
     "Your offer has been submitted successfully.",
     "",
@@ -182,9 +203,13 @@ async function sendSellerOfferAckSideChannels({
   const tasks = [];
   if (targetMobile) {
     tasks.push(
-      sendBulkSms({
-        numbers: [targetMobile],
-        message: body
+      sendEventSms({
+        mobile: targetMobile,
+        variables: [
+          "Offer submitted successfully",
+          offerSummary,
+          dashboardLink
+        ]
       })
     );
   }
@@ -1178,7 +1203,7 @@ router.post("/offer/public", async (req, res) => {
 /**
  * Submit offer on requirement
  */
-router.post("/offer", auth, sellerOnly, async (req, res) => {
+router.post("/offer", offerLimiter, auth, sellerOnly, async (req, res) => {
   try {
     const {
       requirementId,
@@ -1236,25 +1261,73 @@ router.post("/offer", auth, sellerOnly, async (req, res) => {
     const moderationRules = await getModerationRules();
     const flaggedReason = checkTextForFlags(message || "", moderationRules);
 
-    const offer = await Offer.findOneAndUpdate(
-      { requirementId, sellerId: req.user._id },
-      {
+    const offerGuard = await claimActionGuard({
+      actionType: "seller_offer_submit",
+      actorId: req.user._id,
+      payloadParts: [
+        req.user._id,
+        requirementId,
         price,
-        message,
-        deliveryTime: String(deliveryTime || "").trim(),
-        paymentTerms: String(paymentTerms || "").trim(),
-        attachments: normalizeOfferAttachments(attachments),
-        "moderation.removed": false,
-        "moderation.removedAt": null,
-        "moderation.removedBy": null,
-        "moderation.reason": "",
-        "moderation.flagged": Boolean(flaggedReason),
-        "moderation.flaggedAt": flaggedReason ? new Date() : null,
-        "moderation.flaggedReason": flaggedReason || "",
-        ...(autoEnableChat ? { contactEnabledByBuyer: true } : {})
-      },
-      { upsert: true, new: true }
-    );
+        message || "",
+        deliveryTime || "",
+        paymentTerms || "",
+        Array.isArray(attachments) ? attachments.join(",") : ""
+      ],
+      ttlMs: 15000,
+      referenceType: "offer"
+    });
+
+    if (!offerGuard.claimed) {
+      const existingOffer = offerGuard.guard?.referenceId
+        ? await Offer.findById(offerGuard.guard.referenceId).lean()
+        : await Offer.findOne({ requirementId, sellerId: req.user._id }).lean();
+      if (existingOffer) {
+        return res.json(existingOffer);
+      }
+      return res.status(409).json({
+        message: "Duplicate offer submission detected. Please wait a moment and try again."
+      });
+    }
+
+    let offer = null;
+    try {
+      offer = await Offer.findOneAndUpdate(
+        { requirementId, sellerId: req.user._id },
+        {
+          price,
+          message,
+          deliveryTime: String(deliveryTime || "").trim(),
+          paymentTerms: String(paymentTerms || "").trim(),
+          attachments: normalizeOfferAttachments(attachments),
+          "moderation.removed": false,
+          "moderation.removedAt": null,
+          "moderation.removedBy": null,
+          "moderation.reason": "",
+          "moderation.flagged": Boolean(flaggedReason),
+          "moderation.flaggedAt": flaggedReason ? new Date() : null,
+          "moderation.flaggedReason": flaggedReason || "",
+          ...(autoEnableChat ? { contactEnabledByBuyer: true } : {})
+        },
+        { upsert: true, new: true }
+      );
+      await attachActionReference(offerGuard.key, "offer", offer._id);
+    } catch (err) {
+      await releaseActionGuard(offerGuard.key);
+      throw err;
+    }
+    recordAppEvent({
+      eventType: "offer_submitted",
+      actorRole: "seller",
+      userId: req.user._id,
+      requirementId: requirement._id,
+      offerId: offer?._id || null,
+      source: "seller.offer.submit",
+      payload: {
+        price: Number(price || 0),
+        requirementCity: requirement.city || "",
+        requirementCategory: requirement.category || ""
+      }
+    });
 
     if (requirement) {
       const auctionWasActive = requirement.reverseAuction?.active === true;
@@ -1360,28 +1433,32 @@ router.post("/offer", auth, sellerOnly, async (req, res) => {
 
       const io = req.app.get("io");
       if (shouldNotifyBuyerEvent(buyer, "newOffer")) {
-        const notif = await Notification.create({
-          userId: requirement.buyerId,
-          message: `New offer received for ${requirement.product || requirement.productName}`,
-          type: "new_offer",
-          requirementId: requirement._id,
-          fromUserId: req.user._id,
-          data: buildNotificationData("new_offer", {
-            requirementId: String(requirement._id),
-            entityType: "requirement",
-            entityId: String(requirement._id),
-            offerId: String(offer._id),
-            sellerId: String(req.user._id),
-            url: `/buyer/requirement/${encodeURIComponent(String(requirement._id))}/offers`
-          })
-        });
-        if (io) {
-          io.to(String(requirement.buyerId)).emit(
-            "notification",
-            serializeNotification(notif, {
-              fallbackUrl: `/buyer/requirement/${encodeURIComponent(String(requirement._id))}/offers`
+        const guardKey = `buyer:new_offer:${requirement._id}:${offer._id}:${requirement.buyerId}`;
+        const guard = await claimNotificationGuard(guardKey, 5 * 60 * 1000, "new_offer");
+        if (guard.ok) {
+          const notif = await Notification.create({
+            userId: requirement.buyerId,
+            message: `New offer received for ${requirement.product || requirement.productName}`,
+            type: "new_offer",
+            requirementId: requirement._id,
+            fromUserId: req.user._id,
+            data: buildNotificationData("new_offer", {
+              requirementId: String(requirement._id),
+              entityType: "requirement",
+              entityId: String(requirement._id),
+              offerId: String(offer._id),
+              sellerId: String(req.user._id),
+              url: `/buyer/requirement/${encodeURIComponent(String(requirement._id))}/offers`
             })
-          );
+          });
+          if (io) {
+            io.to(String(requirement.buyerId)).emit(
+              "notification",
+              serializeNotification(notif, {
+                fallbackUrl: `/buyer/requirement/${encodeURIComponent(String(requirement._id))}/offers`
+              })
+            );
+          }
         }
       }
 

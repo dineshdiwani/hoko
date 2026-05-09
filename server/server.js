@@ -34,6 +34,7 @@ const {
   buildNotificationData,
   serializeNotification
 } = require("./utils/notifications");
+const { recordAppEvent } = require("./utils/appEvents");
 const {
   extractStoredRequirementFilename,
   extractAttachmentAliases,
@@ -410,6 +411,7 @@ io.on("connection", (socket) => {
     let allowedToSend = true;
     let savedMessage = null;
     let toUserDoc = null;
+    const normalizedTempId = String(tempId || "").trim();
 
     // Save to DB (best effort)
     try {
@@ -462,6 +464,34 @@ io.on("connection", (socket) => {
           return;
         }
 
+        if (normalizedTempId) {
+          const existingMessage = await ChatMessage.findOne({
+            requirementId,
+            fromUserId: effectiveFrom,
+            tempId: normalizedTempId,
+            "moderation.removed": { $ne: true }
+          }).lean();
+          if (existingMessage) {
+            const existingPayload = {
+              _id: existingMessage._id,
+              requirementId,
+              fromUserId: effectiveFrom,
+              toUserId: effectiveTo,
+              messageType: existingMessage.messageType || "text",
+              attachment: existingMessage.attachment || null,
+              message: existingMessage.message,
+              isRead: Boolean(existingMessage.isRead),
+              readAt: existingMessage.readAt || null,
+              createdAt: existingMessage.createdAt || new Date().toISOString(),
+              tempId: normalizedTempId
+            };
+            if (ackFn) {
+              ackFn({ ok: true, message: existingPayload, duplicate: true });
+            }
+            return;
+          }
+        }
+
         const flaggedReason = checkTextForFlags(message || "", rules);
         savedMessage = await ChatMessage.create({
           requirementId,
@@ -469,6 +499,7 @@ io.on("connection", (socket) => {
           toUserId: effectiveTo,
           messageType: "text",
           message,
+          tempId: normalizedTempId,
           moderation: flaggedReason
             ? {
                 flagged: true,
@@ -477,6 +508,39 @@ io.on("connection", (socket) => {
               }
             : undefined
         });
+        recordAppEvent({
+          eventType: "chat_message_sent",
+          actorRole: String(req.user?.roles?.seller ? "seller" : "buyer"),
+          userId: effectiveFrom,
+          requirementId,
+          chatMessageId: savedMessage._id,
+          source: "chat.message",
+          payload: {
+            messageType: "text",
+            hasAttachment: false
+          }
+        });
+        const chatMessageCount = await ChatMessage.countDocuments({
+          requirementId,
+          $or: [
+            { fromUserId: effectiveFrom, toUserId: effectiveTo },
+            { fromUserId: effectiveTo, toUserId: effectiveFrom }
+          ]
+        });
+        if (chatMessageCount === 1) {
+          recordAppEvent({
+            eventType: "chat_started",
+            actorRole: String(req.user?.roles?.seller ? "seller" : "buyer"),
+            userId: effectiveFrom,
+            requirementId,
+            chatMessageId: savedMessage._id,
+            source: "chat.message",
+            payload: {
+              chatPartner: String(effectiveTo || ""),
+              messageType: "text"
+            }
+          });
+        }
       }
     } catch (err) {
       console.warn("Chat save failed, continuing:", err.message);
@@ -499,7 +563,7 @@ io.on("connection", (socket) => {
         isRead: false,
         readAt: null,
         createdAt: savedMessage?.createdAt || new Date().toISOString(),
-        tempId: tempId || null
+        tempId: normalizedTempId || null
       };
 
       try {
@@ -1000,6 +1064,68 @@ app.get("/robots.txt", (req, res) => {
         "# Allow crawling of public pages",
         "Sitemap: https://hokoapp.in/api/sitemap"
       ].join("\n")
+    );
+});
+
+app.get("/.well-known/assetlinks.json", (req, res) => {
+  const packageName = String(process.env.ANDROID_PACKAGE_NAME || "com.hoko.app").trim();
+  const fingerprints = String(process.env.ANDROID_SHA256_CERT_FINGERPRINTS || "")
+    .split(",")
+    .map((value) => String(value || "").trim())
+    .filter(Boolean);
+
+  if (!fingerprints.length) {
+    return res.status(503).json({
+      message: "Android app link fingerprints not configured"
+    });
+  }
+
+  return res
+    .type("application/json")
+    .set("Cache-Control", "public, max-age=3600")
+    .send(
+      JSON.stringify([
+        {
+          relation: ["delegate_permission/common.handle_all_urls"],
+          target: {
+            namespace: "android_app",
+            package_name: packageName,
+            sha256_cert_fingerprints: fingerprints
+          }
+        }
+      ])
+    );
+});
+
+app.get("/.well-known/apple-app-site-association", (req, res) => {
+  const appIdPrefix = String(process.env.APPLE_APP_ID_PREFIX || "").trim();
+  const bundleId = String(process.env.APPLE_BUNDLE_ID || "com.hoko.app").trim();
+  const paths = String(process.env.APPLE_ASSOCIATED_PATHS || "/seller/*,/buyer/*,/post-requirement,/buyer/requirement/*")
+    .split(",")
+    .map((value) => String(value || "").trim())
+    .filter(Boolean);
+
+  if (!appIdPrefix) {
+    return res.status(503).json({
+      message: "iOS universal link association not configured"
+    });
+  }
+
+  return res
+    .type("application/json")
+    .set("Cache-Control", "public, max-age=3600")
+    .send(
+      JSON.stringify({
+        applinks: {
+          apps: [],
+          details: [
+            {
+              appID: `${appIdPrefix}.${bundleId}`,
+              paths
+            }
+          ]
+        }
+      })
     );
 });
 

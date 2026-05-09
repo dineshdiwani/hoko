@@ -7,6 +7,7 @@ import GoogleLoginButton from "../../components/GoogleLoginButton";
 import { isNativeAppRuntime } from "../../utils/runtime";
 import { ensureNativePushRegistration, isNativePushEnabled } from "../../services/nativePush";
 import { CapacitorSmsRetriever } from "@shaher/capacitor-sms-retriever";
+import { getDeferredDeepLink, clearDeferredDeepLink, buildDeferredDeepLinkUrl } from "../../services/deepLinks";
 
 const BUYER_PENDING_REQUIREMENT_KEY = "buyer_pending_requirement_data";
 const BUYER_REQUIREMENT_DRAFT_KEY = "buyer_requirement_form_draft";
@@ -154,7 +155,10 @@ export default function UserLogin({ role = "buyer" }) {
   }
 
   function buildSellerResumeRedirect() {
-    if (!postLoginRedirect) return "";
+    if (!postLoginRedirect) {
+      const deferredDeepLink = getDeferredDeepLink();
+      return deferredDeepLink ? buildDeferredDeepLinkUrl(deferredDeepLink) : "";
+    }
     try {
       const url = new URL(postLoginRedirect, window.location.origin);
       if (useSellerPostLoginRedirect) {
@@ -168,7 +172,8 @@ export default function UserLogin({ role = "buyer" }) {
       }
       return `${url.pathname}${url.search}`;
     } catch {
-      return postLoginRedirect;
+      const deferredDeepLink = getDeferredDeepLink();
+      return postLoginRedirect || (deferredDeepLink ? buildDeferredDeepLinkUrl(deferredDeepLink) : "");
     }
   }
 
@@ -776,6 +781,7 @@ useEffect(() => {
             return;
           }
           navigate(buildSellerResumeRedirect(), { replace: true });
+          clearDeferredDeepLink();
           return;
         }
 

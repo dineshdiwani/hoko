@@ -32,6 +32,15 @@ export default function AdminOperations() {
   });
   const [expandedUsers, setExpandedUsers] = useState(new Set());
   const [pushSummary, setPushSummary] = useState(null);
+  const [systemEvents, setSystemEvents] = useState([]);
+  const [deliverySummary, setDeliverySummary] = useState(null);
+  const [deliveryLogs, setDeliveryLogs] = useState([]);
+  const [deliveryLogFilters, setDeliveryLogFilters] = useState({
+    channel: "",
+    status: "",
+    eventType: "",
+    target: ""
+  });
   const [dummyReqStatus, setDummyReqStatus] = useState(null);
   const [whatsAppStats, setWhatsAppStats] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -142,6 +151,31 @@ export default function AdminOperations() {
     }
   }, []);
 
+  const loadSystemEvents = useCallback(async () => {
+    try {
+      const res = await api.get("/admin/events", { params: { limit: 25 } });
+      setSystemEvents(Array.isArray(res.data?.events) ? res.data.events : []);
+    } catch (err) {
+      setSystemEvents([]);
+    }
+  }, []);
+
+  const loadDeliveryLogs = useCallback(async (filters = deliveryLogFilters) => {
+    try {
+      const params = { limit: 25 };
+      if (filters?.channel) params.channel = filters.channel;
+      if (filters?.status) params.status = filters.status;
+      if (filters?.eventType) params.eventType = filters.eventType;
+      if (filters?.target) params.target = filters.target;
+      const res = await api.get("/admin/delivery-logs", { params });
+      setDeliveryLogs(Array.isArray(res.data?.items) ? res.data.items : []);
+      setDeliverySummary(res.data?.summary || null);
+    } catch (err) {
+      setDeliveryLogs([]);
+      setDeliverySummary(null);
+    }
+  }, [deliveryLogFilters]);
+
   const handleRefresh = async () => {
     setLoading(true);
     await Promise.all([
@@ -150,7 +184,9 @@ export default function AdminOperations() {
       loadDummyReqStatus(),
       loadWhatsAppStats(),
       loadData(),
-      loadPushSummary()
+      loadPushSummary(),
+      loadSystemEvents(),
+      loadDeliveryLogs()
     ]);
     setLoading(false);
   };
@@ -158,6 +194,25 @@ export default function AdminOperations() {
   useEffect(() => {
     handleRefresh();
   }, []);
+
+  const applyDeliveryFilterChanges = async () => {
+    setLoading(true);
+    await loadDeliveryLogs(deliveryLogFilters);
+    setLoading(false);
+  };
+
+  const resetDeliveryFilters = async () => {
+    const nextFilters = {
+      channel: "",
+      status: "",
+      eventType: "",
+      target: ""
+    };
+    setDeliveryLogFilters(nextFilters);
+    setLoading(true);
+    await loadDeliveryLogs(nextFilters);
+    setLoading(false);
+  };
 
   const toggleUserDetails = (userId) => {
     setExpandedUsers((prev) => {
@@ -286,6 +341,19 @@ export default function AdminOperations() {
       minute: "2-digit"
     });
   };
+
+  const formatEventType = (value) =>
+    String(value || "unknown")
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (ch) => ch.toUpperCase());
+
+  const formatChannel = (value) =>
+    String(value || "unknown").trim().toUpperCase();
+
+  const formatStatus = (value) =>
+    String(value || "unknown")
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (ch) => ch.toUpperCase());
 
   const filteredUsers = users.filter(u => {
     if (searchQuery) {
@@ -466,6 +534,130 @@ export default function AdminOperations() {
                     <span className="text-gray-400 whitespace-nowrap">{formatDate(log.at)}</span>
                     <span className="font-medium">{log.action}</span>
                     <span className="text-gray-600">{log.details}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* System Events */}
+          <div className="bg-white border rounded-xl p-4">
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <h3 className="font-semibold">System Events</h3>
+              <span className="text-xs text-gray-500">{systemEvents.length} loaded</span>
+            </div>
+            <div className="space-y-1 max-h-48 overflow-auto">
+              {systemEvents.length === 0 ? (
+                <p className="text-sm text-gray-500">No system events</p>
+              ) : (
+                systemEvents.map((event) => (
+                  <div key={event._id} className="text-xs flex flex-col gap-1 py-2 border-b last:border-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-gray-400 whitespace-nowrap">{formatDate(event.createdAt)}</span>
+                      <span className="font-medium">{formatEventType(event.eventType)}</span>
+                      <span className="text-gray-600">{event.actorRole || "system"}</span>
+                    </div>
+                    <div className="text-gray-600">
+                      {event.source ? `Source: ${event.source}` : "Source: -"}
+                      {event.userId ? ` | User: ${event.userId}` : ""}
+                      {event.requirementId ? ` | Requirement: ${event.requirementId}` : ""}
+                      {event.offerId ? ` | Offer: ${event.offerId}` : ""}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Delivery Audit */}
+          <div className="bg-white border rounded-xl p-4">
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <h3 className="font-semibold">Delivery Audit</h3>
+              <span className="text-xs text-gray-500">{deliveryLogs.length} loaded</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-3">
+              <select
+                value={deliveryLogFilters.channel}
+                onChange={(e) =>
+                  setDeliveryLogFilters((prev) => ({ ...prev, channel: e.target.value }))
+                }
+                className="px-3 py-2 border rounded-lg text-sm"
+              >
+                <option value="">All Channels</option>
+                <option value="whatsapp">WhatsApp</option>
+                <option value="sms">SMS</option>
+                <option value="email">Email</option>
+                <option value="push">Push</option>
+              </select>
+              <select
+                value={deliveryLogFilters.status}
+                onChange={(e) =>
+                  setDeliveryLogFilters((prev) => ({ ...prev, status: e.target.value }))
+                }
+                className="px-3 py-2 border rounded-lg text-sm"
+              >
+                <option value="">All Status</option>
+                <option value="attempted">Attempted</option>
+                <option value="sent">Sent</option>
+                <option value="failed">Failed</option>
+                <option value="skipped">Skipped</option>
+              </select>
+              <input
+                type="text"
+                value={deliveryLogFilters.eventType}
+                onChange={(e) =>
+                  setDeliveryLogFilters((prev) => ({ ...prev, eventType: e.target.value }))
+                }
+                placeholder="Event type"
+                className="px-3 py-2 border rounded-lg text-sm"
+              />
+              <input
+                type="text"
+                value={deliveryLogFilters.target}
+                onChange={(e) =>
+                  setDeliveryLogFilters((prev) => ({ ...prev, target: e.target.value }))
+                }
+                placeholder="Target"
+                className="px-3 py-2 border rounded-lg text-sm"
+              />
+            </div>
+            <div className="flex flex-wrap gap-2 mb-3">
+              <button
+                onClick={applyDeliveryFilterChanges}
+                className="px-3 py-2 rounded-lg text-xs font-medium bg-blue-100 text-blue-700"
+              >
+                Apply Filters
+              </button>
+              <button
+                onClick={resetDeliveryFilters}
+                className="px-3 py-2 rounded-lg text-xs font-medium bg-gray-100 text-gray-700"
+              >
+                Reset
+              </button>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3 text-xs">
+              <div className="rounded-lg border px-2 py-1 bg-slate-50">Total: <span className="font-semibold">{deliverySummary?.total || 0}</span></div>
+              <div className="rounded-lg border px-2 py-1 bg-green-50">WhatsApp Sent: <span className="font-semibold">{deliverySummary?.whatsapp?.sent || 0}</span></div>
+              <div className="rounded-lg border px-2 py-1 bg-blue-50">SMS Sent: <span className="font-semibold">{deliverySummary?.sms?.sent || 0}</span></div>
+              <div className="rounded-lg border px-2 py-1 bg-purple-50">Push Sent: <span className="font-semibold">{deliverySummary?.push?.sent || 0}</span></div>
+            </div>
+            <div className="space-y-1 max-h-48 overflow-auto">
+              {deliveryLogs.length === 0 ? (
+                <p className="text-sm text-gray-500">No delivery audit rows</p>
+              ) : (
+                deliveryLogs.map((row) => (
+                  <div key={row._id} className="text-xs flex flex-col gap-1 py-2 border-b last:border-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-gray-400 whitespace-nowrap">{formatDate(row.createdAt)}</span>
+                      <span className="font-medium">{formatChannel(row.channel)}</span>
+                      <span className="text-gray-600">{formatStatus(row.status)}</span>
+                      <span className="text-gray-600">{row.eventType || "-"}</span>
+                    </div>
+                    <div className="text-gray-600 truncate">
+                      Target: {row.target || "-"}
+                      {row.provider ? ` | Provider: ${row.provider}` : ""}
+                      {row.providerMessageId ? ` | Msg: ${row.providerMessageId}` : ""}
+                    </div>
                   </div>
                 ))
               )}

@@ -137,6 +137,7 @@ export default function SellerDashboard() {
   const [chatPeer, setChatPeer] = useState(null);
   const [chatRequirementId, setChatRequirementId] = useState(null);
   const [unreadChatRequirementIds, setUnreadChatRequirementIds] = useState(new Set());
+  const [sellerReminderNotifications, setSellerReminderNotifications] = useState([]);
   const [reverseAuctionNotice, setReverseAuctionNotice] = useState("");
   const [showingSampleData, setShowingSampleData] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
@@ -474,6 +475,21 @@ export default function SellerDashboard() {
     return true;
   };
 
+  const sellerReminderSummary = sellerReminderNotifications.reduce(
+    (acc, notif) => {
+      const category = getNotificationCategory(notif);
+      const event = getNotificationEvent(notif);
+      if (category === "lead" || category === "requirement") {
+        acc.leads += 1;
+      }
+      if (/reminder|reactivation|re-engagement/.test(event)) {
+        acc.reminders += 1;
+      }
+      return acc;
+    },
+    { leads: 0, reminders: 0 }
+  );
+
   function navigateToLogin() {
     const params = new URLSearchParams();
     if (whatsappContextMobile) params.set("mobile", whatsappContextMobile);
@@ -686,6 +702,20 @@ export default function SellerDashboard() {
       try {
         const allNotifications = await fetchNotifications();
         if (!mounted) return;
+        const reminderItems = (allNotifications || [])
+          .filter((n) => {
+            const category = getNotificationCategory(n);
+            const event = getNotificationEvent(n);
+            const message = String(n?.message || "").toLowerCase();
+            return (
+              category === "lead" ||
+              category === "requirement" ||
+              /reminder|reactivation|re-engagement/.test(event) ||
+              /reminder|reactivation|lead/.test(message)
+            );
+          })
+          .slice(0, 5);
+        setSellerReminderNotifications(reminderItems);
         const unreadIds = new Set(
           (allNotifications || [])
             .filter(
@@ -700,6 +730,7 @@ export default function SellerDashboard() {
       } catch {
         if (mounted) {
           setUnreadChatRequirementIds(new Set());
+          setSellerReminderNotifications([]);
         }
       }
     }
@@ -836,22 +867,8 @@ export default function SellerDashboard() {
         String(req._id) === String(requirementId) ? { ...req, myOffer: true } : req
       )
     );
-
-    // Check if seller already has profile
-    const hasSellerProfile = session?.sellerProfile?.registeredBusinessName && session?.sellerProfile?.managerName;
-    
-    // Show prompt for registration only if not registered
-    setTimeout(() => {
+    window.setTimeout(() => {
       alert("Offer submitted successfully!");
-      
-      if (!hasSellerProfile) {
-        const wantsToRegister = confirm(
-          "Complete your seller profile to get better visibility and manage offers?"
-        );
-        if (wantsToRegister) {
-          navigate("/seller/register");
-        }
-      }
     }, 500);
   };
 
@@ -1299,7 +1316,10 @@ export default function SellerDashboard() {
             </div>
 
             <div className="flex items-center gap-2 ml-auto shrink-0">
-              <NotificationCenter onNotificationClick={handleNotificationClick} />
+              <NotificationCenter
+                onNotificationClick={handleNotificationClick}
+                showSellerQuickFilters
+              />
 
             <div className="relative" ref={menuRef}>
               {!session?.token && isWhatsAppPublicView ? (
@@ -1384,6 +1404,78 @@ export default function SellerDashboard() {
           </div>
         </div>
       </header>
+
+      <div className="dashboard-shell px-4 md:px-6 -mt-2">
+        <div className="dashboard-panel px-4 py-3 md:px-5 md:py-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                Lead & Reminder Feed
+              </p>
+              <h2 className="text-base font-semibold text-slate-900">
+                Follow up fast on new leads and re-engagement nudges
+              </h2>
+              <p className="ui-body text-[var(--ui-muted)] mt-1">
+                These are the notifications most likely to convert into an offline deal.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2 text-xs">
+              <span className="rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-indigo-700 font-semibold">
+                Lead signals: {sellerReminderSummary.leads}
+              </span>
+              <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-amber-700 font-semibold">
+                Reminders: {sellerReminderSummary.reminders}
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-3 grid gap-2 md:grid-cols-2">
+            {sellerReminderNotifications.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-500 md:col-span-2">
+                No current lead reminders. New buyer posts and reactivation nudges will appear here.
+              </div>
+            ) : (
+              sellerReminderNotifications.map((notif) => {
+                const category = getNotificationCategory(notif);
+                const event = getNotificationEvent(notif);
+                const requirementId = getNotificationRequirementId(notif);
+                const isReminder = /reminder|reactivation|re-engagement/.test(event);
+                return (
+                  <button
+                    key={notif._id || notif.id}
+                    type="button"
+                    onClick={() => handleNotificationClick(notif)}
+                    className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-left shadow-sm transition hover:border-indigo-200 hover:bg-indigo-50/40"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span
+                        className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                          isReminder
+                            ? "border border-amber-200 bg-amber-50 text-amber-700"
+                            : "border border-indigo-200 bg-indigo-50 text-indigo-700"
+                        }`}
+                      >
+                        {isReminder ? "Reminder" : category === "lead" ? "Lead" : "Update"}
+                      </span>
+                      {requirementId ? (
+                        <span className="text-[11px] text-slate-500 truncate">
+                          {String(requirementId).slice(0, 8)}...
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="mt-2 text-sm font-medium text-slate-900 line-clamp-2">
+                      {notif.message}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Tap to open the lead or chat context.
+                    </p>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+      </div>
 
       <main className="dashboard-layout-content">
         <div className="dashboard-shell dashboard-main-spacious">

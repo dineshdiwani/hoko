@@ -337,10 +337,16 @@ export default function ChatModal({
     try {
       setUploading(true);
       for (const file of valid) {
+        const uploadTempId = `file-${currentUserId}-${peerUserId}-${requirementId}-${String(
+          file.name || "file"
+        )
+          .toLowerCase()
+          .replace(/[^a-z0-9._-]+/g, "-")}-${file.size || 0}-${file.lastModified || 0}`;
         const formData = new FormData();
         formData.append("from", currentUserId);
         formData.append("to", peerUserId);
         formData.append("requirementId", requirementId);
+        formData.append("tempId", uploadTempId);
         formData.append("file", file);
         const res = await api.post("/chat-files/upload", formData, {
           headers: { "Content-Type": "multipart/form-data" }

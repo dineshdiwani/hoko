@@ -8,11 +8,13 @@ const Offer = require("../models/Offer");
 const Requirement = require("../models/Requirement");
 const User = require("../models/User");
 const Notification = require("../models/Notification");
+const { claimNotificationGuard } = require("../utils/notificationGuard");
 const sendPush = require("../utils/sendPush");
 const {
   buildNotificationData,
   serializeNotification
 } = require("../utils/notifications");
+const { recordAppEvent } = require("../utils/appEvents");
 
 const router = express.Router();
 
@@ -79,6 +81,7 @@ router.post("/upload", auth, uploadSingleFile, async (req, res) => {
   const from = String(req.body?.from || "");
   const to = String(req.body?.to || "");
   const requirementId = String(req.body?.requirementId || "");
+  const normalizedTempId = String(req.body?.tempId || "").trim();
 
   if (!req.file || !from || !to || !requirementId) {
     if (req.file?.filename) {
@@ -143,17 +146,60 @@ router.post("/upload", auth, uploadSingleFile, async (req, res) => {
       throw new Error("Chat not enabled by buyer");
     }
 
+    if (normalizedTempId) {
+      const existing = await ChatMessage.findOne({
+        requirementId,
+        fromUserId: from,
+        tempId: normalizedTempId,
+        "moderation.removed": { $ne: true }
+      });
+      if (existing) {
+        const existingPayload = {
+          _id: existing._id,
+          requirementId: existing.requirementId,
+          fromUserId: existing.fromUserId,
+          toUserId: existing.toUserId,
+          messageType: existing.messageType,
+          attachment: existing.attachment,
+          message: existing.message,
+          tempId: existing.tempId || null,
+          isRead: existing.isRead,
+          readAt: existing.readAt,
+          createdAt: existing.createdAt
+        };
+        return res.json({
+          filename: existing.attachment?.filename || req.file.filename,
+          originalName: existing.attachment?.originalName || req.file.originalname,
+          message: existingPayload,
+          duplicate: true
+        });
+      }
+    }
+
     const savedMessage = await ChatMessage.create({
       requirementId,
       fromUserId: from,
       toUserId: to,
       messageType: "file",
       message: req.file.originalname || "File",
+      tempId: normalizedTempId,
       attachment: {
         filename: req.file.filename,
         originalName: req.file.originalname,
         mimetype: req.file.mimetype || "",
         size: Number(req.file.size || 0)
+      }
+    });
+    recordAppEvent({
+      eventType: "chat_message_sent",
+      actorRole: String(fromUser?._id && String(fromUser._id) === String(req.user?._id) ? (req.user?.roles?.seller ? "seller" : "buyer") : "buyer"),
+      userId: from,
+      requirementId,
+      chatMessageId: savedMessage._id,
+      source: "chat.file",
+      payload: {
+        messageType: "file",
+        hasAttachment: true
       }
     });
 
@@ -166,6 +212,7 @@ router.post("/upload", auth, uploadSingleFile, async (req, res) => {
       messageType: "file",
       attachment: savedMessage.attachment,
       message: savedMessage.message,
+      tempId: savedMessage.tempId || null,
       isRead: false,
       readAt: null,
       createdAt: savedMessage.createdAt
@@ -186,28 +233,32 @@ router.post("/upload", auth, uploadSingleFile, async (req, res) => {
           toUser?.buyerSettings?.notificationToggles?.pushEnabled !== false
         );
       if (chatNotificationsEnabled) {
-        const notif = await Notification.create({
-          userId: to,
-          fromUserId: from,
-          requirementId: requirementId || null,
-          type: "new_message",
-          message: "New file shared in chat",
-          data: buildNotificationData("new_message", {
+        const guardKey = `chat:new_message:file:${requirementId || ""}:${from}:${to}:${req.file.filename}`;
+        const guard = await claimNotificationGuard(guardKey, 2 * 60 * 1000, "new_message");
+        if (guard.ok) {
+          const notif = await Notification.create({
+            userId: to,
+            fromUserId: from,
             requirementId: requirementId || null,
-            entityType: "requirement",
-            entityId: requirementId || null,
-            chatPeerId: peerId,
-            chatPeerName: peerName,
-            url: chatUrl
-          })
-        });
-        if (io) {
-          io.to(String(to)).emit(
-            "notification",
-            serializeNotification(notif, {
-              fallbackUrl: chatUrl
+            type: "new_message",
+            message: "New file shared in chat",
+            data: buildNotificationData("new_message", {
+              requirementId: requirementId || null,
+              entityType: "requirement",
+              entityId: requirementId || null,
+              chatPeerId: peerId,
+              chatPeerName: peerName,
+              url: chatUrl
             })
-          );
+          });
+          if (io) {
+            io.to(String(to)).emit(
+              "notification",
+              serializeNotification(notif, {
+                fallbackUrl: chatUrl
+              })
+            );
+          }
         }
 
         if (chatPushEnabled) {

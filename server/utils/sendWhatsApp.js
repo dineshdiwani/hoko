@@ -1,5 +1,7 @@
 const axios = require("axios");
 const querystring = require("querystring");
+const { withRetry } = require("./retry");
+const { scheduleOutboundLog } = require("./outboundDeliveryLog");
 
 function normalizeE164(value) {
   const raw = String(value || "").replace(/[^\d]/g, "");
@@ -38,24 +40,45 @@ async function sendViaMeta({ to, body }) {
   }
 
   const url = `https://graph.facebook.com/${version}/${phoneNumberId}/messages`;
-  const response = await axios.post(
-    url,
-    {
-      messaging_product: "whatsapp",
-      to,
-      type: "text",
-      text: {
-        preview_url: false,
-        body
+  const response = await withRetry(
+    async () => {
+      const result = await axios.post(
+        url,
+        {
+          messaging_product: "whatsapp",
+          to,
+          type: "text",
+          text: {
+            preview_url: false,
+            body
+          }
+        },
+        {
+          timeout: 15000,
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json"
+          }
+        }
+      );
+      const data = result?.data || {};
+      const explicitFailure =
+        data?.error ||
+        data?.status === "error" ||
+        data?.success === false ||
+        data?.ok === false;
+      if (explicitFailure) {
+        throw new Error(
+          typeof data?.error?.message === "string" && data.error.message.trim()
+            ? data.error.message.trim()
+            : typeof data?.message === "string" && data.message.trim()
+            ? data.message.trim()
+            : JSON.stringify(data).slice(0, 600)
+        );
       }
+      return result;
     },
-    {
-      timeout: 15000,
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json"
-      }
-    }
+    { maxAttempts: 3, baseDelayMs: 400 }
   );
   const data = response?.data || {};
   return {
@@ -133,23 +156,30 @@ async function sendViaGupshup({ to, body }) {
     })
   });
 
-  const response = await axios.post(url, payload, {
-    timeout: 15000,
-    headers: buildGupshupHeaders()
-  });
-  const data = response?.data || {};
-  const explicitFailure =
-    data?.status === "error" ||
-    data?.success === false ||
-    data?.ok === false;
+  const response = await withRetry(
+    async () => {
+      const result = await axios.post(url, payload, {
+        timeout: 15000,
+        headers: buildGupshupHeaders()
+      });
+      const data = result?.data || {};
+      const explicitFailure =
+        data?.status === "error" ||
+        data?.success === false ||
+        data?.ok === false;
 
-  if (explicitFailure) {
-    throw new Error(
-      typeof data?.message === "string" && data.message.trim()
-        ? data.message.trim()
-        : JSON.stringify(data).slice(0, 600)
-    );
-  }
+      if (explicitFailure) {
+        throw new Error(
+          typeof data?.message === "string" && data.message.trim()
+            ? data.message.trim()
+            : JSON.stringify(data).slice(0, 600)
+        );
+      }
+      return result;
+    },
+    { maxAttempts: 3, baseDelayMs: 400 }
+  );
+  const data = response?.data || {};
 
   return {
     providerMessageId: String(data?.messageId || data?.id || data?.messages?.[0]?.id || "").trim(),
@@ -310,23 +340,30 @@ async function sendViaGupshupTemplate({ to, templateId, templateName, languageCo
     template: JSON.stringify(templatePayload)
   });
 
-  const response = await axios.post(url, payload, {
-    timeout: 15000,
-    headers: buildGupshupHeaders()
-  });
-  const data = response?.data || {};
-  const explicitFailure =
-    data?.status === "error" ||
-    data?.success === false ||
-    data?.ok === false;
+  const response = await withRetry(
+    async () => {
+      const result = await axios.post(url, payload, {
+        timeout: 15000,
+        headers: buildGupshupHeaders()
+      });
+      const data = result?.data || {};
+      const explicitFailure =
+        data?.status === "error" ||
+        data?.success === false ||
+        data?.ok === false;
 
-  if (explicitFailure) {
-    throw new Error(
-      typeof data?.message === "string" && data.message.trim()
-        ? data.message.trim()
-        : JSON.stringify(data).slice(0, 600)
-    );
-  }
+      if (explicitFailure) {
+        throw new Error(
+          typeof data?.message === "string" && data.message.trim()
+            ? data.message.trim()
+            : JSON.stringify(data).slice(0, 600)
+        );
+      }
+      return result;
+    },
+    { maxAttempts: 3, baseDelayMs: 400 }
+  );
+  const data = response?.data || {};
 
   return {
     providerMessageId: String(data?.messageId || data?.id || data?.messages?.[0]?.id || "").trim(),
@@ -340,19 +377,57 @@ async function sendWhatsAppMessage({ to, body }) {
     .trim();
   const recipient = normalizeE164(to);
   if (!recipient || !body) {
+    scheduleOutboundLog({
+      channel: "whatsapp",
+      eventType: "generic_whatsapp",
+      target: recipient || to,
+      status: "skipped",
+      provider,
+      messagePreview: body || "",
+      metadata: { reason: "invalid_input" }
+    });
     return { ok: false, skipped: true, reason: "invalid_input" };
   }
 
   if (provider === "off") {
+    scheduleOutboundLog({
+      channel: "whatsapp",
+      eventType: "generic_whatsapp",
+      target: recipient,
+      status: "skipped",
+      provider,
+      messagePreview: body,
+      metadata: { reason: "provider_off" }
+    });
     return { ok: false, skipped: true, reason: "provider_off" };
   }
 
   try {
     if (provider === "meta") {
       const metaResult = await sendViaMeta({ to: recipient.replace(/^\+/, ""), body });
+      scheduleOutboundLog({
+        channel: "whatsapp",
+        eventType: "generic_whatsapp",
+        target: recipient,
+        status: "sent",
+        provider,
+        providerMessageId: metaResult?.providerMessageId || "",
+        attempts: 1,
+        messagePreview: body
+      });
       return { ok: true, providerMessageId: metaResult?.providerMessageId || "", meta: metaResult?.raw || null };
     } else if (provider === "gupshup") {
       const gupshupResult = await sendViaGupshup({ to: recipient, body });
+      scheduleOutboundLog({
+        channel: "whatsapp",
+        eventType: "generic_whatsapp",
+        target: recipient,
+        status: "sent",
+        provider,
+        providerMessageId: gupshupResult?.providerMessageId || "",
+        attempts: 1,
+        messagePreview: body
+      });
       return {
         ok: true,
         providerMessageId: gupshupResult?.providerMessageId || "",
@@ -360,9 +435,29 @@ async function sendWhatsAppMessage({ to, body }) {
       };
     } else {
       console.log("[WhatsApp mock]", { to: recipient, body });
+      scheduleOutboundLog({
+        channel: "whatsapp",
+        eventType: "generic_whatsapp",
+        target: recipient,
+        status: "sent",
+        provider: "mock",
+        attempts: 1,
+        messagePreview: body,
+        metadata: { mock: true }
+      });
       return { ok: true, mock: true, providerMessageId: "", meta: null };
     }
   } catch (err) {
+    scheduleOutboundLog({
+      channel: "whatsapp",
+      eventType: "generic_whatsapp",
+      target: recipient,
+      status: "failed",
+      provider,
+      attempts: 3,
+      messagePreview: body,
+      error: err?.response?.data || err?.message || "send_failed"
+    });
     return {
       ok: false,
       error: err?.response?.data || err?.message || "send_failed"

@@ -61,6 +61,8 @@ import AppDialog from "./components/AppDialog";
 import NotificationPermissionPrompt from "./components/NotificationPermissionPrompt";
 import { getSession } from "./services/auth";
 import { ensurePushSubscription } from "./services/pushNotifications";
+import { refreshSessionIfNeeded } from "./services/sessionRefresh";
+import { getDeferredDeepLink, buildDeferredDeepLinkUrl, clearDeferredDeepLink } from "./services/deepLinks";
 import socket, { connectSocket } from "./services/socket";
 import { showRuntimeNotification } from "./services/runtimeNotifications";
 import {
@@ -164,6 +166,7 @@ function SellerRequirementRedirect() {
 
 function AppShell() {
   const location = useLocation();
+  const navigate = useNavigate();
   const hideGlobalLogo = location.pathname === "/";
 
   function isNotificationAllowedForRole(role, notification, currentSettings) {
@@ -252,6 +255,7 @@ function AppShell() {
         if (isNativeAppRuntime() && isNativePushEnabled()) {
           ensureNativePushRegistration(false).catch(() => {});
         }
+        refreshSessionIfNeeded().catch(() => {});
         syncNativeUnreadNotifications(session).catch(() => {});
       }
     };
@@ -262,12 +266,14 @@ function AppShell() {
       if (isNativeAppRuntime() && isNativePushEnabled()) {
         ensureNativePushRegistration(false).catch(() => {});
       }
+      refreshSessionIfNeeded().catch(() => {});
       syncNativeUnreadNotifications(session).catch(() => {});
     }, 60000);
 
     if (isNativeAppRuntime() && isNativePushEnabled()) {
       ensureNativePushRegistration(false).catch(() => {});
     }
+    refreshSessionIfNeeded().catch(() => {});
     syncNativeUnreadNotifications(session).catch(() => {});
 
     return () => {
@@ -314,6 +320,29 @@ function AppShell() {
       socket.off("notification", onNotification);
     };
   }, []);
+
+  useEffect(() => {
+    const session = getSession();
+    if (!session?.token) return;
+
+    const deferredDeepLink = getDeferredDeepLink();
+    if (!deferredDeepLink) return;
+
+    const currentPath = String(location.pathname || "");
+    const shouldRestore =
+      currentPath === "/" ||
+      currentPath === "/auth" ||
+      currentPath === "/buyer/login" ||
+      currentPath === "/seller/login";
+
+    if (!shouldRestore) return;
+
+    const next = buildDeferredDeepLinkUrl(deferredDeepLink);
+    if (!next) return;
+
+    clearDeferredDeepLink();
+    navigate(next, { replace: true });
+  }, [location.pathname, navigate]);
 
   return (
       <>

@@ -40,3 +40,29 @@ Or:
 - `FIREBASE_SERVICE_ACCOUNT_PATH`
 
 The default file lookup path is `server/firebase-service-account.json`.
+
+## Deep Link Verification
+
+Android app links and iOS universal links are served from the API server so they can be updated without shipping a new app build.
+
+Set these variables when you are ready to verify hosted links:
+
+- `ANDROID_PACKAGE_NAME` (default: `com.hoko.app`)
+- `ANDROID_SHA256_CERT_FINGERPRINTS` as a comma-separated list of release cert fingerprints
+- `APPLE_APP_ID_PREFIX` for the iOS team prefix
+- `APPLE_BUNDLE_ID` (default: `com.hoko.app`)
+- `APPLE_ASSOCIATED_PATHS` as a comma-separated path list
+
+The server exposes:
+
+- `/.well-known/assetlinks.json`
+- `/.well-known/apple-app-site-association`
+
+## SMS DLT Templates
+
+Automated SMS in the app now uses Fast2SMS DLT routes only.
+
+- `FAST2SMS_DLT_MESSAGE_ID` is for OTP/login SMS.
+- `FAST2SMS_DLT_EVENT_MESSAGE_ID` is for automated event messages that include a deeplink.
+
+Keep the approved template text in sync with the variables passed from the server.

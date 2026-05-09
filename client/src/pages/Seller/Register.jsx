@@ -9,6 +9,11 @@ import {
   getUiCitySelection,
   setUiCitySelection
 } from "../../services/storage";
+import {
+  getDeferredDeepLink,
+  clearDeferredDeepLink,
+  buildDeferredDeepLinkUrl
+} from "../../services/deepLinks";
 
 export default function SellerRegister() {
   const [searchParams] = useSearchParams();
@@ -196,23 +201,36 @@ export default function SellerRegister() {
       setSellerDashboardCategories(profile.categories || []);
       const updatedSession = {
         ...session,
+        role: "seller",
         city: res.data.city,
         name: res.data.sellerProfile?.registeredBusinessName || "Seller",
-        sellerProfile: res.data.sellerProfile,
+        mobile,
+        email,
+        sellerProfile: {
+          ...(session?.sellerProfile || {}),
+          ...(res.data.sellerProfile || {}),
+          registeredBusinessName,
+          managerName
+        },
         roles: { ...(session?.roles || {}), seller: true }
       };
       setSession(updatedSession);
       setUiCitySelection(res.data.city || city);
       alert("Registration submitted successfully!");
-      const resumeTarget = String(localStorage.getItem("post_login_redirect") || "").trim();
+      const deferredDeepLink = getDeferredDeepLink();
+      const resumeTarget =
+        String(localStorage.getItem("post_login_redirect") || "").trim() ||
+        (deferredDeepLink ? buildDeferredDeepLinkUrl(deferredDeepLink) : "");
       localStorage.removeItem("post_login_redirect_source");
       localStorage.removeItem("login_intent_role");
       if (resumeTarget) {
         localStorage.removeItem("post_login_redirect");
+        clearDeferredDeepLink();
         window.location.href = resumeTarget;
         return;
       }
       localStorage.removeItem("post_login_redirect");
+      clearDeferredDeepLink();
       const dashboardParams = new URLSearchParams();
       if (seller.city) dashboardParams.set("city", seller.city);
       if (catsFromUrl) dashboardParams.set("cats", catsFromUrl);
