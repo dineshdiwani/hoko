@@ -471,7 +471,7 @@ export default function MyPosts({
                 e.stopPropagation();
                 handleDelete(req._id || req.id);
               }}
-              className="absolute top-3 right-3 w-8 h-8 rounded-full border border-red-200 text-red-600 hover:bg-red-50 flex items-center justify-center"
+              className="ml-auto mb-2 w-8 h-8 rounded-full border border-red-200 text-red-600 hover:bg-red-50 flex items-center justify-center"
               aria-label="Delete post"
             >
               <svg
