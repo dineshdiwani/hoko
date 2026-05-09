@@ -466,23 +466,6 @@ export default function MyPosts({
             }
             className="relative app-card active:scale-[0.99] transition flex flex-col gap-4"
           >
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDelete(req._id || req.id);
-              }}
-              className="ml-auto mb-2 w-8 h-8 rounded-full border border-red-200 text-red-600 hover:bg-red-50 flex items-center justify-center"
-              aria-label="Delete post"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                className="w-4 h-4"
-                fill="currentColor"
-                aria-hidden="true"
-              >
-                <path d="M9 3h6l1 2h4v2H4V5h4l1-2Zm1 7h2v8h-2v-8Zm4 0h2v8h-2v-8ZM7 10h2v8H7v-8Z" />
-              </svg>
-            </button>
             <div className="flex flex-col gap-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -745,6 +728,16 @@ export default function MyPosts({
                 )}
               </div>
               <div className="mt-2 flex flex-wrap gap-2 col-span-2 md:col-span-3">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDelete(req._id || req.id);
+                  }}
+                  className="inline-flex h-9 items-center justify-center rounded-xl border border-red-200 px-3 text-xs font-semibold text-red-600 hover:bg-red-50"
+                  aria-label="Delete post"
+                >
+                  Delete
+                </button>
                 {normalizedStatus !== "open" ? (
                   <button
                     onClick={(e) => {
