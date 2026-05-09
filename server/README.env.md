@@ -64,5 +64,7 @@ Automated SMS in the app now uses Fast2SMS DLT routes only.
 
 - `FAST2SMS_DLT_MESSAGE_ID` is for OTP/login SMS.
 - `FAST2SMS_DLT_EVENT_MESSAGE_ID` is for automated event messages that include a deeplink.
+- `FAST2SMS_DLT_ENTITY_ID` is the approved DLT principal entity ID used by manual/admin SMS.
+- `FAST2SMS_DLT_BULK_TEMPLATE_ID` is the approved DLT content template ID used by admin bulk SMS.
 
 Keep the approved template text in sync with the variables passed from the server.

@@ -83,7 +83,7 @@ export default function AdminBulkSms() {
     <div className="page">
       <div className="page-shell pt-20 md:pt-10">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
-          <h1 className="page-hero">Bulk SMS (Fast2SMS)</h1>
+          <h1 className="page-hero">Bulk SMS (Fast2SMS DLT)</h1>
           <AdminNav />
         </div>
 
@@ -137,7 +137,8 @@ export default function AdminBulkSms() {
             <div>
               <h3 className="font-semibold mb-2">Step 2: Enter Message</h3>
               <p className="text-sm text-gray-600 mb-2">
-                Message will be sent to all valid numbers. Keep it under 160 characters.
+                Message will be sent through the approved DLT route to all valid numbers.
+                Keep it under 160 characters and match the approved DLT template text.
               </p>
               <textarea
                 value={message}

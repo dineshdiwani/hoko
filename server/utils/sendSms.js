@@ -138,8 +138,19 @@ async function sendEventSms({ mobile, messageId, variables = [] }) {
 async function sendBulkSms({ numbers, message, templateId }) {
   const apiKey = process.env.FAST2SMS_API_KEY;
   const senderId = process.env.FAST2SMS_SENDER_ID;
+  const entityId = String(process.env.FAST2SMS_DLT_ENTITY_ID || "").trim();
+  const dltTemplateId = String(templateId || process.env.FAST2SMS_DLT_BULK_TEMPLATE_ID || "").trim();
   if (!apiKey) {
     throw new Error("FAST2SMS_API_KEY not set");
+  }
+  if (!senderId) {
+    throw new Error("FAST2SMS_SENDER_ID not set");
+  }
+  if (!entityId) {
+    throw new Error("FAST2SMS_DLT_ENTITY_ID not set");
+  }
+  if (!dltTemplateId) {
+    throw new Error("FAST2SMS_DLT_BULK_TEMPLATE_ID not set");
   }
 
   if (!Array.isArray(numbers) || numbers.length === 0) {
@@ -182,18 +193,22 @@ async function sendBulkSms({ numbers, message, templateId }) {
     try {
       const mobileDigits = mobile.replace(/^\+/, "");
       const payload = {
+        sender_id: senderId,
         message: message.trim(),
-        route: "q",
+        template_id: dltTemplateId,
+        entity_id: entityId,
+        route: "dlt_manual",
         numbers: mobileDigits,
-        language: "english"
+        flash: 0
       };
 
       const res = await axios.post(
         "https://www.fast2sms.com/dev/bulkV2",
-        payload,
+        querystring.stringify(payload),
         {
           headers: {
-            authorization: apiKey
+            authorization: apiKey,
+            "Content-Type": "application/x-www-form-urlencoded"
           },
           timeout: 15000
         }
