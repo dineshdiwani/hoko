@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useSearchParams } from "react-router-dom";
 import { fetchOptions } from "../../services/options";
 import api from "../../services/api";
@@ -9,13 +10,16 @@ import {
   getUiCitySelection,
   setUiCitySelection
 } from "../../services/storage";
+import { refreshSession } from "../../services/sessionRefresh";
 import {
   getDeferredDeepLink,
   clearDeferredDeepLink,
   buildDeferredDeepLinkUrl
 } from "../../services/deepLinks";
+import { isCompleteSellerProfile } from "../../utils/sellerProfile";
 
 export default function SellerRegister() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const normalizeMobileValue = (value) => {
     const raw = String(value || "").trim();
@@ -99,6 +103,23 @@ export default function SellerRegister() {
       })
       .catch(() => {});
   }, [sessionCity, cityFromUrl, catsFromUrl, mobileFromUrl]);
+
+  useEffect(() => {
+    const currentSession = getSession();
+    if (currentSession?.token && isCompleteSellerProfile(currentSession)) {
+      const params = new URLSearchParams();
+      const sellerCity = String(currentSession.city || seller.city || cityFromUrl || "").trim();
+      const sellerCats = Array.isArray(currentSession?.sellerProfile?.categories)
+        ? currentSession.sellerProfile.categories.join(",")
+        : "";
+      if (sellerCity) params.set("city", sellerCity);
+      if (sellerCats) params.set("cats", sellerCats);
+      params.set("from", "seller-login");
+      navigate(`/seller/dashboard${params.toString() ? `?${params.toString()}` : ""}`, {
+        replace: true
+      });
+    }
+  }, [navigate, cityFromUrl, seller.city]);
 
   useEffect(() => {
     const savedEmail = localStorage.getItem("seller_email");
@@ -197,10 +218,26 @@ export default function SellerRegister() {
     };
 
     try {
+      let activeSession = session;
+      if (!activeSession?.token) {
+        const refreshed = await refreshSession().catch(() => null);
+        if (refreshed?.user && refreshed?.token) {
+          activeSession = {
+            ...activeSession,
+            ...refreshed.user,
+            token: refreshed.token
+          };
+          setSession(activeSession);
+        }
+      }
+      if (!activeSession?.token) {
+        alert("Session expired. Please log in again.");
+        return;
+      }
       const res = await api.post("/seller/onboard", profile);
       setSellerDashboardCategories(profile.categories || []);
       const updatedSession = {
-        ...session,
+        ...(activeSession || session || {}),
         role: "seller",
         city: res.data.city,
         name: res.data.sellerProfile?.registeredBusinessName || "Seller",

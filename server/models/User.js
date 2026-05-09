@@ -44,13 +44,15 @@ const userSchema = new mongoose.Schema(
       admin: { type: Boolean, default: false }
     },
 
-sellerProfile: {
+    sellerProfile: {
       registeredBusinessName: { type: String },
+      managerName: { type: String },
       registrationDetails: { type: String },
       businessAddress: { type: String },
       ownerName: { type: String },
       website: { type: String },
-      taxId: { type: String }
+      taxId: { type: String },
+      categories: [{ type: String, default: "" }]
     },
 
 termsAccepted: {
