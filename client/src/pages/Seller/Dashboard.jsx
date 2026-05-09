@@ -274,7 +274,8 @@ export default function SellerDashboard() {
 
   // Handle post-login redirect for pending offer submission
   useEffect(() => {
-    if (!session?.token) return;
+    const autoSubmitRequested = searchParams.get("autoSubmit") === "true";
+    if (!session?.token || !autoSubmitRequested) return;
     
     const pendingOffer = JSON.parse(localStorage.getItem("pending_seller_offer_intent") || "null");
     if (!pendingOffer || !pendingOffer.requirementId) return;
@@ -314,7 +315,7 @@ export default function SellerDashboard() {
     };
     
     submitOffer();
-  }, [session?.token]);
+  }, [session?.token, searchParams]);
 
   // Handle autoSubmit from URL (WhatsApp flow)
   useEffect(() => {
@@ -881,9 +882,6 @@ export default function SellerDashboard() {
         String(req._id) === String(requirementId) ? { ...req, myOffer: true } : req
       )
     );
-    window.setTimeout(() => {
-      alert("Offer submitted successfully!");
-    }, 500);
   };
 
   async function handleDeleteOffer(requirementId) {
