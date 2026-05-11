@@ -74,8 +74,8 @@ router.post("/send", adminAuth, async (req, res) => {
     }
 
     const messageTrimmed = message.trim();
-    if (messageTrimmed.length > 160) {
-      return res.status(400).json({ message: "Message exceeds 160 characters" });
+    if (messageTrimmed.length > 200) {
+      return res.status(400).json({ message: "Message exceeds 200 characters" });
     }
 
     const results = await sendBulkSms({

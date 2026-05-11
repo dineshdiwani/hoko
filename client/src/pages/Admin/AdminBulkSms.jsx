@@ -51,8 +51,8 @@ export default function AdminBulkSms() {
       alert("Enter a message");
       return;
     }
-    if (message.trim().length > 160) {
-      alert("Message exceeds 160 characters");
+    if (message.trim().length > 200) {
+      alert("Message exceeds 200 characters");
       return;
     }
     try {
@@ -138,7 +138,7 @@ export default function AdminBulkSms() {
               <h3 className="font-semibold mb-2">Step 2: Enter Message</h3>
               <p className="text-sm text-gray-600 mb-2">
                 Message will be sent through the approved DLT route to all valid numbers.
-                Keep it under 160 characters and match the approved DLT template text.
+                Keep it under 200 characters and match the approved DLT template text.
               </p>
               <textarea
                 value={message}
@@ -146,10 +146,10 @@ export default function AdminBulkSms() {
                 placeholder="Type your message here..."
                 className="w-full border rounded-lg p-3 text-sm"
                 rows={4}
-                maxLength={160}
+                maxLength={200}
               />
               <p className="text-xs text-gray-500 mt-1">
-                Characters: {message.length}/160
+                Characters: {message.length}/200
               </p>
             </div>
 
