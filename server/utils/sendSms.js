@@ -219,10 +219,10 @@ async function sendBulkSms({ numbers, message, messageId, templateId, senderId }
   for (const mobile of uniqueNumbers) {
     try {
       const mobileDigits = mobile.replace(/^\+/, "");
-      const bulkMessage = String(messageId || message || "").trim();
+      const bulkMessage = String(message || "").trim();
       const payload = {
         sender_id: bulkSenderId,
-        message: bulkMessageId || bulkMessage,
+        message: bulkMessage,
         template_id: dltTemplateId,
         entity_id: entityId,
         route,
@@ -236,7 +236,8 @@ async function sendBulkSms({ numbers, message, messageId, templateId, senderId }
         sender_id: payload.sender_id,
         route: payload.route,
         numbers: payload.numbers,
-        messageLength: String(payload.message || "").length
+        messageLength: String(payload.message || "").length,
+        bulkMessageId: bulkMessageId || ""
       }));
 
       let res;
