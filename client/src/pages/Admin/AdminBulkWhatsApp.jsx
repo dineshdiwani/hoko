@@ -250,6 +250,7 @@ export default function AdminBulkWhatsApp() {
                 {templates.map((template) => (
                   <option key={template.id} value={template.id}>
                     {template.name} ({template.id}) - vars: {formatVariableCount(template.bodyVariableCount)}
+                    {template.headerMediaType ? ` - media: ${template.headerMediaType}` : ""}
                   </option>
                 ))}
               </select>
@@ -263,6 +264,7 @@ export default function AdminBulkWhatsApp() {
                 <p>Language: {activeTemplate.languageCode || "en"}</p>
                 <p>Status: {activeTemplate.status || "APPROVED"}</p>
                 <p>Variables: {formatVariableCount(activeTemplate.bodyVariableCount)}</p>
+                <p>Header media: {activeTemplate.headerMediaType || "none"}</p>
                 <p>Components: {Array.isArray(activeTemplate.components) ? activeTemplate.components.length : 0}</p>
               </div>
             )}

@@ -2,6 +2,7 @@ const axios = require("axios");
 const querystring = require("querystring");
 const { withRetry } = require("./retry");
 const { scheduleOutboundLog } = require("./outboundDeliveryLog");
+const { resolvePublicAppUrl } = require("./publicAppUrl");
 
 function normalizeE164(value) {
   const raw = String(value || "").replace(/[^\d]/g, "");
@@ -247,6 +248,34 @@ function extractTemplateBodyText(template) {
   ).trim();
 }
 
+function extractTemplateHeaderMediaType(template) {
+  const components = Array.isArray(template?.components)
+    ? template.components
+    : Array.isArray(template?.template?.components)
+    ? template.template.components
+    : [];
+
+  for (const component of components) {
+    const type = String(component?.type || component?.componentType || "").trim().toUpperCase();
+    if (type !== "HEADER") continue;
+
+    const format = String(
+      component?.format ||
+      component?.headerFormat ||
+      component?.mediaType ||
+      component?.subType ||
+      component?.headerType ||
+      ""
+    ).trim().toUpperCase();
+
+    if (["IMAGE", "VIDEO", "DOCUMENT", "LOCATION", "TEXT"].includes(format)) {
+      return format.toLowerCase();
+    }
+  }
+
+  return "";
+}
+
 function extractTemplateParameterCount(template) {
   const raw =
     template?.bodyParamsCount ??
@@ -297,7 +326,8 @@ function normalizeGupshupTemplateRecord(template) {
     languageCode,
     category: String(template?.category || template?.templateCategory || "").trim(),
     bodyVariableCount: extractTemplateParameterCount(template),
-    components: Array.isArray(template?.components) ? template.components : []
+    components: Array.isArray(template?.components) ? template.components : [],
+    headerMediaType: extractTemplateHeaderMediaType(template)
   };
 }
 
@@ -337,9 +367,31 @@ function buildTemplateComponents(parameters = []) {
   ];
 }
 
+function resolveTemplateImageUrl(mediaUrl) {
+  const explicit = String(mediaUrl || "").trim();
+  if (explicit) return explicit;
+
+  const envUrl = String(process.env.GUPSHUP_TEMPLATE_IMAGE_URL || "").trim();
+  if (envUrl) return envUrl;
+
+  const baseUrl = String(resolvePublicAppUrl() || "https://hokoapp.in").trim().replace(/\/+$/, "");
+  return `${baseUrl}/logo.jpg`;
+}
+
+function buildGupshupTemplateMessage(templateConfig, mediaUrl) {
+  const headerMediaType = String(templateConfig?.headerMediaType || "").trim().toLowerCase();
+  if (headerMediaType !== "image") return null;
+
+  return {
+    type: "image",
+    image: {
+      link: resolveTemplateImageUrl(mediaUrl)
+    }
+  };
+}
 
 
-async function sendViaGupshupTemplate({ to, templateId, templateName, languageCode, parameters = [], buttonUrl }) {
+async function sendViaGupshupTemplate({ to, templateId, templateName, languageCode, parameters = [], buttonUrl, templateConfig = null, mediaUrl = "" }) {
   const url = resolveGupshupTemplateSendUrl();
   const source = resolveGupshupSource();
   const destination = normalizeGupshupRecipient(to);
@@ -376,15 +428,23 @@ async function sendViaGupshupTemplate({ to, templateId, templateName, languageCo
     templatePayload["button-url"] = String(buttonUrl).trim();
   }
 
+  const templateMessage = buildGupshupTemplateMessage(templateConfig, mediaUrl);
+
   console.log(`[Gupshup Template Send] to=${destination} templateId=${resolvedTemplateId} buttonUrl=${buttonUrl} templatePayload=`, JSON.stringify(templatePayload));
 
-  const payload = buildGupshupFormPayload({
+  const formPayload = {
     channel: "whatsapp",
     source,
     destination,
     "src.name": String(process.env.GUPSHUP_APP_NAME || process.env.APP_NAME || "Hoko").trim(),
     template: JSON.stringify(templatePayload)
-  });
+  };
+
+  if (templateMessage) {
+    formPayload.message = JSON.stringify(templateMessage);
+  }
+
+  const payload = buildGupshupFormPayload(formPayload);
 
   const response = await withRetry(
     async () => {

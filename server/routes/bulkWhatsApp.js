@@ -47,7 +47,8 @@ async function sendAndLogBulkWhatsApp({
       templateName: templateConfig.templateName,
       languageCode: templateConfig.language || "en",
       parameters,
-      buttonUrl
+      buttonUrl,
+      templateConfig
     });
 
     const providerResponse = normalizeProviderResponse(providerResult?.raw || null);
@@ -139,11 +140,7 @@ router.post("/send", adminAuth, async (req, res) => {
       const mobileE164 = normalized.startsWith("+") ? normalized : `+${normalized}`;
       const sendResult = await sendAndLogBulkWhatsApp({
         mobileE164,
-        templateConfig: {
-          templateId: templateConfig.id,
-          templateName: templateConfig.name,
-          language: templateConfig.languageCode
-        },
+        templateConfig,
         parameters: [...parameters],
         buttonUrl,
         providerType,
@@ -219,11 +216,7 @@ router.post("/send-city", adminAuth, async (req, res) => {
       const mobileE164 = seller.mobileE164;
       const sendResult = await sendAndLogBulkWhatsApp({
         mobileE164,
-        templateConfig: {
-          templateId: templateConfig.id,
-          templateName: templateConfig.name,
-          language: templateConfig.languageCode
-        },
+        templateConfig,
         parameters,
         buttonUrl,
         providerType,
