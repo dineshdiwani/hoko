@@ -139,7 +139,12 @@ async function sendBulkSms({ numbers, message, templateId }) {
   const apiKey = process.env.FAST2SMS_API_KEY;
   const senderId = process.env.FAST2SMS_SENDER_ID;
   const entityId = String(process.env.FAST2SMS_DLT_ENTITY_ID || "").trim();
-  const dltTemplateId = String(templateId || process.env.FAST2SMS_DLT_BULK_TEMPLATE_ID || "").trim();
+  const dltTemplateId = String(
+    templateId ||
+      process.env.FAST2SMS_DLT_TEMPLATE_ID ||
+      process.env.FAST2SMS_DLT_BULK_TEMPLATE_ID ||
+      ""
+  ).trim();
   if (!apiKey) {
     throw new Error("FAST2SMS_API_KEY not set");
   }
@@ -150,7 +155,7 @@ async function sendBulkSms({ numbers, message, templateId }) {
     throw new Error("FAST2SMS_DLT_ENTITY_ID not set");
   }
   if (!dltTemplateId) {
-    throw new Error("FAST2SMS_DLT_BULK_TEMPLATE_ID not set");
+    throw new Error("FAST2SMS_DLT_TEMPLATE_ID not set");
   }
 
   if (!Array.isArray(numbers) || numbers.length === 0) {

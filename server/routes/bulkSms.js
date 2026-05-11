@@ -80,7 +80,8 @@ router.post("/send", adminAuth, async (req, res) => {
 
     const results = await sendBulkSms({
       numbers: mobiles,
-      message: messageTrimmed
+      message: messageTrimmed,
+      templateId: process.env.FAST2SMS_DLT_BULK_TEMPLATE_ID || process.env.FAST2SMS_DLT_TEMPLATE_ID
     });
 
     res.json(results);
