@@ -62,6 +62,7 @@ export default function AdminBulkSms() {
   }, []);
 
   const activeTemplate = templates.find((item) => item._id === selectedTemplateId) || null;
+  const selectedTemplateMessage = String(activeTemplate?.message || "").trim();
 
   const resetTemplateForm = () => {
     setEditingTemplateId("");
@@ -420,7 +421,7 @@ export default function AdminBulkSms() {
             <div className="flex gap-2">
               <button
                 onClick={sendBulkSms}
-                disabled={!parsedData?.mobiles?.length || !message.trim() || !activeTemplate?.templateId || sending}
+                disabled={!parsedData?.mobiles?.length || !selectedTemplateMessage || !activeTemplate?.templateId || sending}
                 className="btn-primary w-auto px-4 py-2 rounded-lg disabled:opacity-50"
               >
                 {sending ? "Sending..." : "Send Bulk SMS"}
