@@ -13,6 +13,7 @@ export default function AdminBulkSms() {
   const [editingTemplateId, setEditingTemplateId] = useState("");
   const [templateForm, setTemplateForm] = useState({
     name: "",
+    senderId: "",
     templateId: "",
     message: "",
     isActive: true
@@ -44,6 +45,7 @@ export default function AdminBulkSms() {
         setEditingTemplateId(nextSelected._id);
         setTemplateForm({
           name: nextSelected.name || "",
+          senderId: nextSelected.senderId || "",
           templateId: nextSelected.templateId || "",
           message: nextSelected.message || "",
           isActive: nextSelected.isActive !== false
@@ -63,12 +65,14 @@ export default function AdminBulkSms() {
 
   const activeTemplate = templates.find((item) => item._id === selectedTemplateId) || null;
   const selectedTemplateMessage = String(activeTemplate?.message || "").trim();
+  const selectedTemplateSenderId = String(activeTemplate?.senderId || "").trim();
 
   const resetTemplateForm = () => {
     setEditingTemplateId("");
     setSelectedTemplateId("");
     setTemplateForm({
       name: "",
+      senderId: "",
       templateId: "",
       message: "",
       isActive: true
@@ -83,6 +87,7 @@ export default function AdminBulkSms() {
     setEditingTemplateId(selected._id);
     setTemplateForm({
       name: selected.name || "",
+      senderId: selected.senderId || "",
       templateId: selected.templateId || "",
       message: selected.message || "",
       isActive: selected.isActive !== false
@@ -107,11 +112,16 @@ export default function AdminBulkSms() {
   const saveTemplate = async () => {
     const payload = {
       name: templateForm.name.trim(),
+      senderId: templateForm.senderId.trim(),
       templateId: templateForm.templateId.trim(),
       message: templateForm.message.trim(),
       isActive: templateForm.isActive !== false
     };
 
+    if (!payload.senderId) {
+      alert("Enter a sender ID");
+      return;
+    }
     if (!payload.templateId) {
       alert("Enter a template ID");
       return;
@@ -181,6 +191,10 @@ export default function AdminBulkSms() {
     }
     if (!activeTemplate?.templateId) {
       alert("Select a bulk SMS template");
+      return;
+    }
+    if (!String(activeTemplate?.senderId || "").trim()) {
+      alert("Selected template has no sender ID");
       return;
     }
     const templateMessage = String(activeTemplate?.message || "").trim();
@@ -324,6 +338,15 @@ export default function AdminBulkSms() {
                     />
                   </div>
                   <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Sender ID</label>
+                    <input
+                      value={templateForm.senderId}
+                      onChange={(e) => setTemplateForm((prev) => ({ ...prev, senderId: e.target.value }))}
+                      className="w-full border rounded-lg p-2 text-sm"
+                      placeholder="582058"
+                    />
+                  </div>
+                  <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Template ID</label>
                     <input
                       value={templateForm.templateId}
@@ -365,7 +388,7 @@ export default function AdminBulkSms() {
                         <div className="text-sm">
                           <div className="font-medium">{template.name || template.templateId}</div>
                           <div className="text-xs text-gray-600">
-                            ID: {template.templateId} {template.isActive === false ? "(inactive)" : "(active)"}
+                            Sender: {template.senderId || "-"} | ID: {template.templateId} {template.isActive === false ? "(inactive)" : "(active)"}
                           </div>
                           <div className="text-xs text-gray-500">{template.message}</div>
                         </div>
@@ -413,7 +436,7 @@ export default function AdminBulkSms() {
               </p>
               {activeTemplate && (
                 <p className="text-xs text-gray-500 mt-1">
-                  Selected: {activeTemplate.name || activeTemplate.templateId} | ID: {activeTemplate.templateId}
+                  Selected: {activeTemplate.name || activeTemplate.templateId} | Sender: {activeTemplate.senderId || "-"} | ID: {activeTemplate.templateId}
                 </p>
               )}
             </div>
@@ -421,7 +444,7 @@ export default function AdminBulkSms() {
             <div className="flex gap-2">
               <button
                 onClick={sendBulkSms}
-                disabled={!parsedData?.mobiles?.length || !selectedTemplateMessage || !activeTemplate?.templateId || sending}
+                disabled={!parsedData?.mobiles?.length || !selectedTemplateMessage || !selectedTemplateSenderId || !activeTemplate?.templateId || sending}
                 className="btn-primary w-auto px-4 py-2 rounded-lg disabled:opacity-50"
               >
                 {sending ? "Sending..." : "Send Bulk SMS"}

@@ -13,6 +13,7 @@ function normalizeBulkTemplate(template) {
   return {
     _id: String(template?._id || "").trim(),
     name: String(template?.name || "").trim(),
+    senderId: String(template?.senderId || "").trim(),
     templateId: String(template?.templateId || "").trim(),
     message: String(template?.message || "").trim(),
     isActive: template?.isActive !== false
@@ -93,6 +94,7 @@ router.post("/send", adminAuth, async (req, res) => {
     }
 
     let messageToSend = messageTrimmed;
+    let senderIdToUse = String(process.env.FAST2SMS_SENDER_ID || "").trim();
     if (selectedTemplateId) {
       const doc = await PlatformSettings.findOne().lean();
       const templates = getBulkSmsTemplates(doc);
@@ -106,16 +108,22 @@ router.post("/send", adminAuth, async (req, res) => {
       if (!messageToSend) {
         return res.status(400).json({ message: "Selected template has no message" });
       }
+      senderIdToUse = String(selectedTemplate.senderId || senderIdToUse).trim();
     }
 
     if (messageToSend.length > 200) {
       return res.status(400).json({ message: "Message exceeds 200 characters" });
     }
 
+    if (!senderIdToUse) {
+      return res.status(400).json({ message: "Sender ID is required" });
+    }
+
     const results = await sendBulkSms({
       numbers: mobiles,
       message: messageToSend,
-      templateId: selectedTemplateId
+      templateId: selectedTemplateId,
+      senderId: senderIdToUse
     });
 
     res.json(results);
@@ -138,10 +146,14 @@ router.get("/templates", adminAuth, async (req, res) => {
 router.post("/templates", adminAuth, async (req, res) => {
   try {
     const name = String(req.body?.name || "").trim();
+    const senderId = String(req.body?.senderId || "").trim();
     const templateId = String(req.body?.templateId || "").trim();
     const message = String(req.body?.message || "").trim();
     const isActive = req.body?.isActive !== false;
 
+    if (!senderId) {
+      return res.status(400).json({ message: "senderId required" });
+    }
     if (!templateId) {
       return res.status(400).json({ message: "templateId required" });
     }
@@ -160,6 +172,7 @@ router.post("/templates", adminAuth, async (req, res) => {
     templates.push({
       _id: new Date().getTime().toString(36),
       name: name || templateId,
+      senderId,
       templateId,
       message,
       isActive
@@ -182,12 +195,16 @@ router.put("/templates/:id", adminAuth, async (req, res) => {
   try {
     const templateId = String(req.params.id || "").trim();
     const name = String(req.body?.name || "").trim();
+    const senderId = String(req.body?.senderId || "").trim();
     const nextTemplateId = String(req.body?.templateId || "").trim();
     const message = String(req.body?.message || "").trim();
     const isActive = req.body?.isActive !== false;
 
     if (!templateId) {
       return res.status(400).json({ message: "Template id required" });
+    }
+    if (!senderId) {
+      return res.status(400).json({ message: "senderId required" });
     }
     if (!nextTemplateId) {
       return res.status(400).json({ message: "templateId required" });
@@ -214,6 +231,7 @@ router.put("/templates/:id", adminAuth, async (req, res) => {
     templates[index] = {
       ...templates[index],
       name: name || nextTemplateId,
+      senderId,
       templateId: nextTemplateId,
       message,
       isActive

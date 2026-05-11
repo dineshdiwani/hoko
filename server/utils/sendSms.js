@@ -135,9 +135,9 @@ async function sendEventSms({ mobile, messageId, variables = [] }) {
   return true;
 }
 
-async function sendBulkSms({ numbers, message, templateId }) {
+async function sendBulkSms({ numbers, message, templateId, senderId }) {
   const apiKey = process.env.FAST2SMS_API_KEY;
-  const senderId = process.env.FAST2SMS_SENDER_ID;
+  const bulkSenderId = String(senderId || process.env.FAST2SMS_SENDER_ID || "").trim();
   const entityId = String(process.env.FAST2SMS_DLT_ENTITY_ID || "").trim();
   const dltTemplateId = String(
     templateId ||
@@ -148,7 +148,7 @@ async function sendBulkSms({ numbers, message, templateId }) {
   if (!apiKey) {
     throw new Error("FAST2SMS_API_KEY not set");
   }
-  if (!senderId) {
+  if (!bulkSenderId) {
     throw new Error("FAST2SMS_SENDER_ID not set");
   }
   if (!entityId) {
@@ -198,7 +198,7 @@ async function sendBulkSms({ numbers, message, templateId }) {
     try {
       const mobileDigits = mobile.replace(/^\+/, "");
       const payload = {
-        sender_id: senderId,
+        sender_id: bulkSenderId,
         message: message.trim(),
         template_id: dltTemplateId,
         entity_id: entityId,
