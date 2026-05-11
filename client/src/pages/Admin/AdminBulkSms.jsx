@@ -16,7 +16,6 @@ export default function AdminBulkSms() {
     senderId: "",
     messageId: "",
     templateId: "",
-    shortLink: "",
     message: "",
     isActive: true
   });
@@ -25,32 +24,6 @@ export default function AdminBulkSms() {
   const [result, setResult] = useState(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
-
-  const normalizeShortLink = (value) => {
-    const raw = String(value || "").trim();
-    if (!raw) return "";
-    if (/^https?:\/\//i.test(raw)) return raw;
-    return `https://${raw.replace(/^\/+/, "")}`;
-  };
-
-  const composeBulkMessage = (body, shortLink) => {
-    const text = String(body || "").trim();
-    const link = normalizeShortLink(shortLink);
-    if (!text) return link;
-    if (!link) return text;
-    return `${text}\n\nJoin now:\n${link}`;
-  };
-
-  const stripComposedShortLink = (body, shortLink) => {
-    const text = String(body || "").trim();
-    const link = normalizeShortLink(shortLink);
-    if (!text || !link) return text;
-    const suffix = `\n\nJoin now:\n${link}`;
-    if (text.toLowerCase().endsWith(suffix.toLowerCase())) {
-      return text.slice(0, -suffix.length).trim();
-    }
-    return text;
-  };
 
   const loadTemplates = async (preferredValue = "") => {
     try {
@@ -76,11 +49,10 @@ export default function AdminBulkSms() {
           senderId: nextSelected.senderId || "",
           messageId: nextSelected.messageId || "",
           templateId: nextSelected.templateId || "",
-          shortLink: nextSelected.shortLink || "",
-          message: stripComposedShortLink(nextSelected.message || "", nextSelected.shortLink || ""),
+          message: nextSelected.message || "",
           isActive: nextSelected.isActive !== false
         });
-        setMessage(stripComposedShortLink(nextSelected.message || "", nextSelected.shortLink || ""));
+        setMessage(nextSelected.message || "");
       }
     } catch (err) {
       alert(err?.response?.data?.message || "Failed to load bulk SMS templates");
@@ -94,7 +66,7 @@ export default function AdminBulkSms() {
   }, []);
 
   const activeTemplate = templates.find((item) => item._id === selectedTemplateId) || null;
-  const selectedTemplateMessage = composeBulkMessage(activeTemplate?.message, activeTemplate?.shortLink);
+  const selectedTemplateMessage = String(activeTemplate?.message || "").trim();
   const selectedTemplateSenderId = String(activeTemplate?.senderId || "").trim();
   const selectedTemplateMessageId = String(activeTemplate?.messageId || "").trim();
 
@@ -106,7 +78,6 @@ export default function AdminBulkSms() {
       senderId: "",
       messageId: "",
       templateId: "",
-      shortLink: "",
       message: "",
       isActive: true
     });
@@ -123,11 +94,10 @@ export default function AdminBulkSms() {
       senderId: selected.senderId || "",
       messageId: selected.messageId || "",
       templateId: selected.templateId || "",
-      shortLink: selected.shortLink || "",
-      message: stripComposedShortLink(selected.message || "", selected.shortLink || ""),
+      message: selected.message || "",
       isActive: selected.isActive !== false
     });
-    setMessage(stripComposedShortLink(selected.message || "", selected.shortLink || ""));
+    setMessage(selected.message || "");
   };
 
   const handleFileSelect = (event) => {
@@ -150,7 +120,6 @@ export default function AdminBulkSms() {
       senderId: templateForm.senderId.trim(),
       messageId: templateForm.messageId.trim(),
       templateId: templateForm.templateId.trim(),
-      shortLink: normalizeShortLink(templateForm.shortLink),
       message: templateForm.message.trim(),
       isActive: templateForm.isActive !== false
     };
@@ -163,10 +132,6 @@ export default function AdminBulkSms() {
       alert("Enter a message ID");
       return;
     }
-    if (!payload.shortLink) {
-      alert("Enter a short link");
-      return;
-    }
     if (!payload.templateId) {
       alert("Enter a template ID");
       return;
@@ -175,8 +140,8 @@ export default function AdminBulkSms() {
       alert("Enter a template message");
       return;
     }
-    if (composeBulkMessage(payload.message, payload.shortLink).length > 200) {
-      alert("Composed template message exceeds 200 characters");
+    if (payload.message.length > 200) {
+      alert("Template message exceeds 200 characters");
       return;
     }
 
@@ -246,7 +211,7 @@ export default function AdminBulkSms() {
       alert("Selected template has no message ID");
       return;
     }
-    const templateMessage = composeBulkMessage(activeTemplate?.message, activeTemplate?.shortLink);
+    const templateMessage = String(activeTemplate?.message || "").trim();
     if (!templateMessage) {
       alert("Selected template has no message");
       return;
@@ -260,8 +225,8 @@ export default function AdminBulkSms() {
       const res = await api.post("/bulk-sms/send", {
         mobiles: parsedData.mobiles,
         message: templateMessage,
-        messageId: activeTemplate.messageId,
-        templateId: activeTemplate.templateId
+      messageId: activeTemplate.messageId,
+      templateId: activeTemplate.templateId
       });
       setResult(res.data);
     } catch (err) {
@@ -406,15 +371,6 @@ export default function AdminBulkSms() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Short Link</label>
-                    <input
-                      value={templateForm.shortLink}
-                      onChange={(e) => setTemplateForm((prev) => ({ ...prev, shortLink: e.target.value }))}
-                      className="w-full border rounded-lg p-2 text-sm"
-                      placeholder="hokoapp.in"
-                    />
-                  </div>
-                  <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Template ID</label>
                     <input
                       value={templateForm.templateId}
@@ -426,24 +382,18 @@ export default function AdminBulkSms() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Template message body</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Template message</label>
                   <textarea
                     value={templateForm.message}
                     onChange={(e) => setTemplateForm((prev) => ({ ...prev, message: e.target.value }))}
                     className="w-full border rounded-lg p-3 text-sm"
                     rows={4}
-                    maxLength={160}
-                    placeholder="Approved SMS template body"
+                    maxLength={200}
+                    placeholder="Approved SMS template text"
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    Base characters: {templateForm.message.length}/160
+                    Characters: {templateForm.message.length}/200
                   </p>
-                  <div className="mt-2 rounded-lg border bg-gray-50 p-3">
-                    <p className="text-xs font-medium text-gray-600 mb-1">Generated SMS text</p>
-                    <div className="text-xs text-gray-700 whitespace-pre-line">
-                      {composeBulkMessage(templateForm.message, templateForm.shortLink) || "Preview will appear here"}
-                    </div>
-                  </div>
                 </div>
 
                 <label className="inline-flex items-center gap-2 text-sm">
@@ -462,9 +412,9 @@ export default function AdminBulkSms() {
                         <div className="text-sm">
                           <div className="font-medium">{template.name || template.templateId}</div>
                           <div className="text-xs text-gray-600">
-                            Sender: {template.senderId || "-"} | Message: {template.messageId || "-"} | Link: {template.shortLink || "-"} | ID: {template.templateId} {template.isActive === false ? "(inactive)" : "(active)"}
+                            Sender: {template.senderId || "-"} | Message: {template.messageId || "-"} | ID: {template.templateId} {template.isActive === false ? "(inactive)" : "(active)"}
                           </div>
-                          <div className="text-xs text-gray-500 whitespace-pre-line">{template.message}</div>
+                          <div className="text-xs text-gray-500">{template.message}</div>
                         </div>
                         <div className="flex gap-2">
                           <button
@@ -498,7 +448,7 @@ export default function AdminBulkSms() {
                 The message should match the selected template text. You can review it here before sending.
               </p>
               <textarea
-                value={composeBulkMessage(templateForm.message, templateForm.shortLink) || selectedTemplateMessage || message}
+                value={activeTemplate?.message || message}
                 readOnly
                 placeholder="Message will load from the selected template"
                 className="w-full border rounded-lg p-3 text-sm bg-gray-50"
@@ -506,11 +456,11 @@ export default function AdminBulkSms() {
                 maxLength={200}
               />
               <p className="text-xs text-gray-500 mt-1">
-                Characters: {(composeBulkMessage(templateForm.message, templateForm.shortLink) || selectedTemplateMessage || message).length}/200
+                Characters: {(activeTemplate?.message || message).length}/200
               </p>
               {activeTemplate && (
                 <p className="text-xs text-gray-500 mt-1">
-                  Selected: {activeTemplate.name || activeTemplate.templateId} | Sender: {activeTemplate.senderId || "-"} | Message: {activeTemplate.messageId || "-"} | Link: {activeTemplate.shortLink || "-"} | ID: {activeTemplate.templateId}
+                  Selected: {activeTemplate.name || activeTemplate.templateId} | Sender: {activeTemplate.senderId || "-"} | Message: {activeTemplate.messageId || "-"} | ID: {activeTemplate.templateId}
                 </p>
               )}
             </div>
