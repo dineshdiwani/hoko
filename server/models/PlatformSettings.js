@@ -78,6 +78,7 @@ const platformSettingsSchema = new mongoose.Schema(
         },
         name: { type: String, default: "" },
         senderId: { type: String, default: "" },
+        messageId: { type: String, default: "" },
         templateId: { type: String, default: "" },
         message: { type: String, default: "" },
         isActive: { type: Boolean, default: true }

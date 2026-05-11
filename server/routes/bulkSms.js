@@ -14,6 +14,7 @@ function normalizeBulkTemplate(template) {
     _id: String(template?._id || "").trim(),
     name: String(template?.name || "").trim(),
     senderId: String(template?.senderId || "").trim(),
+    messageId: String(template?.messageId || "").trim(),
     templateId: String(template?.templateId || "").trim(),
     message: String(template?.message || "").trim(),
     isActive: template?.isActive !== false
@@ -95,6 +96,7 @@ router.post("/send", adminAuth, async (req, res) => {
 
     let messageToSend = messageTrimmed;
     let senderIdToUse = String(process.env.FAST2SMS_SENDER_ID || "").trim();
+    let messageIdToUse = "";
     if (selectedTemplateId) {
       const doc = await PlatformSettings.findOne().lean();
       const templates = getBulkSmsTemplates(doc);
@@ -109,6 +111,7 @@ router.post("/send", adminAuth, async (req, res) => {
         return res.status(400).json({ message: "Selected template has no message" });
       }
       senderIdToUse = String(selectedTemplate.senderId || senderIdToUse).trim();
+      messageIdToUse = String(selectedTemplate.messageId || "").trim();
     }
 
     if (messageToSend.length > 200) {
@@ -122,6 +125,7 @@ router.post("/send", adminAuth, async (req, res) => {
     const results = await sendBulkSms({
       numbers: mobiles,
       message: messageToSend,
+      messageId: messageIdToUse,
       templateId: selectedTemplateId,
       senderId: senderIdToUse
     });
@@ -147,12 +151,16 @@ router.post("/templates", adminAuth, async (req, res) => {
   try {
     const name = String(req.body?.name || "").trim();
     const senderId = String(req.body?.senderId || "").trim();
+    const messageId = String(req.body?.messageId || "").trim();
     const templateId = String(req.body?.templateId || "").trim();
     const message = String(req.body?.message || "").trim();
     const isActive = req.body?.isActive !== false;
 
     if (!senderId) {
       return res.status(400).json({ message: "senderId required" });
+    }
+    if (!messageId) {
+      return res.status(400).json({ message: "messageId required" });
     }
     if (!templateId) {
       return res.status(400).json({ message: "templateId required" });
@@ -173,6 +181,7 @@ router.post("/templates", adminAuth, async (req, res) => {
       _id: new Date().getTime().toString(36),
       name: name || templateId,
       senderId,
+      messageId,
       templateId,
       message,
       isActive
@@ -196,6 +205,7 @@ router.put("/templates/:id", adminAuth, async (req, res) => {
     const templateId = String(req.params.id || "").trim();
     const name = String(req.body?.name || "").trim();
     const senderId = String(req.body?.senderId || "").trim();
+    const messageId = String(req.body?.messageId || "").trim();
     const nextTemplateId = String(req.body?.templateId || "").trim();
     const message = String(req.body?.message || "").trim();
     const isActive = req.body?.isActive !== false;
@@ -205,6 +215,9 @@ router.put("/templates/:id", adminAuth, async (req, res) => {
     }
     if (!senderId) {
       return res.status(400).json({ message: "senderId required" });
+    }
+    if (!messageId) {
+      return res.status(400).json({ message: "messageId required" });
     }
     if (!nextTemplateId) {
       return res.status(400).json({ message: "templateId required" });
@@ -232,6 +245,7 @@ router.put("/templates/:id", adminAuth, async (req, res) => {
       ...templates[index],
       name: name || nextTemplateId,
       senderId,
+      messageId,
       templateId: nextTemplateId,
       message,
       isActive
