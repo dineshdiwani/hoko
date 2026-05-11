@@ -43,9 +43,9 @@ async function sendAndLogBulkWhatsApp({
   try {
     const providerResult = await sendViaGupshupTemplate({
       to: normalizedMobile,
-      templateId: templateConfig.templateId,
-      templateName: templateConfig.templateName,
-      languageCode: templateConfig.language || "en",
+      templateId: templateConfig.id,
+      templateName: templateConfig.name,
+      languageCode: templateConfig.languageCode || "en",
       parameters,
       buttonUrl,
       templateConfig
@@ -69,7 +69,7 @@ async function sendAndLogBulkWhatsApp({
       providerResponse,
       city: "",
       category: "",
-      product: `Template: ${templateConfig.templateName || templateConfig.templateId}`,
+      product: `Template: ${templateConfig.name || templateConfig.id}`,
       createdByAdminId: createdByAdminId || null
     });
 
@@ -103,7 +103,7 @@ async function sendAndLogBulkWhatsApp({
       providerResponse,
       city: "",
       category: "",
-      product: `Template: ${templateConfig.templateName || templateConfig.templateId}`,
+      product: `Template: ${templateConfig.name || templateConfig.id}`,
       createdByAdminId: createdByAdminId || null
     });
 
@@ -203,7 +203,7 @@ router.post("/send-city", adminAuth, async (req, res) => {
     const batchId = crypto.randomUUID();
     const results = { accepted: [], failed: [], total: sellers.length };
 
-    console.log(`[BulkWhatsApp City] Template: ${templateConfig.templateName}, templateId: ${templateConfig.templateId}, sellers found: ${sellers.length}, query:`, query);
+    console.log(`[BulkWhatsApp City] Template: ${templateConfig.name}, templateId: ${templateConfig.id}, sellers found: ${sellers.length}, query:`, query);
 
     const allCities = await WhatsAppContact.distinct("city", { optInStatus: "opted_in", active: { $ne: false } });
     console.log("[BulkWhatsApp] All opted-in cities:", allCities);
