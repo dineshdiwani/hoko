@@ -8,6 +8,7 @@ export default function AdminBulkWhatsApp() {
   const [templates, setTemplates] = useState([]);
   const [templatesLoading, setTemplatesLoading] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
+  const [buttonUrl, setButtonUrl] = useState("");
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState(null);
   const [deliveryStatus, setDeliveryStatus] = useState(null);
@@ -136,7 +137,8 @@ export default function AdminBulkWhatsApp() {
       setSending(true);
       const res = await api.post("/bulk-whatsapp/send", {
         phones: parsedData.phones,
-        templateId: selectedTemplateId
+        templateId: selectedTemplateId,
+        buttonUrl: buttonUrl.trim()
       });
       setResult(res.data);
       setDeliveryStatus(null);
@@ -153,6 +155,7 @@ export default function AdminBulkWhatsApp() {
     setParsedData(null);
     setResult(null);
     setDeliveryStatus(null);
+    setButtonUrl("");
     setSelectedTemplateId(templates[0]?.id || "");
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -255,8 +258,23 @@ export default function AdminBulkWhatsApp() {
                 <p>Language: {activeTemplate.languageCode || "en"}</p>
                 <p>Status: {activeTemplate.status || "APPROVED"}</p>
                 <p>Variables: {activeTemplate.bodyVariableCount || 0}</p>
+                <p>Components: {Array.isArray(activeTemplate.components) ? activeTemplate.components.length : 0}</p>
               </div>
             )}
+
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">CTA / Button URL (optional)</label>
+              <input
+                type="text"
+                value={buttonUrl}
+                onChange={(e) => setButtonUrl(e.target.value)}
+                placeholder="https://hokoapp.in/..."
+                className="w-full border rounded-lg p-2 text-sm bg-white"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Fill this only if the approved template uses a URL CTA or dynamic button link.
+              </p>
+            </div>
           </div>
 
           <div className="border rounded-xl p-4 space-y-4">
