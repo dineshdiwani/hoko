@@ -70,6 +70,18 @@ const platformSettingsSchema = new mongoose.Schema(
       content: { type: String, default: "" },
       version: { type: String, default: "1.0" }
     },
+    bulkSmsTemplates: [
+      {
+        _id: {
+          type: String,
+          default: () => new mongoose.Types.ObjectId().toHexString()
+        },
+        name: { type: String, default: "" },
+        templateId: { type: String, default: "" },
+        message: { type: String, default: "" },
+        isActive: { type: Boolean, default: true }
+      }
+    ],
     adminNotifications: {
       enabled: { type: Boolean, default: true },
       mobileNumbers: [{ type: String }],

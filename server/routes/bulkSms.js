@@ -4,9 +4,25 @@ const multer = require("multer");
 const xlsx = require("xlsx");
 const adminAuth = require("../middleware/adminAuth");
 const { sendBulkSms } = require("../utils/sendSms");
+const PlatformSettings = require("../models/PlatformSettings");
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
+
+function normalizeBulkTemplate(template) {
+  return {
+    _id: String(template?._id || "").trim(),
+    name: String(template?.name || "").trim(),
+    templateId: String(template?.templateId || "").trim(),
+    message: String(template?.message || "").trim(),
+    isActive: template?.isActive !== false
+  };
+}
+
+function getBulkSmsTemplates(doc) {
+  const raw = Array.isArray(doc?.bulkSmsTemplates) ? doc.bulkSmsTemplates : [];
+  return raw.map(normalizeBulkTemplate).filter((template) => template.templateId || template.message);
+}
 
 function parseMobile(value) {
   if (!value) return null;
@@ -63,31 +79,180 @@ router.post("/upload", adminAuth, upload.single("file"), async (req, res) => {
 
 router.post("/send", adminAuth, async (req, res) => {
   try {
-    const { mobiles, message } = req.body;
+    const { mobiles, message, templateId } = req.body;
 
     if (!Array.isArray(mobiles) || mobiles.length === 0) {
       return res.status(400).json({ message: "Mobile numbers array required" });
     }
 
-    if (!message || typeof message !== "string" || !message.trim()) {
+    const messageTrimmed = typeof message === "string" ? message.trim() : "";
+    const selectedTemplateId = String(templateId || "").trim();
+
+    if (!messageTrimmed && !selectedTemplateId) {
       return res.status(400).json({ message: "Message required" });
     }
 
-    const messageTrimmed = message.trim();
-    if (messageTrimmed.length > 200) {
+    let messageToSend = messageTrimmed;
+    if (selectedTemplateId) {
+      const doc = await PlatformSettings.findOne().lean();
+      const templates = getBulkSmsTemplates(doc);
+      const selectedTemplate = templates.find(
+        (item) => item._id === selectedTemplateId || item.templateId === selectedTemplateId
+      );
+      if (!selectedTemplate) {
+        return res.status(404).json({ message: "Selected template not found" });
+      }
+      messageToSend = String(selectedTemplate.message || "").trim();
+      if (!messageToSend) {
+        return res.status(400).json({ message: "Selected template has no message" });
+      }
+    }
+
+    if (messageToSend.length > 200) {
       return res.status(400).json({ message: "Message exceeds 200 characters" });
     }
 
     const results = await sendBulkSms({
       numbers: mobiles,
-      message: messageTrimmed,
-      templateId: process.env.FAST2SMS_DLT_BULK_TEMPLATE_ID || process.env.FAST2SMS_DLT_TEMPLATE_ID
+      message: messageToSend,
+      templateId: selectedTemplateId
     });
 
     res.json(results);
   } catch (err) {
     console.error("Bulk SMS send error:", err);
     res.status(500).json({ message: err.message || "Failed to send SMS" });
+  }
+});
+
+router.get("/templates", adminAuth, async (req, res) => {
+  try {
+    const doc = await PlatformSettings.findOne().lean();
+    return res.json({ templates: getBulkSmsTemplates(doc) });
+  } catch (err) {
+    console.error("Bulk SMS template list error:", err);
+    return res.status(500).json({ message: "Failed to load bulk SMS templates" });
+  }
+});
+
+router.post("/templates", adminAuth, async (req, res) => {
+  try {
+    const name = String(req.body?.name || "").trim();
+    const templateId = String(req.body?.templateId || "").trim();
+    const message = String(req.body?.message || "").trim();
+    const isActive = req.body?.isActive !== false;
+
+    if (!templateId) {
+      return res.status(400).json({ message: "templateId required" });
+    }
+    if (!message) {
+      return res.status(400).json({ message: "message required" });
+    }
+
+    const doc = await PlatformSettings.findOne();
+    const templates = getBulkSmsTemplates(doc);
+    const duplicate = templates.some(
+      (item) => item.templateId.toLowerCase() === templateId.toLowerCase()
+    );
+    if (duplicate) {
+      return res.status(409).json({ message: "Template ID already exists" });
+    }
+    templates.push({
+      _id: new Date().getTime().toString(36),
+      name: name || templateId,
+      templateId,
+      message,
+      isActive
+    });
+
+    const updated = await PlatformSettings.findOneAndUpdate(
+      {},
+      { bulkSmsTemplates: templates },
+      { upsert: true, new: true }
+    );
+
+    return res.json({ templates: getBulkSmsTemplates(updated) });
+  } catch (err) {
+    console.error("Bulk SMS template create error:", err);
+    return res.status(500).json({ message: "Failed to save bulk SMS template" });
+  }
+});
+
+router.put("/templates/:id", adminAuth, async (req, res) => {
+  try {
+    const templateId = String(req.params.id || "").trim();
+    const name = String(req.body?.name || "").trim();
+    const nextTemplateId = String(req.body?.templateId || "").trim();
+    const message = String(req.body?.message || "").trim();
+    const isActive = req.body?.isActive !== false;
+
+    if (!templateId) {
+      return res.status(400).json({ message: "Template id required" });
+    }
+    if (!nextTemplateId) {
+      return res.status(400).json({ message: "templateId required" });
+    }
+    if (!message) {
+      return res.status(400).json({ message: "message required" });
+    }
+
+    const doc = await PlatformSettings.findOne().lean();
+    const templates = getBulkSmsTemplates(doc);
+    const index = templates.findIndex((item) => item._id === templateId);
+    if (index < 0) {
+      return res.status(404).json({ message: "Template not found" });
+    }
+    const duplicate = templates.some(
+      (item) =>
+        item._id !== templateId &&
+        item.templateId.toLowerCase() === nextTemplateId.toLowerCase()
+    );
+    if (duplicate) {
+      return res.status(409).json({ message: "Template ID already exists" });
+    }
+
+    templates[index] = {
+      ...templates[index],
+      name: name || nextTemplateId,
+      templateId: nextTemplateId,
+      message,
+      isActive
+    };
+
+    const updated = await PlatformSettings.findOneAndUpdate(
+      {},
+      { bulkSmsTemplates: templates },
+      { upsert: true, new: true }
+    );
+
+    return res.json({ templates: getBulkSmsTemplates(updated) });
+  } catch (err) {
+    console.error("Bulk SMS template update error:", err);
+    return res.status(500).json({ message: "Failed to update bulk SMS template" });
+  }
+});
+
+router.delete("/templates/:id", adminAuth, async (req, res) => {
+  try {
+    const templateId = String(req.params.id || "").trim();
+    if (!templateId) {
+      return res.status(400).json({ message: "Template id required" });
+    }
+
+    const doc = await PlatformSettings.findOne().lean();
+    const templates = getBulkSmsTemplates(doc);
+    const nextTemplates = templates.filter((item) => item._id !== templateId);
+
+    const updated = await PlatformSettings.findOneAndUpdate(
+      {},
+      { bulkSmsTemplates: nextTemplates },
+      { upsert: true, new: true }
+    );
+
+    return res.json({ templates: getBulkSmsTemplates(updated) });
+  } catch (err) {
+    console.error("Bulk SMS template delete error:", err);
+    return res.status(500).json({ message: "Failed to delete bulk SMS template" });
   }
 });
 
