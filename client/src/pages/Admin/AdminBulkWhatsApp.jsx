@@ -22,6 +22,8 @@ export default function AdminBulkWhatsApp() {
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState(null);
+  const [deliveryStatus, setDeliveryStatus] = useState(null);
+  const [deliveryStatusLoading, setDeliveryStatusLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -72,6 +74,32 @@ export default function AdminBulkWhatsApp() {
   const selectedTemplateMessage = String(templateForm.message || activeTemplate?.message || "").trim();
   const selectedTemplateName = String(templateForm.templateName || activeTemplate?.templateName || "").trim();
   const selectedTemplateIdValue = String(templateForm.templateId || activeTemplate?.templateId || "").trim();
+
+  const loadDeliveryStatus = async (batchId) => {
+    if (!batchId) return;
+    try {
+      setDeliveryStatusLoading(true);
+      const params = new URLSearchParams();
+      params.set("batchId", batchId);
+      params.set("channel", "whatsapp");
+      params.set("limit", "100");
+      const res = await api.get(`/admin/whatsapp/delivery-logs?${params.toString()}`);
+      setDeliveryStatus({
+        batchId,
+        items: Array.isArray(res.data?.items) ? res.data.items : [],
+        summary: res.data?.summary || null
+      });
+    } catch (err) {
+      setDeliveryStatus({
+        batchId,
+        items: [],
+        summary: null,
+        error: err?.response?.data?.message || err.message || "Failed to load delivery status"
+      });
+    } finally {
+      setDeliveryStatusLoading(false);
+    }
+  };
 
   const resetTemplateForm = () => {
     setEditingTemplateId("");
@@ -224,6 +252,8 @@ export default function AdminBulkWhatsApp() {
         parameters
       });
       setResult(res.data);
+      setDeliveryStatus(null);
+      await loadDeliveryStatus(res.data?.batchId);
     } catch (err) {
       alert(err?.response?.data?.message || err.message || "Failed to send WhatsApp");
     } finally {
@@ -238,6 +268,7 @@ export default function AdminBulkWhatsApp() {
     setButtonUrl("");
     setParametersText("");
     setResult(null);
+    setDeliveryStatus(null);
     resetTemplateForm();
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -501,8 +532,23 @@ export default function AdminBulkWhatsApp() {
               <h3 className="font-semibold mb-2">Send Results</h3>
               <div className="text-sm space-y-1">
                 <p>Total: {result.total}</p>
-                <p className="text-green-600">Accepted: {result.accepted?.length || result.sent?.length || 0}</p>
+                <p className="text-green-600">Provider accepted: {result.accepted?.length || result.sent?.length || 0}</p>
                 <p className="text-red-600">Failed: {result.failed?.length || 0}</p>
+                <p className="text-xs text-gray-500">
+                  Provider accepted means the request reached Gupshup. It does not confirm delivery to the phone.
+                </p>
+                {result.batchId && (
+                  <div className="pt-2">
+                    <p className="text-xs text-gray-600 font-medium">Batch ID: {result.batchId}</p>
+                    <button
+                      onClick={() => loadDeliveryStatus(result.batchId)}
+                      disabled={deliveryStatusLoading}
+                      className="mt-2 px-3 py-1.5 rounded border border-gray-300 text-xs"
+                    >
+                      {deliveryStatusLoading ? "Refreshing..." : "Refresh delivery status"}
+                    </button>
+                  </div>
+                )}
                 {result.failed?.length > 0 && (
                   <div className="mt-2 text-xs">
                     <p className="font-medium">Failures:</p>
@@ -514,6 +560,25 @@ export default function AdminBulkWhatsApp() {
                   </div>
                 )}
               </div>
+            </div>
+          )}
+
+          {deliveryStatus && (
+            <div className="border rounded-xl p-4 bg-white">
+              <h3 className="font-semibold mb-2">Delivery Status</h3>
+              {deliveryStatus.error ? (
+                <p className="text-xs text-red-600">{deliveryStatus.error}</p>
+              ) : (
+                <div className="text-sm space-y-1">
+                  <p>Total logs: {deliveryStatus.summary?.total ?? deliveryStatus.items.length}</p>
+                  <p>Accepted: {deliveryStatus.summary?.accepted || 0}</p>
+                  <p>Queued: {deliveryStatus.summary?.queued || 0}</p>
+                  <p>Sent: {deliveryStatus.summary?.sent || 0}</p>
+                  <p>Delivered: {deliveryStatus.summary?.delivered || 0}</p>
+                  <p>Read: {deliveryStatus.summary?.read || 0}</p>
+                  <p>Failed: {deliveryStatus.summary?.failed || 0}</p>
+                </div>
+              )}
             </div>
           )}
         </div>

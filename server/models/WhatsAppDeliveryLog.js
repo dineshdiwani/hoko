@@ -57,6 +57,10 @@ const whatsAppDeliveryLogSchema = new mongoose.Schema(
       type: String,
       default: ""
     },
+    batchId: {
+      type: String,
+      default: ""
+    },
     providerResponse: {
       type: mongoose.Schema.Types.Mixed,
       default: null
@@ -83,6 +87,7 @@ const whatsAppDeliveryLogSchema = new mongoose.Schema(
 );
 
 whatsAppDeliveryLogSchema.index({ createdAt: -1 });
+whatsAppDeliveryLogSchema.index({ batchId: 1, createdAt: -1 });
 whatsAppDeliveryLogSchema.index({ campaignRunId: 1, mobileE164: 1 });
 whatsAppDeliveryLogSchema.index({ requirementId: 1, triggerType: 1, createdAt: -1 });
 

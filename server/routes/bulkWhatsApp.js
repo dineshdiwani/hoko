@@ -1,3 +1,4 @@
+const crypto = require("crypto");
 const express = require("express");
 const router = express.Router();
 const adminAuth = require("../middleware/adminAuth");
@@ -41,7 +42,8 @@ async function sendAndLogBulkWhatsApp({
   parameters,
   buttonUrl,
   providerType,
-  createdByAdminId
+  createdByAdminId,
+  batchId
 }) {
   const normalizedMobile = normalizeE164(mobileE164);
   if (!normalizedMobile) {
@@ -86,6 +88,7 @@ async function sendAndLogBulkWhatsApp({
       reason: "",
       provider: "gupshup",
       providerMessageId,
+      batchId: String(batchId || "").trim(),
       providerResponse,
       city: "",
       category: "",
@@ -119,6 +122,7 @@ async function sendAndLogBulkWhatsApp({
       reason,
       provider: "gupshup",
       providerMessageId: "",
+      batchId: String(batchId || "").trim(),
       providerResponse,
       city: "",
       category: "",
@@ -156,6 +160,7 @@ router.post("/send", adminAuth, async (req, res) => {
     }
 
     const providerType = String(provider || "gupshup").trim().toLowerCase();
+    const batchId = crypto.randomUUID();
     const results = { accepted: [], failed: [], total: phones.length };
 
     for (const phone of phones) {
@@ -167,7 +172,8 @@ router.post("/send", adminAuth, async (req, res) => {
         parameters: [...parameters],
         buttonUrl,
         providerType,
-        createdByAdminId: req.admin?._id || null
+        createdByAdminId: req.admin?._id || null,
+        batchId
       });
 
       if (sendResult.status === "accepted") {
@@ -185,8 +191,8 @@ router.post("/send", adminAuth, async (req, res) => {
       }
     }
 
-    console.log(`[Bulk WhatsApp] Accepted: ${results.accepted.length}, Failed: ${results.failed.length}`);
-    res.json(results);
+    console.log(`[Bulk WhatsApp] Batch ${batchId} Accepted: ${results.accepted.length}, Failed: ${results.failed.length}`);
+    res.json({ ...results, batchId });
   } catch (err) {
     console.log("[Bulk WhatsApp] Error:", err.message);
     res.status(500).json({ message: err.message });
@@ -232,6 +238,7 @@ router.post("/send-city", adminAuth, async (req, res) => {
       .limit(Number(limit) || 100);
 
     const providerType = String(provider || "gupshup").trim().toLowerCase();
+    const batchId = crypto.randomUUID();
     const results = { accepted: [], failed: [], total: sellers.length };
 
     console.log(`[BulkWhatsApp City] Template: ${templateConfig.templateName}, templateId: ${templateConfig.templateId}, sellers found: ${sellers.length}, query:`, query);
@@ -251,7 +258,8 @@ router.post("/send-city", adminAuth, async (req, res) => {
         parameters,
         buttonUrl,
         providerType,
-        createdByAdminId: req.admin?._id || null
+        createdByAdminId: req.admin?._id || null,
+        batchId
       });
 
       if (sendResult.status === "accepted") {
@@ -269,8 +277,8 @@ router.post("/send-city", adminAuth, async (req, res) => {
       }
     }
 
-    console.log(`[BulkWhatsApp City] Accepted: ${results.accepted.length}, Failed: ${results.failed.length}, City: ${city}`);
-    res.json(results);
+    console.log(`[BulkWhatsApp City] Batch ${batchId} Accepted: ${results.accepted.length}, Failed: ${results.failed.length}, City: ${city}`);
+    res.json({ ...results, batchId });
   } catch (err) {
     console.log("[BulkWhatsApp City] Error:", err.message);
     res.status(500).json({ message: err.message });

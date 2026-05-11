@@ -2087,6 +2087,7 @@ router.get("/whatsapp/delivery-logs", adminAuth, requireAdminPermission("campaig
 
   const query = {};
   const requirementId = String(req.query?.requirementId || "").trim();
+  const batchId = String(req.query?.batchId || "").trim();
   const triggerType = String(req.query?.triggerType || "").trim();
   const status = String(req.query?.status || "").trim();
   const mobile = normalizeE164(req.query?.mobileE164);
@@ -2095,6 +2096,7 @@ router.get("/whatsapp/delivery-logs", adminAuth, requireAdminPermission("campaig
   const to = String(req.query?.to || "").trim();
 
   if (requirementId) query.requirementId = requirementId;
+  if (batchId) query.batchId = batchId;
   if (triggerType) query.triggerType = triggerType;
   if (status) query.status = status;
   if (mobile) query.mobileE164 = mobile;
