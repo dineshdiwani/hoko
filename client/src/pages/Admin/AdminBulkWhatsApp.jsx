@@ -569,14 +569,37 @@ export default function AdminBulkWhatsApp() {
               {deliveryStatus.error ? (
                 <p className="text-xs text-red-600">{deliveryStatus.error}</p>
               ) : (
-                <div className="text-sm space-y-1">
-                  <p>Total logs: {deliveryStatus.summary?.total ?? deliveryStatus.items.length}</p>
-                  <p>Accepted: {deliveryStatus.summary?.accepted || 0}</p>
-                  <p>Queued: {deliveryStatus.summary?.queued || 0}</p>
-                  <p>Sent: {deliveryStatus.summary?.sent || 0}</p>
-                  <p>Delivered: {deliveryStatus.summary?.delivered || 0}</p>
-                  <p>Read: {deliveryStatus.summary?.read || 0}</p>
-                  <p>Failed: {deliveryStatus.summary?.failed || 0}</p>
+                <div className="text-sm space-y-2">
+                  <div className="space-y-1">
+                    <p>Total logs: {deliveryStatus.summary?.total ?? deliveryStatus.items.length}</p>
+                    <p>Accepted: {deliveryStatus.summary?.accepted || 0}</p>
+                    <p>Queued: {deliveryStatus.summary?.queued || 0}</p>
+                    <p>Sent: {deliveryStatus.summary?.sent || 0}</p>
+                    <p>Delivered: {deliveryStatus.summary?.delivered || 0}</p>
+                    <p>Read: {deliveryStatus.summary?.read || 0}</p>
+                    <p>Failed: {deliveryStatus.summary?.failed || 0}</p>
+                  </div>
+
+                  {deliveryStatus.summary?.failed > 0 && (
+                    <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-xs">
+                      <p className="font-medium text-red-700 mb-2">Failed rows</p>
+                      {deliveryStatus.items
+                        .filter((item) => item.status === "failed")
+                        .slice(0, 5)
+                        .map((item) => (
+                          <div key={item._id} className="mb-2 last:mb-0">
+                            <p className="font-medium">{item.mobileE164 || "Unknown number"}</p>
+                            <p>Reason: {item.reason || "No reason provided"}</p>
+                            {item.providerMessageId && <p>Provider ID: {item.providerMessageId}</p>}
+                            {item.providerResponse && (
+                              <p className="whitespace-pre-wrap break-words">
+                                Provider response: {typeof item.providerResponse === "string" ? item.providerResponse : JSON.stringify(item.providerResponse)}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
