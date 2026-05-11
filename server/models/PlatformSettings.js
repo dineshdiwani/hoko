@@ -80,6 +80,7 @@ const platformSettingsSchema = new mongoose.Schema(
         senderId: { type: String, default: "" },
         messageId: { type: String, default: "" },
         templateId: { type: String, default: "" },
+        shortLink: { type: String, default: "" },
         message: { type: String, default: "" },
         isActive: { type: Boolean, default: true }
       }

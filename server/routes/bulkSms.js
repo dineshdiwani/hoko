@@ -16,9 +16,36 @@ function normalizeBulkTemplate(template) {
     senderId: String(template?.senderId || "").trim(),
     messageId: String(template?.messageId || "").trim(),
     templateId: String(template?.templateId || "").trim(),
+    shortLink: String(template?.shortLink || "").trim(),
     message: String(template?.message || "").trim(),
     isActive: template?.isActive !== false
   };
+}
+
+function normalizeShortLink(link) {
+  const raw = String(link || "").trim();
+  if (!raw) return "";
+  if (/^https?:\/\//i.test(raw)) return raw;
+  return `https://${raw.replace(/^\/+/, "")}`;
+}
+
+function composeBulkSmsMessage(message, shortLink) {
+  const base = String(message || "").trim();
+  const link = normalizeShortLink(shortLink);
+  if (!base) return link;
+  if (!link) return base;
+  return `${base}\n\nJoin now:\n${link}`;
+}
+
+function stripComposedShortLink(message, shortLink) {
+  const base = String(message || "").trim();
+  const link = normalizeShortLink(shortLink);
+  if (!base || !link) return base;
+  const suffix = `\n\nJoin now:\n${link}`;
+  if (base.toLowerCase().endsWith(suffix.toLowerCase())) {
+    return base.slice(0, -suffix.length).trim();
+  }
+  return base;
 }
 
 function getBulkSmsTemplates(doc) {
@@ -97,6 +124,7 @@ router.post("/send", adminAuth, async (req, res) => {
     let messageToSend = messageTrimmed;
     let senderIdToUse = String(process.env.FAST2SMS_SENDER_ID || "").trim();
     let messageIdToUse = "";
+    let shortLinkToUse = "";
     if (selectedTemplateId) {
       const doc = await PlatformSettings.findOne().lean();
       const templates = getBulkSmsTemplates(doc);
@@ -112,7 +140,11 @@ router.post("/send", adminAuth, async (req, res) => {
       }
       senderIdToUse = String(selectedTemplate.senderId || senderIdToUse).trim();
       messageIdToUse = String(selectedTemplate.messageId || "").trim();
+      shortLinkToUse = String(selectedTemplate.shortLink || "").trim();
     }
+
+    messageToSend = stripComposedShortLink(messageToSend, shortLinkToUse);
+    messageToSend = composeBulkSmsMessage(messageToSend, shortLinkToUse);
 
     if (messageToSend.length > 200) {
       return res.status(400).json({ message: "Message exceeds 200 characters" });
@@ -153,6 +185,7 @@ router.post("/templates", adminAuth, async (req, res) => {
     const senderId = String(req.body?.senderId || "").trim();
     const messageId = String(req.body?.messageId || "").trim();
     const templateId = String(req.body?.templateId || "").trim();
+    const shortLink = normalizeShortLink(req.body?.shortLink || "");
     const message = String(req.body?.message || "").trim();
     const isActive = req.body?.isActive !== false;
 
@@ -169,6 +202,11 @@ router.post("/templates", adminAuth, async (req, res) => {
       return res.status(400).json({ message: "message required" });
     }
 
+    const composedMessage = composeBulkSmsMessage(message, shortLink);
+    if (composedMessage.length > 200) {
+      return res.status(400).json({ message: "Composed message exceeds 200 characters" });
+    }
+
     const doc = await PlatformSettings.findOne();
     const templates = getBulkSmsTemplates(doc);
     const duplicate = templates.some(
@@ -183,6 +221,7 @@ router.post("/templates", adminAuth, async (req, res) => {
       senderId,
       messageId,
       templateId,
+      shortLink,
       message,
       isActive
     });
@@ -207,6 +246,7 @@ router.put("/templates/:id", adminAuth, async (req, res) => {
     const senderId = String(req.body?.senderId || "").trim();
     const messageId = String(req.body?.messageId || "").trim();
     const nextTemplateId = String(req.body?.templateId || "").trim();
+    const shortLink = normalizeShortLink(req.body?.shortLink || "");
     const message = String(req.body?.message || "").trim();
     const isActive = req.body?.isActive !== false;
 
@@ -224,6 +264,11 @@ router.put("/templates/:id", adminAuth, async (req, res) => {
     }
     if (!message) {
       return res.status(400).json({ message: "message required" });
+    }
+
+    const composedMessage = composeBulkSmsMessage(message, shortLink);
+    if (composedMessage.length > 200) {
+      return res.status(400).json({ message: "Composed message exceeds 200 characters" });
     }
 
     const doc = await PlatformSettings.findOne().lean();
@@ -247,6 +292,7 @@ router.put("/templates/:id", adminAuth, async (req, res) => {
       senderId,
       messageId,
       templateId: nextTemplateId,
+      shortLink,
       message,
       isActive
     };
