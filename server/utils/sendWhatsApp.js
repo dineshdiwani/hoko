@@ -119,6 +119,13 @@ function resolveGupshupTemplateListUrl() {
   return `https://api.gupshup.io/wa/app/${encodeURIComponent(appId)}/template`;
 }
 
+function resolveGupshupTemplateByIdUrl(templateId) {
+  const appId = String(process.env.GUPSHUP_APP_ID || "").trim();
+  const resolvedTemplateId = String(templateId || "").trim();
+  if (!appId || !resolvedTemplateId) return "";
+  return `https://api.gupshup.io/wa/app/${encodeURIComponent(appId)}/template/${encodeURIComponent(resolvedTemplateId)}`;
+}
+
 function resolveGupshupSource() {
   return String(
     process.env.GUPSHUP_SOURCE ||
@@ -206,6 +213,12 @@ function extractTemplateRows(data) {
   return [];
 }
 
+function extractSingleTemplate(data) {
+  if (!data || typeof data !== "object") return null;
+  if (Array.isArray(data)) return data[0] || null;
+  return data.template || data.data || data.result || data.response || data;
+}
+
 function countTemplatePlaceholders(text) {
   const matches = String(text || "").match(/\{\{\s*\d+\s*\}\}/g);
   return matches ? matches.length : 0;
@@ -270,6 +283,23 @@ function extractTemplateHeaderMediaType(template) {
 
     if (["IMAGE", "VIDEO", "DOCUMENT", "LOCATION", "TEXT"].includes(format)) {
       return format.toLowerCase();
+    }
+  }
+
+  const fallbackFields = [
+    template?.headerMediaType,
+    template?.header_media_type,
+    template?.mediaType,
+    template?.media_type,
+    template?.headerType,
+    template?.header_type,
+    template?.templateType,
+    template?.template_type
+  ];
+  for (const value of fallbackFields) {
+    const normalized = String(value || "").trim().toLowerCase();
+    if (["image", "video", "document", "location", "text"].includes(normalized)) {
+      return normalized;
     }
   }
 
@@ -349,6 +379,26 @@ async function fetchGupshupApprovedTemplates() {
     .filter(Boolean)
     .filter((template) => !template.status || ["APPROVED", "ACTIVE", "ENABLED"].includes(template.status))
     .sort((a, b) => a.name.localeCompare(b.name) || a.languageCode.localeCompare(b.languageCode));
+}
+
+async function fetchGupshupTemplateById(templateId) {
+  const url = resolveGupshupTemplateByIdUrl(templateId);
+  if (!url) {
+    throw new Error("Missing Gupshup template configuration: set GUPSHUP_APP_ID and templateId");
+  }
+
+  const response = await axios.get(url, {
+    timeout: 15000,
+    headers: {
+      apikey: String(process.env.GUPSHUP_API_KEY || "").trim()
+    }
+  });
+
+  const template = normalizeGupshupTemplateRecord(extractSingleTemplate(response?.data));
+  if (!template) {
+    throw new Error("Template not found in Gupshup");
+  }
+  return template;
 }
 
 function buildTemplateComponents(parameters = []) {
@@ -575,5 +625,6 @@ module.exports = {
   sendWhatsAppMessage,
   normalizeE164,
   fetchGupshupApprovedTemplates,
+  fetchGupshupTemplateById,
   sendViaGupshupTemplate
 };

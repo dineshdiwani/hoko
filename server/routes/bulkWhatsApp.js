@@ -4,7 +4,7 @@ const router = express.Router();
 const adminAuth = require("../middleware/adminAuth");
 const WhatsAppContact = require("../models/WhatsAppContact");
 const WhatsAppDeliveryLog = require("../models/WhatsAppDeliveryLog");
-const { normalizeE164, sendViaGupshupTemplate, fetchGupshupApprovedTemplates } = require("../utils/sendWhatsApp");
+const { normalizeE164, sendViaGupshupTemplate, fetchGupshupTemplateById } = require("../utils/sendWhatsApp");
 
 function normalizeProviderResponse(value) {
   if (value === null || value === undefined) return null;
@@ -124,11 +124,14 @@ router.post("/send", adminAuth, async (req, res) => {
       return res.status(400).json({ message: "phones array required" });
     }
 
-    const approvedTemplates = await fetchGupshupApprovedTemplates();
-    const templateConfig = approvedTemplates.find((template) => template.id === String(templateId || "").trim());
+    const selectedTemplateId = String(templateId || "").trim();
+    const templateConfig = await fetchGupshupTemplateById(selectedTemplateId);
 
     if (!templateConfig) {
       return res.status(400).json({ message: "Template not found in Gupshup approved templates" });
+    }
+    if (templateConfig.status && !["APPROVED", "ACTIVE", "ENABLED"].includes(templateConfig.status)) {
+      return res.status(400).json({ message: "Template is not approved in Gupshup" });
     }
 
     const providerType = String(provider || "gupshup").trim().toLowerCase();
@@ -179,11 +182,14 @@ router.post("/send-city", adminAuth, async (req, res) => {
       return res.status(400).json({ message: "city required" });
     }
 
-    const approvedTemplates = await fetchGupshupApprovedTemplates();
-    const templateConfig = approvedTemplates.find((template) => template.id === String(templateId || "").trim());
+    const selectedTemplateId = String(templateId || "").trim();
+    const templateConfig = await fetchGupshupTemplateById(selectedTemplateId);
 
     if (!templateConfig) {
       return res.status(400).json({ message: "Template not found in Gupshup approved templates" });
+    }
+    if (templateConfig.status && !["APPROVED", "ACTIVE", "ENABLED"].includes(templateConfig.status)) {
+      return res.status(400).json({ message: "Template is not approved in Gupshup" });
     }
 
     const query = {
