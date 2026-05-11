@@ -11,15 +11,11 @@ export default function AdminBulkWhatsApp() {
   const [deletingTemplateId, setDeletingTemplateId] = useState("");
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [editingTemplateId, setEditingTemplateId] = useState("");
-  const [buttonUrl, setButtonUrl] = useState("");
-  const [parametersText, setParametersText] = useState("");
   const [templateForm, setTemplateForm] = useState({
     templateName: "",
     templateId: "",
-    message: "",
     isActive: true
   });
-  const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState(null);
   const [deliveryStatus, setDeliveryStatus] = useState(null);
@@ -54,10 +50,8 @@ export default function AdminBulkWhatsApp() {
         setTemplateForm({
           templateName: nextSelected.templateName || "",
           templateId: nextSelected.templateId || "",
-          message: nextSelected.message || "",
           isActive: nextSelected.isActive !== false
         });
-        setMessage(nextSelected.message || "");
       }
     } catch (err) {
       alert(err?.response?.data?.message || "Failed to load bulk WhatsApp templates");
@@ -71,7 +65,6 @@ export default function AdminBulkWhatsApp() {
   }, []);
 
   const activeTemplate = templates.find((item) => item._id === selectedTemplateId) || null;
-  const selectedTemplateMessage = String(templateForm.message || activeTemplate?.message || "").trim();
   const selectedTemplateName = String(templateForm.templateName || activeTemplate?.templateName || "").trim();
   const selectedTemplateIdValue = String(templateForm.templateId || activeTemplate?.templateId || "").trim();
 
@@ -107,10 +100,8 @@ export default function AdminBulkWhatsApp() {
     setTemplateForm({
       templateName: "",
       templateId: "",
-      message: "",
       isActive: true
     });
-    setMessage("");
   };
 
   const syncSelectedTemplate = (templateId) => {
@@ -121,10 +112,8 @@ export default function AdminBulkWhatsApp() {
     setTemplateForm({
       templateName: selected.templateName || "",
       templateId: selected.templateId || "",
-      message: selected.message || "",
       isActive: selected.isActive !== false
     });
-    setMessage(selected.message || "");
   };
 
   const handleFileSelect = (event) => {
@@ -184,7 +173,6 @@ export default function AdminBulkWhatsApp() {
     const payload = {
       templateName: templateForm.templateName.trim(),
       templateId: templateForm.templateId.trim(),
-      message: templateForm.message.trim(),
       isActive: templateForm.isActive !== false
     };
 
@@ -242,14 +230,9 @@ export default function AdminBulkWhatsApp() {
 
     try {
       setSending(true);
-      const parameters = parametersText
-        ? parametersText.split(",").map((item) => item.trim()).filter(Boolean)
-        : [];
       const res = await api.post("/bulk-whatsapp/send", {
         phones: parsedData.phones,
-        templateId: activeTemplate.templateId,
-        buttonUrl: buttonUrl.trim() || undefined,
-        parameters
+        templateId: activeTemplate.templateId
       });
       setResult(res.data);
       setDeliveryStatus(null);
@@ -264,9 +247,6 @@ export default function AdminBulkWhatsApp() {
   const clearForm = () => {
     setFile(null);
     setParsedData(null);
-    setMessage("");
-    setButtonUrl("");
-    setParametersText("");
     setResult(null);
     setDeliveryStatus(null);
     resetTemplateForm();
@@ -333,7 +313,7 @@ export default function AdminBulkWhatsApp() {
             <div>
               <h3 className="font-semibold mb-2">Step 2: Manage Templates</h3>
               <p className="text-sm text-gray-600 mb-2">
-                Save WhatsApp template names, template IDs, and message bodies here.
+                Save WhatsApp template names and template IDs here.
               </p>
 
               <div className="space-y-3">
@@ -393,52 +373,6 @@ export default function AdminBulkWhatsApp() {
                   </div>
                 </div>
 
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Template message</label>
-                <textarea
-                    value={templateForm.message}
-                    onChange={(e) => setTemplateForm((prev) => ({ ...prev, message: e.target.value }))}
-                    className="w-full border rounded-lg p-3 text-sm"
-                    rows={4}
-                    placeholder="Optional local message text for reference"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Characters: {templateForm.message.length} (optional)
-                  </p>
-                  <div className="mt-2 rounded-lg border bg-gray-50 p-3">
-                    <p className="text-xs font-medium text-gray-600 mb-1">Generated message</p>
-                    <div className="text-xs text-gray-700 whitespace-pre-line">
-                      {templateForm.message || activeTemplate?.message || "Preview will appear here"}
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Deeplink / Button URL</label>
-                  <input
-                    value={buttonUrl}
-                    onChange={(e) => setButtonUrl(e.target.value)}
-                    className="w-full border rounded-lg p-2 text-sm"
-                    placeholder="https://hokoapp.in/..."
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Optional link button for the WhatsApp template send.
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Parameters</label>
-                  <input
-                    value={parametersText}
-                    onChange={(e) => setParametersText(e.target.value)}
-                    className="w-full border rounded-lg p-2 text-sm"
-                    placeholder="param1, param2, param3"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Optional comma-separated values for template placeholders.
-                  </p>
-                </div>
-
                 <label className="inline-flex items-center gap-2 text-sm">
                   <input
                     type="checkbox"
@@ -460,7 +394,6 @@ export default function AdminBulkWhatsApp() {
                           <div className="text-xs text-gray-600">
                             Template ID: {template.templateId} {template.isActive === false ? "(inactive)" : "(active)"}
                           </div>
-                          <div className="text-xs text-gray-500 whitespace-pre-line">{template.message}</div>
                         </div>
                         <div className="flex gap-2">
                           <button
@@ -489,19 +422,9 @@ export default function AdminBulkWhatsApp() {
 
           <div className="border rounded-xl p-4 space-y-4">
             <div>
-              <h3 className="font-semibold mb-2">Step 3: Compose Message</h3>
+              <h3 className="font-semibold mb-2">Step 3: Send</h3>
               <p className="text-sm text-gray-600 mb-2">
-                Review the selected WhatsApp template before sending.
-              </p>
-              <textarea
-                value={selectedTemplateMessage || message}
-                readOnly
-                placeholder="Message will load from the selected template"
-                className="w-full border rounded-lg p-3 text-sm bg-gray-50"
-                rows={4}
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Characters: {(selectedTemplateMessage || message).length}
+                Send the selected WhatsApp template to the uploaded mobile numbers.
               </p>
               {activeTemplate && (
                 <p className="text-xs text-gray-500 mt-1">

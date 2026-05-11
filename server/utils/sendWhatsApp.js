@@ -321,10 +321,17 @@ async function sendViaGupshupTemplate({ to, templateId, templateName, languageCo
     );
   }
 
+  const normalizedParams = parameters
+    .map((parameter) => String(parameter || "").trim())
+    .filter(Boolean);
+
   const templatePayload = {
-    id: resolvedTemplateId,
-    params: parameters.map((parameter) => String(parameter || "").trim())
+    id: resolvedTemplateId
   };
+
+  if (normalizedParams.length > 0) {
+    templatePayload.params = normalizedParams;
+  }
 
   if (buttonUrl) {
     templatePayload["button-url"] = String(buttonUrl).trim();
