@@ -17,6 +17,11 @@ const whatsAppTemplateRegistrySchema = new mongoose.Schema(
       default: "",
       trim: true
     },
+    message: {
+      type: String,
+      default: "",
+      trim: true
+    },
     language: {
       type: String,
       default: "en",

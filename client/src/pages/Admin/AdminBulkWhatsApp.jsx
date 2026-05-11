@@ -1,86 +1,245 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import api from "../../utils/adminApi";
 import AdminNav from "../../components/AdminNav";
 
 export default function AdminBulkWhatsApp() {
+  const [file, setFile] = useState(null);
+  const [parsedData, setParsedData] = useState(null);
   const [templates, setTemplates] = useState([]);
-  const [stats, setStats] = useState({ total: 0, byCity: [], byCategory: [] });
-  const [mode, setMode] = useState("city");
-  const [city, setCity] = useState("");
-  const [category, setCategory] = useState("");
-  const [phones, setPhones] = useState("");
-  const [selectedTemplate, setSelectedTemplate] = useState("");
-  const [parameters, setParameters] = useState("");
-  const [buttonUrl, setButtonUrl] = useState("");
+  const [templatesLoading, setTemplatesLoading] = useState(false);
+  const [savingTemplate, setSavingTemplate] = useState(false);
+  const [deletingTemplateId, setDeletingTemplateId] = useState("");
+  const [selectedTemplateId, setSelectedTemplateId] = useState("");
+  const [editingTemplateId, setEditingTemplateId] = useState("");
+  const [templateForm, setTemplateForm] = useState({
+    templateName: "",
+    templateId: "",
+    message: "",
+    isActive: true
+  });
+  const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const loadTemplates = async (preferredValue = "") => {
+    try {
+      setTemplatesLoading(true);
+      const res = await api.get("/bulk-whatsapp/templates?includeInactive=true");
+      const nextTemplates = Array.isArray(res.data?.templates) ? res.data.templates : [];
+      setTemplates(nextTemplates);
+
+      const preferredTemplate = preferredValue
+        ? nextTemplates.find(
+            (item) =>
+              item._id === preferredValue ||
+              item.templateId === preferredValue ||
+              item.key === preferredValue
+          )
+        : null;
+      const currentTemplate = selectedTemplateId
+        ? nextTemplates.find((item) => item._id === selectedTemplateId)
+        : null;
+      const firstActive = nextTemplates.find((item) => item.isActive !== false) || nextTemplates[0];
+      const nextSelected = preferredTemplate || currentTemplate || firstActive;
+
+      if (nextSelected) {
+        setSelectedTemplateId(nextSelected._id);
+        setEditingTemplateId(nextSelected._id);
+        setTemplateForm({
+          templateName: nextSelected.templateName || "",
+          templateId: nextSelected.templateId || "",
+          message: nextSelected.message || "",
+          isActive: nextSelected.isActive !== false
+        });
+        setMessage(nextSelected.message || "");
+      }
+    } catch (err) {
+      alert(err?.response?.data?.message || "Failed to load bulk WhatsApp templates");
+    } finally {
+      setTemplatesLoading(false);
+    }
+  };
 
   useEffect(() => {
-    loadData();
+    loadTemplates();
   }, []);
 
-  const loadData = async () => {
-    try {
-      const [templatesRes, statsRes] = await Promise.all([
-        api.get("/bulk-whatsapp/templates"),
-        api.get("/bulk-whatsapp/stats")
-      ]);
-      setTemplates(templatesRes.data);
-      setStats(statsRes.data);
-    } catch (err) {
-    }
+  const activeTemplate = templates.find((item) => item._id === selectedTemplateId) || null;
+  const selectedTemplateMessage = String(activeTemplate?.message || "").trim();
+  const selectedTemplateName = String(activeTemplate?.templateName || "").trim();
+  const selectedTemplateIdValue = String(activeTemplate?.templateId || "").trim();
+
+  const resetTemplateForm = () => {
+    setEditingTemplateId("");
+    setSelectedTemplateId("");
+    setTemplateForm({
+      templateName: "",
+      templateId: "",
+      message: "",
+      isActive: true
+    });
+    setMessage("");
   };
 
-  const sendByCity = async () => {
-    if (!city || !selectedTemplate) {
-      alert("City and template required");
+  const syncSelectedTemplate = (templateId) => {
+    const selected = templates.find((item) => item._id === templateId) || null;
+    setSelectedTemplateId(templateId);
+    if (!selected) return;
+    setEditingTemplateId(selected._id);
+    setTemplateForm({
+      templateName: selected.templateName || "",
+      templateId: selected.templateId || "",
+      message: selected.message || "",
+      isActive: selected.isActive !== false
+    });
+    setMessage(selected.message || "");
+  };
+
+  const handleFileSelect = (event) => {
+    const selected = event.target.files?.[0] || null;
+    if (!selected) return;
+    const lower = selected.name.toLowerCase();
+    if (!lower.endsWith(".xls") && !lower.endsWith(".xlsx")) {
+      alert("Please upload an Excel file (.xls or .xlsx)");
+      event.target.value = "";
       return;
     }
-    if (!confirm(`Send to all opted-in sellers in ${city}?`)) return;
-
-    setSending(true);
+    setFile(selected);
+    setParsedData(null);
     setResult(null);
+  };
+
+  const uploadAndParse = async () => {
+    if (!file) return;
     try {
-      const params = parameters ? parameters.split(",").map(p => p.trim()) : [];
-      const res = await api.post("/bulk-whatsapp/send-city", {
-        city,
-        category: category || undefined,
-        templateKey: selectedTemplate,
-        parameters: params,
-        buttonUrl: buttonUrl || undefined
+      setUploading(true);
+      const XLSX = await import("xlsx");
+      const arrayBuffer = await file.arrayBuffer();
+      const workbook = XLSX.read(arrayBuffer, { type: "array" });
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+      const phones = [];
+      const errors = [];
+
+      for (let i = 0; i < rows.length; i += 1) {
+        const row = rows[i];
+        const rawPhone = row?.[0];
+        const cleaned = String(rawPhone || "").replace(/[^\d+]/g, "");
+        if (cleaned.length >= 10) {
+          const phone = cleaned.startsWith("+") ? cleaned : cleaned.startsWith("91") ? `+${cleaned}` : `+91${cleaned}`;
+          phones.push(phone);
+        } else if (rawPhone && String(rawPhone).trim()) {
+          errors.push({ row: i + 1, value: rawPhone, reason: "Invalid format" });
+        }
+      }
+
+      const uniquePhones = [...new Set(phones)];
+      setParsedData({
+        phones: uniquePhones,
+        valid: uniquePhones.length,
+        invalid: errors.length,
+        errors
       });
-      setResult(res.data);
     } catch (err) {
-      alert(err?.response?.data?.message || err.message);
+      alert(err?.message || "Failed to parse file");
     } finally {
-      setSending(false);
+      setUploading(false);
     }
   };
 
-  const sendToPhones = async () => {
-    if (!phones || !selectedTemplate) {
-      alert("Phone numbers and template required");
+  const saveTemplate = async () => {
+    const payload = {
+      templateName: templateForm.templateName.trim(),
+      templateId: templateForm.templateId.trim(),
+      message: templateForm.message.trim(),
+      isActive: templateForm.isActive !== false
+    };
+
+    if (!payload.templateName) {
+      alert("Enter a template name");
+      return;
+    }
+    if (!payload.templateId) {
+      alert("Enter a template ID");
+      return;
+    }
+    if (!payload.message) {
+      alert("Enter a template message");
       return;
     }
 
-    const phoneList = phones.split(/[\n,]/).map(p => p.trim()).filter(Boolean);
-    if (!confirm(`Send to ${phoneList.length} phone numbers?`)) return;
-
-    setSending(true);
-    setResult(null);
     try {
-      const params = parameters ? parameters.split(",").map(p => p.trim()) : [];
+      setSavingTemplate(true);
+      if (editingTemplateId) {
+        await api.put(`/bulk-whatsapp/templates/${editingTemplateId}`, payload);
+      } else {
+        await api.post("/bulk-whatsapp/templates", payload);
+      }
+      await loadTemplates(payload.templateId);
+    } catch (err) {
+      alert(err?.response?.data?.message || "Failed to save template");
+    } finally {
+      setSavingTemplate(false);
+    }
+  };
+
+  const deleteTemplate = async (templateId) => {
+    if (!templateId) return;
+    if (!window.confirm("Delete this bulk WhatsApp template?")) return;
+    try {
+      setDeletingTemplateId(templateId);
+      await api.delete(`/bulk-whatsapp/templates/${templateId}`);
+      if (selectedTemplateId === templateId) {
+        resetTemplateForm();
+      }
+      await loadTemplates();
+    } catch (err) {
+      alert(err?.response?.data?.message || "Failed to delete template");
+    } finally {
+      setDeletingTemplateId("");
+    }
+  };
+
+  const sendBulkWhatsApp = async () => {
+    if (!parsedData?.phones?.length) {
+      alert("Upload phone numbers first");
+      return;
+    }
+    if (!activeTemplate?.templateId) {
+      alert("Select a bulk WhatsApp template");
+      return;
+    }
+    if (!selectedTemplateMessage) {
+      alert("Selected template has no message");
+      return;
+    }
+    if (!window.confirm(`Send WhatsApp to ${parsedData.phones.length} numbers?`)) return;
+
+    try {
+      setSending(true);
       const res = await api.post("/bulk-whatsapp/send", {
-        phones: phoneList,
-        templateKey: selectedTemplate,
-        parameters: params,
-        buttonUrl: buttonUrl || undefined
+        phones: parsedData.phones,
+        templateId: activeTemplate.templateId
       });
       setResult(res.data);
     } catch (err) {
-      alert(err?.response?.data?.message || err.message);
+      alert(err?.response?.data?.message || err.message || "Failed to send WhatsApp");
     } finally {
       setSending(false);
+    }
+  };
+
+  const clearForm = () => {
+    setFile(null);
+    setParsedData(null);
+    setMessage("");
+    setResult(null);
+    resetTemplateForm();
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   };
 
@@ -92,163 +251,242 @@ export default function AdminBulkWhatsApp() {
           <AdminNav />
         </div>
 
-        <div className="space-y-4">
-          <div className="bg-white border rounded-2xl p-4">
-            <p className="font-semibold mb-3">Opted-in Sellers: {stats.total}</p>
-            <div className="flex flex-wrap gap-2">
-              {stats.byCity.map((c) => (
-                <span key={c._id} className="bg-gray-100 px-2 py-1 rounded text-sm">
-                  {c._id}: {c.count}
-                </span>
-              ))}
+        <div className="bg-white border rounded-2xl p-4 space-y-6 max-w-2xl">
+          <div className="border rounded-xl p-4 space-y-4">
+            <div>
+              <h3 className="font-semibold mb-2">Step 1: Upload Mobile Numbers</h3>
+              <p className="text-sm text-gray-600 mb-2">
+                Upload Excel file with mobile numbers in column A (header optional).
+                Numbers can be 10-digit or with country code.
+              </p>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".xls,.xlsx"
+                onChange={handleFileSelect}
+                className="block w-full text-sm"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Selected: {file?.name || "None"}
+              </p>
+            </div>
+
+            <button
+              onClick={uploadAndParse}
+              disabled={!file || uploading}
+              className="btn-primary w-auto px-4 py-2 rounded-lg disabled:opacity-50"
+            >
+              {uploading ? "Parsing..." : "Parse Excel"}
+            </button>
+
+            {parsedData && (
+              <div className="text-sm bg-gray-50 rounded-lg p-3">
+                <p className="font-medium">Parsed Results:</p>
+                <p>Valid numbers: {parsedData.valid || 0}</p>
+                {parsedData.invalid > 0 && (
+                  <p className="text-red-600">Invalid entries: {parsedData.invalid}</p>
+                )}
+                {parsedData.errors?.length > 0 && (
+                  <div className="mt-2 text-xs text-red-500">
+                    {parsedData.errors.slice(0, 5).map((err, i) => (
+                      <div key={i}>Row {err.row}: {err.value} ({err.reason})</div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="border rounded-xl p-4 space-y-4">
+            <div>
+              <h3 className="font-semibold mb-2">Step 2: Manage Templates</h3>
+              <p className="text-sm text-gray-600 mb-2">
+                Save WhatsApp template names, template IDs, and message bodies here.
+              </p>
+
+              <div className="space-y-3">
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Template selection</label>
+                    <select
+                      value={selectedTemplateId}
+                      onChange={(e) => syncSelectedTemplate(e.target.value)}
+                      className="w-full border rounded-lg p-2 text-sm bg-white"
+                      disabled={templatesLoading}
+                    >
+                      <option value="">{templatesLoading ? "Loading templates..." : "Select a saved template"}</option>
+                      {templates.map((template) => (
+                        <option key={template._id} value={template._id}>
+                          {template.templateName || template.templateId} ({template.templateId})
+                          {template.isActive === false ? " - inactive" : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex items-end gap-2">
+                    <button
+                      onClick={resetTemplateForm}
+                      className="px-4 py-2 rounded-lg border border-gray-300 text-sm"
+                    >
+                      New Template
+                    </button>
+                    <button
+                      onClick={saveTemplate}
+                      disabled={savingTemplate}
+                      className="btn-primary w-auto px-4 py-2 rounded-lg disabled:opacity-50"
+                    >
+                      {savingTemplate ? "Saving..." : editingTemplateId ? "Update Template" : "Save Template"}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Template name</label>
+                    <input
+                      value={templateForm.templateName}
+                      onChange={(e) => setTemplateForm((prev) => ({ ...prev, templateName: e.target.value }))}
+                      className="w-full border rounded-lg p-2 text-sm"
+                      placeholder="Order update"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Template ID</label>
+                    <input
+                      value={templateForm.templateId}
+                      onChange={(e) => setTemplateForm((prev) => ({ ...prev, templateId: e.target.value }))}
+                      className="w-full border rounded-lg p-2 text-sm"
+                      placeholder="template uuid"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Template message</label>
+                  <textarea
+                    value={templateForm.message}
+                    onChange={(e) => setTemplateForm((prev) => ({ ...prev, message: e.target.value }))}
+                    className="w-full border rounded-lg p-3 text-sm"
+                    rows={4}
+                    placeholder="Approved WhatsApp template body"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Characters: {templateForm.message.length}
+                  </p>
+                  <div className="mt-2 rounded-lg border bg-gray-50 p-3">
+                    <p className="text-xs font-medium text-gray-600 mb-1">Generated message</p>
+                    <div className="text-xs text-gray-700 whitespace-pre-line">
+                      {templateForm.message || "Preview will appear here"}
+                    </div>
+                  </div>
+                </div>
+
+                <label className="inline-flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={templateForm.isActive}
+                    onChange={(e) => setTemplateForm((prev) => ({ ...prev, isActive: e.target.checked }))}
+                  />
+                  Active
+                </label>
+
+                <div className="space-y-2">
+                  {templates.length > 0 ? (
+                    templates.map((template) => (
+                      <div
+                        key={template._id}
+                        className="flex flex-col gap-2 rounded-lg border bg-gray-50 p-3 md:flex-row md:items-center md:justify-between"
+                      >
+                        <div className="text-sm">
+                          <div className="font-medium">{template.templateName || template.templateId}</div>
+                          <div className="text-xs text-gray-600">
+                            Template ID: {template.templateId} {template.isActive === false ? "(inactive)" : "(active)"}
+                          </div>
+                          <div className="text-xs text-gray-500 whitespace-pre-line">{template.message}</div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => syncSelectedTemplate(template._id)}
+                            className="px-3 py-1.5 rounded border border-gray-300 text-xs"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => deleteTemplate(template._id)}
+                            disabled={deletingTemplateId === template._id}
+                            className="px-3 py-1.5 rounded border border-red-300 text-xs text-red-600 disabled:opacity-50"
+                          >
+                            {deletingTemplateId === template._id ? "Deleting..." : "Delete"}
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-xs text-gray-500">No templates saved yet.</p>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="bg-white border rounded-2xl p-4">
-            <div className="flex gap-4 mb-4">
-              <button
-                onClick={() => setMode("city")}
-                className={`px-4 py-2 rounded-lg font-semibold ${
-                  mode === "city" ? "bg-blue-600 text-white" : "bg-gray-100"
-                }`}
-              >
-                By City
-              </button>
-              <button
-                onClick={() => setMode("phones")}
-                className={`px-4 py-2 rounded-lg font-semibold ${
-                  mode === "phones" ? "bg-blue-600 text-white" : "bg-gray-100"
-                }`}
-              >
-                By Phones
-              </button>
+          <div className="border rounded-xl p-4 space-y-4">
+            <div>
+              <h3 className="font-semibold mb-2">Step 3: Compose Message</h3>
+              <p className="text-sm text-gray-600 mb-2">
+                Review the selected WhatsApp template before sending.
+              </p>
+              <textarea
+                value={selectedTemplateMessage || message}
+                readOnly
+                placeholder="Message will load from the selected template"
+                className="w-full border rounded-lg p-3 text-sm bg-gray-50"
+                rows={4}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Characters: {(selectedTemplateMessage || message).length}
+              </p>
+              {activeTemplate && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Selected: {selectedTemplateName || activeTemplate.templateId} | Template ID: {selectedTemplateIdValue}
+                </p>
+              )}
             </div>
 
-            <div className="space-y-3">
-              <div>
-                <label className="text-sm text-gray-600 block mb-1">Template</label>
-                <select
-                  value={selectedTemplate}
-                  onChange={(e) => setSelectedTemplate(e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2"
-                >
-                  <option value="">Select template...</option>
-                  {templates.map((t) => (
-                    <option key={t.key} value={t.key}>
-                      {t.templateName} ({t.language})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {mode === "city" ? (
-                <>
-                  <div>
-                    <label className="text-sm text-gray-600 block mb-1">City</label>
-                    {stats.byCity?.length > 0 ? (
-                      <select
-                        value={city}
-                        onChange={(e) => setCity(e.target.value)}
-                        className="w-full border rounded-lg px-3 py-2"
-                      >
-                        <option value="">Select city...</option>
-                        {stats.byCity.map((c) => (
-                          <option key={c._id} value={c._id}>{c._id} ({c.count})</option>
-                        ))}
-                      </select>
-                    ) : (
-                      <input
-                        type="text"
-                        value={city}
-                        onChange={(e) => setCity(e.target.value)}
-                        placeholder="Type city name"
-                        className="w-full border rounded-lg px-3 py-2"
-                      />
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="text-sm text-gray-600 block mb-1">Category (optional)</label>
-                    {stats.byCategory?.length > 0 ? (
-                      <select
-                        value={category}
-                        onChange={(e) => setCategory(e.target.value)}
-                        className="w-full border rounded-lg px-3 py-2"
-                      >
-                        <option value="">All categories</option>
-                        {stats.byCategory.map((c) => (
-                          <option key={c._id} value={c._id}>{c._id} ({c.count})</option>
-                        ))}
-                      </select>
-                    ) : (
-                      <input
-                        type="text"
-                        value={category}
-                        onChange={(e) => setCategory(e.target.value)}
-                        placeholder="Type category"
-                        className="w-full border rounded-lg px-3 py-2"
-                      />
-                    )}
-                  </div>
-                </>
-              ) : (
-                <div>
-                  <label className="text-sm text-gray-600 block mb-1">Phone Numbers</label>
-                  <textarea
-                    value={phones}
-                    onChange={(e) => setPhones(e.target.value)}
-                    placeholder="+91xxxxxxxxxx&#10;+91xxxxxxxxxx"
-                    rows={4}
-                    className="w-full border rounded-lg px-3 py-2"
-                  />
-                  <p className="text-xs text-gray-500">One per line or comma separated</p>
-                </div>
-              )}
-
-              <div>
-                <label className="text-sm text-gray-600 block mb-1">Parameters (comma separated)</label>
-                <input
-                  type="text"
-                  value={parameters}
-                  onChange={(e) => setParameters(e.target.value)}
-                  placeholder="param1, param2, param3"
-                  className="w-full border rounded-lg px-3 py-2"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm text-gray-600 block mb-1">Button URL (optional)</label>
-                <input
-                  type="text"
-                  value={buttonUrl}
-                  onChange={(e) => setButtonUrl(e.target.value)}
-                  placeholder="https://..."
-                  className="w-full border rounded-lg px-3 py-2"
-                />
-              </div>
-
+            <div className="flex gap-2">
               <button
-                onClick={mode === "city" ? sendByCity : sendToPhones}
-                disabled={sending}
-                className="w-full btn-primary py-3 rounded-lg disabled:opacity-50"
+                onClick={sendBulkWhatsApp}
+                disabled={!parsedData?.phones?.length || !selectedTemplateMessage || !activeTemplate?.templateId || sending}
+                className="btn-primary w-auto px-4 py-2 rounded-lg disabled:opacity-50"
               >
                 {sending ? "Sending..." : "Send Bulk WhatsApp"}
+              </button>
+              <button
+                onClick={clearForm}
+                className="px-4 py-2 rounded-lg border border-gray-300 text-sm"
+              >
+                Clear
               </button>
             </div>
           </div>
 
           {result && (
-            <div className="bg-white border rounded-2xl p-4">
-              <p className="font-semibold mb-2">Result</p>
-              <p className="text-green-600">Sent: {result.sent?.length || 0}</p>
-              <p className="text-red-600">Failed: {result.failed?.length || 0}</p>
-              {result.failed?.length > 0 && (
-                <div className="mt-2 text-sm text-gray-500">
-                  {result.failed.map((f, i) => (
-                    <div key={i}>{f.phone}: {f.error}</div>
-                  ))}
-                </div>
-              )}
+            <div className="border rounded-xl p-4 bg-gray-50">
+              <h3 className="font-semibold mb-2">Send Results</h3>
+              <div className="text-sm space-y-1">
+                <p>Total: {result.total}</p>
+                <p className="text-green-600">Sent: {result.sent?.length || 0}</p>
+                <p className="text-red-600">Failed: {result.failed?.length || 0}</p>
+                {result.failed?.length > 0 && (
+                  <div className="mt-2 text-xs">
+                    <p className="font-medium">Failures:</p>
+                    {result.failed.slice(0, 5).map((f, i) => (
+                      <div key={i} className="text-red-500">
+                        {f.phone}: {f.error}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>

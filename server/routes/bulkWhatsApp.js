@@ -5,6 +5,29 @@ const WhatsAppContact = require("../models/WhatsAppContact");
 const WhatsAppTemplateRegistry = require("../models/WhatsAppTemplateRegistry");
 const { sendViaGupshupTemplate, sendViaMetaTemplate } = require("../utils/sendWhatsApp");
 
+function normalizeBulkTemplate(template) {
+  return {
+    _id: String(template?._id || "").trim(),
+    key: String(template?.key || "").trim(),
+    templateId: String(template?.templateId || "").trim(),
+    templateName: String(template?.templateName || "").trim(),
+    message: String(template?.message || "").trim(),
+    language: String(template?.language || "en").trim(),
+    category: String(template?.category || "UTILITY").trim(),
+    status: String(template?.status || "PENDING").trim(),
+    isActive: template?.isActive !== false
+  };
+}
+
+function buildTemplateKey(templateName, templateId) {
+  const base = String(templateName || templateId || "bulk-wa").trim().toLowerCase();
+  const normalized = base
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  const suffix = String(templateId || "").trim().slice(-8).toLowerCase();
+  return `${normalized || "bulk-wa"}${suffix ? `-${suffix}` : ""}`;
+}
+
 router.post("/send", adminAuth, async (req, res) => {
   try {
     const { phones, templateId, templateKey, parameters = [], buttonUrl, provider } = req.body;
@@ -157,10 +180,126 @@ router.post("/send-city", adminAuth, async (req, res) => {
 
 router.get("/templates", adminAuth, async (req, res) => {
   try {
-    const templates = await WhatsAppTemplateRegistry.find({ isActive: true })
-      .select("key templateId templateName language")
+    const includeInactive = String(req.query?.includeInactive || "").trim().toLowerCase() === "true";
+    const query = includeInactive ? {} : { isActive: true };
+    const templates = await WhatsAppTemplateRegistry.find(query)
+      .select("key templateId templateName message language category status isActive")
       .lean();
-    res.json(templates);
+    res.json({ templates: templates.map(normalizeBulkTemplate) });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+router.post("/templates", adminAuth, async (req, res) => {
+  try {
+    const templateName = String(req.body?.templateName || req.body?.name || "").trim();
+    const templateId = String(req.body?.templateId || "").trim();
+    const message = String(req.body?.message || "").trim();
+    const language = String(req.body?.language || "en").trim();
+    const category = String(req.body?.category || "UTILITY").trim();
+    const status = String(req.body?.status || "PENDING").trim();
+    const isActive = req.body?.isActive !== false;
+    const key = String(req.body?.key || "").trim() || buildTemplateKey(templateName, templateId);
+
+    if (!templateName) {
+      return res.status(400).json({ message: "templateName required" });
+    }
+    if (!templateId) {
+      return res.status(400).json({ message: "templateId required" });
+    }
+    if (!message) {
+      return res.status(400).json({ message: "message required" });
+    }
+
+    const duplicate = await WhatsAppTemplateRegistry.findOne({
+      $or: [{ key }, { templateId }]
+    }).lean();
+    if (duplicate) {
+      return res.status(409).json({ message: "Template already exists" });
+    }
+
+    const created = await WhatsAppTemplateRegistry.create({
+      key,
+      templateName,
+      templateId,
+      message,
+      language,
+      category,
+      status,
+      isActive
+    });
+
+    return res.json({ template: normalizeBulkTemplate(created.toObject()) });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+router.put("/templates/:id", adminAuth, async (req, res) => {
+  try {
+    const id = String(req.params.id || "").trim();
+    const templateName = String(req.body?.templateName || req.body?.name || "").trim();
+    const templateId = String(req.body?.templateId || "").trim();
+    const message = String(req.body?.message || "").trim();
+    const language = String(req.body?.language || "en").trim();
+    const category = String(req.body?.category || "UTILITY").trim();
+    const status = String(req.body?.status || "PENDING").trim();
+    const isActive = req.body?.isActive !== false;
+
+    if (!id) {
+      return res.status(400).json({ message: "Template id required" });
+    }
+    if (!templateName) {
+      return res.status(400).json({ message: "templateName required" });
+    }
+    if (!templateId) {
+      return res.status(400).json({ message: "templateId required" });
+    }
+    if (!message) {
+      return res.status(400).json({ message: "message required" });
+    }
+
+    const existing = await WhatsAppTemplateRegistry.findById(id);
+    if (!existing) {
+      return res.status(404).json({ message: "Template not found" });
+    }
+
+    const duplicate = await WhatsAppTemplateRegistry.findOne({
+      _id: { $ne: id },
+      $or: [{ key: existing.key }, { templateId }]
+    }).lean();
+    if (duplicate) {
+      return res.status(409).json({ message: "Template already exists" });
+    }
+
+    existing.templateName = templateName;
+    existing.templateId = templateId;
+    existing.message = message;
+    existing.language = language;
+    existing.category = category;
+    existing.status = status;
+    existing.isActive = isActive;
+    existing.key = existing.key || buildTemplateKey(templateName, templateId);
+    await existing.save();
+
+    return res.json({ template: normalizeBulkTemplate(existing.toObject()) });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+router.delete("/templates/:id", adminAuth, async (req, res) => {
+  try {
+    const id = String(req.params.id || "").trim();
+    if (!id) {
+      return res.status(400).json({ message: "Template id required" });
+    }
+    const deleted = await WhatsAppTemplateRegistry.findByIdAndDelete(id);
+    if (!deleted) {
+      return res.status(404).json({ message: "Template not found" });
+    }
+    return res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
