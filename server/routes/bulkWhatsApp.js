@@ -1,5 +1,6 @@
 const crypto = require("crypto");
 const express = require("express");
+const XLSX = require("xlsx");
 const router = express.Router();
 const adminAuth = require("../middleware/adminAuth");
 const WhatsAppContact = require("../models/WhatsAppContact");
@@ -250,6 +251,90 @@ router.post("/send-city", adminAuth, async (req, res) => {
   } catch (err) {
     console.log("[BulkWhatsApp City] Error:", err.message);
     res.status(500).json({ message: err.message });
+  }
+});
+
+router.post("/export-annotated-sheet", adminAuth, async (req, res) => {
+  try {
+    const phones = Array.isArray(req.body?.phones) ? req.body.phones : [];
+    if (!phones.length) {
+      return res.status(400).json({ message: "phones array required" });
+    }
+
+    const normalizedPhones = [...new Set(
+      phones
+        .map((phone) => normalizeE164(phone))
+        .filter(Boolean)
+    )];
+
+    if (!normalizedPhones.length) {
+      return res.status(400).json({ message: "No valid phone numbers found" });
+    }
+
+    const logs = await WhatsAppDeliveryLog.find({
+      channel: "whatsapp",
+      mobileE164: { $in: normalizedPhones }
+    })
+      .sort({ mobileE164: 1, createdAt: 1 })
+      .lean();
+
+    const logsByMobile = new Map();
+    for (const log of logs) {
+      const key = String(log.mobileE164 || "").trim();
+      if (!key) continue;
+      const rows = logsByMobile.get(key) || [];
+      rows.push(log);
+      logsByMobile.set(key, rows);
+    }
+
+    const maxAttempts = Math.max(
+      1,
+      ...normalizedPhones.map((mobile) => (logsByMobile.get(mobile)?.length || 0))
+    );
+
+    const header = ["Mobile Number"];
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      header.push(
+        `Attempt ${attempt} Status`,
+        `Attempt ${attempt} Time`,
+        `Attempt ${attempt} Reason`,
+        `Attempt ${attempt} Provider ID`,
+        `Attempt ${attempt} Batch ID`
+      );
+    }
+
+    const rows = [header];
+    for (const mobile of normalizedPhones) {
+      const attempts = logsByMobile.get(mobile) || [];
+      const row = [mobile];
+
+      for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+        const log = attempts[attempt] || null;
+        row.push(
+          log ? String(log.status || "").trim() || "-" : "-",
+          log?.createdAt ? new Date(log.createdAt).toISOString() : "-",
+          log ? String(log.reason || "").trim() || "-" : "-",
+          log ? String(log.providerMessageId || "").trim() || "-" : "-",
+          log ? String(log.batchId || "").trim() || "-" : "-"
+        );
+      }
+
+      rows.push(row);
+    }
+
+    const worksheet = XLSX.utils.aoa_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Delivery History");
+
+    const buffer = XLSX.write(workbook, { bookType: "xlsx", type: "buffer" });
+    const fileName = `bulk-whatsapp-annotated-${Date.now()}.xlsx`;
+
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+    return res.send(buffer);
+  } catch (err) {
+    console.error("[Bulk WhatsApp] Export error:", err?.message || err);
+    return res.status(500).json({ message: err?.message || "Failed to export annotated sheet" });
   }
 });
 

@@ -155,6 +155,35 @@ export default function AdminBulkWhatsApp() {
     }
   };
 
+  const downloadAnnotatedSheet = async () => {
+    if (!parsedData?.phones?.length) {
+      alert("Upload and parse the Excel file first");
+      return;
+    }
+
+    try {
+      const res = await api.post(
+        "/bulk-whatsapp/export-annotated-sheet",
+        { phones: parsedData.phones },
+        { responseType: "blob" }
+      );
+
+      const blob = new Blob([res.data], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `bulk-whatsapp-annotated-${Date.now()}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      alert(err?.response?.data?.message || err.message || "Failed to download annotated sheet");
+    }
+  };
+
   const clearForm = () => {
     setFile(null);
     setParsedData(null);
@@ -310,6 +339,13 @@ export default function AdminBulkWhatsApp() {
                 className="px-4 py-2 rounded-lg border border-gray-300 text-sm"
               >
                 Clear
+              </button>
+              <button
+                onClick={downloadAnnotatedSheet}
+                disabled={!parsedData?.phones?.length}
+                className="px-4 py-2 rounded-lg border border-gray-300 text-sm disabled:opacity-50"
+              >
+                Download annotated sheet
               </button>
             </div>
           </div>
