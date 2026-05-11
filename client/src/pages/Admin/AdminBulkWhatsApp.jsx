@@ -11,6 +11,8 @@ export default function AdminBulkWhatsApp() {
   const [deletingTemplateId, setDeletingTemplateId] = useState("");
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [editingTemplateId, setEditingTemplateId] = useState("");
+  const [buttonUrl, setButtonUrl] = useState("");
+  const [parametersText, setParametersText] = useState("");
   const [templateForm, setTemplateForm] = useState({
     templateName: "",
     templateId: "",
@@ -67,9 +69,9 @@ export default function AdminBulkWhatsApp() {
   }, []);
 
   const activeTemplate = templates.find((item) => item._id === selectedTemplateId) || null;
-  const selectedTemplateMessage = String(activeTemplate?.message || "").trim();
-  const selectedTemplateName = String(activeTemplate?.templateName || "").trim();
-  const selectedTemplateIdValue = String(activeTemplate?.templateId || "").trim();
+  const selectedTemplateMessage = String(templateForm.message || activeTemplate?.message || "").trim();
+  const selectedTemplateName = String(templateForm.templateName || activeTemplate?.templateName || "").trim();
+  const selectedTemplateIdValue = String(templateForm.templateId || activeTemplate?.templateId || "").trim();
 
   const resetTemplateForm = () => {
     setEditingTemplateId("");
@@ -220,9 +222,14 @@ export default function AdminBulkWhatsApp() {
 
     try {
       setSending(true);
+      const parameters = parametersText
+        ? parametersText.split(",").map((item) => item.trim()).filter(Boolean)
+        : [];
       const res = await api.post("/bulk-whatsapp/send", {
         phones: parsedData.phones,
-        templateId: activeTemplate.templateId
+        templateId: activeTemplate.templateId,
+        buttonUrl: buttonUrl.trim() || undefined,
+        parameters
       });
       setResult(res.data);
     } catch (err) {
@@ -236,6 +243,8 @@ export default function AdminBulkWhatsApp() {
     setFile(null);
     setParsedData(null);
     setMessage("");
+    setButtonUrl("");
+    setParametersText("");
     setResult(null);
     resetTemplateForm();
     if (fileInputRef.current) {
@@ -361,9 +370,9 @@ export default function AdminBulkWhatsApp() {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Template message</label>
-                  <textarea
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Template message</label>
+                <textarea
                     value={templateForm.message}
                     onChange={(e) => setTemplateForm((prev) => ({ ...prev, message: e.target.value }))}
                     className="w-full border rounded-lg p-3 text-sm"
@@ -379,6 +388,32 @@ export default function AdminBulkWhatsApp() {
                       {templateForm.message || "Preview will appear here"}
                     </div>
                   </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Deeplink / Button URL</label>
+                  <input
+                    value={buttonUrl}
+                    onChange={(e) => setButtonUrl(e.target.value)}
+                    className="w-full border rounded-lg p-2 text-sm"
+                    placeholder="https://hokoapp.in/..."
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Optional link button for the WhatsApp template send.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Parameters</label>
+                  <input
+                    value={parametersText}
+                    onChange={(e) => setParametersText(e.target.value)}
+                    className="w-full border rounded-lg p-2 text-sm"
+                    placeholder="param1, param2, param3"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Optional comma-separated values for template placeholders.
+                  </p>
                 </div>
 
                 <label className="inline-flex items-center gap-2 text-sm">
