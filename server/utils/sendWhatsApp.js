@@ -205,8 +205,49 @@ function extractTemplateRows(data) {
   return [];
 }
 
+function countTemplatePlaceholders(text) {
+  const matches = String(text || "").match(/\{\{\s*\d+\s*\}\}/g);
+  return matches ? matches.length : 0;
+}
 
-  function extractTemplateParameterCount(template) {
+function extractTemplateBodyText(template) {
+  const components = Array.isArray(template?.components)
+    ? template.components
+    : Array.isArray(template?.template?.components)
+    ? template.template.components
+    : [];
+
+  for (const component of components) {
+    const type = String(component?.type || component?.componentType || "").trim().toUpperCase();
+    if (type === "BODY") {
+      const candidates = [
+        component?.text,
+        component?.body,
+        component?.content,
+        component?.template,
+        component?.value
+      ];
+      for (const candidate of candidates) {
+        if (typeof candidate === "string" && candidate.trim()) {
+          return candidate.trim();
+        }
+      }
+      if (Array.isArray(component?.params)) {
+        return component.params.map((part) => String(part || "").trim()).filter(Boolean).join(" ");
+      }
+    }
+  }
+
+  return String(
+    template?.content ||
+    template?.body ||
+    template?.message ||
+    template?.templateBody ||
+    ""
+  ).trim();
+}
+
+function extractTemplateParameterCount(template) {
   const raw =
     template?.bodyParamsCount ??
     template?.body_params_count ??
@@ -217,13 +258,11 @@ function extractTemplateRows(data) {
   if (Number.isFinite(numeric) && numeric >= 0) {
     return numeric;
   }
-  return countTemplateBodyVariables(
-    Array.isArray(template?.components)
-      ? template.components
-      : Array.isArray(template?.template?.components)
-      ? template.template.components
-      : []
-  );
+  const bodyText = extractTemplateBodyText(template);
+  if (bodyText) {
+    return countTemplatePlaceholders(bodyText);
+  }
+  return null;
 }
 
 function normalizeGupshupTemplateRecord(template) {

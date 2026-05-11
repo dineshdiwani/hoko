@@ -38,6 +38,11 @@ export default function AdminBulkWhatsApp() {
   }, []);
 
   const activeTemplate = templates.find((item) => item.id === selectedTemplateId) || null;
+  const formatVariableCount = (value) => {
+    if (value === null || value === undefined) return "unknown";
+    if (Number.isNaN(Number(value))) return "unknown";
+    return Number(value);
+  };
 
   const loadDeliveryStatus = async (batchId) => {
     if (!batchId) return;
@@ -244,7 +249,7 @@ export default function AdminBulkWhatsApp() {
                 <option value="">{templatesLoading ? "Loading templates..." : "Select an approved template"}</option>
                 {templates.map((template) => (
                   <option key={template.id} value={template.id}>
-                    {template.name} ({template.id}) {template.bodyVariableCount ? `- vars: ${template.bodyVariableCount}` : "- no vars"}
+                    {template.name} ({template.id}) - vars: {formatVariableCount(template.bodyVariableCount)}
                   </option>
                 ))}
               </select>
@@ -257,7 +262,7 @@ export default function AdminBulkWhatsApp() {
                 <p>UUID: {activeTemplate.id}</p>
                 <p>Language: {activeTemplate.languageCode || "en"}</p>
                 <p>Status: {activeTemplate.status || "APPROVED"}</p>
-                <p>Variables: {activeTemplate.bodyVariableCount || 0}</p>
+                <p>Variables: {formatVariableCount(activeTemplate.bodyVariableCount)}</p>
                 <p>Components: {Array.isArray(activeTemplate.components) ? activeTemplate.components.length : 0}</p>
               </div>
             )}
