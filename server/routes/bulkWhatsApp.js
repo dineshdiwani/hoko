@@ -2,8 +2,9 @@ const express = require("express");
 const router = express.Router();
 const adminAuth = require("../middleware/adminAuth");
 const WhatsAppContact = require("../models/WhatsAppContact");
+const WhatsAppDeliveryLog = require("../models/WhatsAppDeliveryLog");
 const WhatsAppTemplateRegistry = require("../models/WhatsAppTemplateRegistry");
-const { sendViaGupshupTemplate, sendViaMetaTemplate } = require("../utils/sendWhatsApp");
+const { normalizeE164, sendViaGupshupTemplate } = require("../utils/sendWhatsApp");
 
 function normalizeBulkTemplate(template) {
   return {
@@ -28,62 +29,163 @@ function buildTemplateKey(templateName, templateId) {
   return `${normalized || "bulk-wa"}${suffix ? `-${suffix}` : ""}`;
 }
 
+function normalizeProviderResponse(value) {
+  if (value === null || value === undefined) return null;
+  if (typeof value === "string") return value.trim() || null;
+  return value;
+}
+
+async function sendAndLogBulkWhatsApp({
+  mobileE164,
+  templateConfig,
+  parameters,
+  buttonUrl,
+  providerType,
+  createdByAdminId
+}) {
+  const normalizedMobile = normalizeE164(mobileE164);
+  if (!normalizedMobile) {
+    return {
+      status: "failed",
+      reason: "invalid_mobile",
+      providerMessageId: "",
+      providerResponse: null
+    };
+  }
+
+  if (providerType !== "gupshup") {
+    return {
+      status: "failed",
+      reason: "unsupported_provider",
+      providerMessageId: "",
+      providerResponse: null
+    };
+  }
+
+  try {
+    const providerResult = await sendViaGupshupTemplate({
+      to: normalizedMobile,
+      templateId: templateConfig.templateId,
+      templateName: templateConfig.templateName,
+      languageCode: templateConfig.language || "en",
+      parameters,
+      buttonUrl
+    });
+
+    const providerResponse = normalizeProviderResponse(providerResult?.raw || null);
+    const providerMessageId = String(providerResult?.providerMessageId || "").trim();
+
+    await WhatsAppDeliveryLog.create({
+      requirementId: null,
+      campaignRunId: null,
+      triggerType: "template_send",
+      channel: "whatsapp",
+      mobileE164: normalizedMobile,
+      email: "",
+      status: "accepted",
+      reason: "",
+      provider: "gupshup",
+      providerMessageId,
+      providerResponse,
+      city: "",
+      category: "",
+      product: `Template: ${templateConfig.templateName || templateConfig.templateId}`,
+      createdByAdminId: createdByAdminId || null
+    });
+
+    return {
+      status: "accepted",
+      reason: "",
+      providerMessageId,
+      providerResponse
+    };
+  } catch (err) {
+    const providerResponse = normalizeProviderResponse(err?.response?.data || err?.message || null);
+    const reason =
+      typeof err?.message === "string" && err.message.trim()
+        ? err.message.trim()
+        : typeof err?.response?.data?.message === "string" && err.response.data.message.trim()
+        ? err.response.data.message.trim()
+        : "send_failed";
+
+    await WhatsAppDeliveryLog.create({
+      requirementId: null,
+      campaignRunId: null,
+      triggerType: "template_send",
+      channel: "whatsapp",
+      mobileE164: normalizedMobile,
+      email: "",
+      status: "failed",
+      reason,
+      provider: "gupshup",
+      providerMessageId: "",
+      providerResponse,
+      city: "",
+      category: "",
+      product: `Template: ${templateConfig.templateName || templateConfig.templateId}`,
+      createdByAdminId: createdByAdminId || null
+    });
+
+    return {
+      status: "failed",
+      reason,
+      providerMessageId: "",
+      providerResponse
+    };
+  }
+}
+
 router.post("/send", adminAuth, async (req, res) => {
   try {
     const { phones, templateId, templateKey, parameters = [], buttonUrl, provider } = req.body;
-    
+
     if (!phones || !Array.isArray(phones) || phones.length === 0) {
       return res.status(400).json({ message: "phones array required" });
     }
-    
+
     let templateConfig = null;
-    
+
     if (templateKey) {
       templateConfig = await WhatsAppTemplateRegistry.findOne({ key: templateKey, isActive: true }).lean();
     } else if (templateId) {
       templateConfig = await WhatsAppTemplateRegistry.findOne({ templateId: templateId, isActive: true }).lean();
     }
-    
+
     if (!templateConfig) {
       return res.status(400).json({ message: "Template not found. Provide templateKey or templateId" });
     }
-    
-    const providerType = provider || "gupshup";
-    const results = { sent: [], failed: [], total: phones.length };
-    
+
+    const providerType = String(provider || "gupshup").trim().toLowerCase();
+    const results = { accepted: [], failed: [], total: phones.length };
+
     for (const phone of phones) {
-      try {
-        const normalized = String(phone).replace(/[^\d+]/g, "");
-        const mobileE164 = normalized.startsWith("+") ? normalized : `+${normalized}`;
-        
-        const params = [...parameters];
-        
-        if (providerType === "meta") {
-          await sendViaMetaTemplate({
-            to: mobileE164.replace(/^\+/, ""),
-            templateName: templateConfig.templateName,
-            languageCode: templateConfig.language || "en",
-            parameters: params,
-            buttonUrl: buttonUrl
-          });
-        } else {
-          await sendViaGupshupTemplate({
-            to: mobileE164,
-            templateId: templateConfig.templateId,
-            templateName: templateConfig.templateName,
-            languageCode: templateConfig.language || "en",
-            parameters: params,
-            buttonUrl: buttonUrl
-          });
-        }
-        
-        results.sent.push(mobileE164);
-      } catch (err) {
-        results.failed.push({ phone, error: err.message });
+      const normalized = String(phone).replace(/[^\d+]/g, "");
+      const mobileE164 = normalized.startsWith("+") ? normalized : `+${normalized}`;
+      const sendResult = await sendAndLogBulkWhatsApp({
+        mobileE164,
+        templateConfig,
+        parameters: [...parameters],
+        buttonUrl,
+        providerType,
+        createdByAdminId: req.admin?._id || null
+      });
+
+      if (sendResult.status === "accepted") {
+        results.accepted.push({
+          phone: mobileE164,
+          providerMessageId: sendResult.providerMessageId || "",
+          providerResponse: sendResult.providerResponse || null
+        });
+      } else {
+        results.failed.push({
+          phone: mobileE164,
+          error: sendResult.reason || "send_failed",
+          providerResponse: sendResult.providerResponse || null
+        });
       }
     }
-    
-    console.log(`[Bulk WhatsApp] Sent: ${results.sent.length}, Failed: ${results.failed.length}`);
+
+    console.log(`[Bulk WhatsApp] Accepted: ${results.accepted.length}, Failed: ${results.failed.length}`);
     res.json(results);
   } catch (err) {
     console.log("[Bulk WhatsApp] Error:", err.message);
@@ -94,86 +196,83 @@ router.post("/send", adminAuth, async (req, res) => {
 router.post("/send-city", adminAuth, async (req, res) => {
   try {
     const { city, templateKey, templateId, parameters = [], buttonUrl, provider, limit, category } = req.body;
-    
+
     if (!city) {
       return res.status(400).json({ message: "city required" });
     }
-    
+
     let templateConfig = null;
-    
+
     if (templateKey) {
       templateConfig = await WhatsAppTemplateRegistry.findOne({ key: templateKey, isActive: true }).lean();
     } else if (templateId) {
       templateConfig = await WhatsAppTemplateRegistry.findOne({ templateId: templateId, isActive: true }).lean();
     }
-    
+
     if (!templateConfig) {
       return res.status(400).json({ message: "Template not found" });
     }
-    
+
     if (!templateConfig.templateId) {
       console.log("[BulkWhatsApp] WARNING: Template has no templateId:", templateConfig);
       return res.status(400).json({ message: "Template missing templateId (UUID)" });
     }
-    
+
     const query = {
       city: city,
       optInStatus: "opted_in"
     };
-    
+
     if (category) {
       query.categories = { $regex: new RegExp(category, "i") };
     }
-    
+
     const sellers = await WhatsAppContact.find(query)
       .select("mobileE164 name")
       .limit(Number(limit) || 100);
-    
-    const providerType = provider || "gupshup";
-    const results = { sent: [], failed: [], total: sellers.length };
-    
+
+    const providerType = String(provider || "gupshup").trim().toLowerCase();
+    const results = { accepted: [], failed: [], total: sellers.length };
+
     console.log(`[BulkWhatsApp City] Template: ${templateConfig.templateName}, templateId: ${templateConfig.templateId}, sellers found: ${sellers.length}, query:`, query);
-    
+
     const allCities = await WhatsAppContact.distinct("city", { optInStatus: "opted_in", active: { $ne: false } });
     console.log("[BulkWhatsApp] All opted-in cities:", allCities);
-    
+
     if (sellers.length === 0) {
-      return res.json({ message: "No opted-in sellers found for this city/category", sent: [], failed: [], total: 0 });
+      return res.json({ message: "No opted-in sellers found for this city/category", accepted: [], failed: [], total: 0 });
     }
-    
+
     for (const seller of sellers) {
-      try {
-        const mobileE164 = seller.mobileE164;
-        
-        if (providerType === "meta") {
-          await sendViaMetaTemplate({
-            to: mobileE164.replace(/^\+/, ""),
-            templateName: templateConfig.templateName,
-            languageCode: templateConfig.language || "en",
-            parameters: parameters,
-            buttonUrl: buttonUrl
-          });
-        } else {
-          await sendViaGupshupTemplate({
-            to: mobileE164,
-            templateId: templateConfig.templateId,
-            templateName: templateConfig.templateName,
-            languageCode: templateConfig.language || "en",
-            parameters: parameters,
-            buttonUrl: buttonUrl
-          });
-        }
-        
-        results.sent.push(mobileE164);
-      } catch (err) {
-        results.failed.push({ phone: seller.mobileE164, error: err.message });
+      const mobileE164 = seller.mobileE164;
+      const sendResult = await sendAndLogBulkWhatsApp({
+        mobileE164,
+        templateConfig,
+        parameters,
+        buttonUrl,
+        providerType,
+        createdByAdminId: req.admin?._id || null
+      });
+
+      if (sendResult.status === "accepted") {
+        results.accepted.push({
+          phone: mobileE164,
+          providerMessageId: sendResult.providerMessageId || "",
+          providerResponse: sendResult.providerResponse || null
+        });
+      } else {
+        results.failed.push({
+          phone: mobileE164,
+          error: sendResult.reason || "send_failed",
+          providerResponse: sendResult.providerResponse || null
+        });
       }
     }
-    
-    console.log(`[Bulk WhatsApp City] Sent: ${results.sent.length}, Failed: ${results.failed.length}, City: ${city}`);
+
+    console.log(`[BulkWhatsApp City] Accepted: ${results.accepted.length}, Failed: ${results.failed.length}, City: ${city}`);
     res.json(results);
   } catch (err) {
-    console.log("[Bulk WhatsApp City] Error:", err.message);
+    console.log("[BulkWhatsApp City] Error:", err.message);
     res.status(500).json({ message: err.message });
   }
 });
@@ -207,9 +306,6 @@ router.post("/templates", adminAuth, async (req, res) => {
     }
     if (!templateId) {
       return res.status(400).json({ message: "templateId required" });
-    }
-    if (!message) {
-      return res.status(400).json({ message: "message required" });
     }
 
     const duplicate = await WhatsAppTemplateRegistry.findOne({
@@ -256,9 +352,6 @@ router.put("/templates/:id", adminAuth, async (req, res) => {
     if (!templateId) {
       return res.status(400).json({ message: "templateId required" });
     }
-    if (!message) {
-      return res.status(400).json({ message: "message required" });
-    }
 
     const existing = await WhatsAppTemplateRegistry.findById(id);
     if (!existing) {
@@ -300,28 +393,6 @@ router.delete("/templates/:id", adminAuth, async (req, res) => {
       return res.status(404).json({ message: "Template not found" });
     }
     return res.json({ ok: true });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-router.get("/stats", adminAuth, async (req, res) => {
-  try {
-    const total = await WhatsAppContact.countDocuments({ optInStatus: "opted_in", active: { $ne: false } });
-    const byCity = await WhatsAppContact.aggregate([
-      { $match: { optInStatus: "opted_in", active: { $ne: false } } },
-      { $group: { _id: "$city", count: { $sum: 1 } } },
-      { $sort: { count: -1 } },
-      { $limit: 20 }
-    ]);
-    const byCategory = await WhatsAppContact.aggregate([
-      { $match: { optInStatus: "opted_in", active: { $ne: false } } },
-      { $unwind: "$categories" },
-      { $group: { _id: "$categories", count: { $sum: 1 } } },
-      { $sort: { count: -1 } },
-      { $limit: 30 }
-    ]);
-    res.json({ total, byCity, byCategory });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

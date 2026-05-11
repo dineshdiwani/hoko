@@ -168,10 +168,6 @@ export default function AdminBulkWhatsApp() {
       alert("Enter a template ID");
       return;
     }
-    if (!payload.message) {
-      alert("Enter a template message");
-      return;
-    }
 
     try {
       setSavingTemplate(true);
@@ -212,10 +208,6 @@ export default function AdminBulkWhatsApp() {
     }
     if (!activeTemplate?.templateId) {
       alert("Select a bulk WhatsApp template");
-      return;
-    }
-    if (!selectedTemplateMessage) {
-      alert("Selected template has no message");
       return;
     }
     if (!window.confirm(`Send WhatsApp to ${parsedData.phones.length} numbers?`)) return;
@@ -377,15 +369,15 @@ export default function AdminBulkWhatsApp() {
                     onChange={(e) => setTemplateForm((prev) => ({ ...prev, message: e.target.value }))}
                     className="w-full border rounded-lg p-3 text-sm"
                     rows={4}
-                    placeholder="Approved WhatsApp template body"
+                    placeholder="Optional local message text for reference"
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    Characters: {templateForm.message.length}
+                    Characters: {templateForm.message.length} (optional)
                   </p>
                   <div className="mt-2 rounded-lg border bg-gray-50 p-3">
                     <p className="text-xs font-medium text-gray-600 mb-1">Generated message</p>
                     <div className="text-xs text-gray-700 whitespace-pre-line">
-                      {templateForm.message || "Preview will appear here"}
+                      {templateForm.message || activeTemplate?.message || "Preview will appear here"}
                     </div>
                   </div>
                 </div>
@@ -490,7 +482,7 @@ export default function AdminBulkWhatsApp() {
             <div className="flex gap-2">
               <button
                 onClick={sendBulkWhatsApp}
-                disabled={!parsedData?.phones?.length || !selectedTemplateMessage || !activeTemplate?.templateId || sending}
+                disabled={!parsedData?.phones?.length || !activeTemplate?.templateId || sending}
                 className="btn-primary w-auto px-4 py-2 rounded-lg disabled:opacity-50"
               >
                 {sending ? "Sending..." : "Send Bulk WhatsApp"}
@@ -509,7 +501,7 @@ export default function AdminBulkWhatsApp() {
               <h3 className="font-semibold mb-2">Send Results</h3>
               <div className="text-sm space-y-1">
                 <p>Total: {result.total}</p>
-                <p className="text-green-600">Sent: {result.sent?.length || 0}</p>
+                <p className="text-green-600">Accepted: {result.accepted?.length || result.sent?.length || 0}</p>
                 <p className="text-red-600">Failed: {result.failed?.length || 0}</p>
                 {result.failed?.length > 0 && (
                   <div className="mt-2 text-xs">

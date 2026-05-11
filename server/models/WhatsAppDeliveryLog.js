@@ -57,6 +57,10 @@ const whatsAppDeliveryLogSchema = new mongoose.Schema(
       type: String,
       default: ""
     },
+    providerResponse: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null
+    },
     city: {
       type: String,
       default: ""
