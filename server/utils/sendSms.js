@@ -207,6 +207,15 @@ async function sendBulkSms({ numbers, message, templateId }) {
         flash: 0
       };
 
+      console.log("[Fast2SMS Bulk] Request:", JSON.stringify({
+        template_id: payload.template_id,
+        entity_id: payload.entity_id,
+        sender_id: payload.sender_id,
+        route: payload.route,
+        numbers: payload.numbers,
+        messageLength: String(payload.message || "").length
+      }));
+
       const res = await axios.post(
         "https://www.fast2sms.com/dev/bulkV2",
         querystring.stringify(payload),
