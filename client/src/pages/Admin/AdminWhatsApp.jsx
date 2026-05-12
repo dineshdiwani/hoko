@@ -1060,30 +1060,10 @@ const manualCategoryOptions = useMemo(() => {
                   <div>
                     <p className="text-sm font-semibold">Template Registry</p>
                     <p className="text-xs text-gray-500">
-                      Sync from provider, refresh the registry, or fix IDs here.
+                      Refresh the shared approved template registry.
                     </p>
                   </div>
                   <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        if (!confirm("Sync will update registry with latest variable counts from provider. Continue?")) return;
-                        try {
-                          setLoadingTemplates(true);
-                          const res = await api.post("/admin/whatsapp/templates/sync");
-                          alert(`Synced: ${res.data.inserted} inserted, ${res.data.updated} updated`);
-                          await loadTemplates();
-                        } catch (err) {
-                          alert(err?.response?.data?.message || "Sync failed");
-                        } finally {
-                          setLoadingTemplates(false);
-                        }
-                      }}
-                      disabled={loadingTemplates}
-                      className="px-3 py-2 rounded-lg text-sm font-semibold bg-green-600 text-white hover:bg-green-700 disabled:opacity-60"
-                    >
-                      Sync from Provider
-                    </button>
                     <button
                       type="button"
                       onClick={loadTemplates}
@@ -1091,25 +1071,6 @@ const manualCategoryOptions = useMemo(() => {
                       className="px-3 py-2 rounded-lg text-sm font-semibold border border-gray-300 disabled:opacity-60"
                     >
                       {loadingTemplates ? "Refreshing..." : "Refresh Templates"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        if (!confirm("Fix template IDs for buyer_invite_post_requirement and buyer_join_app_invite?")) return;
-                        try {
-                          setLoadingTemplates(true);
-                          const res = await api.post("/admin/whatsapp/templates/fix");
-                          alert(`Fixed ${res.data.updated} templates`);
-                          await loadTemplates();
-                        } catch (err) {
-                          alert(err?.response?.data?.message || "Fix failed");
-                        } finally {
-                          setLoadingTemplates(false);
-                        }
-                      }}
-                      className="px-3 py-2 rounded-lg text-sm font-semibold bg-red-600 text-white hover:bg-red-700"
-                    >
-                      Fix Template IDs
                     </button>
                   </div>
                 </div>
