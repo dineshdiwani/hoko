@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import api from "../../utils/adminApi";
 import AdminNav from "../../components/AdminNav";
 import ApprovedTemplatePicker from "../../components/ApprovedTemplatePicker";
+import { getApprovedTemplates } from "../../utils/approvedTemplates";
 import { getPublicAppUrl } from "../../utils/runtime";
 import { launchWhatsAppLink } from "../../utils/whatsapp";
 
@@ -239,12 +240,7 @@ const manualCategoryOptions = useMemo(() => {
     [templateRegistry, autoModeTemplateRegistryId]
   );
   const activeTemplateRegistry = useMemo(
-    () =>
-      templateRegistry.filter(
-        (item) =>
-          item?.isActive === true &&
-          ["APPROVED", "ACTIVE", "ENABLED"].includes(String(item?.status || "").toUpperCase())
-      ),
+    () => getApprovedTemplates(templateRegistry),
     [templateRegistry]
   );
 

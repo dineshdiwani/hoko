@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import api from "../../utils/adminApi";
 import AdminNav from "../../components/AdminNav";
 import ApprovedTemplatePicker from "../../components/ApprovedTemplatePicker";
+import { getApprovedTemplates } from "../../utils/approvedTemplates";
 
 export default function AdminBulkWhatsApp() {
   const [file, setFile] = useState(null);
@@ -22,12 +23,7 @@ export default function AdminBulkWhatsApp() {
       setTemplatesLoading(true);
       const res = await api.get("/admin/whatsapp/templates/registry?includeInactive=true");
       const nextTemplates = Array.isArray(res.data?.items) ? res.data.items : [];
-      const activeTemplates = nextTemplates.filter(
-        (item) =>
-          item?.isActive === true &&
-          ["APPROVED", "ACTIVE", "ENABLED"].includes(String(item?.status || "").toUpperCase()) &&
-          String(item?.templateId || "").trim()
-      );
+      const activeTemplates = getApprovedTemplates(nextTemplates);
       setTemplates(activeTemplates);
       const preferredTemplate = preferredValue
         ? activeTemplates.find((item) => item._id === preferredValue || item.templateId === preferredValue)
