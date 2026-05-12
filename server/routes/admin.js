@@ -1663,9 +1663,9 @@ router.get("/whatsapp/templates/registry", adminAuth, requireAdminPermission("ca
   const query = includeInactive ? {} : { isActive: true };
   const items = await WhatsAppTemplateRegistry.find(query).sort({
     key: 1,
-    language: 1,
-    version: -1,
-    updatedAt: -1
+    templateName: 1,
+    templateId: 1,
+    language: 1
   });
   return res.json({
     count: items.length,
