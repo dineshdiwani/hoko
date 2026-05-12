@@ -68,4 +68,4 @@ Automated SMS in the app now uses Fast2SMS DLT routes only.
 - `FAST2SMS_DLT_TEMPLATE_ID` is the approved DLT content template ID used by admin bulk SMS.
 - `FAST2SMS_DLT_BULK_TEMPLATE_ID` is also accepted as a backward-compatible alias.
 
-Keep the approved template text in sync with the variables passed from the server.
+Keep the approved template text in the registry in sync with the variables passed from the server.

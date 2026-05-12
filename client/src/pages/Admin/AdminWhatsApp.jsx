@@ -1166,7 +1166,7 @@ const manualCategoryOptions = useMemo(() => {
                   <div>
                     <p className="text-sm font-semibold">Approved Template Send</p>
                     <p className="text-xs text-gray-500">
-                      Use uploaded approved template registry and send to seller or buyer contact lists.
+                      Use the synced approved template registry and send to seller or buyer contact lists.
                     </p>
                   </div>
                   <div className="flex gap-2">
@@ -1220,7 +1220,7 @@ const manualCategoryOptions = useMemo(() => {
                   </div>
                 </div>
                 <div className="text-xs text-gray-600">
-                  BSP templates: {approvedTemplates.length} | Uploaded registry templates: {templateRegistry.length}
+                  BSP templates: {approvedTemplates.length} | Registry templates: {templateRegistry.length}
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <select
@@ -1239,7 +1239,7 @@ const manualCategoryOptions = useMemo(() => {
                     value={selectedTemplateKey}
                     onChange={(e) => setSelectedTemplateKey(e.target.value)}
                   >
-                    <option value="">Select uploaded template</option>
+                    <option value="">Select approved template</option>
                     {activeTemplateRegistry.map((template) => (
                       <option key={template._id} value={template._id}>
                         {`${template.key} | ${template.templateName} | ${template.templateId || "NO_ID"} | ${template.language}${template.category ? ` | ${template.category}` : ""}`}
@@ -1510,7 +1510,7 @@ const manualCategoryOptions = useMemo(() => {
                   {resendingPost ? "Sending..." : "Send Selected Post via API"}
                 </button>
                 <p className="text-xs text-gray-500">
-                  Automatic mode uses the selected recipient list and optional uploaded approved template. Per-contact manual send remains available below.
+                  Automatic mode uses the selected recipient list and optional approved template. Per-contact manual send remains available below.
                 </p>
                 <pre className="text-xs whitespace-pre-wrap bg-gray-50 border rounded-lg p-3 text-gray-700">
                   {manualMessagePreview || "Select post to preview message"}
