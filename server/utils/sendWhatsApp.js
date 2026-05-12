@@ -355,6 +355,7 @@ function normalizeGupshupTemplateRecord(template) {
     status,
     languageCode,
     category: String(template?.category || template?.templateCategory || "").trim(),
+    message: extractTemplateBodyText(template),
     bodyVariableCount: extractTemplateParameterCount(template),
     components: Array.isArray(template?.components) ? template.components : [],
     headerMediaType: extractTemplateHeaderMediaType(template)

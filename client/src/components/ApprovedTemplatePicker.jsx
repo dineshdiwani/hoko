@@ -45,7 +45,15 @@ export default function ApprovedTemplatePicker({
   const optionLabel = (template) =>
     `${template?.key || template?.templateName || "Template"} | ${template?.templateName || template?.key || "-"} | ${template?.templateId || "NO_ID"} | ${template?.language || "en"}${template?.category ? ` | ${template.category}` : ""}`;
   const sortedTemplates = sortApprovedTemplates(templates);
-  const previewText = String(selectedTemplate?.message || "").trim();
+  const previewText = String(
+    selectedTemplate?.message ||
+      selectedTemplate?.body ||
+      selectedTemplate?.content ||
+      selectedTemplate?.templateBody ||
+      selectedTemplate?.template?.body ||
+      selectedTemplate?.template?.content ||
+      ""
+  ).trim();
 
   return (
     <div className={`rounded-lg border p-3 space-y-3 ${className}`}>
@@ -104,7 +112,9 @@ export default function ApprovedTemplatePicker({
               {renderPreviewContent(previewText)}
             </pre>
           ) : (
-            <p className="text-gray-500">No template message available in the registry.</p>
+            <p className="text-gray-500">
+              No template message cached yet. Sync templates from provider to populate the preview.
+            </p>
           )}
         </div>
       ) : null}
