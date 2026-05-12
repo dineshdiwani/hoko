@@ -1172,6 +1172,9 @@ server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   
   const { startBatchProcessor } = require("./services/adminNotifications");
+  const { startSocialMediaScheduler } = require("./services/socialMediaScheduler");
   startBatchProcessor();
   console.log("Admin notification batch processor started");
+  startSocialMediaScheduler();
+  console.log("Social media scheduler started");
 });
