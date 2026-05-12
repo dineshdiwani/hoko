@@ -1,5 +1,5 @@
 const SocialMediaCampaign = require("../models/SocialMediaCampaign");
-const { publishFacebookPageCampaign } = require("./socialMediaPublisher");
+const { publishInstagramCampaign } = require("./socialMediaPublisher");
 
 let schedulerStarted = false;
 let schedulerIntervalId = null;
@@ -17,7 +17,7 @@ async function publishQueuedCampaign(campaignDoc) {
   }
 
   try {
-    const publishResult = await publishFacebookPageCampaign(campaign);
+    const publishResult = await publishInstagramCampaign(campaign);
     await SocialMediaCampaign.findByIdAndUpdate(campaign._id, {
       $set: {
         status: "published",

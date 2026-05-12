@@ -937,6 +937,21 @@ const baseDir = path.join(__dirname, "uploads", "buyer-documents");
   return res.sendFile(filePath);
 });
 
+app.get("/uploads/social-media/:filename", async (req, res) => {
+  const safeName = path.basename(String(req.params.filename || ""));
+  const baseDir = path.join(__dirname, "uploads", "social-media");
+  const filePath = path.join(baseDir, safeName);
+
+  if (!path.resolve(filePath).startsWith(path.resolve(baseDir))) {
+    return res.status(400).json({ message: "Invalid file path" });
+  }
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ message: "File not found" });
+  }
+
+  return res.sendFile(filePath);
+});
+
 /* -------------------- DYNAMIC OG TAGS FOR SOCIAL SCRAPERS -------------------- */
 const CRITERIA_QUERY = /^(facebookexternalhit|facebookcatalog|facebookplatform|facebot|Meta-ExternalAgent|Meta-ExternalFetcher|LinkedInBot|Twitterbot|WhatsApp|GoogleBot|bingbot|Slackbot|Discordbot|TelegramBot)/i;
 

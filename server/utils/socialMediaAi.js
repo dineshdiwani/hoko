@@ -81,7 +81,7 @@ function buildOpenAiPrompt({
   tone = "professional",
   mediaStyle = "",
   includeHashtags = true,
-  platform = "facebook_page"
+  platform = "instagram"
 }) {
   return [
     "You are writing a social media campaign draft for a business admin panel.",
@@ -92,7 +92,7 @@ function buildOpenAiPrompt({
     mediaStyle ? `Media style: ${mediaStyle}.` : "Media style: not specified.",
     `Include hashtags: ${includeHashtags ? "yes" : "no"}.`,
     "Return valid JSON with keys: caption, mediaPrompt, hashtags, cta, notes.",
-    "Keep the caption short enough for a Facebook Page post. If hashtags are included, return them as an array of strings.",
+    "Keep the caption short enough for an Instagram post. If hashtags are included, return them as an array of strings.",
     "Do not wrap the JSON in markdown fences."
   ].join(" ");
 }
@@ -103,7 +103,7 @@ async function generateSocialMediaDraft({
   tone = "professional",
   mediaStyle = "",
   includeHashtags = true,
-  platform = "facebook_page"
+  platform = "instagram"
 } = {}) {
   const apiKey = String(process.env.OPENAI_API_KEY || "").trim();
   if (!apiKey) {

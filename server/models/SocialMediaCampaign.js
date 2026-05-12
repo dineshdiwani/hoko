@@ -5,7 +5,7 @@ const socialMediaCampaignSchema = new mongoose.Schema(
     platform: {
       type: String,
       enum: ["facebook_page", "instagram", "linkedin"],
-      default: "facebook_page",
+      default: "instagram",
       index: true
     },
     type: {

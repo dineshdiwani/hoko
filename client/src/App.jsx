@@ -521,8 +521,12 @@ function AppShell() {
         />
 
         <Route
-          path="/admin/social-media"
+          path="/admin/instagram"
           element={requireAdmin() ? <AdminSocialMedia /> : <Navigate to="/admin/login" replace />}
+        />
+        <Route
+          path="/admin/social-media"
+          element={<Navigate to="/admin/instagram" replace />}
         />
 
 <Route

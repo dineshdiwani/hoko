@@ -123,7 +123,7 @@ function parseCampaignScheduleAt(row, defaultScheduleAt = null) {
   return parsed;
 }
 
-function normalizeCampaignRow(row, { defaultScheduleAt = null, pageId = "" } = {}) {
+function normalizeCampaignRow(row, { defaultScheduleAt = null, instagramUserId = "" } = {}) {
   const message = getCampaignRowText(row, ["message", "caption", "text", "content", "post_text"]);
   const link = getCampaignRowText(row, ["link", "url", "cta_url"]);
   const mediaUrl = getCampaignRowText(row, ["media_url", "media", "image_url", "image"]);
@@ -134,8 +134,15 @@ function normalizeCampaignRow(row, { defaultScheduleAt = null, pageId = "" } = {
     ? "url"
     : "none";
   const scheduleAt = parseCampaignScheduleAt(row, defaultScheduleAt);
-  const rowPageId = getCampaignRowText(row, ["page_id", "pageid", "facebook_page_id"]);
-  const resolvedPageId = rowPageId || pageId;
+  const rowInstagramUserId = getCampaignRowText(row, [
+    "instagram_user_id",
+    "instagram_business_account_id",
+    "instagram_account_id",
+    "page_id",
+    "pageid",
+    "facebook_page_id"
+  ]);
+  const resolvedInstagramUserId = rowInstagramUserId || instagramUserId;
   const title = getCampaignRowText(row, ["title", "name", "subject"]);
   const sheetStatus = getCampaignRowText(row, ["status", "state"]).toLowerCase();
 
@@ -146,7 +153,7 @@ function normalizeCampaignRow(row, { defaultScheduleAt = null, pageId = "" } = {
     mediaMode,
     mediaUrl: mediaMode === "url" ? mediaUrl : "",
     scheduleAt,
-    pageId: resolvedPageId,
+    instagramUserId: resolvedInstagramUserId,
     status: sheetStatus,
     raw: row
   };

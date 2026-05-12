@@ -6,13 +6,14 @@ const adminAuth = require("../middleware/adminAuth");
 const { requireAdminPermission } = require("../middleware/adminPermission");
 const SocialMediaCampaign = require("../models/SocialMediaCampaign");
 const {
-  getMetaConfigStatus,
-  resolveMetaPageId,
-  resolveMetaAccessToken
+  getInstagramConfigStatus,
+  resolveInstagramUserId,
+  resolveInstagramAccessToken
 } = require("../utils/metaPublisher");
 const { fetchGoogleSheetRows, normalizeCampaignRow } = require("../utils/socialMediaSheets");
 const { generateSocialMediaDraft } = require("../utils/socialMediaAi");
-const { publishFacebookPageCampaign } = require("../services/socialMediaPublisher");
+const { publishInstagramCampaign } = require("../services/socialMediaPublisher");
+const { resolvePublicAppUrl } = require("../utils/publicAppUrl");
 
 const router = express.Router();
 const upload = multer({
@@ -57,14 +58,16 @@ async function saveMediaUpload(file) {
   return {
     mode: "file",
     filePath: absolutePath,
-    fileName: String(file.originalname || storedName),
+    fileName: storedName,
+    originalName: String(file.originalname || storedName),
     mimeType: String(file.mimetype || "application/octet-stream"),
-    size: Number(file.size || file.buffer.length || 0)
+    size: Number(file.size || file.buffer.length || 0),
+    publicUrl: `${resolvePublicAppUrl()}/uploads/social-media/${encodeURIComponent(storedName)}`
   };
 }
 
 function buildCampaignFromRequest({ req, mediaMeta, scheduleAt, source = "manual" }) {
-  const pageId = normalizeText(req.body?.pageId || resolveMetaPageId());
+  const instagramUserId = normalizeText(req.body?.pageId || resolveInstagramUserId());
   const message = normalizeText(req.body?.message || "");
   const link = normalizeText(req.body?.link || "");
   const mediaMode = normalizeText(req.body?.mediaMode || mediaMeta?.mode || "none").toLowerCase();
@@ -83,10 +86,10 @@ function buildCampaignFromRequest({ req, mediaMeta, scheduleAt, source = "manual
   };
 
   return {
-    platform: "facebook_page",
+    platform: "instagram",
     type: "post",
     status: queued ? "queued" : "processing",
-    pageId,
+    instagramUserId,
     title,
     message,
     link,
@@ -104,8 +107,8 @@ function buildCampaignFromRequest({ req, mediaMeta, scheduleAt, source = "manual
 
 router.get("/meta/status", adminAuth, requireAdminPermission("campaigns.read"), async (req, res) => {
   res.json({
-    platform: "facebook_page",
-    ...getMetaConfigStatus()
+    platform: "instagram",
+    ...getInstagramConfigStatus()
   });
 });
 
@@ -113,7 +116,7 @@ router.get("/meta/campaigns", adminAuth, requireAdminPermission("campaigns.read"
   try {
     const limit = Math.min(50, Math.max(1, Number(req.query?.limit || 20) || 20));
     const items = await SocialMediaCampaign.find({
-      platform: "facebook_page"
+      platform: "instagram"
     })
       .sort({ createdAt: -1 })
       .limit(limit)
@@ -138,7 +141,7 @@ router.post(
   async (req, res) => {
     let campaignDoc = null;
     try {
-      const pageId = normalizeText(req.body?.pageId || resolveMetaPageId());
+      const instagramUserId = normalizeText(req.body?.pageId || resolveInstagramUserId());
       const message = normalizeText(req.body?.message || "");
       const link = normalizeText(req.body?.link || "");
       const mediaMode = normalizeText(req.body?.mediaMode || "").toLowerCase();
@@ -148,24 +151,24 @@ router.post(
       const mediaMeta = mediaMode === "file" ? await saveMediaUpload(req.file || null) : null;
       const mediaFile = mediaMode === "file" ? mediaMeta : null;
 
-      if (!message && !link && !mediaUrl && !mediaFile) {
-        return res.status(400).json({ message: "Message, link, or media is required" });
+      if (!mediaUrl && !mediaFile) {
+        return res.status(400).json({ message: "Instagram requires an image URL or uploaded image" });
       }
       if (mediaMode === "url" && !mediaUrl) {
-        return res.status(400).json({ message: "Media URL is required for image URL mode" });
+        return res.status(400).json({ message: "Image URL is required for URL mode" });
       }
       if (mediaMode === "file" && !mediaFile) {
-        return res.status(400).json({ message: "Media file is required for upload mode" });
+        return res.status(400).json({ message: "Image file is required for upload mode" });
       }
       if (queueAction === "queue" && (!scheduleAt || !isFutureSchedule(scheduleAt))) {
         return res.status(400).json({ message: "Select a future schedule time to queue this post" });
       }
 
-      if (!resolveMetaPageId(pageId)) {
-        return res.status(400).json({ message: "Missing Meta Page ID" });
+      if (!resolveInstagramUserId(instagramUserId)) {
+        return res.status(400).json({ message: "Missing Instagram Business Account ID" });
       }
-      if (!resolveMetaAccessToken()) {
-        return res.status(400).json({ message: "Missing Meta access token" });
+      if (!resolveInstagramAccessToken()) {
+        return res.status(400).json({ message: "Missing Instagram access token" });
       }
 
       campaignDoc = await SocialMediaCampaign.create(
@@ -186,7 +189,7 @@ router.post(
         });
       }
 
-      const publishResult = await publishFacebookPageCampaign(campaignDoc.toObject());
+      const publishResult = await publishInstagramCampaign(campaignDoc.toObject());
       await SocialMediaCampaign.findByIdAndUpdate(campaignDoc._id, {
         $set: {
           status: "published",
@@ -202,7 +205,8 @@ router.post(
         success: true,
         mode: "published",
         scheduled: false,
-        pageId,
+        instagramUserId,
+        pageId: instagramUserId,
         postId: String(publishResult?.postId || "").trim(),
         campaign: updatedCampaign,
         raw: publishResult?.raw || null
@@ -219,7 +223,7 @@ router.post(
       }
 
       return res.status(500).json({
-        message: err?.message || "Failed to post Meta campaign"
+        message: err?.message || "Failed to post Instagram campaign"
       });
     }
   }
@@ -240,7 +244,7 @@ router.post("/meta/campaigns/:id/run-now", adminAuth, requireAdminPermission("ca
     campaign.attemptCount = Number(campaign.attemptCount || 0) + 1;
     await campaign.save();
 
-    const result = await publishFacebookPageCampaign(campaign.toObject());
+    const result = await publishInstagramCampaign(campaign.toObject());
     campaign.status = "published";
     campaign.publishedAt = new Date();
     campaign.providerPostId = String(result?.postId || "").trim();
@@ -279,16 +283,16 @@ router.post("/meta/import/google-sheet", adminAuth, requireAdminPermission("camp
   try {
     const sheetUrl = normalizeText(req.body?.sheetUrl || "");
     const defaultScheduleAt = normalizeScheduleAt(req.body?.defaultScheduleAt);
-    const pageId = normalizeText(req.body?.pageId || resolveMetaPageId());
+    const instagramUserId = normalizeText(req.body?.pageId || resolveInstagramUserId());
 
     if (!sheetUrl) {
       return res.status(400).json({ message: "Google Sheet URL required" });
     }
-    if (!resolveMetaAccessToken()) {
-      return res.status(400).json({ message: "Missing Meta access token" });
+    if (!resolveInstagramAccessToken()) {
+      return res.status(400).json({ message: "Missing Instagram access token" });
     }
-    if (!pageId) {
-      return res.status(400).json({ message: "Missing Meta Page ID" });
+    if (!instagramUserId) {
+      return res.status(400).json({ message: "Missing Instagram Business Account ID" });
     }
 
     const rows = await fetchGoogleSheetRows(sheetUrl);
@@ -301,7 +305,7 @@ router.post("/meta/import/google-sheet", adminAuth, requireAdminPermission("camp
 
     for (let index = 0; index < rows.length; index += 1) {
       const sheetRowNumber = index + 2;
-      const normalizedRow = normalizeCampaignRow(rows[index], { defaultScheduleAt, pageId });
+      const normalizedRow = normalizeCampaignRow(rows[index], { defaultScheduleAt, instagramUserId });
       if (String(normalizedRow.status || "").toLowerCase() === "skip") {
         skipped.push({ row: sheetRowNumber, reason: "skipped" });
         continue;
@@ -318,10 +322,10 @@ router.post("/meta/import/google-sheet", adminAuth, requireAdminPermission("camp
       const scheduleAt = normalizedRow.scheduleAt || defaultScheduleAt || new Date();
       const rowMediaMode = normalizeText(normalizedRow.mediaMode || "none").toLowerCase();
       const campaign = await SocialMediaCampaign.create({
-        platform: "facebook_page",
+        platform: "instagram",
         type: "post",
         status: "queued",
-        pageId,
+        instagramUserId,
         title: normalizeText(normalizedRow.title || `Sheet row ${index + 1}`),
         message: campaignMessage,
         link: campaignLink,
@@ -368,7 +372,7 @@ router.post("/meta/ai/generate", adminAuth, requireAdminPermission("campaigns.ma
       tone: req.body?.tone || "professional",
       mediaStyle: req.body?.mediaStyle || "",
       includeHashtags: req.body?.includeHashtags !== false,
-      platform: "facebook_page"
+      platform: "instagram"
     });
 
     return res.json({

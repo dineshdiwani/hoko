@@ -26,7 +26,7 @@ function buildMediaLabel(media = {}) {
   const mode = String(media?.mode || "none").trim().toLowerCase();
   if (mode === "url") return "Media URL";
   if (mode === "file") return "Uploaded file";
-  return "Text only";
+  return "No media";
 }
 
 export default function AdminSocialMedia() {
@@ -40,7 +40,7 @@ export default function AdminSocialMedia() {
   const [pageId, setPageId] = useState("");
   const [message, setMessage] = useState("");
   const [link, setLink] = useState("");
-  const [mediaMode, setMediaMode] = useState("none");
+  const [mediaMode, setMediaMode] = useState("url");
   const [mediaUrl, setMediaUrl] = useState("");
   const [mediaFile, setMediaFile] = useState(null);
   const [scheduleAt, setScheduleAt] = useState("");
@@ -65,13 +65,10 @@ export default function AdminSocialMedia() {
       setLoadingStatus(true);
       const res = await api.get("/social-media/meta/status");
       setConfigStatus(res.data || null);
-      if (!pageId.trim() && res.data?.pageIdMasked) {
-        setPageId("");
-      }
     } catch (err) {
       setConfigStatus({
         configured: false,
-        error: err?.response?.data?.message || err.message || "Failed to load Meta status"
+        error: err?.response?.data?.message || err.message || "Failed to load Instagram status"
       });
     } finally {
       setLoadingStatus(false);
@@ -109,7 +106,7 @@ export default function AdminSocialMedia() {
   const resetComposer = () => {
     setMessage("");
     setLink("");
-    setMediaMode("none");
+    setMediaMode("url");
     setMediaUrl("");
     setMediaFile(null);
     setScheduleAt("");
@@ -125,8 +122,16 @@ export default function AdminSocialMedia() {
   };
 
   const submitCampaign = async ({ queue = false } = {}) => {
+    if (mediaMode === "url" && !mediaUrl.trim()) {
+      alert("Enter a public image URL");
+      return;
+    }
+    if (mediaMode === "file" && !mediaFile) {
+      alert("Select an image file first");
+      return;
+    }
     if (!message.trim() && !link.trim() && !mediaUrl.trim() && !mediaFile) {
-      alert("Enter a message, link, or media");
+      alert("Enter a caption or media");
       return;
     }
     if (queue && !scheduleAt.trim()) {
@@ -177,7 +182,7 @@ export default function AdminSocialMedia() {
 
       await loadCampaigns();
     } catch (err) {
-      alert(err?.response?.data?.message || err.message || "Failed to publish Meta campaign");
+      alert(err?.response?.data?.message || err.message || "Failed to publish Instagram campaign");
     } finally {
       setPosting(false);
     }
@@ -242,17 +247,17 @@ export default function AdminSocialMedia() {
   const configLine = configStatus
     ? configStatus.error
       ? configStatus.error
-      : `Configured: ${configStatus.configured ? "Yes" : "No"} | Page ID: ${configStatus.pageIdConfigured ? "Yes" : "No"} | Token: ${configStatus.accessTokenConfigured ? "Yes" : "No"} | API: ${configStatus.apiVersion || "-"}`
-    : "Loading Meta status...";
+    : `Configured: ${configStatus.configured ? "Yes" : "No"} | IG User ID: ${configStatus.instagramUserIdConfigured ? "Yes" : "No"} | Token: ${configStatus.accessTokenConfigured ? "Yes" : "No"} | API: ${configStatus.apiVersion || "-"}`
+    : "Loading Instagram status...";
 
   return (
     <div className="page">
       <div className="page-shell pt-20 md:pt-10">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
           <div>
-            <h1 className="page-hero">Social Media</h1>
+            <h1 className="page-hero">Instagram</h1>
             <p className="text-sm text-gray-600">
-              Facebook Page scheduler, Google Sheet imports, and AI draft generation.
+              Instagram scheduler, Google Sheet imports, and AI draft generation.
             </p>
           </div>
           <AdminNav />
@@ -261,17 +266,17 @@ export default function AdminSocialMedia() {
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
           <div className="xl:col-span-2 bg-white border rounded-2xl p-4 space-y-4">
             <div className="rounded-xl border bg-gray-50 p-3 text-xs text-gray-700">
-              <p className="font-semibold mb-1">Meta config</p>
+              <p className="font-semibold mb-1">Instagram config</p>
               <p>{loadingStatus ? "Loading..." : configLine}</p>
               <p className="text-gray-500 mt-1">
-                Queue jobs here for Facebook Page posts now or later. Instagram and LinkedIn can reuse the same job model later.
+                Queue jobs here for Instagram posts now or later. LinkedIn can reuse the same job model later.
               </p>
             </div>
 
             <div className="border rounded-xl p-4 space-y-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <h3 className="font-semibold">Compose Facebook Page post</h3>
+                  <h3 className="font-semibold">Compose Instagram post</h3>
                   <p className="text-xs text-gray-500">
                     Publish immediately or queue it for the worker to send later.
                   </p>
@@ -288,10 +293,10 @@ export default function AdminSocialMedia() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Page ID override (optional)</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Instagram account ID override (optional)</label>
                   <input
                     className="w-full border rounded-lg px-3 py-2 text-sm bg-white"
-                    placeholder="123456789012345"
+                    placeholder="17841400000000000"
                     value={pageId}
                     onChange={(e) => setPageId(e.target.value)}
                   />
@@ -306,7 +311,6 @@ export default function AdminSocialMedia() {
                       setPublishResult(null);
                     }}
                   >
-                    <option value="none">Text only</option>
                     <option value="url">Image URL</option>
                     <option value="file">Upload image</option>
                   </select>
@@ -314,17 +318,17 @@ export default function AdminSocialMedia() {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Message / caption</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Caption</label>
                 <textarea
                   className="w-full border rounded-lg px-3 py-2 text-sm min-h-32 bg-white"
-                  placeholder="Write the post text here..."
+                  placeholder="Write the Instagram caption here..."
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Link (optional)</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Link reference (optional)</label>
                 <input
                   className="w-full border rounded-lg px-3 py-2 text-sm bg-white"
                   placeholder="https://example.com/campaign"
@@ -335,7 +339,7 @@ export default function AdminSocialMedia() {
 
               {mediaMode === "url" ? (
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Image URL</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Public image URL</label>
                   <input
                     className="w-full border rounded-lg px-3 py-2 text-sm bg-white"
                     placeholder="https://example.com/image.jpg"
@@ -582,7 +586,7 @@ export default function AdminSocialMedia() {
                 <div>
                   <h3 className="font-semibold">Queue history</h3>
                   <p className="text-xs text-gray-500">
-                    Shows recent scheduled and published Facebook Page jobs.
+                    Shows recent scheduled and published Instagram jobs.
                   </p>
                 </div>
                 <button
@@ -645,7 +649,7 @@ export default function AdminSocialMedia() {
               <span className="text-xs text-gray-500">{publishResult.mode || "published"}</span>
             </div>
             <p>Campaign ID: {publishResult?.campaign?._id || "-"}</p>
-            <p>Page ID: {publishResult?.pageId || publishResult?.campaign?.pageId || "-"}</p>
+            <p>IG User ID: {publishResult?.pageId || publishResult?.campaign?.instagramUserId || publishResult?.campaign?.pageId || "-"}</p>
             <p>Post ID: {publishResult?.postId || publishResult?.campaign?.providerPostId || "-"}</p>
             <p>State: {publishResult?.campaign?.status || publishResult?.mode || "-"}</p>
             <pre className="text-xs whitespace-pre-wrap break-words bg-gray-50 border rounded-lg p-3">

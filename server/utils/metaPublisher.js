@@ -1,73 +1,145 @@
 const axios = require("axios");
+const path = require("path");
 const querystring = require("querystring");
+const { resolvePublicAppUrl } = require("./publicAppUrl");
 
 function normalizeText(value) {
   return String(value || "").trim();
 }
 
-function resolveMetaApiVersion() {
-  return normalizeText(process.env.META_GRAPH_API_VERSION || "v20.0");
+function resolveInstagramApiVersion() {
+  return normalizeText(
+    process.env.INSTAGRAM_GRAPH_API_VERSION ||
+      process.env.META_GRAPH_API_VERSION ||
+      "v20.0"
+  );
 }
 
-function resolveMetaPageId(pageId = "") {
+function resolveInstagramUserId(userId = "") {
   return normalizeText(
-    pageId ||
+    userId ||
+      process.env.INSTAGRAM_USER_ID ||
+      process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID ||
+      process.env.INSTAGRAM_ACCOUNT_ID ||
       process.env.META_PAGE_ID ||
       process.env.FACEBOOK_PAGE_ID ||
       ""
   );
 }
 
-function resolveMetaAccessToken(accessToken = "") {
+function resolveInstagramAccessToken(accessToken = "") {
   return normalizeText(
     accessToken ||
+      process.env.INSTAGRAM_ACCESS_TOKEN ||
+      process.env.INSTAGRAM_PAGE_ACCESS_TOKEN ||
       process.env.META_PAGE_ACCESS_TOKEN ||
       process.env.FACEBOOK_PAGE_ACCESS_TOKEN ||
       ""
   );
 }
 
-function resolveMetaGraphBaseUrl() {
-  return `https://graph.facebook.com/${resolveMetaApiVersion()}`;
+function resolveInstagramGraphBaseUrl() {
+  return `https://graph.facebook.com/${resolveInstagramApiVersion()}`;
 }
 
-function getMetaConfigStatus() {
-  const pageId = resolveMetaPageId();
-  const accessToken = resolveMetaAccessToken();
+function getInstagramConfigStatus() {
+  const userId = resolveInstagramUserId();
+  const accessToken = resolveInstagramAccessToken();
   return {
-    configured: Boolean(pageId && accessToken),
-    pageIdConfigured: Boolean(pageId),
+    configured: Boolean(userId && accessToken),
+    instagramUserIdConfigured: Boolean(userId),
     accessTokenConfigured: Boolean(accessToken),
-    pageIdMasked: pageId ? `${pageId.slice(0, 4)}...${pageId.slice(-4)}` : "",
-    apiVersion: resolveMetaApiVersion()
+    instagramUserIdMasked: userId ? `${userId.slice(0, 4)}...${userId.slice(-4)}` : "",
+    apiVersion: resolveInstagramApiVersion()
   };
 }
 
-async function postMetaTextPost({ pageId = "", accessToken = "", message = "", link = "" }) {
-  const resolvedPageId = resolveMetaPageId(pageId);
-  const resolvedToken = resolveMetaAccessToken(accessToken);
-  const resolvedMessage = normalizeText(message);
-  const resolvedLink = normalizeText(link);
+function buildCaption(message = "", link = "") {
+  const cleanMessage = normalizeText(message);
+  const cleanLink = normalizeText(link);
+  return [cleanMessage, cleanLink].filter(Boolean).join("\n\n").trim();
+}
 
-  if (!resolvedPageId) {
-    throw new Error("Missing Meta Page ID");
+async function createInstagramMediaContainer({
+  userId = "",
+  accessToken = "",
+  caption = "",
+  imageUrl = ""
+}) {
+  const resolvedUserId = resolveInstagramUserId(userId);
+  const resolvedToken = resolveInstagramAccessToken(accessToken);
+  const resolvedCaption = normalizeText(caption);
+  const resolvedImageUrl = normalizeText(imageUrl);
+
+  if (!resolvedUserId) {
+    throw new Error("Missing Instagram Business Account ID");
   }
   if (!resolvedToken) {
-    throw new Error("Missing Meta access token");
+    throw new Error("Missing Instagram access token");
   }
-  if (!resolvedMessage && !resolvedLink) {
-    throw new Error("Message or link is required");
+  if (!resolvedImageUrl) {
+    throw new Error("Missing Instagram image URL");
   }
 
   const payload = {
     access_token: resolvedToken,
-    message: resolvedMessage
+    image_url: resolvedImageUrl,
+    caption: resolvedCaption
   };
-  if (resolvedLink) {
-    payload.link = resolvedLink;
+
+  const url = `${resolveInstagramGraphBaseUrl()}/${encodeURIComponent(resolvedUserId)}/media`;
+  const response = await axios.post(url, querystring.stringify(payload), {
+    timeout: 15000,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded"
+    }
+  });
+
+  const data = response?.data || {};
+  if (data?.error) {
+    throw new Error(
+      typeof data?.error?.message === "string" && data.error.message.trim()
+        ? data.error.message.trim()
+        : JSON.stringify(data).slice(0, 600)
+    );
   }
 
-  const url = `${resolveMetaGraphBaseUrl()}/${encodeURIComponent(resolvedPageId)}/feed`;
+  const creationId = String(data?.id || data?.creation_id || "").trim();
+  if (!creationId) {
+    throw new Error("Instagram media container creation failed");
+  }
+
+  return {
+    creationId,
+    raw: data
+  };
+}
+
+async function publishInstagramMedia({
+  userId = "",
+  accessToken = "",
+  creationId = ""
+}) {
+  const resolvedUserId = resolveInstagramUserId(userId);
+  const resolvedToken = resolveInstagramAccessToken(accessToken);
+  const resolvedCreationId = normalizeText(creationId);
+
+  if (!resolvedUserId) {
+    throw new Error("Missing Instagram Business Account ID");
+  }
+  if (!resolvedToken) {
+    throw new Error("Missing Instagram access token");
+  }
+  if (!resolvedCreationId) {
+    throw new Error("Missing Instagram creation id");
+  }
+
+  const payload = {
+    access_token: resolvedToken,
+    creation_id: resolvedCreationId
+  };
+
+  const url = `${resolveInstagramGraphBaseUrl()}/${encodeURIComponent(resolvedUserId)}/media_publish`;
   const response = await axios.post(url, querystring.stringify(payload), {
     timeout: 15000,
     headers: {
@@ -85,132 +157,118 @@ async function postMetaTextPost({ pageId = "", accessToken = "", message = "", l
   }
 
   return {
-    postId: String(data?.id || data?.post_id || "").trim(),
+    postId: String(data?.id || data?.media_id || "").trim(),
     raw: data
   };
 }
 
-async function postMetaPhotoUrl({ pageId = "", accessToken = "", message = "", mediaUrl = "" }) {
-  const resolvedPageId = resolveMetaPageId(pageId);
-  const resolvedToken = resolveMetaAccessToken(accessToken);
-  const resolvedMessage = normalizeText(message);
-  const resolvedMediaUrl = normalizeText(mediaUrl);
+function resolveInstagramPublicImageUrl(mediaFile = {}) {
+  const explicit = normalizeText(mediaFile?.publicUrl || mediaFile?.url || "");
+  if (explicit) return explicit;
 
-  if (!resolvedPageId) {
-    throw new Error("Missing Meta Page ID");
-  }
-  if (!resolvedToken) {
-    throw new Error("Missing Meta access token");
-  }
-  if (!resolvedMediaUrl) {
-    throw new Error("Missing media URL");
+  const fileName = normalizeText(mediaFile?.fileName || mediaFile?.originalname || "");
+  if (!fileName) {
+    return "";
   }
 
-  const payload = {
-    access_token: resolvedToken,
-    url: resolvedMediaUrl,
-    published: "true"
-  };
-  if (resolvedMessage) {
-    payload.caption = resolvedMessage;
-  }
+  const baseUrl = String(resolvePublicAppUrl() || "https://hokoapp.in").trim().replace(/\/+$/, "");
+  return `${baseUrl}/uploads/social-media/${encodeURIComponent(path.basename(fileName))}`;
+}
 
-  const url = `${resolveMetaGraphBaseUrl()}/${encodeURIComponent(resolvedPageId)}/photos`;
-  const response = await axios.post(url, querystring.stringify(payload), {
-    timeout: 15000,
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded"
+async function postInstagramImageUrl({ userId = "", accessToken = "", caption = "", imageUrl = "" }) {
+  const container = await createInstagramMediaContainer({
+    userId,
+    accessToken,
+    caption,
+    imageUrl
+  });
+  const published = await publishInstagramMedia({
+    userId,
+    accessToken,
+    creationId: container.creationId
+  });
+
+  return {
+    postId: published.postId,
+    creationId: container.creationId,
+    raw: {
+      container: container.raw,
+      publish: published.raw
     }
-  });
-
-  const data = response?.data || {};
-  if (data?.error) {
-    throw new Error(
-      typeof data?.error?.message === "string" && data.error.message.trim()
-        ? data.error.message.trim()
-        : JSON.stringify(data).slice(0, 600)
-    );
-  }
-
-  return {
-    postId: String(data?.post_id || data?.id || "").trim(),
-    raw: data
   };
 }
 
-async function postMetaPhotoFile({ pageId = "", accessToken = "", message = "", mediaFile = null }) {
-  const resolvedPageId = resolveMetaPageId(pageId);
-  const resolvedToken = resolveMetaAccessToken(accessToken);
-  const resolvedMessage = normalizeText(message);
-
-  if (!resolvedPageId) {
-    throw new Error("Missing Meta Page ID");
-  }
-  if (!resolvedToken) {
-    throw new Error("Missing Meta access token");
-  }
-  if (!mediaFile?.buffer) {
-    throw new Error("Missing media file");
-  }
-  if (typeof fetch !== "function" || typeof FormData === "undefined" || typeof Blob === "undefined") {
-    throw new Error("This runtime does not support multipart upload helpers");
+async function postInstagramImageFile({
+  userId = "",
+  accessToken = "",
+  caption = "",
+  mediaFile = null
+}) {
+  const imageUrl = resolveInstagramPublicImageUrl(mediaFile || {});
+  if (!imageUrl) {
+    throw new Error("Missing uploaded image");
   }
 
-  const form = new FormData();
-  form.append("published", "true");
-  form.append("access_token", resolvedToken);
-  if (resolvedMessage) {
-    form.append("caption", resolvedMessage);
-  }
-
-  const blob = new Blob([mediaFile.buffer], {
-    type: mediaFile.mimetype || "application/octet-stream"
+  return postInstagramImageUrl({
+    userId,
+    accessToken,
+    caption,
+    imageUrl
   });
-  form.append("source", blob, mediaFile.originalname || "upload.jpg");
-
-  const url = `${resolveMetaGraphBaseUrl()}/${encodeURIComponent(resolvedPageId)}/photos`;
-  const response = await fetch(url, {
-    method: "POST",
-    body: form
-  });
-
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok || data?.error) {
-    throw new Error(
-      typeof data?.error?.message === "string" && data.error.message.trim()
-        ? data.error.message.trim()
-        : typeof data?.message === "string" && data.message.trim()
-        ? data.message.trim()
-        : `Meta API request failed (${response.status})`
-    );
-  }
-
-  return {
-    postId: String(data?.post_id || data?.id || "").trim(),
-    raw: data
-  };
 }
 
-async function postMetaCampaign({ pageId = "", accessToken = "", message = "", link = "", mediaUrl = "", mediaFile = null }) {
-  if (mediaFile?.buffer) {
-    return postMetaPhotoFile({ pageId, accessToken, message, mediaFile });
+async function postInstagramCampaign({
+  userId = "",
+  accessToken = "",
+  message = "",
+  link = "",
+  mediaUrl = "",
+  mediaFile = null
+}) {
+  const caption = buildCaption(message, link);
+
+  if (mediaFile?.buffer || mediaFile?.fileName || mediaFile?.publicUrl) {
+    return postInstagramImageFile({
+      userId,
+      accessToken,
+      caption,
+      mediaFile
+    });
   }
 
   if (normalizeText(mediaUrl)) {
-    return postMetaPhotoUrl({ pageId, accessToken, message, mediaUrl });
+    return postInstagramImageUrl({
+      userId,
+      accessToken,
+      caption,
+      imageUrl: mediaUrl
+    });
   }
 
-  return postMetaTextPost({ pageId, accessToken, message, link });
+  throw new Error("Instagram posts require an image URL or uploaded image");
 }
 
 module.exports = {
-  getMetaConfigStatus,
-  postMetaCampaign,
-  postMetaPhotoFile,
-  postMetaPhotoUrl,
-  postMetaTextPost,
-  resolveMetaAccessToken,
-  resolveMetaApiVersion,
-  resolveMetaGraphBaseUrl,
-  resolveMetaPageId
+  buildCaption,
+  createInstagramMediaContainer,
+  getInstagramConfigStatus,
+  postInstagramCampaign,
+  postInstagramImageFile,
+  postInstagramImageUrl,
+  publishInstagramMedia,
+  resolveInstagramAccessToken,
+  resolveInstagramApiVersion,
+  resolveInstagramGraphBaseUrl,
+  resolveInstagramPublicImageUrl,
+  resolveInstagramUserId,
+  // Backward-compatible aliases for existing route imports.
+  getMetaConfigStatus: getInstagramConfigStatus,
+  postMetaCampaign: postInstagramCampaign,
+  postMetaPhotoFile: postInstagramImageFile,
+  postMetaPhotoUrl: postInstagramImageUrl,
+  postMetaTextPost: postInstagramImageUrl,
+  resolveMetaAccessToken: resolveInstagramAccessToken,
+  resolveMetaApiVersion: resolveInstagramApiVersion,
+  resolveMetaGraphBaseUrl: resolveInstagramGraphBaseUrl,
+  resolveMetaPageId: resolveInstagramUserId
 };

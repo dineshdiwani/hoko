@@ -1,6 +1,11 @@
 const fs = require("fs");
 const path = require("path");
-const { postMetaCampaign, resolveMetaPageId } = require("../utils/metaPublisher");
+const {
+  getInstagramConfigStatus,
+  postInstagramCampaign,
+  resolveInstagramPublicImageUrl,
+  resolveInstagramUserId
+} = require("../utils/metaPublisher");
 
 function normalizeText(value) {
   return String(value || "").trim();
@@ -15,20 +20,15 @@ function resolveCampaignMedia(campaign = {}) {
     filePath: normalizeText(media.filePath || campaign.mediaFilePath || ""),
     fileName: normalizeText(media.fileName || campaign.mediaFileName || ""),
     mimeType: normalizeText(media.mimeType || campaign.mediaMimeType || ""),
-    size: Number(media.size || campaign.mediaSize || 0) || 0
+    size: Number(media.size || campaign.mediaSize || 0) || 0,
+    publicUrl: normalizeText(media.publicUrl || campaign.mediaPublicUrl || "")
   };
 }
 
-function buildCampaignMessage(campaign = {}) {
+function buildCampaignCaption(campaign = {}) {
   const message = normalizeText(campaign.message || "");
   const link = normalizeText(campaign.link || "");
-  const media = resolveCampaignMedia(campaign);
-
-  if ((media.mode === "url" || media.mode === "file") && link) {
-    return [message, link].filter(Boolean).join("\n\n").trim();
-  }
-
-  return message;
+  return [message, link].filter(Boolean).join("\n\n").trim();
 }
 
 function resolveCampaignMediaFile(campaign = {}) {
@@ -48,47 +48,46 @@ function resolveCampaignMediaFile(campaign = {}) {
   return {
     buffer: fs.readFileSync(absolutePath),
     originalname: media.fileName || path.basename(absolutePath),
-    mimetype: media.mimeType || "application/octet-stream"
+    mimetype: media.mimeType || "image/jpeg",
+    publicUrl: media.publicUrl || resolveInstagramPublicImageUrl({
+      fileName: media.fileName || path.basename(absolutePath)
+    })
   };
 }
 
-async function publishFacebookPageCampaign(campaign = {}) {
-  const pageId = normalizeText(campaign.pageId || resolveMetaPageId());
-  if (!pageId) {
-    throw new Error("Missing Meta Page ID");
+async function publishInstagramCampaign(campaign = {}) {
+  const instagramUserId = normalizeText(campaign.instagramUserId || campaign.pageId || resolveInstagramUserId());
+  if (!instagramUserId) {
+    throw new Error("Missing Instagram Business Account ID");
   }
 
+  const caption = buildCampaignCaption(campaign);
   const media = resolveCampaignMedia(campaign);
-  const message = buildCampaignMessage(campaign);
-  const link = normalizeText(campaign.link || "");
-
   const mediaFile = resolveCampaignMediaFile(campaign);
+
   if (mediaFile) {
-    return postMetaCampaign({
-      pageId,
-      message,
+    return postInstagramCampaign({
+      userId: instagramUserId,
+      caption,
       mediaFile
     });
   }
 
   if (media.mode === "url" && media.url) {
-    return postMetaCampaign({
-      pageId,
-      message,
+    return postInstagramCampaign({
+      userId: instagramUserId,
+      caption,
       mediaUrl: media.url
     });
   }
 
-  return postMetaCampaign({
-    pageId,
-    message,
-    link
-  });
+  throw new Error("Instagram posts require an image URL or uploaded image");
 }
 
 module.exports = {
-  buildCampaignMessage,
-  publishFacebookPageCampaign,
+  buildCampaignCaption,
+  getInstagramConfigStatus,
+  publishInstagramCampaign,
   resolveCampaignMedia,
   resolveCampaignMediaFile
 };
