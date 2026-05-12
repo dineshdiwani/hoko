@@ -30,7 +30,6 @@ const { sendOtpEmail } = require("../utils/sendEmail");
 const {
   normalizeE164,
   fetchGupshupApprovedTemplates,
-  fetchGupshupTemplateById,
   sendViaGupshupTemplate
 } = require("../utils/sendWhatsApp");
 const {
@@ -1669,59 +1668,6 @@ router.get("/whatsapp/templates/registry", adminAuth, requireAdminPermission("ca
     templateId: 1,
     language: 1
   }).lean();
-
-  const provider = String(process.env.WHATSAPP_PROVIDER || "mock").trim().toLowerCase();
-  if (provider === "gupshup") {
-    try {
-      const providerTemplates = await fetchGupshupApprovedTemplates();
-      const providerById = new Map(
-        providerTemplates
-          .filter((template) => String(template?.id || "").trim())
-          .map((template) => [String(template.id).trim(), template])
-      );
-      const providerByName = new Map(
-        providerTemplates
-          .filter((template) => String(template?.name || "").trim())
-          .map((template) => [
-            `${String(template.name || "").trim().toLowerCase()}|${String(template.languageCode || "").trim().toLowerCase()}`,
-            template
-          ])
-      );
-
-      for (let index = 0; index < items.length; index += 1) {
-        const item = items[index];
-        const currentMessage = String(item?.message || "").trim();
-        if (currentMessage) continue;
-
-        const templateId = String(item?.templateId || "").trim();
-        const lookupKey = `${String(item?.templateName || "").trim().toLowerCase()}|${String(item?.language || "").trim().toLowerCase()}`;
-        const providerTemplate = providerById.get(templateId) || providerByName.get(lookupKey);
-        let resolvedTemplate = providerTemplate || null;
-        if (!resolvedTemplate?.message && templateId) {
-          try {
-            resolvedTemplate = await fetchGupshupTemplateById(templateId);
-          } catch (lookupErr) {
-            console.warn(
-              "[WhatsApp Templates] Template body lookup skipped:",
-              templateId,
-              lookupErr?.message || lookupErr
-            );
-          }
-        }
-        if (!resolvedTemplate?.message) continue;
-
-        items[index] = {
-          ...item,
-          message: resolvedTemplate.message || "",
-          variableCount: Number(item?.variableCount || resolvedTemplate.bodyVariableCount || 0),
-          category: item?.category || resolvedTemplate.category || "UTILITY",
-          status: item?.status || resolvedTemplate.status || "APPROVED"
-        };
-      }
-    } catch (err) {
-      console.warn("[WhatsApp Templates] Registry hydration skipped:", err?.message || err);
-    }
-  }
 
   return res.json({
     count: items.length,
