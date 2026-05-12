@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import api from "../../utils/adminApi";
 import AdminNav from "../../components/AdminNav";
+import ApprovedTemplatePicker from "../../components/ApprovedTemplatePicker";
 import { getPublicAppUrl } from "../../utils/runtime";
 import { launchWhatsAppLink } from "../../utils/whatsapp";
 
@@ -1330,25 +1331,25 @@ const manualCategoryOptions = useMemo(() => {
                   <label className="flex items-center gap-2 text-xs text-gray-700">
                     <input
                       type="checkbox"
-                    checked={autoModeUseTemplate}
-                    onChange={(e) => setAutoModeUseTemplate(e.target.checked)}
-                  />
+                      checked={autoModeUseTemplate}
+                      onChange={(e) => setAutoModeUseTemplate(e.target.checked)}
+                    />
                     Use approved template in automations
                   </label>
                   {autoModeUseTemplate && (
                     <>
-                      <select
-                        className="w-full border rounded-lg px-3 py-2 text-sm"
-                        value={autoModeTemplateRegistryId}
-                        onChange={(e) => setAutoModeTemplateRegistryId(e.target.value)}
-                      >
-                        <option value="">Select template for auto mode</option>
-                        {activeTemplateRegistry.map((template) => (
-                          <option key={`auto-template-${template._id}`} value={template._id}>
-                            {`${template.key} | ${template.templateName} | ${template.language}`}
-                          </option>
-                        ))}
-                      </select>
+                      <ApprovedTemplatePicker
+                        title="Template for automations"
+                        description="Auto mode uses the same shared approved registry as bulk send."
+                        templates={activeTemplateRegistry}
+                        selectedTemplateId={autoModeTemplateRegistryId}
+                        onSelectedTemplateIdChange={setAutoModeTemplateRegistryId}
+                        selectedTemplate={selectedAutoTemplate}
+                        loading={loadingTemplates}
+                        showRefresh={false}
+                        emptyLabel="Select template for auto mode"
+                        detailsLabel="Selected automation template"
+                      />
                       {!!autoModeTemplateVariables.length && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                           {autoModeTemplateVariables.map((value, index) => (

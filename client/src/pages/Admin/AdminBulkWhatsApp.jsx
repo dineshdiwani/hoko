@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import api from "../../utils/adminApi";
 import AdminNav from "../../components/AdminNav";
+import ApprovedTemplatePicker from "../../components/ApprovedTemplatePicker";
 
 export default function AdminBulkWhatsApp() {
   const [file, setFile] = useState(null);
@@ -51,11 +52,6 @@ export default function AdminBulkWhatsApp() {
   }, []);
 
   const activeTemplate = templates.find((item) => item._id === selectedTemplateId) || null;
-  const formatVariableCount = (value) => {
-    if (value === null || value === undefined) return "unknown";
-    if (Number.isNaN(Number(value))) return "unknown";
-    return Number(value);
-  };
 
   const loadDeliveryStatus = async (batchId) => {
     if (!batchId) return;
@@ -264,53 +260,18 @@ export default function AdminBulkWhatsApp() {
             )}
           </div>
 
-          <div className="border rounded-xl p-4 space-y-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h3 className="font-semibold mb-2">Step 2: Select Approved Template</h3>
-                <p className="text-sm text-gray-600 mb-2">
-                  These templates come from the shared approved template registry. Only active approved UUIDs can be selected.
-                </p>
-              </div>
-              <button
-                onClick={loadTemplates}
-                disabled={templatesLoading}
-                className="px-4 py-2 rounded-lg border border-gray-300 text-sm disabled:opacity-50"
-              >
-                {templatesLoading ? "Loading..." : "Refresh"}
-              </button>
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Approved template</label>
-              <select
-                value={selectedTemplateId}
-                onChange={(e) => setSelectedTemplateId(e.target.value)}
-                className="w-full border rounded-lg p-2 text-sm bg-white"
-                disabled={templatesLoading}
-              >
-                <option value="">{templatesLoading ? "Loading templates..." : "Select an approved template"}</option>
-                {templates.map((template) => (
-                  <option key={template._id} value={template._id}>
-                    {template.key} | {template.templateName} | {template.templateId} | {template.language}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {activeTemplate && (
-              <div className="rounded-lg border bg-gray-50 p-3 text-xs text-gray-700">
-                <p className="font-medium mb-1">Selected template</p>
-                <p>Key: {activeTemplate.key}</p>
-                <p>Name: {activeTemplate.templateName}</p>
-                <p>UUID: {activeTemplate.templateId}</p>
-                <p>Language: {activeTemplate.language || "en"}</p>
-                <p>Status: {activeTemplate.status || "APPROVED"}</p>
-                <p>Variables: {formatVariableCount(activeTemplate.variableCount)}</p>
-                <p>Category: {activeTemplate.category || "-"}</p>
-              </div>
-            )}
-
+          <ApprovedTemplatePicker
+            title="Step 2: Select Approved Template"
+            description="These templates come from the shared approved template registry. Only active approved UUIDs can be selected."
+            templates={templates}
+            selectedTemplateId={selectedTemplateId}
+            onSelectedTemplateIdChange={setSelectedTemplateId}
+            selectedTemplate={activeTemplate}
+            loading={templatesLoading}
+            onRefresh={loadTemplates}
+            refreshLabel="Refresh"
+            emptyLabel="Select an approved template"
+          >
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">CTA / Button URL (optional)</label>
               <input
@@ -324,7 +285,7 @@ export default function AdminBulkWhatsApp() {
                 Fill this only if the approved template uses a URL CTA or dynamic button link.
               </p>
             </div>
-          </div>
+          </ApprovedTemplatePicker>
 
           <div className="border rounded-xl p-4 space-y-4">
             <div>
