@@ -1,5 +1,30 @@
 import { sortApprovedTemplates } from "../utils/approvedTemplates";
 
+const PLACEHOLDER_PATTERN = /(\{\{[^{}]+\}\})/g;
+
+function renderPreviewContent(text) {
+  const parts = String(text || "").split(PLACEHOLDER_PATTERN).filter(Boolean);
+
+  if (!parts.length) {
+    return null;
+  }
+
+  return parts.map((part, index) => {
+    if (part.startsWith("{{") && part.endsWith("}}")) {
+      return (
+        <span
+          key={`${part}-${index}`}
+          className="rounded bg-amber-100 px-1 py-0.5 font-semibold text-amber-900"
+        >
+          {part}
+        </span>
+      );
+    }
+
+    return <span key={`${part}-${index}`}>{part}</span>;
+  });
+}
+
 export default function ApprovedTemplatePicker({
   title = "Approved Template",
   description = "",
@@ -76,7 +101,7 @@ export default function ApprovedTemplatePicker({
           <p className="font-medium mb-2">{previewLabel}</p>
           {previewText ? (
             <pre className="whitespace-pre-wrap break-words font-sans leading-5 text-gray-800">
-              {previewText}
+              {renderPreviewContent(previewText)}
             </pre>
           ) : (
             <p className="text-gray-500">No template message available in the registry.</p>
