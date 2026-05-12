@@ -1608,6 +1608,7 @@ router.post(
           const updateData = {
             templateName: template.name,
             templateId: template.id,
+            message: template.message || "",
             language: template.languageCode,
             category: template.category || "UTILITY",
             status: template.status || "APPROVED",
@@ -1666,7 +1667,49 @@ router.get("/whatsapp/templates/registry", adminAuth, requireAdminPermission("ca
     templateName: 1,
     templateId: 1,
     language: 1
-  });
+  }).lean();
+
+  const provider = String(process.env.WHATSAPP_PROVIDER || "mock").trim().toLowerCase();
+  if (provider === "gupshup") {
+    try {
+      const providerTemplates = await fetchGupshupApprovedTemplates();
+      const providerById = new Map(
+        providerTemplates
+          .filter((template) => String(template?.id || "").trim())
+          .map((template) => [String(template.id).trim(), template])
+      );
+      const providerByName = new Map(
+        providerTemplates
+          .filter((template) => String(template?.name || "").trim())
+          .map((template) => [
+            `${String(template.name || "").trim().toLowerCase()}|${String(template.languageCode || "").trim().toLowerCase()}`,
+            template
+          ])
+      );
+
+      for (let index = 0; index < items.length; index += 1) {
+        const item = items[index];
+        const currentMessage = String(item?.message || "").trim();
+        if (currentMessage) continue;
+
+        const templateId = String(item?.templateId || "").trim();
+        const lookupKey = `${String(item?.templateName || "").trim().toLowerCase()}|${String(item?.language || "").trim().toLowerCase()}`;
+        const providerTemplate = providerById.get(templateId) || providerByName.get(lookupKey);
+        if (!providerTemplate?.message) continue;
+
+        items[index] = {
+          ...item,
+          message: providerTemplate.message || "",
+          variableCount: Number(item?.variableCount || providerTemplate.bodyVariableCount || 0),
+          category: item?.category || providerTemplate.category || "UTILITY",
+          status: item?.status || providerTemplate.status || "APPROVED"
+        };
+      }
+    } catch (err) {
+      console.warn("[WhatsApp Templates] Registry hydration skipped:", err?.message || err);
+    }
+  }
+
   return res.json({
     count: items.length,
     items
@@ -1683,6 +1726,7 @@ router.post(
         key: "buyer_invite_post_requirement",
         templateName: "buyer_invite_post_requirement_v2",
         templateId: "c236ec98-5807-4910-9135-c8f7774ccd54",
+        message: "Hello! A new buyer requirement is available. Open the app to view details: {{1}}",
         language: "en",
         category: "MARKETING",
         status: "APPROVED",
@@ -1693,6 +1737,7 @@ router.post(
         key: "buyer_join_app_invite",
         templateName: "buyer_join_app_invite_v1",
         templateId: "46202a21-d425-4cb0-9d60-455aef42bd96",
+        message: "You are invited to join Hoko. Open the app using this link: {{1}}",
         language: "en",
         category: "MARKETING",
         status: "APPROVED",
@@ -1703,6 +1748,7 @@ router.post(
         key: "buyer_requirement_ack_v3",
         templateName: "buyer_requirement_ack_v3",
         templateId: "",
+        message: "Your requirement has been created successfully. Reference: {{1}}",
         language: "en",
         category: "MARKETING",
         status: "APPROVED",
