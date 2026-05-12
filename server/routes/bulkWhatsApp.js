@@ -5,7 +5,8 @@ const router = express.Router();
 const adminAuth = require("../middleware/adminAuth");
 const WhatsAppContact = require("../models/WhatsAppContact");
 const WhatsAppDeliveryLog = require("../models/WhatsAppDeliveryLog");
-const { normalizeE164, sendViaGupshupTemplate, fetchGupshupTemplateById } = require("../utils/sendWhatsApp");
+const WhatsAppTemplateRegistry = require("../models/WhatsAppTemplateRegistry");
+const { normalizeE164, sendViaGupshupTemplate } = require("../utils/sendWhatsApp");
 
 function normalizeProviderResponse(value) {
   if (value === null || value === undefined) return null;
@@ -44,9 +45,9 @@ async function sendAndLogBulkWhatsApp({
   try {
     const providerResult = await sendViaGupshupTemplate({
       to: normalizedMobile,
-      templateId: templateConfig.id,
-      templateName: templateConfig.name,
-      languageCode: templateConfig.languageCode || "en",
+      templateId: templateConfig.templateId,
+      templateName: templateConfig.templateName,
+      languageCode: templateConfig.language || "en",
       parameters,
       buttonUrl,
       templateConfig
@@ -70,7 +71,7 @@ async function sendAndLogBulkWhatsApp({
       providerResponse,
       city: "",
       category: "",
-      product: `Template: ${templateConfig.name || templateConfig.id}`,
+      product: `Template: ${templateConfig.templateName || templateConfig.templateId}`,
       createdByAdminId: createdByAdminId || null
     });
 
@@ -104,7 +105,7 @@ async function sendAndLogBulkWhatsApp({
       providerResponse,
       city: "",
       category: "",
-      product: `Template: ${templateConfig.name || templateConfig.id}`,
+      product: `Template: ${templateConfig.templateName || templateConfig.templateId}`,
       createdByAdminId: createdByAdminId || null
     });
 
@@ -119,20 +120,35 @@ async function sendAndLogBulkWhatsApp({
 
 router.post("/send", adminAuth, async (req, res) => {
   try {
-    const { phones, templateId, templateKey, parameters = [], buttonUrl, provider } = req.body;
+    const { phones, templateConfigId, templateId, templateKey, parameters = [], buttonUrl, provider } = req.body;
 
     if (!phones || !Array.isArray(phones) || phones.length === 0) {
       return res.status(400).json({ message: "phones array required" });
     }
 
+    const selectedTemplateConfigId = String(templateConfigId || "").trim();
     const selectedTemplateId = String(templateId || "").trim();
-    const templateConfig = await fetchGupshupTemplateById(selectedTemplateId);
+    let templateConfig = null;
+    if (selectedTemplateConfigId) {
+      templateConfig = await WhatsAppTemplateRegistry.findById(selectedTemplateConfigId).lean();
+    }
+    if (!templateConfig && selectedTemplateId) {
+      templateConfig = await WhatsAppTemplateRegistry.findOne({
+        $or: [
+          { _id: selectedTemplateId },
+          { templateId: selectedTemplateId }
+        ]
+      }).lean();
+    }
 
     if (!templateConfig) {
-      return res.status(400).json({ message: "Template not found in Gupshup approved templates" });
+      return res.status(400).json({ message: "Template not found in WhatsApp registry" });
     }
-    if (templateConfig.status && !["APPROVED", "ACTIVE", "ENABLED"].includes(templateConfig.status)) {
-      return res.status(400).json({ message: "Template is not approved in Gupshup" });
+    if (!templateConfig.templateId) {
+      return res.status(400).json({ message: "Selected template has no Gupshup templateId" });
+    }
+    if (templateConfig.status && !["APPROVED", "ACTIVE", "ENABLED"].includes(String(templateConfig.status).toUpperCase())) {
+      return res.status(400).json({ message: "Template is not approved in the registry" });
     }
 
     const providerType = String(provider || "gupshup").trim().toLowerCase();
@@ -177,20 +193,35 @@ router.post("/send", adminAuth, async (req, res) => {
 
 router.post("/send-city", adminAuth, async (req, res) => {
   try {
-    const { city, templateKey, templateId, parameters = [], buttonUrl, provider, limit, category } = req.body;
+    const { city, templateConfigId, templateId, templateKey, parameters = [], buttonUrl, provider, limit, category } = req.body;
 
     if (!city) {
       return res.status(400).json({ message: "city required" });
     }
 
+    const selectedTemplateConfigId = String(templateConfigId || "").trim();
     const selectedTemplateId = String(templateId || "").trim();
-    const templateConfig = await fetchGupshupTemplateById(selectedTemplateId);
+    let templateConfig = null;
+    if (selectedTemplateConfigId) {
+      templateConfig = await WhatsAppTemplateRegistry.findById(selectedTemplateConfigId).lean();
+    }
+    if (!templateConfig && selectedTemplateId) {
+      templateConfig = await WhatsAppTemplateRegistry.findOne({
+        $or: [
+          { _id: selectedTemplateId },
+          { templateId: selectedTemplateId }
+        ]
+      }).lean();
+    }
 
     if (!templateConfig) {
-      return res.status(400).json({ message: "Template not found in Gupshup approved templates" });
+      return res.status(400).json({ message: "Template not found in WhatsApp registry" });
     }
-    if (templateConfig.status && !["APPROVED", "ACTIVE", "ENABLED"].includes(templateConfig.status)) {
-      return res.status(400).json({ message: "Template is not approved in Gupshup" });
+    if (!templateConfig.templateId) {
+      return res.status(400).json({ message: "Selected template has no Gupshup templateId" });
+    }
+    if (templateConfig.status && !["APPROVED", "ACTIVE", "ENABLED"].includes(String(templateConfig.status).toUpperCase())) {
+      return res.status(400).json({ message: "Template is not approved in the registry" });
     }
 
     const query = {
@@ -210,7 +241,7 @@ router.post("/send-city", adminAuth, async (req, res) => {
     const batchId = crypto.randomUUID();
     const results = { accepted: [], failed: [], total: sellers.length };
 
-    console.log(`[BulkWhatsApp City] Template: ${templateConfig.name}, templateId: ${templateConfig.id}, sellers found: ${sellers.length}, query:`, query);
+    console.log(`[BulkWhatsApp City] Template: ${templateConfig.templateName || templateConfig.key}, templateId: ${templateConfig.templateId}, sellers found: ${sellers.length}, query:`, query);
 
     const allCities = await WhatsAppContact.distinct("city", { optInStatus: "opted_in", active: { $ne: false } });
     console.log("[BulkWhatsApp] All opted-in cities:", allCities);

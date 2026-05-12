@@ -16,18 +16,31 @@ export default function AdminBulkWhatsApp() {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
 
-  const loadTemplates = async () => {
+  const loadTemplates = async (preferredValue = "") => {
     try {
       setTemplatesLoading(true);
-      const res = await api.get("/admin/whatsapp/templates");
+      const res = await api.get("/admin/whatsapp/templates/registry?includeInactive=true");
       const nextTemplates = Array.isArray(res.data?.items) ? res.data.items : [];
-      setTemplates(nextTemplates);
-      const firstTemplate = nextTemplates[0];
-      if (firstTemplate?.id) {
-        setSelectedTemplateId(firstTemplate.id);
+      const activeTemplates = nextTemplates.filter(
+        (item) =>
+          item?.isActive === true &&
+          ["APPROVED", "ACTIVE", "ENABLED"].includes(String(item?.status || "").toUpperCase()) &&
+          String(item?.templateId || "").trim()
+      );
+      setTemplates(activeTemplates);
+      const preferredTemplate = preferredValue
+        ? activeTemplates.find((item) => item._id === preferredValue || item.templateId === preferredValue)
+        : null;
+      const currentTemplate = selectedTemplateId
+        ? activeTemplates.find((item) => item._id === selectedTemplateId)
+        : null;
+      const firstTemplate = activeTemplates[0];
+      const nextSelected = preferredTemplate || currentTemplate || firstTemplate;
+      if (nextSelected?._id) {
+        setSelectedTemplateId(nextSelected._id);
       }
     } catch (err) {
-      alert(err?.response?.data?.message || "Failed to load approved templates from Gupshup");
+      alert(err?.response?.data?.message || "Failed to load approved templates from registry");
     } finally {
       setTemplatesLoading(false);
     }
@@ -37,7 +50,7 @@ export default function AdminBulkWhatsApp() {
     loadTemplates();
   }, []);
 
-  const activeTemplate = templates.find((item) => item.id === selectedTemplateId) || null;
+  const activeTemplate = templates.find((item) => item._id === selectedTemplateId) || null;
   const formatVariableCount = (value) => {
     if (value === null || value === undefined) return "unknown";
     if (Number.isNaN(Number(value))) return "unknown";
@@ -133,7 +146,7 @@ export default function AdminBulkWhatsApp() {
       return;
     }
     if (!selectedTemplateId) {
-      alert("Select an approved Gupshup template");
+      alert("Select an approved template");
       return;
     }
     if (!window.confirm(`Send WhatsApp to ${parsedData.phones.length} numbers?`)) return;
@@ -142,7 +155,8 @@ export default function AdminBulkWhatsApp() {
       setSending(true);
       const res = await api.post("/bulk-whatsapp/send", {
         phones: parsedData.phones,
-        templateId: selectedTemplateId,
+        templateConfigId: selectedTemplateId,
+        templateId: activeTemplate?.templateId || "",
         buttonUrl: buttonUrl.trim()
       });
       setResult(res.data);
@@ -190,7 +204,7 @@ export default function AdminBulkWhatsApp() {
     setResult(null);
     setDeliveryStatus(null);
     setButtonUrl("");
-    setSelectedTemplateId(templates[0]?.id || "");
+    setSelectedTemplateId(templates[0]?._id || "");
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -255,7 +269,7 @@ export default function AdminBulkWhatsApp() {
               <div>
                 <h3 className="font-semibold mb-2">Step 2: Select Approved Template</h3>
                 <p className="text-sm text-gray-600 mb-2">
-                  These templates are fetched directly from Gupshup. Only approved UUIDs can be selected.
+                  These templates come from the shared approved template registry. Only active approved UUIDs can be selected.
                 </p>
               </div>
               <button
@@ -277,9 +291,8 @@ export default function AdminBulkWhatsApp() {
               >
                 <option value="">{templatesLoading ? "Loading templates..." : "Select an approved template"}</option>
                 {templates.map((template) => (
-                  <option key={template.id} value={template.id}>
-                    {template.name} ({template.id}) - vars: {formatVariableCount(template.bodyVariableCount)}
-                    {template.headerMediaType ? ` - media: ${template.headerMediaType}` : ""}
+                  <option key={template._id} value={template._id}>
+                    {template.key} | {template.templateName} | {template.templateId} | {template.language}
                   </option>
                 ))}
               </select>
@@ -288,13 +301,13 @@ export default function AdminBulkWhatsApp() {
             {activeTemplate && (
               <div className="rounded-lg border bg-gray-50 p-3 text-xs text-gray-700">
                 <p className="font-medium mb-1">Selected template</p>
-                <p>Name: {activeTemplate.name}</p>
-                <p>UUID: {activeTemplate.id}</p>
-                <p>Language: {activeTemplate.languageCode || "en"}</p>
+                <p>Key: {activeTemplate.key}</p>
+                <p>Name: {activeTemplate.templateName}</p>
+                <p>UUID: {activeTemplate.templateId}</p>
+                <p>Language: {activeTemplate.language || "en"}</p>
                 <p>Status: {activeTemplate.status || "APPROVED"}</p>
-                <p>Variables: {formatVariableCount(activeTemplate.bodyVariableCount)}</p>
-                <p>Header media: {activeTemplate.headerMediaType || "none"}</p>
-                <p>Components: {Array.isArray(activeTemplate.components) ? activeTemplate.components.length : 0}</p>
+                <p>Variables: {formatVariableCount(activeTemplate.variableCount)}</p>
+                <p>Category: {activeTemplate.category || "-"}</p>
               </div>
             )}
 
@@ -321,7 +334,7 @@ export default function AdminBulkWhatsApp() {
               </p>
               {activeTemplate && (
                 <p className="text-xs text-gray-500 mt-1">
-                  Selected: {activeTemplate.name} | Template ID: {activeTemplate.id}
+                  Selected: {activeTemplate.templateName} | Template ID: {activeTemplate.templateId}
                 </p>
               )}
             </div>
