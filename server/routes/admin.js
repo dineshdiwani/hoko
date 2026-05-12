@@ -30,6 +30,7 @@ const { sendOtpEmail } = require("../utils/sendEmail");
 const {
   normalizeE164,
   fetchGupshupApprovedTemplates,
+  fetchGupshupTemplateById,
   sendViaGupshupTemplate
 } = require("../utils/sendWhatsApp");
 const {
@@ -1695,14 +1696,26 @@ router.get("/whatsapp/templates/registry", adminAuth, requireAdminPermission("ca
         const templateId = String(item?.templateId || "").trim();
         const lookupKey = `${String(item?.templateName || "").trim().toLowerCase()}|${String(item?.language || "").trim().toLowerCase()}`;
         const providerTemplate = providerById.get(templateId) || providerByName.get(lookupKey);
-        if (!providerTemplate?.message) continue;
+        let resolvedTemplate = providerTemplate || null;
+        if (!resolvedTemplate?.message && templateId) {
+          try {
+            resolvedTemplate = await fetchGupshupTemplateById(templateId);
+          } catch (lookupErr) {
+            console.warn(
+              "[WhatsApp Templates] Template body lookup skipped:",
+              templateId,
+              lookupErr?.message || lookupErr
+            );
+          }
+        }
+        if (!resolvedTemplate?.message) continue;
 
         items[index] = {
           ...item,
-          message: providerTemplate.message || "",
-          variableCount: Number(item?.variableCount || providerTemplate.bodyVariableCount || 0),
-          category: item?.category || providerTemplate.category || "UTILITY",
-          status: item?.status || providerTemplate.status || "APPROVED"
+          message: resolvedTemplate.message || "",
+          variableCount: Number(item?.variableCount || resolvedTemplate.bodyVariableCount || 0),
+          category: item?.category || resolvedTemplate.category || "UTILITY",
+          status: item?.status || resolvedTemplate.status || "APPROVED"
         };
       }
     } catch (err) {
