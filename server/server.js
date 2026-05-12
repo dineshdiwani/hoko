@@ -803,6 +803,7 @@ app.use("/api/reports", require("./routes/reports"));
 app.use("/api/meta", require("./routes/meta"));
 app.use("/api/sitemap", require("./routes/sitemap"));
 app.use("/api/whatsapp", require("./routes/whatsapp"));
+app.use("/api/social-media", require("./routes/socialMedia"));
 app.use("/api/bulk-sms", require("./routes/bulkSms"));
 app.use("/api/dummy-requirements", require("./routes/dummyRequirementApi"));
 app.use("/api/bulk-whatsapp", require("./routes/bulkWhatsApp"));
