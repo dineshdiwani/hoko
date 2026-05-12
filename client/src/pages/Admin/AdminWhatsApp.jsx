@@ -85,12 +85,6 @@ const [consentConfig, setConsentConfig] = useState({
     channel: ""
   });
   const [loadingDeliveryLogs, setLoadingDeliveryLogs] = useState(false);
-  const [templateContactSearch, setTemplateContactSearch] = useState("");
-  const [selectedTemplateContactIds, setSelectedTemplateContactIds] = useState([]);
-  const [selectedTemplateKey, setSelectedTemplateKey] = useState("");
-  const [templateRecipientType, setTemplateRecipientType] = useState("seller_contacts");
-  const [templateVariables, setTemplateVariables] = useState([]);
-  const [sendingTemplate, setSendingTemplate] = useState(false);
   const [autoModeUseTemplate, setAutoModeUseTemplate] = useState(true);
   const [autoModeTemplateRegistryId, setAutoModeTemplateRegistryId] = useState("");
   const [autoModeRecipientType, setAutoModeRecipientType] = useState("seller_contacts");
@@ -238,55 +232,6 @@ const manualCategoryOptions = useMemo(() => {
   const cats = Array.isArray(options.categories) ? options.categories : [];
   return cats;
 }, [options.categories]);
-
-  const templateRecipientPool = useMemo(
-    () => (templateRecipientType === "buyer_contacts" ? buyerContacts : contacts),
-    [templateRecipientType, contacts, buyerContacts]
-  );
-
-  const eligibleTemplateContacts = useMemo(
-    () =>
-      templateRecipientPool.filter(
-        (contact) =>
-          contact.active !== false &&
-          contact.optInStatus === "opted_in" &&
-          !contact.unsubscribedAt &&
-          contact.dndStatus !== "dnd"
-      ),
-    [templateRecipientPool]
-  );
-
-  useEffect(() => {
-    const validIds = new Set(eligibleTemplateContacts.map((contact) => String(contact._id)));
-    setSelectedTemplateContactIds((prev) => prev.filter((id) => validIds.has(String(id))));
-  }, [eligibleTemplateContacts]);
-
-  const filteredTemplateContacts = useMemo(() => {
-    const query = normalizeText(templateContactSearch);
-    if (!query) return eligibleTemplateContacts.slice(0, 100);
-    return eligibleTemplateContacts
-      .filter((contact) =>
-        [
-          contact?.registeredBusinessName,
-          contact?.mobileE164,
-          contact?.city,
-          Array.isArray(contact?.categories) ? contact.categories.join(" ") : ""
-        ]
-          .map((value) => normalizeText(value))
-          .some((value) => value.includes(query))
-      )
-      .slice(0, 100);
-  }, [eligibleTemplateContacts, templateContactSearch]);
-
-  const selectedTemplate = useMemo(
-    () => templateRegistry.find((item) => String(item._id) === String(selectedTemplateKey)) || null,
-    [templateRegistry, selectedTemplateKey]
-  );
-
-  useEffect(() => {
-    const variableCount = Number(selectedTemplate?.variableCount || 0);
-    setTemplateVariables((prev) => Array.from({ length: variableCount }, (_, index) => prev[index] || ""));
-  }, [selectedTemplate]);
 
   const selectedAutoTemplate = useMemo(
     () => templateRegistry.find((item) => String(item._id) === String(autoModeTemplateRegistryId)) || null,
@@ -857,54 +802,6 @@ const manualCategoryOptions = useMemo(() => {
     }
   };
 
-  const toggleTemplateContact = (contactId) => {
-    setSelectedTemplateContactIds((prev) =>
-      prev.includes(contactId) ? prev.filter((item) => item !== contactId) : [...prev, contactId]
-    );
-  };
-
-  const selectVisibleTemplateContacts = () => {
-    const visibleIds = filteredTemplateContacts.map((contact) => String(contact._id));
-    setSelectedTemplateContactIds((prev) => Array.from(new Set([...prev, ...visibleIds])));
-  };
-
-  const clearTemplateContactSelection = () => {
-    setSelectedTemplateContactIds([]);
-  };
-
-  const sendSelectedTemplate = async () => {
-    if (!selectedTemplate) {
-      alert("Select an approved template");
-      return;
-    }
-    if (!selectedTemplateContactIds.length) {
-      alert("Select at least one contact");
-      return;
-    }
-
-    try {
-      setSendingTemplate(true);
-      const res = await api.post("/admin/whatsapp/template-send", {
-        recipientType: templateRecipientType,
-        contactIds: selectedTemplateContactIds,
-        templateConfigId: selectedTemplate._id,
-        templateId: selectedTemplate.templateId || "",
-        templateName: selectedTemplate.templateName || "",
-        languageCode: selectedTemplate.language || "en",
-        parameters: templateVariables.map((value) => String(value || "").trim())
-      });
-      const payload = res.data || {};
-      alert(
-        `Template send complete. Attempted: ${payload.attempted || 0}, Sent: ${payload.sent || 0}, Failed: ${payload.failed || 0}, Skipped: ${payload.skipped || 0}`
-      );
-      await loadDeliveryLogs();
-    } catch (err) {
-      alert(err?.response?.data?.message || "Failed to send template message");
-    } finally {
-      setSendingTemplate(false);
-    }
-  };
-
   const selectedPostStatus = useMemo(
     () =>
       postStatuses.find(
@@ -1164,9 +1061,9 @@ const manualCategoryOptions = useMemo(() => {
               <div className="border-t pt-4 space-y-3">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold">Approved Template Send</p>
+                    <p className="text-sm font-semibold">Template Registry</p>
                     <p className="text-xs text-gray-500">
-                      Use the synced approved template registry and send to seller or buyer contact lists.
+                      Sync from provider, refresh the registry, or fix IDs here.
                     </p>
                   </div>
                   <div className="flex gap-2">
@@ -1222,124 +1119,12 @@ const manualCategoryOptions = useMemo(() => {
                 <div className="text-xs text-gray-600">
                   BSP templates: {approvedTemplates.length} | Registry templates: {templateRegistry.length}
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <select
-                    className="w-full border rounded-lg px-3 py-2 text-sm"
-                    value={templateRecipientType}
-                    onChange={(e) => {
-                      setTemplateRecipientType(e.target.value);
-                      setSelectedTemplateContactIds([]);
-                    }}
-                  >
-                    <option value="seller_contacts">Seller contacts</option>
-                    <option value="buyer_contacts">Buyer contacts</option>
-                  </select>
-                  <select
-                    className="w-full border rounded-lg px-3 py-2 text-sm"
-                    value={selectedTemplateKey}
-                    onChange={(e) => setSelectedTemplateKey(e.target.value)}
-                  >
-                    <option value="">Select approved template</option>
-                    {activeTemplateRegistry.map((template) => (
-                      <option key={template._id} value={template._id}>
-                        {`${template.key} | ${template.templateName} | ${template.templateId || "NO_ID"} | ${template.language}${template.category ? ` | ${template.category}` : ""}`}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-1 gap-3">
-                  <input
-                    className="w-full border rounded-lg px-3 py-2 text-sm"
-                    placeholder="Search contacts by firm, mobile, city, category"
-                    value={templateContactSearch}
-                    onChange={(e) => setTemplateContactSearch(e.target.value)}
-                  />
-                </div>
-                {selectedTemplate && (
-                  <div className="rounded-lg border bg-gray-50 p-3 text-xs text-gray-700">
-                    <div>
-                      Selected template: <span className="font-semibold">{selectedTemplate.templateName}</span> | Language: {selectedTemplate.language} | Variables: {selectedTemplate.variableCount || 0} | Status: {selectedTemplate.status}
-                    </div>
-                    {!!templateVariables.length && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
-                        {templateVariables.map((value, index) => (
-                          <input
-                            key={`template-variable-${index + 1}`}
-                            className="w-full border rounded-lg px-3 py-2 text-sm bg-white"
-                            placeholder={`Variable ${index + 1}`}
-                            value={value}
-                            onChange={(e) =>
-                              setTemplateVariables((prev) =>
-                                prev.map((item, itemIndex) => (itemIndex === index ? e.target.value : item))
-                              )
-                            }
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-                <div className="flex flex-wrap gap-2 text-xs">
-                  <button
-                    type="button"
-                    onClick={selectVisibleTemplateContacts}
-                    className="px-3 py-1.5 rounded border border-gray-300"
-                  >
-                    Select Visible Contacts
-                  </button>
-                  <button
-                    type="button"
-                    onClick={clearTemplateContactSelection}
-                    className="px-3 py-1.5 rounded border border-gray-300"
-                  >
-                    Clear Selection
-                  </button>
-                  <div className="px-3 py-1.5 rounded border bg-gray-50">
-                    Selected: <span className="font-semibold">{selectedTemplateContactIds.length}</span>
-                  </div>
-                  <div className="px-3 py-1.5 rounded border bg-gray-50">
-                    Eligible contacts ({templateRecipientType === "buyer_contacts" ? "buyers" : "sellers"}): <span className="font-semibold">{eligibleTemplateContacts.length}</span>
-                  </div>
-                </div>
-                <div className="space-y-2 max-h-72 overflow-auto border rounded-lg p-2">
-                  {filteredTemplateContacts.map((contact) => {
-                    const contactId = String(contact._id);
-                    const checked = selectedTemplateContactIds.includes(contactId);
-                    return (
-                      <label key={`template-contact-${contactId}`} className="flex items-start gap-2 border rounded-lg p-2 text-xs text-gray-700 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => toggleTemplateContact(contactId)}
-                          className="mt-0.5"
-                        />
-                        <div>
-                          <div className="font-semibold">{contact.registeredBusinessName || (templateRecipientType === "buyer_contacts" ? "Buyer lead" : "-")} | {contact.mobileE164}</div>
-                          <div className="text-gray-500">
-                            {contact.city} | {contact.email || "-"} | Categories: {(contact.categories || []).join(", ") || "-"}
-                          </div>
-                        </div>
-                      </label>
-                    );
-                  })}
-                  {filteredTemplateContacts.length === 0 && (
-                    <p className="text-xs text-gray-500">No eligible contacts match the current search.</p>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  onClick={sendSelectedTemplate}
-                  disabled={!selectedTemplate || !selectedTemplateContactIds.length || sendingTemplate}
-                  className="px-3 py-2 rounded-lg text-sm font-semibold btn-primary disabled:opacity-60"
-                >
-                  {sendingTemplate ? "Sending Template..." : "Send Template To Selected Contacts"}
-                </button>
               </div>
             </div>
           </div>
 
           <div>
-            <h2 className="text-lg font-bold mb-3">Campaign Operations</h2>
+            <h2 className="text-lg font-bold mb-3">Automations</h2>
             <div className="bg-white border rounded-2xl p-3 space-y-4">
               <div className="border rounded-xl p-3 space-y-3">
                 <p className="text-sm font-semibold">Manual WhatsApp Queue (Device App Send)</p>
@@ -1458,7 +1243,7 @@ const manualCategoryOptions = useMemo(() => {
                 <div className="rounded-lg border p-3">
                   <p className="text-xs font-semibold text-gray-700 mb-2">Trigger Channels</p>
                   <p className="text-xs text-gray-500 mb-2">
-                    These channels are used when you click "Send Selected Post via API".
+                    These channels are used when you trigger the selected post from app logic.
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                     <label className="flex items-center gap-2 text-xs text-gray-700 border rounded-lg px-3 py-2">
@@ -1507,10 +1292,10 @@ const manualCategoryOptions = useMemo(() => {
                   disabled={!canResendSelectedPost}
                   className="px-3 py-2 rounded-lg text-sm font-semibold border border-amber-300 text-amber-700 disabled:opacity-60"
                 >
-                  {resendingPost ? "Sending..." : "Send Selected Post via API"}
+                  {resendingPost ? "Running..." : "Trigger Automation"}
                 </button>
                 <p className="text-xs text-gray-500">
-                  Automatic mode uses the selected recipient list and optional approved template. Per-contact manual send remains available below.
+                  Automatic mode uses the selected recipient list and optional approved template.
                 </p>
                 <pre className="text-xs whitespace-pre-wrap bg-gray-50 border rounded-lg p-3 text-gray-700">
                   {manualMessagePreview || "Select post to preview message"}
@@ -1545,10 +1330,10 @@ const manualCategoryOptions = useMemo(() => {
                   <label className="flex items-center gap-2 text-xs text-gray-700">
                     <input
                       type="checkbox"
-                      checked={autoModeUseTemplate}
-                      onChange={(e) => setAutoModeUseTemplate(e.target.checked)}
-                    />
-                    Use approved template in auto mode (Send Selected Post via API)
+                    checked={autoModeUseTemplate}
+                    onChange={(e) => setAutoModeUseTemplate(e.target.checked)}
+                  />
+                    Use approved template in automations
                   </label>
                   {autoModeUseTemplate && (
                     <>

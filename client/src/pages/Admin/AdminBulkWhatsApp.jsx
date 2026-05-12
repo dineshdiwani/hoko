@@ -214,7 +214,7 @@ export default function AdminBulkWhatsApp() {
     <div className="page">
       <div className="page-shell pt-20 md:pt-10">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
-          <h1 className="page-hero">Bulk WhatsApp</h1>
+          <h1 className="page-hero">Bulk Send</h1>
           <AdminNav />
         </div>
 
