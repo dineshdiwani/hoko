@@ -1,3 +1,5 @@
+import { sortApprovedTemplates } from "../utils/approvedTemplates";
+
 export default function ApprovedTemplatePicker({
   title = "Approved Template",
   description = "",
@@ -16,6 +18,7 @@ export default function ApprovedTemplatePicker({
 }) {
   const optionLabel = (template) =>
     `${template?.key || template?.templateName || "Template"} | ${template?.templateName || template?.key || "-"} | ${template?.templateId || "NO_ID"} | ${template?.language || "en"}${template?.category ? ` | ${template.category}` : ""}`;
+  const sortedTemplates = sortApprovedTemplates(templates);
 
   return (
     <div className={`rounded-lg border p-3 space-y-3 ${className}`}>
@@ -45,7 +48,7 @@ export default function ApprovedTemplatePicker({
           disabled={loading}
         >
           <option value="">{loading ? "Loading templates..." : emptyLabel}</option>
-          {templates.map((template) => (
+          {sortedTemplates.map((template) => (
             <option key={template._id} value={template._id}>
               {optionLabel(template)}
             </option>
