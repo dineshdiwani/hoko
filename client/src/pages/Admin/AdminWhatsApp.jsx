@@ -36,13 +36,10 @@ export default function AdminWhatsApp() {
   });
   const [sellerContactFile, setSellerContactFile] = useState(null);
   const [buyerContactFile, setBuyerContactFile] = useState(null);
-  const [templateSheetFile, setTemplateSheetFile] = useState(null);
   const [uploadingWhatsApp, setUploadingWhatsApp] = useState(false);
   const [uploadingBuyerWhatsApp, setUploadingBuyerWhatsApp] = useState(false);
-  const [uploadingTemplateSheet, setUploadingTemplateSheet] = useState(false);
   const [downloadingWhatsAppFile, setDownloadingWhatsAppFile] = useState(false);
   const [downloadingBuyerWhatsAppFile, setDownloadingBuyerWhatsAppFile] = useState(false);
-  const [downloadingTemplateSheetFile, setDownloadingTemplateSheetFile] = useState(false);
 const [consentConfig, setConsentConfig] = useState({
     waMeLink: "https://wa.me/918079060554?text=Hi",
     pendingCount: 0,
@@ -100,7 +97,6 @@ const [consentConfig, setConsentConfig] = useState({
   const [autoModeTemplateVariables, setAutoModeTemplateVariables] = useState([]);
   const sellerFileInputRef = useRef(null);
   const buyerFileInputRef = useRef(null);
-  const templateFileInputRef = useRef(null);
 
   const normalizeText = (value) => String(value || "").trim().toLowerCase();
   const uniqueByNormalized = (values) => {
@@ -576,35 +572,6 @@ const manualCategoryOptions = useMemo(() => {
     }
   };
 
-  const uploadTemplateRegistrySheet = async () => {
-    if (!templateSheetFile) return;
-    const formData = new FormData();
-    formData.append("file", templateSheetFile);
-    formData.append("mode", "replace");
-    try {
-      setUploadingTemplateSheet(true);
-      const res = await api.post("/admin/whatsapp/templates/upload", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data"
-        }
-      });
-      const stats = res.data || {};
-      alert(
-        `Template sheet upload complete. Parsed: ${stats.parsed || 0}, Inserted: ${stats.inserted || 0}, Updated: ${stats.updated || 0}, Failed: ${stats.failed || 0}`
-      );
-      setTemplateSheetFile(null);
-      if (templateFileInputRef.current) {
-        templateFileInputRef.current.value = "";
-      }
-      await loadData();
-    } catch (err) {
-      const errors = Array.isArray(err?.response?.data?.errors) ? err.response.data.errors.join("\n") : "";
-      alert(err?.response?.data?.message || errors || "Failed to upload template sheet");
-    } finally {
-      setUploadingTemplateSheet(false);
-    }
-  };
-
   const downloadUploadedFile = async (url, fallbackName, setter) => {
     try {
       setter(true);
@@ -652,13 +619,6 @@ const manualCategoryOptions = useMemo(() => {
       "/admin/whatsapp/buyer-contacts/uploaded-file",
       "whatsapp-buyer-contacts.xlsx",
       setDownloadingBuyerWhatsAppFile
-    );
-
-  const downloadTemplateSheetUploadedFile = async () =>
-    downloadUploadedFile(
-      "/admin/whatsapp/templates/uploaded-file",
-      "whatsapp-templates.xlsx",
-      setDownloadingTemplateSheetFile
     );
 
   const copyConsentLink = async () => {
@@ -1132,34 +1092,6 @@ const manualCategoryOptions = useMemo(() => {
                   </button>
                 </div>
 
-                <div className="border rounded-xl p-3 space-y-2">
-                  <p className="text-sm font-semibold">3) Approved templates sheet</p>
-                  <input
-                    ref={templateFileInputRef}
-                    type="file"
-                    accept=".xls,.xlsx"
-                    onChange={(event) => handleExcelFileSelect(event, setTemplateSheetFile)}
-                    className="block w-full text-sm"
-                  />
-                  <p className="text-xs text-gray-600">Selected: {templateSheetFile?.name || "None"}</p>
-                  <p className="text-xs text-gray-500">Use columns from the template registry spec</p>
-                  <button
-                    onClick={uploadTemplateRegistrySheet}
-                    className="btn-primary w-auto px-3 py-2 text-sm rounded-lg"
-                    disabled={!templateSheetFile || uploadingTemplateSheet}
-                  >
-                    {uploadingTemplateSheet ? "Uploading..." : "Upload Template Sheet"}
-                  </button>
-                  <p className="text-xs text-gray-600">Registry rows: {templateRegistry.length}</p>
-                  <button
-                    type="button"
-                    onClick={downloadTemplateSheetUploadedFile}
-                    disabled={downloadingTemplateSheetFile}
-                    className="underline text-blue-700 disabled:text-gray-400 disabled:no-underline text-xs"
-                  >
-                    {downloadingTemplateSheetFile ? "Downloading..." : "Download template file"}
-                  </button>
-                </div>
               </div>
 
               <div className="text-xs text-gray-600">
