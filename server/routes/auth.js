@@ -531,10 +531,10 @@ router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
         process.env.JWT_SECRET,
         { expiresIn: "7d" }
       );
-        return res.status(200).json({
-          success: true,
-          requiresSellerRegistration: true,
-          user: buildAuthUserPayload(loginUser, normalizedRole),
+      return res.status(200).json({
+        success: true,
+        requiresSellerRegistration: true,
+        user: buildAuthUserPayload(loginUser, normalizedRole),
         token
       });
     }

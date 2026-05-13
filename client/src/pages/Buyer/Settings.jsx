@@ -397,7 +397,7 @@ export default function BuyerSettings() {
       const user = res?.data?.user || {};
       if (res?.data?.requiresSellerRegistration) {
         updateSession({
-          role: user.role || "seller",
+          role: "seller",
           roles: user.roles || profile.roles,
           city: user.city || profile.city,
           preferredCurrency: user.preferredCurrency || profile.preferredCurrency,
@@ -407,7 +407,7 @@ export default function BuyerSettings() {
         return;
       }
       updateSession({
-        role: user.role || "seller",
+        role: "seller",
         roles: user.roles || profile.roles,
         city: user.city || profile.city,
         preferredCurrency: user.preferredCurrency || profile.preferredCurrency

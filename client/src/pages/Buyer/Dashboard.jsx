@@ -189,7 +189,7 @@ export default function BuyerDashboard() {
       .then((res) => {
         setSession({
           _id: res.data.user._id,
-          role: res.data.user.role,
+          role: "buyer",
           roles: res.data.user.roles,
           email: res.data.user.email,
           city: res.data.user.city,
@@ -583,7 +583,7 @@ export default function BuyerDashboard() {
                         if (res?.data?.requiresSellerRegistration) {
                           setSession({
                             _id: res.data.user._id,
-                            role: res.data.user.role,
+                            role: "seller",
                             roles: res.data.user.roles,
                             email: res.data.user.email,
                             city: res.data.user.city,
@@ -597,7 +597,7 @@ export default function BuyerDashboard() {
                         }
                         setSession({
                           _id: res.data.user._id,
-                          role: res.data.user.role,
+                          role: "seller",
                           roles: res.data.user.roles,
                           email: res.data.user.email,
                           city: res.data.user.city,

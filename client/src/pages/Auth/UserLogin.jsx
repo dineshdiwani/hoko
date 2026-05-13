@@ -63,8 +63,7 @@ export default function UserLogin({ role = "buyer" }) {
       postLoginRedirectSource === "offer" ||
       isDeepLinkRedirect);
   const isSellerWhatsAppFlow =
-    isSeller &&
-    (sourceFromUrl === "wa" || Boolean(cityFromUrl) || Boolean(catsFromUrl));
+    isSeller && sourceFromUrl === "wa";
   const defaultTermsContent = [
     "By using hoko, you agree to these Terms & Conditions.",
     "hoko is a marketplace platform connecting buyers and sellers. You are responsible for all negotiations, pricing, delivery, and payments.",
@@ -522,7 +521,7 @@ useEffect(() => {
 
       setSession({
         _id: user._id,
-        role: user.role || currentRole,
+        role: currentRole,
         roles: user.roles,
         email: user.email || email,
         city: sessionCity,

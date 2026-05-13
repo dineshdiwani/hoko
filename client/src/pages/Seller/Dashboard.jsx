@@ -1378,7 +1378,7 @@ export default function SellerDashboard() {
                           });
                           setSession({
                             _id: res.data.user._id,
-                            role: res.data.user.role,
+                            role: "buyer",
                             roles: res.data.user.roles,
                             email: res.data.user.email,
                             city: res.data.user.city,
