@@ -537,6 +537,9 @@ useEffect(() => {
     const user = res.data.user || {};
     const resolvedCity = String(loginCity || cityFromUrl || user.city || "").trim();
     const token = res.data.token;
+    const sellerProfile = user.sellerProfile || {};
+    const sellerProfileComplete = hasCompleteSellerProfile(user, sellerProfile);
+    const requiresSellerRegistration = Boolean(res.data.requiresSellerRegistration);
 
     // Show city modal before continuing
     if (currentRole === "buyer" && await completePendingBuyerRequirementLogin({
@@ -548,37 +551,37 @@ useEffect(() => {
       return;
     }
 
+    if (isSeller && (requiresSellerRegistration || !sellerProfileComplete)) {
+      setSession({
+        _id: user._id,
+        role: user.role || currentRole,
+        roles: user.roles,
+        email: user.email,
+        city: resolvedCity || user.city || "",
+        name: user.name || "Seller",
+        picture: user.picture,
+        preferredCurrency: user.preferredCurrency || "INR",
+        sellerProfile,
+        token
+      });
+      localStorage.setItem("seller_email", user.email || "");
+      setPendingCitySession({
+        _id: user._id,
+        role: user.role || currentRole,
+        roles: user.roles,
+        email: user.email,
+        city: resolvedCity || user.city || "",
+        name: user.name || "Seller",
+        picture: user.picture,
+        preferredCurrency: user.preferredCurrency || "INR",
+        sellerProfile,
+        token
+      });
+      navigate(buildSellerRegisterRedirect(), { replace: true });
+      return;
+    }
+
     if (isSeller && isSellerWhatsAppFlow) {
-      const sellerProfile = user.sellerProfile || {};
-      if (!hasCompleteSellerProfile(user, sellerProfile)) {
-        setSession({
-          _id: user._id,
-          role: currentRole,
-          roles: user.roles,
-          email: user.email,
-          city: resolvedCity || "",
-          name: user.name || "Seller",
-          picture: user.picture,
-          preferredCurrency: user.preferredCurrency || "INR",
-          sellerProfile,
-          token
-        });
-        localStorage.setItem("seller_email", user.email || "");
-        setPendingCitySession({
-          _id: user._id,
-          role: currentRole,
-          roles: user.roles,
-          email: user.email,
-          city: resolvedCity || "",
-          name: user.name || "Seller",
-          picture: user.picture,
-          preferredCurrency: user.preferredCurrency || "INR",
-          sellerProfile,
-          token
-        });
-        navigate(buildSellerRegisterRedirect(), { replace: true });
-        return;
-      }
       setSession({
         _id: user._id,
         role: user.role || currentRole,
@@ -953,7 +956,7 @@ useEffect(() => {
       .then((res) => continueAfterGoogleLoginResponse({ res, loginCity: explicitCity }))
       .catch((err) => {
         const message = err?.response?.data?.message || "Login failed";
-        if (isSeller && (message === "Complete seller registration before Google login" || message === "Complete seller registration before login")) {
+        if (isSeller && (err?.response?.data?.requiresSellerRegistration || message === "Complete seller registration before Google login" || message === "Complete seller registration before login")) {
           alert(message);
           navigate(buildSellerRegisterRedirect(), { replace: true });
           return;

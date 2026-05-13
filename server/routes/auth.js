@@ -610,11 +610,6 @@ router.post("/google", async (req, res) => {
       if (!city) {
         return res.status(400).json({ message: "City required" });
       }
-      if (normalizedRole === "seller") {
-        return res.status(403).json({
-          message: "Complete seller registration before Google login"
-        });
-      }
       if (!acceptTerms) {
         return res.status(403).json({
           message: "Terms required"
@@ -625,7 +620,7 @@ router.post("/google", async (req, res) => {
         city,
         roles: {
           buyer: true,
-          seller: false,
+          seller: normalizedRole === "seller",
           admin: false
         },
         termsAccepted: { at: new Date() },
@@ -652,13 +647,8 @@ router.post("/google", async (req, res) => {
         user.city = city;
       }
       if (normalizedRole === "seller") {
-        const hasSellerProfile = isCompleteSellerProfile(user);
-        if (!hasSellerProfile) {
-          return res.status(403).json({
-            message: "Complete seller registration before Google login"
-          });
-        }
         user.roles.seller = true;
+        user.roles.buyer = true;
       } else {
         if (!user.termsAccepted?.at && !acceptTerms) {
           return res.status(403).json({
@@ -692,6 +682,28 @@ router.post("/google", async (req, res) => {
       source: "auth.google",
       payload: { email }
     });
+
+    const hasSellerProfile = isCompleteSellerProfile(user);
+    if (normalizedRole === "seller" && !hasSellerProfile) {
+      return res.json({
+        success: true,
+        requiresSellerRegistration: true,
+        token,
+        user: {
+          _id: user._id,
+          email: user.email,
+          name,
+          picture,
+          role: normalizedRole,
+          roles: user.roles,
+          city: user.city,
+          preferredCurrency: user.preferredCurrency || "INR",
+          sellerProfile: user.sellerProfile,
+          mobile: user.mobile
+        },
+        merge: mergeResult.merged ? mergeResult : undefined
+      });
+    }
 
     res.json({
       token,
