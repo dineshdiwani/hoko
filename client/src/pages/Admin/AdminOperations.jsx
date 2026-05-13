@@ -282,7 +282,10 @@ export default function AdminOperations() {
     const label = user.email || user.phone || user._id;
     if (!await confirmDialog(`Permanently delete ${label}? This cannot be undone.`)) return;
     try {
-      await api.delete(`/admin/user/${user._id}`);
+      const res = await api.delete(`/admin/user/${user._id}`);
+      if (Number(res?.data?.deletedCount || 0) < 1) {
+        throw new Error("User record was not deleted");
+      }
       logActivity("User Deleted", `User ID: ${user._id}`);
       setUsers((prev) => prev.filter((item) => item._id !== user._id));
       setExpandedUsers((prev) => {

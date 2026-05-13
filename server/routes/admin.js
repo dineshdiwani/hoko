@@ -943,9 +943,12 @@ router.delete("/user/:userId", adminAuth, requireAdminPermission("users.manage")
   const requirements = await Requirement.find({ buyerId: userId }).select("_id").lean();
   const requirementIds = requirements.map((item) => item._id);
 
-  await cleanupUserUploadFiles({ userId, userDoc: user });
+  const deleteResult = await User.deleteOne({ _id: userId });
+  if (!deleteResult.deletedCount) {
+    return res.status(404).json({ message: "User not found" });
+  }
 
-  await Promise.all([
+  const cleanupTasks = [
     Requirement.deleteMany({ buyerId: userId }),
     Offer.deleteMany({
       $or: [
@@ -961,15 +964,22 @@ router.delete("/user/:userId", adminAuth, requireAdminPermission("users.manage")
     }),
     PushSubscription.deleteMany({ userId }),
     NativePushToken.deleteMany({ userId }),
-    User.findByIdAndDelete(userId)
-  ]);
+    cleanupUserUploadFiles({ userId, userDoc: user })
+  ];
+
+  const cleanupResults = await Promise.allSettled(cleanupTasks);
+  const cleanupFailures = cleanupResults.filter((result) => result.status === "rejected");
+  if (cleanupFailures.length > 0) {
+    console.warn("[Admin Delete User] cleanup partially failed:", cleanupFailures.map((item) => item.reason?.message || String(item.reason)));
+  }
 
   await logAdminAction(req.admin, "user_delete", "user", userId, {
     deletedRoles: user.roles || {},
-    requirementsDeleted: requirementIds.length
+    requirementsDeleted: requirementIds.length,
+    cleanupFailures: cleanupFailures.length
   });
 
-  res.json({ success: true });
+  res.json({ success: true, deleted: true, deletedCount: deleteResult.deletedCount });
 });
 
 /**
