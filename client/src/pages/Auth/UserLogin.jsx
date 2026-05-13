@@ -563,7 +563,6 @@ useEffect(() => {
   async function continueAfterGoogleLoginResponse({ res, loginCity = "" }) {
     const user = res.data.user || {};
     const token = res.data.token;
-    const requiresSellerRegistration = Boolean(res.data?.requiresSellerRegistration);
     const resolvedCity = await resolveEffectiveCityAfterLogin({
       token,
       user,
@@ -578,27 +577,6 @@ useEffect(() => {
       profile: null,
       loginCity: resolvedCity
     })) {
-      return;
-    }
-
-    if (isSeller && requiresSellerRegistration) {
-      const sellerProfile = user.sellerProfile || {};
-      const registrationSession = {
-        _id: user._id,
-        role: currentRole,
-        roles: user.roles,
-        email: user.email,
-        city: resolvedCity || user.city || "",
-        name: user.name || "Seller",
-        picture: user.picture,
-        preferredCurrency: user.preferredCurrency || "INR",
-        sellerProfile,
-        token
-      };
-      setSession(registrationSession);
-      localStorage.setItem("seller_email", user.email || "");
-      setPendingCitySession(registrationSession);
-      navigate(buildSellerRegisterRedirect(), { replace: true });
       return;
     }
 
@@ -811,7 +789,6 @@ useEffect(() => {
       .post(endpoint, payload)
       .then(async (res) => {
         const user = res.data.user || {};
-        const requiresSellerRegistration = Boolean(res.data?.requiresSellerRegistration);
         const profile = isSeller ? await applySellerProfile(city) : null;
         const sellerIntent =
           localStorage.getItem("login_intent_role") === "seller";
@@ -828,30 +805,6 @@ useEffect(() => {
           profile,
           loginCity: resolvedCity || city
         })) {
-          return;
-        }
-
-        if (isSeller && requiresSellerRegistration) {
-          const sellerProfile = user.sellerProfile || profile || {};
-          const registrationSession = {
-            _id: user._id,
-            role: user.role || currentRole,
-            roles: user.roles,
-            email: user.email || email,
-            city: resolvedCity || cityFromUrl || user.city || city || "",
-            name: buildDisplayName(user, currentRole, profile),
-            preferredCurrency: user.preferredCurrency || "INR",
-            mobile: user.mobile || mobile || "",
-            sellerProfile,
-            token: res.data.token
-          };
-          setSession(registrationSession);
-          localStorage.setItem("seller_email", user.email || email || "");
-          if (acceptedTerms) {
-            localStorage.setItem("terms_accepted_at", new Date().toISOString());
-          }
-          setPendingCitySession(registrationSession);
-          navigate(buildSellerRegisterRedirect(), { replace: true });
           return;
         }
 
