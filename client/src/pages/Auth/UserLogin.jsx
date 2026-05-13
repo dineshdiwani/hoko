@@ -186,12 +186,7 @@ export default function UserLogin({ role = "buyer" }) {
     const params = new URLSearchParams();
     const loginMobile = normalizeMobileValue(mobile || emailOrMobileFromUrl || "");
     if (loginMobile) params.set("mobile", loginMobile);
-    const sessionCity = String(getSession()?.city || getSession()?.sellerProfile?.city || "").trim();
-    const waCity =
-      cityFromUrl ||
-      sessionCity ||
-      localStorage.getItem("whatsapp_city") ||
-      "";
+    const waCity = cityFromUrl || localStorage.getItem("whatsapp_city") || "";
     const waCats = catsFromUrl || localStorage.getItem("whatsapp_categories") || "";
     if (waCity) params.set("city", waCity);
     if (waCats) params.set("cats", waCats);
@@ -480,28 +475,6 @@ useEffect(() => {
     }
   }
 
-  async function resolveEffectiveCityAfterLogin({ token, user, loginCity, role }) {
-    const directCity = String(loginCity || user?.city || "").trim();
-    if (directCity) return directCity;
-
-    try {
-      const res = await api.get(role === "seller" ? "/seller/profile" : "/buyer/profile", {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-      const profileCity = String(
-        res?.data?.city ||
-          res?.data?.buyerSettings?.defaultCity ||
-          res?.data?.sellerProfile?.city ||
-          ""
-      ).trim();
-      return profileCity;
-    } catch {
-      return "";
-    }
-  }
-
   async function completePendingBuyerRequirementLogin({ user, token, profile, loginCity }) {
     const pendingRequirementData = readPendingRequirementData();
     if (!pendingRequirementData || isSeller) return false;
@@ -562,13 +535,8 @@ useEffect(() => {
 
   async function continueAfterGoogleLoginResponse({ res, loginCity = "" }) {
     const user = res.data.user || {};
+    const resolvedCity = String(loginCity || cityFromUrl || user.city || "").trim();
     const token = res.data.token;
-    const resolvedCity = await resolveEffectiveCityAfterLogin({
-      token,
-      user,
-      loginCity: loginCity || cityFromUrl || "",
-      role: currentRole
-    });
 
     // Show city modal before continuing
     if (currentRole === "buyer" && await completePendingBuyerRequirementLogin({
@@ -792,12 +760,7 @@ useEffect(() => {
         const profile = isSeller ? await applySellerProfile(city) : null;
         const sellerIntent =
           localStorage.getItem("login_intent_role") === "seller";
-        const resolvedCity = await resolveEffectiveCityAfterLogin({
-          token: res.data.token,
-          user,
-          loginCity: city || cityFromUrl || "",
-          role: currentRole
-        });
+        const resolvedCity = String(city || cityFromUrl || user.city || "").trim();
 
         if (await completePendingBuyerRequirementLogin({
           user,
@@ -969,6 +932,16 @@ useEffect(() => {
 
   function handleGoogleLogin(credential) {
     const explicitCity = String(city || cityFromUrl || "").trim();
+    if (!explicitCity) {
+      setPendingGoogleCredential(credential);
+      setPendingCitySession({
+        loginMode: "google",
+        credential
+      });
+      setShowCityModal(true);
+      return;
+    }
+
     setGoogleLoading(true);
     api
       .post("/auth/google", {
@@ -980,15 +953,6 @@ useEffect(() => {
       .then((res) => continueAfterGoogleLoginResponse({ res, loginCity: explicitCity }))
       .catch((err) => {
         const message = err?.response?.data?.message || "Login failed";
-        if (message === "City required") {
-          setPendingGoogleCredential(credential);
-          setPendingCitySession({
-            loginMode: "google",
-            credential
-          });
-          setShowCityModal(true);
-          return;
-        }
         if (isSeller && (message === "Complete seller registration before Google login" || message === "Complete seller registration before login")) {
           alert(message);
           navigate(buildSellerRegisterRedirect(), { replace: true });
