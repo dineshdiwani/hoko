@@ -245,7 +245,7 @@ export default function SellerRegister() {
     };
 
     try {
-      let activeSession = session;
+      let activeSession = getSession() || session;
       if (!activeSession?.token) {
         const refreshed = await refreshSession().catch(() => null);
         if (refreshed?.user && refreshed?.token) {
