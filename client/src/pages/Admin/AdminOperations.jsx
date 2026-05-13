@@ -120,7 +120,7 @@ export default function AdminOperations() {
   }, []);
 
   const loadData = useCallback(async () => {
-    const [usersRes, requirementsRes, offersRes, chatsRes, reportsRes, moderationRes] = await Promise.all([
+    const results = await Promise.allSettled([
       api.get("/admin/users"),
       api.get("/admin/requirements"),
       api.get("/admin/offers"),
@@ -128,17 +128,25 @@ export default function AdminOperations() {
       api.get("/admin/reports"),
       api.get("/admin/moderation/queue")
     ]);
-    setUsers(Array.isArray(usersRes.data) ? usersRes.data : []);
-    setRequirements(Array.isArray(requirementsRes.data) ? requirementsRes.data : []);
-    setOffers(Array.isArray(offersRes.data) ? offersRes.data : []);
-    setChats(Array.isArray(chatsRes.data) ? chatsRes.data : []);
-    setReports(Array.isArray(reportsRes.data) ? reportsRes.data : []);
+
+    const [usersRes, requirementsRes, offersRes, chatsRes, reportsRes, moderationRes] = results;
+    setUsers(usersRes.status === "fulfilled" && Array.isArray(usersRes.value?.data) ? usersRes.value.data : []);
+    setRequirements(
+      requirementsRes.status === "fulfilled" && Array.isArray(requirementsRes.value?.data)
+        ? requirementsRes.value.data
+        : []
+    );
+    setOffers(offersRes.status === "fulfilled" && Array.isArray(offersRes.value?.data) ? offersRes.value.data : []);
+    setChats(chatsRes.status === "fulfilled" && Array.isArray(chatsRes.value?.data) ? chatsRes.value.data : []);
+    setReports(reportsRes.status === "fulfilled" && Array.isArray(reportsRes.value?.data) ? reportsRes.value.data : []);
     setModerationQueue(
-      moderationRes.data || {
-        requirements: [],
-        offers: [],
-        chats: []
-      }
+      moderationRes.status === "fulfilled" && moderationRes.value?.data
+        ? moderationRes.value.data
+        : {
+            requirements: [],
+            offers: [],
+            chats: []
+          }
     );
   }, []);
 
@@ -246,20 +254,28 @@ export default function AdminOperations() {
     if (!user?._id) return;
     const label = user.email || user.phone || user._id;
     if (!await confirmDialog(`Soft delete ${label}? This will revoke access but keep the record for audit.`)) return;
-    await api.post(`/admin/user/${user._id}/soft-delete`, {
-      reason: "Soft deleted from admin operations"
-    });
-    logActivity("User Soft Deleted", `User ID: ${user._id}`);
-    await Promise.all([loadData(), loadKpis()]);
+    try {
+      await api.post(`/admin/user/${user._id}/soft-delete`, {
+        reason: "Soft deleted from admin operations"
+      });
+      logActivity("User Soft Deleted", `User ID: ${user._id}`);
+      await Promise.all([loadData(), loadKpis()]);
+    } catch (err) {
+      alert(err?.response?.data?.message || err.message || "Failed to soft delete user");
+    }
   };
 
   const deleteUser = async (user) => {
     if (!user?._id) return;
     const label = user.email || user.phone || user._id;
     if (!await confirmDialog(`Permanently delete ${label}? This cannot be undone.`)) return;
-    await api.delete(`/admin/user/${user._id}`);
-    logActivity("User Deleted", `User ID: ${user._id}`);
-    await Promise.all([loadData(), loadKpis()]);
+    try {
+      await api.delete(`/admin/user/${user._id}`);
+      logActivity("User Deleted", `User ID: ${user._id}`);
+      await Promise.all([loadData(), loadKpis()]);
+    } catch (err) {
+      alert(err?.response?.data?.message || err.message || "Failed to delete user");
+    }
   };
 
   const toggleUserChat = async (userId, disabled) => {
