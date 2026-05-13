@@ -55,6 +55,7 @@ export default function SellerRegister() {
   });
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [cities, setCities] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -176,6 +177,7 @@ export default function SellerRegister() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitted(true);
+    setIsSubmitting(false);
 
     const email = String(seller.email || "").trim();
     const mobile = String(seller.mobile || "").trim();
@@ -218,6 +220,7 @@ export default function SellerRegister() {
     };
 
     try {
+      setIsSubmitting(true);
       let activeSession = session;
       if (!activeSession?.token) {
         const refreshed = await refreshSession().catch(() => null);
@@ -278,7 +281,8 @@ export default function SellerRegister() {
       }`;
     } catch (err) {
       alert(err?.response?.data?.message || "Registration failed. Try again.");
-      setSubmitted(false);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -457,8 +461,8 @@ export default function SellerRegister() {
                 </label>
               </div>
 
-              <button type="submit" disabled={submitted} className="md:col-span-2 mt-3 btn-brand px-6 py-2 rounded hover:bg-blue-700">
-                {submitted ? "Submitting..." : "Register Seller"}
+              <button type="submit" disabled={isSubmitting} className="md:col-span-2 mt-3 btn-brand px-6 py-2 rounded hover:bg-blue-700">
+                {isSubmitting ? "Submitting..." : "Register Seller"}
               </button>
             </form>
           </div>
