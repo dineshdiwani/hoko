@@ -168,29 +168,6 @@ function ensureRoles(user) {
     ...current
   };
 }
-
-function getEffectiveBuyerCity(user) {
-  return String(user?.city || user?.buyerSettings?.defaultCity || "").trim();
-}
-
-function getDisplayNameForUser(user, roleFallback = "buyer") {
-  const rawName = String(user?.name || "").trim();
-  const lower = rawName.toLowerCase();
-  const placeholders = new Set([
-    "whatsapp user",
-    "app user",
-    "buyer",
-    "seller",
-    "user",
-    "unknown",
-    "user_default"
-  ]);
-  if (rawName && !placeholders.has(lower)) return rawName;
-  const mobile = String(user?.mobile || "").trim();
-  if (mobile) return mobile;
-  return roleFallback === "seller" ? "Seller" : "Buyer";
-}
-
 function isSoftDeletedUser(user) {
   return Boolean(user?.deletedAt);
 }
@@ -401,20 +378,20 @@ router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
           source: "auth.verify-otp.mobile",
           payload: { role: normalizedRole, hasSellerProfile: false }
         });
-        return res.status(200).json({
-          success: true,
-          requiresSellerRegistration: true,
-          user: {
-            _id: user._id,
-            email: user.email,
-            role: normalizedRole,
-            roles: user.roles,
-            city: getEffectiveBuyerCity(user),
-            name: getDisplayNameForUser(user, normalizedRole),
-            preferredCurrency: user.preferredCurrency || "INR",
-            mobile: user.mobile,
-            sellerProfile: user.sellerProfile || {}
-          },
+          return res.status(200).json({
+            success: true,
+            requiresSellerRegistration: true,
+            user: {
+              _id: user._id,
+              email: user.email,
+              role: normalizedRole,
+              roles: user.roles,
+              city: user.city,
+              name: user.name,
+              preferredCurrency: user.preferredCurrency || "INR",
+              mobile: user.mobile,
+              sellerProfile: user.sellerProfile || {}
+            },
           token
         });
       }
@@ -446,8 +423,8 @@ router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
         email: user.email,
         role: normalizedRole,
         roles: user.roles,
-        city: getEffectiveBuyerCity(user),
-        name: getDisplayNameForUser(user, normalizedRole),
+        city: user.city,
+        name: user.name,
         preferredCurrency: user.preferredCurrency || "INR",
         mobile: user.mobile,
         sellerProfile: user.sellerProfile || {}
@@ -501,20 +478,20 @@ router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
         process.env.JWT_SECRET,
         { expiresIn: "7d" }
       );
-        return res.status(200).json({
-          success: true,
-          requiresSellerRegistration: true,
-          user: {
-            _id: user._id,
-            email: user.email,
-            role: normalizedRole,
-            roles: user.roles,
-            city: getEffectiveBuyerCity(user),
-            name: getDisplayNameForUser(user, normalizedRole),
-            preferredCurrency: user.preferredCurrency || "INR",
-            mobile: user.mobile,
-            sellerProfile: user.sellerProfile || {}
-          },
+      return res.status(200).json({
+        success: true,
+        requiresSellerRegistration: true,
+        user: {
+          _id: user._id,
+          email: user.email,
+          role: normalizedRole,
+          roles: user.roles,
+          city: user.city,
+          name: user.name,
+          preferredCurrency: user.preferredCurrency || "INR",
+          mobile: user.mobile,
+          sellerProfile: user.sellerProfile || {}
+        },
         token
       });
     }
@@ -552,7 +529,7 @@ router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
       email: user.email,
       role: normalizedRole,
       roles: user.roles,
-      city: getEffectiveBuyerCity(user),
+      city: user.city,
       preferredCurrency: user.preferredCurrency || "INR",
       sellerProfile: user.sellerProfile,
       mobile: user.mobile,
@@ -726,7 +703,7 @@ router.post("/google", async (req, res) => {
         picture,
         role: normalizedRole,
         roles: user.roles,
-        city: getEffectiveBuyerCity(user),
+        city: user.city,
         preferredCurrency: user.preferredCurrency || "INR",
         sellerProfile: user.sellerProfile,
         mobile: user.mobile
@@ -815,12 +792,12 @@ router.post("/refresh", auth, async (req, res) => {
         email: user.email,
         role,
         roles: user.roles,
-        city: getEffectiveBuyerCity(user),
+        city: user.city,
         preferredCurrency: user.preferredCurrency || "INR",
         sellerProfile: user.sellerProfile,
         mobile: user.mobile,
         termsAccepted: user.termsAccepted,
-        name: getDisplayNameForUser(user, role),
+        name: user.name,
         googleProfile: user.googleProfile
       }
     });

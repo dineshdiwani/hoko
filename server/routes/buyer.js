@@ -147,9 +147,6 @@ function getBuyerContactCompletion(user) {
     needsMobile: hasEmail && !hasMobile
   };
 }
-function getEffectiveBuyerCity(user) {
-  return String(user?.city || user?.buyerSettings?.defaultCity || "").trim();
-}
 function getFreshBuyerSettings(user) {
   const base = user?.buyerSettings || {};
   return {
@@ -1021,7 +1018,7 @@ router.get("/user-by-mobile", async (req, res) => {
   }).select("city name email mobile").lean();
   
   if (user) {
-    res.json({ exists: true, city: getEffectiveBuyerCity(user), name: user.name, email: user.email, mobile: user.mobile });
+    res.json({ exists: true, city: user.city, name: user.name, email: user.email, mobile: user.mobile });
   } else {
     res.json({ exists: false });
   }
@@ -1256,7 +1253,7 @@ router.post("/requirement", requirementCreateLimiter, auth, buyerOnly, async (re
           _id: req.user._id,
           email: req.user.email || "",
           mobile: req.user.mobile || "",
-          city: getEffectiveBuyerCity(req.user),
+          city: req.user.city || "",
           preferredCurrency: req.user.preferredCurrency || "INR",
           roles: req.user.roles || {},
           name: req.user.name || ""
@@ -1322,7 +1319,7 @@ router.post("/requirement", requirementCreateLimiter, auth, buyerOnly, async (re
       _id: req.user._id,
       email: req.user.email || "",
       mobile: req.user.mobile || "",
-      city: getEffectiveBuyerCity(req.user),
+      city: req.user.city || "",
       preferredCurrency: req.user.preferredCurrency || "INR",
       roles: req.user.roles || {},
       name: req.user.name || "",
@@ -1920,7 +1917,7 @@ router.get("/profile", auth, buyerOnly, async (req, res) => {
     name: req.user.name || req.user.googleProfile?.name || "",
     email: req.user.email || "",
     mobile: req.user.mobile || "",
-    city: getEffectiveBuyerCity(req.user),
+    city: req.user.city,
     preferredCurrency: req.user.preferredCurrency || "INR",
     roles: req.user.roles || {},
     loginMethods: {
@@ -2107,7 +2104,7 @@ router.post("/profile", auth, buyerOnly, async (req, res) => {
             email: existingUser.email,
             role: existingUser.role,
             roles: existingUser.roles,
-            city: getEffectiveBuyerCity(existingUser),
+            city: existingUser.city,
             preferredCurrency: existingUser.preferredCurrency || "INR",
             mobile: existingUser.mobile,
             contactCompletion: getBuyerContactCompletion(existingUser)
@@ -2157,7 +2154,7 @@ router.post("/profile", auth, buyerOnly, async (req, res) => {
             email: existingMobileUser.email,
             role: existingMobileUser.role,
             roles: existingMobileUser.roles,
-            city: getEffectiveBuyerCity(existingMobileUser),
+            city: existingMobileUser.city,
             preferredCurrency: existingMobileUser.preferredCurrency || "INR",
             mobile: existingMobileUser.mobile,
             contactCompletion: getBuyerContactCompletion(existingMobileUser)
@@ -2208,7 +2205,7 @@ router.post("/profile", auth, buyerOnly, async (req, res) => {
                 email: existingEmailUser.email,
                 role: existingEmailUser.role,
                 roles: existingEmailUser.roles,
-                city: getEffectiveBuyerCity(existingEmailUser),
+                city: existingEmailUser.city,
                 preferredCurrency: existingEmailUser.preferredCurrency || "INR",
                 mobile: existingEmailUser.mobile,
                 contactCompletion: getBuyerContactCompletion(existingEmailUser)
@@ -2251,7 +2248,7 @@ router.post("/profile", auth, buyerOnly, async (req, res) => {
       name: req.user.name || req.user.googleProfile?.name || "",
       email: req.user.email || "",
       mobile: req.user.mobile || "",
-      city: getEffectiveBuyerCity(req.user),
+      city: req.user.city,
       preferredCurrency: req.user.preferredCurrency || "INR",
       roles: req.user.roles || {},
       loginMethods: {
