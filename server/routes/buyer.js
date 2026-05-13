@@ -733,10 +733,35 @@ function getMobileLookupCandidates(mobile) {
   return Array.from(candidates).filter(Boolean);
 }
 
+function normalizeMobileDigits(value) {
+  return String(value || "").replace(/[^\d]/g, "");
+}
+
 async function findUserByMobile(mobile) {
   const candidates = getMobileLookupCandidates(mobile);
-  if (!candidates.length) return null;
-  return User.findOne({ mobile: { $in: candidates } });
+  const digits = normalizeMobileDigits(mobile);
+  if (!candidates.length && !digits) return null;
+
+  const queries = [];
+  if (candidates.length) {
+    queries.push({ mobile: { $in: candidates } });
+  }
+  if (digits) {
+    queries.push({ mobile: new RegExp(digits) });
+  }
+
+  const matches = await User.find({ $or: queries })
+    .select("_id mobile roles sellerProfile city email tokenVersion deletedAt")
+    .limit(20)
+    .lean();
+
+  if (!matches.length) return null;
+
+  const exactMatch = digits
+    ? matches.find((user) => normalizeMobileDigits(user.mobile) === digits)
+    : null;
+  const chosen = exactMatch || matches[0];
+  return User.findById(chosen._id);
 }
 
 function generateOTP() {
