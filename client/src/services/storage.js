@@ -6,6 +6,7 @@ const SETTINGS_KEY = "hoko_settings";
 const SEEN_NOTIFICATION_IDS_KEY = "hoko_seen_notification_ids";
 const NATIVE_PUSH_TOKEN_KEY = "hoko_native_push_token";
 const UI_CITY_SELECTION_KEY = "hoko_ui_city_selection";
+const LEGACY_SELLER_CACHE_MIGRATION_KEY = "hoko_legacy_seller_cache_cleared_v1";
 const SESSION_UPDATED_EVENT = "hoko_session_updated";
 const UI_CITY_SELECTION_EVENT = "hoko_ui_city_selection_updated";
 let uiCitySelection = "";
@@ -90,6 +91,23 @@ export function clearUiCitySelection() {
   setSessionStorageValue(UI_CITY_SELECTION_KEY, "");
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent(UI_CITY_SELECTION_EVENT, { detail: { city: "" } }));
+  }
+}
+
+export function clearLegacySellerWhatsAppCacheOnce() {
+  if (typeof window === "undefined") return false;
+  try {
+    if (window.localStorage.getItem(LEGACY_SELLER_CACHE_MIGRATION_KEY) === "1") {
+      return false;
+    }
+    window.localStorage.removeItem("seller_profile");
+    window.localStorage.removeItem("whatsapp_mobile");
+    window.localStorage.removeItem("whatsapp_city");
+    window.localStorage.removeItem("whatsapp_categories");
+    window.localStorage.setItem(LEGACY_SELLER_CACHE_MIGRATION_KEY, "1");
+    return true;
+  } catch {
+    return false;
   }
 }
 

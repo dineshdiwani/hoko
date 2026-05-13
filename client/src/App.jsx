@@ -69,7 +69,8 @@ import { showRuntimeNotification } from "./services/runtimeNotifications";
 import {
   getSettings,
   getSeenNotificationIds,
-  rememberSeenNotificationIds
+  rememberSeenNotificationIds,
+  clearLegacySellerWhatsAppCacheOnce
 } from "./services/storage";
 import { fetchNotifications } from "./services/notifications";
 import { isFileProtocolRuntime, isNativeAppRuntime } from "./utils/runtime";
@@ -238,6 +239,10 @@ function AppShell() {
       }
     } catch {}
   }
+
+  useEffect(() => {
+    clearLegacySellerWhatsAppCacheOnce();
+  }, []);
 
   useEffect(() => {
     ensurePushSubscription().catch(() => {});
