@@ -72,6 +72,21 @@ async function mergeExistingRequirements(userId, mobileE164, extra = {}) {
   return mergeSoftUserRequirements(userId, mobileE164, extra);
 }
 
+async function mergeLoginAccount(user, { email = "", mobile = "", patch = {} } = {}) {
+  if (!user) return { merged: false, user: null };
+  const mergeResult = await mergeUsersByCredentials({
+    targetUser: user,
+    patch,
+    candidateEmails: [email, user?.email, user?.googleProfile?.email].filter(Boolean),
+    candidateMobiles: [mobile, user?.mobile, user?.phone].filter(Boolean)
+  });
+  return {
+    merged: Boolean(mergeResult.merged),
+    mergedUserIds: mergeResult.mergedUserIds || [],
+    user: mergeResult.user || user
+  };
+}
+
 function queueGooglePostLoginMerge(userId, mobileE164, email, label) {
   if (!userId) return;
   setImmediate(() => {
@@ -237,6 +252,7 @@ function queueAdminNewUserEmail({ user, loginMethod, requestedRole }) {
 /* -------- LOGIN (SEND OTP) -------- */
 router.post("/login", otpSendLimiter, async (req, res) => {
   const { email, role, city, mobile } = req.body || {};
+  const normalizedRole = role === "seller" ? "seller" : "buyer";
   
   if (mobile) {
     const mobileE164 = normalizeE164(mobile);
@@ -261,7 +277,11 @@ router.post("/login", otpSendLimiter, async (req, res) => {
       user = await User.create({
         mobile: mobileE164,
         city: String(city || "").trim(),
-        roles: { buyer: true, seller: false, admin: false }
+        roles: {
+          buyer: true,
+          seller: normalizedRole === "seller",
+          admin: false
+        }
       });
     }
 const otp = generateOtp();
@@ -289,7 +309,6 @@ const otp = generateOtp();
   }
   
   const normalizedEmail = normalizeEmail(email);
-  const normalizedRole = role === "seller" ? "seller" : "buyer";
 
   if (!normalizedEmail) {
     return res.status(400).json({ message: "Email required" });
@@ -392,25 +411,32 @@ router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
     }
     
     const normalizedRole = role === "seller" ? "seller" : "buyer";
+    let loginUser = user;
+    try {
+      const merged = await mergeLoginAccount(user, { mobile: mobileE164 });
+      loginUser = merged.user || user;
+    } catch (mergeErr) {
+      console.log("[AUTH] mobile login merge skipped:", mergeErr?.message || mergeErr);
+    }
     if (normalizedRole === "seller") {
-      const hasSellerProfile = isCompleteSellerProfile(user);
+      const hasSellerProfile = isCompleteSellerProfile(loginUser);
       if (!hasSellerProfile) {
         const token = jwt.sign(
-          { id: user._id, role: normalizedRole, tokenVersion: user.tokenVersion || 0 },
+          { id: loginUser._id, role: normalizedRole, tokenVersion: loginUser.tokenVersion || 0 },
           process.env.JWT_SECRET,
           { expiresIn: "7d" }
         );
         recordAppEvent({
           eventType: "otp_verified",
           actorRole: normalizedRole,
-          userId: user._id,
+          userId: loginUser._id,
           source: "auth.verify-otp.mobile",
           payload: { role: normalizedRole, hasSellerProfile: false }
         });
         return res.status(200).json({
           success: true,
           requiresSellerRegistration: true,
-          user: buildAuthUserPayload(user, normalizedRole),
+          user: buildAuthUserPayload(loginUser, normalizedRole),
           token
         });
       }
@@ -422,31 +448,31 @@ router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
     }
     
     const token = jwt.sign(
-      { id: user._id, role: normalizedRole, tokenVersion: user.tokenVersion || 0 },
+      { id: loginUser._id, role: normalizedRole, tokenVersion: loginUser.tokenVersion || 0 },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
     recordAppEvent({
       eventType: "otp_verified",
       actorRole: normalizedRole,
-      userId: user._id,
+      userId: loginUser._id,
       source: "auth.verify-otp.email",
-      payload: { role: normalizedRole, hasSellerProfile: isCompleteSellerProfile(user) }
+      payload: { role: normalizedRole, hasSellerProfile: isCompleteSellerProfile(loginUser) }
     });
     
-    const mergeResult = await mergeSoftUserRequirements(user._id, mobileE164);
+    const mergeResult = await mergeSoftUserRequirements(loginUser._id, mobileE164);
     return res.json({
       success: true,
       user: {
-        _id: user._id,
-        email: user.email,
+        _id: loginUser._id,
+        email: loginUser.email,
         role: normalizedRole,
-        roles: user.roles,
-        city: getEffectiveBuyerCity(user),
-        name: getDisplayNameForUser(user, normalizedRole),
-        preferredCurrency: user.preferredCurrency || "INR",
-        mobile: user.mobile,
-        sellerProfile: user.sellerProfile || {}
+        roles: loginUser.roles,
+        city: getEffectiveBuyerCity(loginUser),
+        name: getDisplayNameForUser(loginUser, normalizedRole),
+        preferredCurrency: loginUser.preferredCurrency || "INR",
+        mobile: loginUser.mobile,
+        sellerProfile: loginUser.sellerProfile || {}
       },
       token,
       merge: mergeResult.merged ? mergeResult : undefined
@@ -489,44 +515,52 @@ router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
     user.city = city;
   }
 
+  let loginUser = user;
+  try {
+    const merged = await mergeLoginAccount(user, { email: normalizedEmail });
+    loginUser = merged.user || user;
+  } catch (mergeErr) {
+    console.log("[AUTH] email login merge skipped:", mergeErr?.message || mergeErr);
+  }
+
   if (normalizedRole === "seller") {
-    const hasSellerProfile = isCompleteSellerProfile(user);
+    const hasSellerProfile = isCompleteSellerProfile(loginUser);
     if (!hasSellerProfile) {
       const token = jwt.sign(
-        { id: user._id, role: normalizedRole, tokenVersion: user.tokenVersion || 0 },
+        { id: loginUser._id, role: normalizedRole, tokenVersion: loginUser.tokenVersion || 0 },
         process.env.JWT_SECRET,
         { expiresIn: "7d" }
       );
         return res.status(200).json({
           success: true,
           requiresSellerRegistration: true,
-          user: buildAuthUserPayload(user, normalizedRole),
+          user: buildAuthUserPayload(loginUser, normalizedRole),
         token
       });
     }
-    if (!user.termsAccepted?.at && !acceptTerms) {
+    if (!loginUser.termsAccepted?.at && !acceptTerms) {
       return res.status(403).json({
         message: "Terms required"
       });
     }
-    user.roles.seller = true;
+    loginUser.roles.seller = true;
   } else {
-    if (!user.termsAccepted?.at && !acceptTerms) {
+    if (!loginUser.termsAccepted?.at && !acceptTerms) {
       return res.status(403).json({
         message: "Terms required"
       });
     }
-    user.roles.buyer = true;
+    loginUser.roles.buyer = true;
   }
-  if (!user.termsAccepted?.at && acceptTerms) {
-    user.termsAccepted = { at: new Date(), termsVersion: "1.0", privacyVersion: "1.0" };
+  if (!loginUser.termsAccepted?.at && acceptTerms) {
+    loginUser.termsAccepted = { at: new Date(), termsVersion: "1.0", privacyVersion: "1.0" };
   }
-  await user.save();
+  await loginUser.save();
 
-  const mergeResult = await mergeSoftUserRequirements(user._id, mobile);
+  const mergeResult = await mergeSoftUserRequirements(loginUser._id, mobile);
 
   const token = jwt.sign(
-    { id: user._id, role: normalizedRole, tokenVersion: user.tokenVersion || 0 },
+    { id: loginUser._id, role: normalizedRole, tokenVersion: loginUser.tokenVersion || 0 },
     process.env.JWT_SECRET,
     { expiresIn: "7d" }
   );
@@ -534,15 +568,15 @@ router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
   res.json({
     token,
     user: {
-      _id: user._id,
-      email: user.email,
+      _id: loginUser._id,
+      email: loginUser.email,
       role: normalizedRole,
-      roles: user.roles,
-      city: getEffectiveBuyerCity(user),
-      preferredCurrency: user.preferredCurrency || "INR",
-      sellerProfile: user.sellerProfile,
-      mobile: user.mobile,
-      termsAccepted: user.termsAccepted
+      roles: loginUser.roles,
+      city: getEffectiveBuyerCity(loginUser),
+      preferredCurrency: loginUser.preferredCurrency || "INR",
+      sellerProfile: loginUser.sellerProfile,
+      mobile: loginUser.mobile,
+      termsAccepted: loginUser.termsAccepted
     },
     merge: mergeResult.merged ? mergeResult : undefined
   });
@@ -663,25 +697,32 @@ router.post("/google", async (req, res) => {
       } else if (city) {
         user.city = city;
       }
+      let loginUser = user;
+      try {
+        const merged = await mergeLoginAccount(user, { email, mobile });
+        loginUser = merged.user || user;
+      } catch (mergeErr) {
+        console.log("[Google Login] pre-check merge skipped:", mergeErr?.message || mergeErr);
+      }
       if (normalizedRole === "seller") {
-        const hasSellerProfile = isCompleteSellerProfile(user);
+        const hasSellerProfile = isCompleteSellerProfile(loginUser);
         if (!hasSellerProfile) {
-          if (!user.termsAccepted?.at && !acceptTerms) {
+          if (!loginUser.termsAccepted?.at && !acceptTerms) {
             return res.status(403).json({
               message: "Terms required"
             });
           }
-          if (!user.termsAccepted?.at && acceptTerms) {
-            user.termsAccepted = { at: new Date(), termsVersion: "1.0", privacyVersion: "1.0" };
+          if (!loginUser.termsAccepted?.at && acceptTerms) {
+            loginUser.termsAccepted = { at: new Date(), termsVersion: "1.0", privacyVersion: "1.0" };
           }
-          user.googleProfile = {
+          loginUser.googleProfile = {
             sub,
             name,
             picture
           };
-          let persistedUser = user;
+          let persistedUser = loginUser;
           try {
-            persistedUser = await user.save();
+            persistedUser = await loginUser.save();
           } catch (saveErr) {
             console.log("[Google Login] seller save skipped:", saveErr?.message || saveErr);
           }
@@ -716,23 +757,24 @@ router.post("/google", async (req, res) => {
             })
           });
         }
-        user.roles.seller = true;
+        loginUser.roles.seller = true;
       } else {
-        if (!user.termsAccepted?.at && !acceptTerms) {
+        if (!loginUser.termsAccepted?.at && !acceptTerms) {
           return res.status(403).json({
             message: "Terms required"
           });
         }
-        user.roles.buyer = true;
+        loginUser.roles.buyer = true;
       }
-      if (!user.termsAccepted?.at && acceptTerms) {
-        user.termsAccepted = { at: new Date(), termsVersion: "1.0", privacyVersion: "1.0" };
+      if (!loginUser.termsAccepted?.at && acceptTerms) {
+        loginUser.termsAccepted = { at: new Date(), termsVersion: "1.0", privacyVersion: "1.0" };
       }
-      user.googleProfile = {
+      loginUser.googleProfile = {
         sub,
         name,
         picture
       };
+      user = loginUser;
     }
 
     let persistedUser = user;
@@ -788,7 +830,19 @@ router.post("/switch-role", auth, async (req, res) => {
   
   let currentUser = req.user;
   if (nextRole === "seller") {
-    currentUser = await User.findById(req.user._id).lean();
+    currentUser = await User.findById(req.user._id);
+    if (!currentUser) {
+      return res.status(404).json({ message: "Invalid user" });
+    }
+    try {
+      const merged = await mergeLoginAccount(currentUser, {
+        email: currentUser.email,
+        mobile: currentUser.mobile
+      });
+      currentUser = merged.user || currentUser;
+    } catch (mergeErr) {
+      console.log("[AUTH] switch-role merge skipped:", mergeErr?.message || mergeErr);
+    }
   }
   
   if (nextRole === "seller") {

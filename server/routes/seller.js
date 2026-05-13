@@ -1930,14 +1930,14 @@ router.get("/check-mobile", async (req, res) => {
     return res.json({ exists: false });
   }
   
-  const hasSellerRole = Boolean(user.roles?.seller);
-  const hasSellerProfile = hasSellerRole && isCompleteSellerProfile(user);
+  const hasSellerProfile = isCompleteSellerProfile(user);
+  const hasSellerRole = Boolean(user.roles?.seller || hasSellerProfile);
   
   res.json({
     exists: true,
     hasSellerRole,
     hasSellerProfile,
-    city: user.city,
+    city: getEffectiveSellerCity(user),
     email: user.email
   });
 });
