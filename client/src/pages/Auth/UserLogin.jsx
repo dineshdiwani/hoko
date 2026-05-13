@@ -224,42 +224,6 @@ export default function UserLogin({ role = "buyer" }) {
   }
   useEffect(() => {
     const session = getSession();
-    if (isSeller && session?.token) {
-      const shouldResumeSellerFlow =
-        Boolean(postLoginRedirect) && useSellerPostLoginRedirect;
-
-      if (shouldResumeSellerFlow && hasCompleteSellerProfile(session)) {
-        navigate(buildSellerResumeRedirect(), { replace: true });
-        return;
-      }
-
-      if (hasCompleteSellerProfile(session)) {
-        setSession({
-          ...session,
-          role: "seller",
-          roles: {
-            ...(session?.roles || {}),
-            seller: true
-          }
-        });
-        navigate(buildSellerDashboardRedirect(session?.city || cityFromUrl || ""), {
-          replace: true
-        });
-        return;
-      }
-
-      setSession({
-        ...session,
-        role: "seller",
-        roles: {
-          ...(session?.roles || {}),
-          seller: true
-        }
-      });
-      navigate(buildSellerRegisterRedirect(), { replace: true });
-      return;
-    }
-
     if (session?.role === currentRole && session?.token) {
       const shouldResumeSellerFlow =
         isSeller &&

@@ -1,6 +1,5 @@
 import api from "./api";
 import { getSession, setSession } from "./storage";
-import { isCompleteSellerProfile } from "../utils/sellerProfile";
 
 function decodeJwtPayload(token) {
   try {
@@ -33,16 +32,11 @@ export async function refreshSessionIfNeeded() {
     return null;
   }
 
-  const resolvedRole =
-    session.role ||
-    nextUser.role ||
-    (session?.roles?.seller && isCompleteSellerProfile(session) ? "seller" : "buyer");
-
   setSession({
     ...session,
     ...nextUser,
     token: nextToken,
-    role: resolvedRole,
+    role: nextUser.role || session.role,
     roles: nextUser.roles || session.roles,
     sellerProfile: nextUser.sellerProfile || session.sellerProfile || {},
     mobile: nextUser.mobile || session.mobile || "",
@@ -67,16 +61,11 @@ export async function refreshSession() {
     return null;
   }
 
-  const resolvedRole =
-    session.role ||
-    nextUser.role ||
-    (session?.roles?.seller && isCompleteSellerProfile(session) ? "seller" : "buyer");
-
   setSession({
     ...session,
     ...nextUser,
     token: nextToken,
-    role: resolvedRole,
+    role: nextUser.role || session.role,
     roles: nextUser.roles || session.roles,
     sellerProfile: nextUser.sellerProfile || session.sellerProfile || {},
     mobile: nextUser.mobile || session.mobile || "",
