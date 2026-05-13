@@ -33,10 +33,15 @@ export default function SellerRegister() {
   const sourceFromUrl = String(searchParams.get("from") || "").trim().toLowerCase();
   const session = getSession();
   const sessionCity = String(session?.city || "").trim();
+  const isWhatsAppFlow = sourceFromUrl === "wa";
 
   const [seller, setSeller] = useState({
     email: session?.email || localStorage.getItem("seller_email") || "",
-    mobile: session?.mobile || localStorage.getItem("whatsapp_mobile") || mobileFromUrl || "",
+    mobile:
+      session?.mobile ||
+      (isWhatsAppFlow ? localStorage.getItem("whatsapp_mobile") || "" : "") ||
+      mobileFromUrl ||
+      "",
     registeredBusinessName: "",
     managerName: "",
     registrationDetails: "",
@@ -45,11 +50,16 @@ export default function SellerRegister() {
     website: "",
     taxId: "",
     city:
-      (sourceFromUrl === "wa" ? cityFromUrl : "") ||
+      (isWhatsAppFlow ? cityFromUrl : "") ||
       (() => {
-        const sharedCity = String(getUiCitySelection(sessionCity || localStorage.getItem("whatsapp_city") || "")).trim();
+        const sharedCity = String(
+          getUiCitySelection(
+            sessionCity ||
+              (isWhatsAppFlow ? localStorage.getItem("whatsapp_city") || "" : "")
+          )
+        ).trim();
         if (sharedCity && sharedCity.toLowerCase() !== "all") return sharedCity;
-        return sessionCity || localStorage.getItem("whatsapp_city") || "";
+        return sessionCity || (isWhatsAppFlow ? localStorage.getItem("whatsapp_city") || "" : "");
       })(),
     categories: [],
     whatsappConsent: false
@@ -73,12 +83,15 @@ export default function SellerRegister() {
       .then((data) => {
         if (Array.isArray(data.cities) && data.cities.length) {
           setCities(data.cities);
-          const whatsappCity =
-            sourceFromUrl === "wa"
-              ? (localStorage.getItem("whatsapp_city") || cityFromUrl)
-              : "";
-          const whatsappCats = localStorage.getItem("whatsapp_categories") || catsFromUrl;
-          const whatsappMobile = normalizeMobileValue(localStorage.getItem("whatsapp_mobile") || mobileFromUrl);
+          const whatsappCity = isWhatsAppFlow
+            ? (localStorage.getItem("whatsapp_city") || cityFromUrl)
+            : "";
+          const whatsappCats = isWhatsAppFlow
+            ? (localStorage.getItem("whatsapp_categories") || catsFromUrl)
+            : "";
+          const whatsappMobile = isWhatsAppFlow
+            ? normalizeMobileValue(localStorage.getItem("whatsapp_mobile") || mobileFromUrl)
+            : mobileFromUrl;
           setSeller((prev) => {
             let next = { ...prev };
             if (whatsappCity) {
@@ -127,9 +140,9 @@ export default function SellerRegister() {
 
   useEffect(() => {
     const savedEmail = localStorage.getItem("seller_email");
-    const savedMobile = normalizeMobileValue(localStorage.getItem("whatsapp_mobile"));
-    const savedCity = localStorage.getItem("whatsapp_city");
-    const savedCats = localStorage.getItem("whatsapp_categories");
+    const savedMobile = isWhatsAppFlow ? normalizeMobileValue(localStorage.getItem("whatsapp_mobile")) : "";
+    const savedCity = isWhatsAppFlow ? localStorage.getItem("whatsapp_city") : "";
+    const savedCats = isWhatsAppFlow ? localStorage.getItem("whatsapp_categories") : "";
     
     setSeller((prev) => {
       const next = { ...prev };

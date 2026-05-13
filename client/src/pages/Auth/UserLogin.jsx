@@ -86,7 +86,7 @@ export default function UserLogin({ role = "buyer" }) {
   ].join("\n\n");
 
   const [step, setStep] = useState("EMAIL_LOGIN");
-  const rawMobile = searchParams.get("mobile") || localStorage.getItem("whatsapp_mobile") || "";
+  const rawMobile = searchParams.get("mobile") || (sourceFromUrl === "wa" ? localStorage.getItem("whatsapp_mobile") || "" : "") || "";
   const normalizeMobileValue = (value) => {
     const raw = String(value || "").trim();
     if (!raw) return "";
@@ -190,9 +190,10 @@ export default function UserLogin({ role = "buyer" }) {
     const waCity =
       cityFromUrl ||
       sessionCity ||
-      localStorage.getItem("whatsapp_city") ||
-      "";
-    const waCats = catsFromUrl || localStorage.getItem("whatsapp_categories") || "";
+      (isSellerWhatsAppFlow ? localStorage.getItem("whatsapp_city") || "" : "");
+    const waCats =
+      catsFromUrl ||
+      (isSellerWhatsAppFlow ? localStorage.getItem("whatsapp_categories") || "" : "");
     if (waCity) params.set("city", waCity);
     if (waCats) params.set("cats", waCats);
     if (sourceFromUrl) params.set("from", sourceFromUrl);
@@ -212,6 +213,14 @@ export default function UserLogin({ role = "buyer" }) {
   function forceBuyerPostsTab() {
     try {
       localStorage.setItem("buyer_dashboard_force_tab", "posts");
+    } catch {}
+  }
+
+  function clearWhatsAppFlowStorage() {
+    try {
+      localStorage.removeItem("whatsapp_mobile");
+      localStorage.removeItem("whatsapp_city");
+      localStorage.removeItem("whatsapp_categories");
     } catch {}
   }
   useEffect(() => {
@@ -980,6 +989,10 @@ useEffect(() => {
 
         if (!(currentRole === "buyer" && sellerIntent)) {
           localStorage.removeItem("login_intent_role");
+        }
+
+        if (!isSellerWhatsAppFlow) {
+          clearWhatsAppFlowStorage();
         }
 
         if (shouldResumeSellerFlow) {
