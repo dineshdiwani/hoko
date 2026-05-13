@@ -742,18 +742,25 @@ async function findUserByMobile(mobile) {
   const digits = normalizeMobileDigits(mobile);
   if (!candidates.length && !digits) return null;
 
-  const queries = [];
+  const matchClauses = [];
   if (candidates.length) {
-    queries.push({ mobile: { $in: candidates } });
+    matchClauses.push({ mobile: { $in: candidates } });
   }
   if (digits) {
-    queries.push({ mobile: new RegExp(digits) });
+    matchClauses.push({
+      $expr: {
+        $regexMatch: {
+          input: { $toString: "$mobile" },
+          regex: digits
+        }
+      }
+    });
   }
 
-  const matches = await User.find({ $or: queries })
-    .select("_id mobile roles sellerProfile city email tokenVersion deletedAt")
-    .limit(20)
-    .lean();
+  const matches = await User.aggregate([
+    { $match: { $or: matchClauses } },
+    { $limit: 20 }
+  ]);
 
   if (!matches.length) return null;
 
