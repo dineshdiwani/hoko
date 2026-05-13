@@ -20,6 +20,7 @@ const { notifyNewBuyer, notifyNewSeller } = require("../services/adminNotificati
 const { normalizeE164 } = require("../utils/sendWhatsApp");
 const { sendOtpSms } = require("../utils/sendSms");
 const { isCompleteSellerProfile } = require("../utils/sellerProfile");
+const { mergeUsersByCredentials } = require("../utils/userMerge");
 
 function normalizeEmail(email) {
   return String(email || "").trim().toLowerCase();
@@ -40,75 +41,35 @@ const DEFAULT_ROLES = {
   admin: false
 };
 
-async function mergeSoftUserRequirements(userId, mobileE164) {
-  if (!userId || !mobileE164) return { merged: false };
+async function mergeSoftUserRequirements(userId, mobileE164, extra = {}) {
+  if (!userId) return { merged: false };
 
-  // Merge any other soft users with the same mobile
-  const softUser = await User.findOne({
-    mobile: mobileE164,
-    _id: { $ne: userId },
-    passwordHash: { $exists: false },
-    deletedAt: null,
-    $or: [{ email: { $exists: false } }, { email: "" }]
-  }).lean();
+  const targetUser = await User.findById(userId);
+  if (!targetUser) return { merged: false };
 
-  let softUserId = null;
-  if (softUser) {
-    softUserId = softUser._id;
-  }
-
-  // Also merge requirements from WhatsApp OTP flow that might have different buyerId
-  // Check all requirements created with this mobile number
-  const whatsappRequirements = await Requirement.find({
-    $or: [
-      { "metadata.mobile": mobileE164 },
-      { mobile: mobileE164 }
-    ],
-    buyerId: { $ne: userId }
+  const result = await mergeUsersByCredentials({
+    targetUser,
+    patch: extra.patch || {},
+    candidateEmails: [
+      extra.email,
+      targetUser.email
+    ].filter(Boolean),
+    candidateMobiles: [
+      mobileE164,
+      extra.mobile,
+      targetUser.mobile
+    ].filter(Boolean)
   });
 
-  let totalMerged = 0;
-
-  // Merge soft user requirements
-  if (softUserId) {
-    const reqResult = await Requirement.updateMany(
-      { buyerId: softUserId },
-      { $set: { buyerId: userId } }
-    );
-    await TempRequirement.updateMany(
-      { userId: softUserId },
-      { $set: { userId: userId } }
-    );
-    await User.findByIdAndDelete(softUserId);
-    totalMerged += reqResult.modifiedCount;
-    console.log(`[Soft User Merge] Merged ${reqResult.modifiedCount} requirements from soft user ${softUserId} to ${userId}`);
-  }
-
-  // Merge any other requirements with same mobile
-  if (whatsappRequirements.length > 0) {
-    const result = await Requirement.updateMany(
-      {
-        $or: [
-          { "metadata.mobile": mobileE164 },
-          { mobile: mobileE164 }
-        ],
-        buyerId: { $ne: userId }
-      },
-      { $set: { buyerId: userId } }
-    );
-    totalMerged += result.modifiedCount;
-    console.log(`[Mobile Merge] Merged ${result.modifiedCount} requirements with mobile ${mobileE164} to ${userId}`);
-  }
-
-return {
-    merged: totalMerged > 0,
-    softUserId: softUserId ? String(softUserId) : null,
-    requirementsMerged: totalMerged
+  return {
+    merged: Boolean(result.merged),
+    mergedUserIds: result.mergedUserIds || [],
+    user: result.user || targetUser
   };
 }
 
-async function mergeExistingRequirements(userId, mobileE164) {
-  return mergeSoftUserRequirements(userId, mobileE164);
+async function mergeExistingRequirements(userId, mobileE164, extra = {}) {
+  return mergeSoftUserRequirements(userId, mobileE164, extra);
 }
 
 let googleClient = null;
@@ -674,16 +635,20 @@ router.post("/google", async (req, res) => {
             picture
           };
           await user.save();
+          const mergeResult = await mergeSoftUserRequirements(user._id, mobile, {
+            email
+          });
+          const mergedUser = mergeResult.user || user;
 
           const token = jwt.sign(
-            { id: user._id, role: normalizedRole, tokenVersion: user.tokenVersion || 0 },
+            { id: mergedUser._id, role: normalizedRole, tokenVersion: mergedUser.tokenVersion || 0 },
             process.env.JWT_SECRET,
             { expiresIn: "7d" }
           );
           recordAppEvent({
             eventType: "login_success",
             actorRole: normalizedRole,
-            userId: user._id,
+            userId: mergedUser._id,
             source: "auth.google",
             payload: { email, requiresSellerRegistration: true }
           });
@@ -692,16 +657,16 @@ router.post("/google", async (req, res) => {
             token,
             requiresSellerRegistration: true,
             user: {
-              _id: user._id,
-              email: user.email,
+              _id: mergedUser._id,
+              email: mergedUser.email,
               name,
               picture,
               role: normalizedRole,
-              roles: user.roles,
-              city: getEffectiveBuyerCity(user),
-              preferredCurrency: user.preferredCurrency || "INR",
-              sellerProfile: user.sellerProfile,
-              mobile: user.mobile
+              roles: mergedUser.roles,
+              city: getEffectiveBuyerCity(mergedUser),
+              preferredCurrency: mergedUser.preferredCurrency || "INR",
+              sellerProfile: mergedUser.sellerProfile,
+              mobile: mergedUser.mobile
             }
           });
         }
@@ -725,17 +690,20 @@ router.post("/google", async (req, res) => {
     }
 
     await user.save();
-    const mergeResult = await mergeSoftUserRequirements(user._id, mobile);
+    const mergeResult = await mergeSoftUserRequirements(user._id, mobile, {
+      email
+    });
+    const mergedUser = mergeResult.user || user;
 
     const token = jwt.sign(
-      { id: user._id, role: normalizedRole, tokenVersion: user.tokenVersion || 0 },
+      { id: mergedUser._id, role: normalizedRole, tokenVersion: mergedUser.tokenVersion || 0 },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
     recordAppEvent({
       eventType: "login_success",
       actorRole: normalizedRole,
-      userId: user._id,
+      userId: mergedUser._id,
       source: "auth.google",
       payload: { email }
     });
@@ -743,16 +711,16 @@ router.post("/google", async (req, res) => {
     res.json({
       token,
       user: {
-        _id: user._id,
-        email: user.email,
+        _id: mergedUser._id,
+        email: mergedUser.email,
         name,
         picture,
         role: normalizedRole,
-        roles: user.roles,
-        city: getEffectiveBuyerCity(user),
-        preferredCurrency: user.preferredCurrency || "INR",
-        sellerProfile: user.sellerProfile,
-        mobile: user.mobile
+        roles: mergedUser.roles,
+        city: getEffectiveBuyerCity(mergedUser),
+        preferredCurrency: mergedUser.preferredCurrency || "INR",
+        sellerProfile: mergedUser.sellerProfile,
+        mobile: mergedUser.mobile
       },
       merge: mergeResult.merged ? mergeResult : undefined
     });
