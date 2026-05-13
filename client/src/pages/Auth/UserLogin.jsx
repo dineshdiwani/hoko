@@ -480,18 +480,21 @@ useEffect(() => {
     }
   }
 
-  async function resolveBuyerCityAfterLogin({ token, user, loginCity }) {
+  async function resolveEffectiveCityAfterLogin({ token, user, loginCity, role }) {
     const directCity = String(loginCity || user?.city || "").trim();
     if (directCity) return directCity;
 
     try {
-      const res = await api.get("/buyer/profile", {
+      const res = await api.get(role === "seller" ? "/seller/profile" : "/buyer/profile", {
         headers: {
           Authorization: `Bearer ${token}`
         }
       });
       const profileCity = String(
-        res?.data?.city || res?.data?.buyerSettings?.defaultCity || ""
+        res?.data?.city ||
+          res?.data?.buyerSettings?.defaultCity ||
+          res?.data?.sellerProfile?.city ||
+          ""
       ).trim();
       return profileCity;
     } catch {
@@ -561,10 +564,11 @@ useEffect(() => {
     const user = res.data.user || {};
     const token = res.data.token;
     const requiresSellerRegistration = Boolean(res.data?.requiresSellerRegistration);
-    const resolvedCity = await resolveBuyerCityAfterLogin({
+    const resolvedCity = await resolveEffectiveCityAfterLogin({
       token,
       user,
-      loginCity: loginCity || cityFromUrl || ""
+      loginCity: loginCity || cityFromUrl || "",
+      role: currentRole
     });
 
     // Show city modal before continuing
@@ -800,12 +804,18 @@ useEffect(() => {
         const profile = isSeller ? await applySellerProfile(city) : null;
         const sellerIntent =
           localStorage.getItem("login_intent_role") === "seller";
+        const resolvedCity = await resolveEffectiveCityAfterLogin({
+          token: res.data.token,
+          user,
+          loginCity: city || cityFromUrl || "",
+          role: currentRole
+        });
 
         if (await completePendingBuyerRequirementLogin({
           user,
           token: res.data.token,
           profile,
-          loginCity: city
+          loginCity: resolvedCity || city
         })) {
           return;
         }
@@ -817,7 +827,7 @@ useEffect(() => {
             role: user.role || currentRole,
             roles: user.roles,
             email: user.email || email,
-            city: cityFromUrl || user.city || city || "",
+            city: resolvedCity || cityFromUrl || user.city || city || "",
             name: buildDisplayName(user, currentRole, profile),
             preferredCurrency: user.preferredCurrency || "INR",
             mobile: user.mobile || mobile || "",
@@ -841,7 +851,7 @@ useEffect(() => {
               role: user.role || currentRole,
               roles: user.roles,
               email: user.email || email,
-              city: cityFromUrl || user.city || city || "",
+              city: resolvedCity || cityFromUrl || user.city || city || "",
               name: buildDisplayName(user, currentRole, profile),
               preferredCurrency: user.preferredCurrency || "INR",
               mobile: user.mobile || mobile || "",
@@ -857,7 +867,7 @@ useEffect(() => {
               role: user.role || currentRole,
               roles: user.roles,
               email: user.email || email,
-              city: user.city || city || cityFromUrl || "",
+              city: resolvedCity || user.city || city || cityFromUrl || "",
               name: buildDisplayName(user, currentRole, profile),
               preferredCurrency: user.preferredCurrency || "INR",
               mobile: user.mobile || mobile || "",
@@ -893,13 +903,13 @@ useEffect(() => {
         }
         
         if (pendingLoginMethod === "email" || pendingLoginMethod === "mobile") {
-          if (user.city || cityFromUrl) {
+          if (resolvedCity) {
             setSession({
               _id: user._id,
               role: user.role || currentRole,
               roles: user.roles,
               email: user.email || (pendingLoginMethod === "email" ? email : ""),
-              city: cityFromUrl || user.city,
+              city: resolvedCity,
               name: buildDisplayName(user, currentRole, profile),
               preferredCurrency: user.preferredCurrency || "INR",
               mobile: user.mobile || mobile || "",
@@ -909,9 +919,9 @@ useEffect(() => {
             forceBuyerPostsTab();
             const dashboardParams = new URLSearchParams();
             dashboardParams.set("tab", "posts");
-            if (cityFromUrl || user.city) dashboardParams.set("city", cityFromUrl || user.city);
+            dashboardParams.set("city", resolvedCity);
             navigate(`/buyer/dashboard?${dashboardParams.toString()}`, { replace: true });
-          } else if (!user.city) {
+          } else {
             setPendingCitySession({
               _id: user._id,
               role: user.role || currentRole,
@@ -935,7 +945,7 @@ useEffect(() => {
           role: user.role || currentRole,
           roles: user.roles,
           email: user.email || email,
-          city: user.city || city,
+          city: resolvedCity || user.city || city,
           name: buildDisplayName(user, currentRole, profile),
           preferredCurrency: user.preferredCurrency || "INR",
           mobile: user.mobile || mobile || "",
@@ -973,7 +983,7 @@ useEffect(() => {
 
         setBuyerDashboardDefaultTab(city);
         const dashboardParams = new URLSearchParams();
-        if (city) dashboardParams.set("city", city);
+        if (resolvedCity || city) dashboardParams.set("city", resolvedCity || city);
         if (isSeller) dashboardParams.set("from", "seller-login");
         if (!isSeller) dashboardParams.set("tab", "posts");
         const targetDashboard = isSeller ? "/seller/dashboard" : "/buyer/dashboard";
