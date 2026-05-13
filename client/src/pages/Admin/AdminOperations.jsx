@@ -259,6 +259,18 @@ export default function AdminOperations() {
         reason: "Soft deleted from admin operations"
       });
       logActivity("User Soft Deleted", `User ID: ${user._id}`);
+      setUsers((prev) =>
+        prev.map((item) =>
+          item._id === user._id
+            ? {
+                ...item,
+                deletedAt: new Date().toISOString(),
+                blocked: true,
+                tokenVersion: (item.tokenVersion || 0) + 1
+              }
+            : item
+        )
+      );
       await Promise.all([loadData(), loadKpis()]);
     } catch (err) {
       alert(err?.response?.data?.message || err.message || "Failed to soft delete user");
@@ -272,6 +284,12 @@ export default function AdminOperations() {
     try {
       await api.delete(`/admin/user/${user._id}`);
       logActivity("User Deleted", `User ID: ${user._id}`);
+      setUsers((prev) => prev.filter((item) => item._id !== user._id));
+      setExpandedUsers((prev) => {
+        const next = new Set(prev);
+        next.delete(user._id);
+        return next;
+      });
       await Promise.all([loadData(), loadKpis()]);
     } catch (err) {
       alert(err?.response?.data?.message || err.message || "Failed to delete user");
