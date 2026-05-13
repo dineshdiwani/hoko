@@ -559,9 +559,13 @@ router.post("/onboard", auth, async (req, res) => {
     mobile: mobileValue,
     email: emailValue,
     city: cityValue,
+    "sellerProfile.mobile": mobileValue,
+    "sellerProfile.email": emailValue,
+    "sellerProfile.city": cityValue,
     "sellerProfile.registeredBusinessName": registeredBusinessNameValue,
     "sellerProfile.managerName": managerNameValue,
     "sellerProfile.categories": normalizedCategories,
+    "sellerProfile.onboardedAt": new Date(),
     ...(whatsappConsent === true ? {
       "sellerSettings.whatsappConsent": true,
       "sellerSettings.whatsappConsentAt": new Date()
@@ -610,12 +614,27 @@ router.post("/onboard", auth, async (req, res) => {
         }
       });
       const mergedUser = mergeResult.user || req.user;
+      const sellerProfilePatch = {
+        mobile: mobileValue,
+        email: emailValue,
+        city: cityValue,
+        "sellerProfile.mobile": mobileValue,
+        "sellerProfile.email": emailValue,
+        "sellerProfile.city": cityValue,
+        "sellerProfile.registeredBusinessName": registeredBusinessNameValue,
+        "sellerProfile.managerName": managerNameValue,
+        "sellerProfile.categories": normalizedCategories,
+        "sellerProfile.onboardedAt": new Date(),
+        "roles.seller": true
+      };
 
       const token = jwt.sign(
         { id: mergedUser._id, role: "seller", tokenVersion: mergedUser.tokenVersion || 0 },
         process.env.JWT_SECRET,
         { expiresIn: "30d" }
       );
+
+      await User.findByIdAndUpdate(mergedUser._id, sellerProfilePatch, { new: true });
 
       setImmediate(() => {
         sendSellerOnboardingAck({
@@ -721,6 +740,14 @@ router.post("/profile", auth, sellerOnly, async (req, res) => {
       { new: true, runValidators: true }
     );
 
+    if (user && isCompleteSellerProfile(user) && !user.sellerProfile?.onboardedAt) {
+      await User.findByIdAndUpdate(
+        user._id,
+        { "sellerProfile.onboardedAt": new Date() },
+        { new: true }
+      );
+    }
+
     res.json({
       name: String(user?.name || "").trim(),
       displayName: getSellerDisplayName(user),
@@ -755,6 +782,13 @@ router.post("/profile", auth, sellerOnly, async (req, res) => {
               candidateMobiles: [nextMobile, req.user.mobile].filter(Boolean)
             });
             const mergedUser = mergeResult.user || req.user;
+            if (mergedUser && isCompleteSellerProfile(mergedUser) && !mergedUser.sellerProfile?.onboardedAt) {
+              await User.findByIdAndUpdate(
+                mergedUser._id,
+                { "sellerProfile.onboardedAt": new Date() },
+                { new: true }
+              );
+            }
             return res.json({
               merged: Boolean(mergeResult.merged),
               name: mergedUser?.name || "",

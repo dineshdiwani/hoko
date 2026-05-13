@@ -50,6 +50,9 @@ const userSchema = new mongoose.Schema(
     },
 
     sellerProfile: {
+      email: { type: String, default: "" },
+      mobile: { type: String, default: "" },
+      city: { type: String, default: "" },
       registeredBusinessName: { type: String },
       managerName: { type: String },
       registrationDetails: { type: String },
@@ -57,6 +60,7 @@ const userSchema = new mongoose.Schema(
       ownerName: { type: String },
       website: { type: String },
       taxId: { type: String },
+      onboardedAt: { type: Date, default: null },
       categories: [{ type: String, default: "" }]
     },
 
