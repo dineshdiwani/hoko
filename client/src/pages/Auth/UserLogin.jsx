@@ -936,11 +936,16 @@ useEffect(() => {
               sellerProfile: user.sellerProfile || profile || {},
               token: res.data.token
             });
-            forceBuyerPostsTab();
             const dashboardParams = new URLSearchParams();
-            dashboardParams.set("tab", "posts");
             dashboardParams.set("city", resolvedCity);
-            navigate(`/buyer/dashboard?${dashboardParams.toString()}`, { replace: true });
+            if (isSeller) {
+              dashboardParams.set("from", "seller-login");
+              navigate(`/seller/dashboard?${dashboardParams.toString()}`, { replace: true });
+            } else {
+              forceBuyerPostsTab();
+              dashboardParams.set("tab", "posts");
+              navigate(`/buyer/dashboard?${dashboardParams.toString()}`, { replace: true });
+            }
           } else {
             setPendingCitySession({
               _id: user._id,
@@ -1005,7 +1010,9 @@ useEffect(() => {
           return;
         }
 
-        setBuyerDashboardDefaultTab(city);
+        if (!isSeller) {
+          setBuyerDashboardDefaultTab(city);
+        }
         const dashboardParams = new URLSearchParams();
         if (resolvedCity || city) dashboardParams.set("city", resolvedCity || city);
         if (isSeller) dashboardParams.set("from", "seller-login");
