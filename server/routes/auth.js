@@ -169,6 +169,10 @@ function ensureRoles(user) {
   };
 }
 
+function getEffectiveBuyerCity(user) {
+  return String(user?.city || user?.buyerSettings?.defaultCity || "").trim();
+}
+
 function isSoftDeletedUser(user) {
   return Boolean(user?.deletedAt);
 }
@@ -387,7 +391,7 @@ router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
             email: user.email,
             role: normalizedRole,
             roles: user.roles,
-            city: user.city,
+            city: getEffectiveBuyerCity(user),
             name: user.name,
             preferredCurrency: user.preferredCurrency || "INR",
             mobile: user.mobile,
@@ -424,7 +428,7 @@ router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
         email: user.email,
         role: normalizedRole,
         roles: user.roles,
-        city: user.city,
+        city: getEffectiveBuyerCity(user),
         name: user.name,
         preferredCurrency: user.preferredCurrency || "INR",
         mobile: user.mobile,
@@ -487,7 +491,7 @@ router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
           email: user.email,
           role: normalizedRole,
           roles: user.roles,
-          city: user.city,
+          city: getEffectiveBuyerCity(user),
           name: user.name,
           preferredCurrency: user.preferredCurrency || "INR",
           mobile: user.mobile,
@@ -530,7 +534,7 @@ router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
       email: user.email,
       role: normalizedRole,
       roles: user.roles,
-      city: user.city,
+      city: getEffectiveBuyerCity(user),
       preferredCurrency: user.preferredCurrency || "INR",
       sellerProfile: user.sellerProfile,
       mobile: user.mobile,
@@ -704,7 +708,7 @@ router.post("/google", async (req, res) => {
         picture,
         role: normalizedRole,
         roles: user.roles,
-        city: user.city,
+        city: getEffectiveBuyerCity(user),
         preferredCurrency: user.preferredCurrency || "INR",
         sellerProfile: user.sellerProfile,
         mobile: user.mobile
@@ -764,7 +768,7 @@ router.post("/switch-role", auth, async (req, res) => {
       email: currentUser.email,
       role: nextRole,
       roles: currentUser.roles,
-      city: currentUser.city,
+      city: getEffectiveBuyerCity(currentUser),
       preferredCurrency: currentUser.preferredCurrency || "INR",
       sellerProfile: currentUser.sellerProfile
     }
@@ -792,7 +796,7 @@ router.post("/refresh", auth, async (req, res) => {
         email: user.email,
         role,
         roles: user.roles,
-        city: user.city,
+        city: getEffectiveBuyerCity(user),
         preferredCurrency: user.preferredCurrency || "INR",
         sellerProfile: user.sellerProfile,
         mobile: user.mobile,
