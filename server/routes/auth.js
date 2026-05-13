@@ -173,6 +173,18 @@ function isSoftDeletedUser(user) {
   return Boolean(user?.deletedAt);
 }
 
+function reactivateSoftDeletedUser(user, { reason = "" } = {}) {
+  if (!user) return false;
+  const wasSoftDeleted = Boolean(user.deletedAt);
+  if (!wasSoftDeleted) return false;
+  user.deletedAt = null;
+  user.deletedByAdminId = null;
+  user.deletedReason = "";
+  user.blocked = false;
+  user.tokenVersion = (user.tokenVersion || 0) + 1;
+  return true;
+}
+
 function queueAdminNewUserEmail({ user, loginMethod, requestedRole }) {
   const userId = String(user?._id || "").trim();
   if (!userId) return;
@@ -213,7 +225,8 @@ router.post("/login", otpSendLimiter, async (req, res) => {
     }
     let user = await User.findOne({ mobile: mobileE164 });
     if (isSoftDeletedUser(user)) {
-      return res.status(403).json({ message: "User account deleted" });
+      reactivateSoftDeletedUser(user);
+      await user.save();
     }
     if (!user) {
       user = await User.create({
@@ -265,7 +278,8 @@ const otp = generateOtp();
 
 let user = await User.findOne({ email: normalizedEmail });
   if (isSoftDeletedUser(user)) {
-    return res.status(403).json({ message: "User account deleted" });
+    reactivateSoftDeletedUser(user);
+    await user.save();
   }
   if (!user) {
     if (normalizedRole === "seller" && !city) {
@@ -341,11 +355,12 @@ router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
     }
     
     let user = await User.findOne({ mobile: mobileE164 });
-    if (isSoftDeletedUser(user)) {
-      return res.status(403).json({ message: "User account deleted" });
-    }
     if (!user) {
       return res.status(404).json({ message: "User not found" });
+    }
+    if (isSoftDeletedUser(user)) {
+      reactivateSoftDeletedUser(user);
+      await user.save();
     }
     
     const normalizedRole = role === "seller" ? "seller" : "buyer";
@@ -447,7 +462,8 @@ router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
     return res.status(404).json({ message: "User not found" });
   }
   if (isSoftDeletedUser(user)) {
-    return res.status(403).json({ message: "User account deleted" });
+    reactivateSoftDeletedUser(user);
+    await user.save();
   }
   ensureRoles(user);
 
@@ -592,9 +608,6 @@ router.post("/google", async (req, res) => {
     const normalizedRole = role === "seller" ? "seller" : "buyer";
 
     let user = await User.findOne({ email });
-    if (isSoftDeletedUser(user)) {
-      return res.status(403).json({ message: "User account deleted" });
-    }
     if (!user) {
       if (!city) {
         return res.status(400).json({ message: "City required" });
@@ -631,17 +644,20 @@ router.post("/google", async (req, res) => {
       });
       notifyNewBuyer(user.mobile || "", city, user.email);
     } else {
+      if (isSoftDeletedUser(user)) {
+        reactivateSoftDeletedUser(user);
+      }
       ensureRoles(user);
       if (!user.city && city) {
         user.city = city;
       } else if (city) {
         user.city = city;
       }
-    if (normalizedRole === "seller") {
-      const hasSellerProfile = isCompleteSellerProfile(user);
-      if (!hasSellerProfile) {
-        return res.status(403).json({
-          message: "Complete seller registration before Google login"
+      if (normalizedRole === "seller") {
+        const hasSellerProfile = isCompleteSellerProfile(user);
+        if (!hasSellerProfile) {
+          return res.status(403).json({
+            message: "Complete seller registration before Google login"
           });
         }
         user.roles.seller = true;
@@ -661,9 +677,9 @@ router.post("/google", async (req, res) => {
         name,
         picture
       };
-      await user.save();
     }
 
+    await user.save();
     const mergeResult = await mergeSoftUserRequirements(user._id, mobile);
 
     const token = jwt.sign(
