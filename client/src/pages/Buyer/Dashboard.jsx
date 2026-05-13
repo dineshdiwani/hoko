@@ -77,6 +77,24 @@ function normalizeDashboardTab(value) {
   return "";
 }
 
+function getDisplayName(session, fallbackRole = "buyer") {
+  const rawName = String(session?.name || "").trim();
+  const lowered = rawName.toLowerCase();
+  const placeholderNames = new Set([
+    "whatsapp user",
+    "app user",
+    "buyer",
+    "seller",
+    "user",
+    "unknown",
+    "user_default"
+  ]);
+  if (rawName && !placeholderNames.has(lowered)) return rawName;
+  const mobile = String(session?.mobile || "").trim();
+  if (mobile) return mobile;
+  return fallbackRole === "seller" ? "Seller" : "Buyer";
+}
+
 export default function BuyerDashboard() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -532,7 +550,7 @@ export default function BuyerDashboard() {
                 onClick={() => setMenuOpen(!menuOpen)}
                 className="ui-btn-secondary ui-button-text flex items-center gap-1 px-2 md:px-3 py-2"
               >
-                {session?.name || "Buyer"} v
+                {getDisplayName(session, session?.role || "buyer")} v
               </button>
 
               {menuOpen && (

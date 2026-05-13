@@ -694,12 +694,23 @@ useEffect(() => {
   }
 
   function buildDisplayName(user, roleValue, profile) {
+    const rawName = String(user?.name || "").trim();
+    const lowered = rawName.toLowerCase();
+    const placeholderNames = new Set([
+      "whatsapp user",
+      "app user",
+      "buyer",
+      "seller",
+      "user",
+      "unknown",
+      "user_default"
+    ]);
     if (roleValue === "seller") {
       return (
-        profile?.registeredBusinessName || user?.name || "Seller"
+        profile?.registeredBusinessName || (!placeholderNames.has(lowered) ? rawName : "") || String(user?.mobile || "").trim() || "Seller"
       );
     }
-    return user?.name || "Buyer";
+    return (!placeholderNames.has(lowered) ? rawName : "") || String(user?.mobile || "").trim() || "Buyer";
   }
 
   function setOtpBoxRef(index) {

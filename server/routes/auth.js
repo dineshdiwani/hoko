@@ -135,6 +135,24 @@ function getEffectiveBuyerCity(user) {
   return city && city.toLowerCase() !== "user_default" ? city : "";
 }
 
+function getDisplayNameForUser(user, roleFallback = "buyer") {
+  const rawName = String(user?.name || "").trim();
+  const lower = rawName.toLowerCase();
+  const placeholders = new Set([
+    "whatsapp user",
+    "app user",
+    "buyer",
+    "seller",
+    "user",
+    "unknown",
+    "user_default"
+  ]);
+  if (rawName && !placeholders.has(lower)) return rawName;
+  const mobile = String(user?.mobile || "").trim();
+  if (mobile) return mobile;
+  return roleFallback === "seller" ? "Seller" : "Buyer";
+}
+
 function isSoftDeletedUser(user) {
   return Boolean(user?.deletedAt);
 }
@@ -198,8 +216,7 @@ router.post("/login", otpSendLimiter, async (req, res) => {
       user = await User.create({
         mobile: mobileE164,
         city: String(city || "").trim(),
-        roles: { buyer: true, seller: false, admin: false },
-        name: "WhatsApp User"
+        roles: { buyer: true, seller: false, admin: false }
       });
     }
 const otp = generateOtp();
@@ -354,7 +371,7 @@ router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
             role: normalizedRole,
             roles: user.roles,
             city: getEffectiveBuyerCity(user),
-            name: user.name,
+            name: getDisplayNameForUser(user, normalizedRole),
             preferredCurrency: user.preferredCurrency || "INR",
             mobile: user.mobile,
             sellerProfile: user.sellerProfile || {}
@@ -391,7 +408,7 @@ router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
         role: normalizedRole,
         roles: user.roles,
         city: getEffectiveBuyerCity(user),
-        name: user.name,
+        name: getDisplayNameForUser(user, normalizedRole),
         preferredCurrency: user.preferredCurrency || "INR",
         mobile: user.mobile,
         sellerProfile: user.sellerProfile || {}
@@ -445,20 +462,20 @@ router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
         process.env.JWT_SECRET,
         { expiresIn: "7d" }
       );
-      return res.status(200).json({
-        success: true,
-        requiresSellerRegistration: true,
-        user: {
-          _id: user._id,
-          email: user.email,
-          role: normalizedRole,
-          roles: user.roles,
-          city: getEffectiveBuyerCity(user),
-          name: user.name,
-          preferredCurrency: user.preferredCurrency || "INR",
-          mobile: user.mobile,
-          sellerProfile: user.sellerProfile || {}
-        },
+        return res.status(200).json({
+          success: true,
+          requiresSellerRegistration: true,
+          user: {
+            _id: user._id,
+            email: user.email,
+            role: normalizedRole,
+            roles: user.roles,
+            city: getEffectiveBuyerCity(user),
+            name: getDisplayNameForUser(user, normalizedRole),
+            preferredCurrency: user.preferredCurrency || "INR",
+            mobile: user.mobile,
+            sellerProfile: user.sellerProfile || {}
+          },
         token
       });
     }
@@ -660,7 +677,7 @@ router.post("/google", async (req, res) => {
             user: {
               _id: mergedUser._id,
               email: mergedUser.email,
-              name,
+              name: getDisplayNameForUser(mergedUser, normalizedRole),
               picture,
               role: normalizedRole,
               roles: mergedUser.roles,
@@ -714,7 +731,7 @@ router.post("/google", async (req, res) => {
       user: {
         _id: mergedUser._id,
         email: mergedUser.email,
-        name,
+        name: getDisplayNameForUser(mergedUser, normalizedRole),
         picture,
         role: normalizedRole,
         roles: mergedUser.roles,
@@ -761,16 +778,17 @@ router.post("/switch-role", auth, async (req, res) => {
       return res.json({
         token,
         requiresSellerRegistration: true,
-        user: {
-          _id: currentUser._id,
-          email: currentUser.email,
-          role: nextRole,
-          roles: currentUser.roles,
-          city: getEffectiveBuyerCity(currentUser),
-          preferredCurrency: currentUser.preferredCurrency || "INR",
-          sellerProfile: currentUser.sellerProfile
-        }
-      });
+      user: {
+        _id: currentUser._id,
+        email: currentUser.email,
+        role: nextRole,
+        roles: currentUser.roles,
+        city: getEffectiveBuyerCity(currentUser),
+        preferredCurrency: currentUser.preferredCurrency || "INR",
+        sellerProfile: currentUser.sellerProfile,
+        name: getDisplayNameForUser(currentUser, nextRole)
+      }
+    });
     }
   }
 
@@ -826,7 +844,7 @@ router.post("/refresh", auth, async (req, res) => {
         sellerProfile: user.sellerProfile,
         mobile: user.mobile,
         termsAccepted: user.termsAccepted,
-        name: user.name,
+        name: getDisplayNameForUser(user, role),
         googleProfile: user.googleProfile
       }
     });
