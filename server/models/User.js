@@ -33,6 +33,11 @@ const userSchema = new mongoose.Schema(
       default: ""
     },
 
+    address: {
+      type: String,
+      default: ""
+    },
+
     preferredCurrency: {
       type: String,
       default: "INR"

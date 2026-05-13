@@ -20,9 +20,11 @@ export default function SellerProfile() {
   const [categories, setCategories] = useState([]);
   const [currencies, setCurrencies] = useState([]);
 
-const [profile, setProfile] = useState({
+  const [profile, setProfile] = useState({
     name: "",
+    displayName: "",
     email: "",
+    address: "",
     registeredBusinessName: "",
     registrationDetails: "",
     businessAddress: "",
@@ -80,8 +82,10 @@ const [profile, setProfile] = useState({
 const data = res.data || {};
         const sellerProfile = data.sellerProfile || {};
         setProfile({
-          name: data.name || session?.name || "",
+          name: data.name || "",
+          displayName: data.displayName || data.name || session?.name || "Seller",
           email: data.email || session?.email || "",
+          address: data.address || "",
           registeredBusinessName: sellerProfile.registeredBusinessName || "",
           registrationDetails: sellerProfile.registrationDetails || "",
           businessAddress: sellerProfile.businessAddress || "",
@@ -123,8 +127,9 @@ const data = res.data || {};
     }
     setSaving(true);
     try {
-const res = await api.post("/seller/profile", {
+      const res = await api.post("/seller/profile", {
         name: profile.name,
+        address: profile.address,
         email: profile.email,
         registeredBusinessName: profile.registeredBusinessName,
         registrationDetails: profile.registrationDetails,
@@ -138,7 +143,8 @@ const res = await api.post("/seller/profile", {
       });
 
       updateSession({
-        name: res.data?.name || profile.name,
+        name: res.data?.displayName || res.data?.name || profile.name,
+        address: res.data?.address || profile.address,
         email: res.data?.email || profile.email,
         city: res.data?.city || profile.city,
         preferredCurrency:
@@ -175,6 +181,12 @@ const res = await api.post("/seller/profile", {
                 <p className="text-sm text-gray-600">Your Rating</p>
                 <p className="text-lg font-semibold">
                   {rating.avg.toFixed(1)} stars ({rating.count})
+                </p>
+              </div>
+              <div className="md:col-span-2">
+                <p className="text-sm text-gray-600">Display Name</p>
+                <p className="text-lg font-semibold">
+                  {profile.displayName || profile.name || profile.registeredBusinessName || "Seller"}
                 </p>
               </div>
               <div className="md:col-span-2">
@@ -225,6 +237,20 @@ const res = await api.post("/seller/profile", {
                     })
                   }
                   className="w-full border rounded-xl px-4 py-3"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="text-sm text-gray-600">
+                  Address
+                </label>
+                <input
+                  value={profile.address}
+                  onChange={(e) =>
+                    setProfile({ ...profile, address: e.target.value })
+                  }
+                  className="w-full border rounded-xl px-4 py-3"
+                  placeholder="Enter your address"
                 />
               </div>
 

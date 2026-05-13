@@ -162,9 +162,35 @@ function getDisplayNameForUser(user, roleFallback = "buyer") {
     "user_default"
   ]);
   if (rawName && !placeholders.has(lower)) return rawName;
+  if (roleFallback === "seller") {
+    const registeredBusinessName = String(user?.sellerProfile?.registeredBusinessName || "").trim();
+    if (registeredBusinessName) return registeredBusinessName;
+  }
   const mobile = String(user?.mobile || "").trim();
   if (mobile) return mobile;
   return roleFallback === "seller" ? "Seller" : "Buyer";
+}
+
+function getUserAddress(user) {
+  return String(user?.address || user?.sellerProfile?.businessAddress || "").trim();
+}
+
+function buildAuthUserPayload(user, roleFallback = "buyer", extra = {}) {
+  const displayName = getDisplayNameForUser(user, roleFallback);
+  return {
+    _id: user?._id,
+    email: user?.email || "",
+    role: extra.role || roleFallback,
+    roles: user?.roles || {},
+    city: getEffectiveBuyerCity(user),
+    preferredCurrency: user?.preferredCurrency || "INR",
+    sellerProfile: user?.sellerProfile || {},
+    mobile: user?.mobile || "",
+    name: displayName,
+    displayName,
+    address: getUserAddress(user),
+    ...extra
+  };
 }
 
 function isSoftDeletedUser(user) {
@@ -379,17 +405,7 @@ router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
         return res.status(200).json({
           success: true,
           requiresSellerRegistration: true,
-          user: {
-            _id: user._id,
-            email: user.email,
-            role: normalizedRole,
-            roles: user.roles,
-            city: getEffectiveBuyerCity(user),
-            name: getDisplayNameForUser(user, normalizedRole),
-            preferredCurrency: user.preferredCurrency || "INR",
-            mobile: user.mobile,
-            sellerProfile: user.sellerProfile || {}
-          },
+          user: buildAuthUserPayload(user, normalizedRole),
           token
         });
       }
@@ -479,17 +495,7 @@ router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
         return res.status(200).json({
           success: true,
           requiresSellerRegistration: true,
-          user: {
-            _id: user._id,
-            email: user.email,
-            role: normalizedRole,
-            roles: user.roles,
-            city: getEffectiveBuyerCity(user),
-            name: getDisplayNameForUser(user, normalizedRole),
-            preferredCurrency: user.preferredCurrency || "INR",
-            mobile: user.mobile,
-            sellerProfile: user.sellerProfile || {}
-          },
+          user: buildAuthUserPayload(user, normalizedRole),
         token
       });
     }
@@ -692,10 +698,9 @@ router.post("/google", async (req, res) => {
           return res.json({
             token,
             requiresSellerRegistration: true,
-            user: {
+            user: buildAuthUserPayload(persistedUser, normalizedRole, {
               _id: persistedUser._id || user._id,
               email: persistedUser.email || user.email,
-              name: getDisplayNameForUser(persistedUser, normalizedRole),
               picture,
               role: normalizedRole,
               roles: persistedUser.roles || user.roles,
@@ -703,7 +708,7 @@ router.post("/google", async (req, res) => {
               preferredCurrency: persistedUser.preferredCurrency || user.preferredCurrency || "INR",
               sellerProfile: persistedUser.sellerProfile || user.sellerProfile,
               mobile: persistedUser.mobile || user.mobile
-            }
+            })
           });
         }
         user.roles.seller = true;
@@ -748,10 +753,9 @@ router.post("/google", async (req, res) => {
 
     res.json({
       token,
-      user: {
+      user: buildAuthUserPayload(persistedUser, normalizedRole, {
         _id: persistedUser._id || user._id,
         email: persistedUser.email || user.email,
-        name: getDisplayNameForUser(persistedUser, normalizedRole),
         picture,
         role: normalizedRole,
         roles: persistedUser.roles || user.roles,
@@ -759,7 +763,7 @@ router.post("/google", async (req, res) => {
         preferredCurrency: persistedUser.preferredCurrency || user.preferredCurrency || "INR",
         sellerProfile: persistedUser.sellerProfile || user.sellerProfile,
         mobile: persistedUser.mobile || user.mobile
-      },
+      }),
     });
   } catch (err) {
     console.error("Google login unexpected error:", err?.stack || err?.message || err);
@@ -797,17 +801,8 @@ router.post("/switch-role", auth, async (req, res) => {
       return res.json({
         token,
         requiresSellerRegistration: true,
-      user: {
-        _id: currentUser._id,
-        email: currentUser.email,
-        role: nextRole,
-        roles: currentUser.roles,
-        city: getEffectiveBuyerCity(currentUser),
-        preferredCurrency: currentUser.preferredCurrency || "INR",
-        sellerProfile: currentUser.sellerProfile,
-        name: getDisplayNameForUser(currentUser, nextRole)
-      }
-    });
+        user: buildAuthUserPayload(currentUser, nextRole)
+      });
     }
   }
 
@@ -825,15 +820,7 @@ router.post("/switch-role", auth, async (req, res) => {
 
   res.json({
     token,
-    user: {
-      _id: currentUser._id,
-      email: currentUser.email,
-      role: nextRole,
-      roles: currentUser.roles,
-      city: getEffectiveBuyerCity(currentUser),
-      preferredCurrency: currentUser.preferredCurrency || "INR",
-      sellerProfile: currentUser.sellerProfile
-    }
+    user: buildAuthUserPayload(currentUser, nextRole)
   });
 });
 
@@ -854,16 +841,8 @@ router.post("/refresh", auth, async (req, res) => {
     return res.json({
       token,
       user: {
-        _id: user._id,
-        email: user.email,
-        role,
-        roles: user.roles,
-        city: getEffectiveBuyerCity(user),
-        preferredCurrency: user.preferredCurrency || "INR",
-        sellerProfile: user.sellerProfile,
-        mobile: user.mobile,
+        ...buildAuthUserPayload(user, role),
         termsAccepted: user.termsAccepted,
-        name: getDisplayNameForUser(user, role),
         googleProfile: user.googleProfile
       }
     });

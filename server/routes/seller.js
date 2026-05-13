@@ -67,6 +67,18 @@ function normalizeAndDedupeCategories(categories) {
   return Array.from(new Set(normalized));
 }
 
+function getSellerDisplayName(user) {
+  const name = String(user?.name || "").trim();
+  if (name) return name;
+  const businessName = String(user?.sellerProfile?.registeredBusinessName || "").trim();
+  if (businessName) return businessName;
+  return "Seller";
+}
+
+function getSellerAddress(user) {
+  return String(user?.address || user?.sellerProfile?.businessAddress || "").trim();
+}
+
 function safeFilename(originalname) {
   const ext = path.extname(String(originalname || "")).toLowerCase();
   const base = path
@@ -628,6 +640,7 @@ router.post("/profile", auth, sellerOnly, async (req, res) => {
       name,
       email,
       mobile,
+      address,
       registeredBusinessName,
       registrationDetails,
       businessAddress,
@@ -651,6 +664,7 @@ router.post("/profile", auth, sellerOnly, async (req, res) => {
       ...(typeof mobile === "string" && mobile.trim()
         ? { mobile: normalizeE164(mobile) }
         : {}),
+      ...(typeof address === "string" ? { address: address.trim() } : {}),
       ...(registeredBusinessName
         ? { "sellerProfile.registeredBusinessName": registeredBusinessName }
         : {}),
@@ -698,9 +712,11 @@ router.post("/profile", auth, sellerOnly, async (req, res) => {
     );
 
     res.json({
-      name: user?.name || "",
+      name: String(user?.name || "").trim(),
+      displayName: getSellerDisplayName(user),
       sellerProfile: user?.sellerProfile || {},
       city: user?.city,
+      address: getSellerAddress(user),
       email: user?.email || "",
       preferredCurrency: user?.preferredCurrency || "INR",
       sellerSettings: user?.sellerSettings || {}
@@ -781,11 +797,13 @@ router.get("/profile", auth, sellerOnly, async (req, res) => {
     .sort({ updatedAt: -1 })
     .select("updatedAt");
   res.json({
-    name: user?.name || "",
+    name: String(user?.name || "").trim(),
+    displayName: getSellerDisplayName(user),
     sellerProfile: user?.sellerProfile || {},
     email: user?.email || "",
     mobile: user?.mobile || "",
     city: user?.city,
+    address: getSellerAddress(user),
     preferredCurrency: user?.preferredCurrency || "INR",
     terms: {
       acceptedAt: user?.termsAccepted?.at || null,

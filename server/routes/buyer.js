@@ -152,6 +152,16 @@ function getEffectiveBuyerCity(user) {
   const city = String(user?.city || user?.buyerSettings?.defaultCity || "").trim();
   return city && city.toLowerCase() !== "user_default" ? city : "";
 }
+
+function getBuyerDisplayName(user) {
+  const name = String(user?.name || "").trim();
+  if (name) return name;
+  return "Buyer";
+}
+
+function getBuyerAddress(user) {
+  return String(user?.address || "").trim();
+}
 function getFreshBuyerSettings(user) {
   const base = user?.buyerSettings || {};
   return {
@@ -1919,10 +1929,12 @@ router.get("/profile", auth, buyerOnly, async (req, res) => {
   }
 
   res.json({
-    name: req.user.name || req.user.googleProfile?.name || "",
+    name: String(req.user.name || "").trim(),
+    displayName: getBuyerDisplayName(req.user),
     email: req.user.email || "",
     mobile: req.user.mobile || "",
     city: getEffectiveBuyerCity(req.user),
+    address: getBuyerAddress(req.user),
     preferredCurrency: req.user.preferredCurrency || "INR",
     roles: req.user.roles || {},
     loginMethods: {
@@ -1952,6 +1964,7 @@ router.post("/profile", auth, buyerOnly, async (req, res) => {
       email,
       mobile,
       city,
+      address,
       preferredCurrency,
       buyerSettings
     } = req.body || {};
@@ -1978,6 +1991,9 @@ router.post("/profile", auth, buyerOnly, async (req, res) => {
     }
     if (city) {
       req.user.city = city;
+    }
+    if (typeof address === "string") {
+      req.user.address = address.trim();
     }
     if (preferredCurrency) {
       req.user.preferredCurrency = preferredCurrency;
@@ -2208,10 +2224,12 @@ router.post("/profile", auth, buyerOnly, async (req, res) => {
       .map(normalizeBuyerDocument)
       .filter(Boolean);
     res.json({
-      name: req.user.name || req.user.googleProfile?.name || "",
+      name: String(req.user.name || "").trim(),
+      displayName: getBuyerDisplayName(req.user),
       email: req.user.email || "",
       mobile: req.user.mobile || "",
       city: getEffectiveBuyerCity(req.user),
+      address: getBuyerAddress(req.user),
       preferredCurrency: req.user.preferredCurrency || "INR",
       roles: req.user.roles || {},
       loginMethods: {
