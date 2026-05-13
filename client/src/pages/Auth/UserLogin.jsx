@@ -1234,6 +1234,13 @@ useEffect(() => {
                 setUiCitySelection(city);
                 
                 const isSellerRole = pendingCitySession?.role === "seller";
+                const sellerProfileComplete = hasCompleteSellerProfile(finalSession);
+
+                if (isSellerRole && !sellerProfileComplete) {
+                  setPendingCitySession(finalSession);
+                  navigate(buildSellerRegisterRedirect(), { replace: true });
+                  return;
+                }
                 
                 // Update the shared user city first so profile settings pick it up as the default.
                 console.log("Updating city to:", city);
@@ -1314,7 +1321,6 @@ useEffect(() => {
                   }
                 }
 
-                const sellerProfileComplete = hasCompleteSellerProfile(pendingCitySession);
                 const shouldResumeSellerFlow =
                   isSellerRole && useSellerPostLoginRedirect;
                 if (shouldResumeSellerFlow) {
