@@ -63,7 +63,7 @@ import NotificationPermissionPrompt from "./components/NotificationPermissionPro
 import { getSession } from "./services/auth";
 import { ensurePushSubscription } from "./services/pushNotifications";
 import { refreshSessionIfNeeded } from "./services/sessionRefresh";
-import { getDeferredDeepLink, buildDeferredDeepLinkUrl, clearDeferredDeepLink } from "./services/deepLinks";
+import { getDeferredDeepLink, buildDeferredDeepLinkUrl, clearDeferredDeepLink, clearServerDeferredDeepLink, fetchServerDeferredDeepLink, syncStoredDeferredDeepLinkToServer } from "./services/deepLinks";
 import socket, { connectSocket } from "./services/socket";
 import { showRuntimeNotification } from "./services/runtimeNotifications";
 import {
@@ -323,11 +323,9 @@ function AppShell() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
     const session = getSession();
-    if (!session?.token) return;
-
-    const deferredDeepLink = getDeferredDeepLink();
-    if (!deferredDeepLink) return;
+    if (!session?.token) return undefined;
 
     const currentPath = String(location.pathname || "");
     const shouldRestore =
@@ -336,13 +334,25 @@ function AppShell() {
       currentPath === "/buyer/login" ||
       currentPath === "/seller/login";
 
-    if (!shouldRestore) return;
+    if (!shouldRestore) return undefined;
 
-    const next = buildDeferredDeepLinkUrl(deferredDeepLink);
-    if (!next) return;
+    (async () => {
+      await syncStoredDeferredDeepLinkToServer().catch(() => null);
+      const localDeferredDeepLink = getDeferredDeepLink();
+      const deferredDeepLink = localDeferredDeepLink || (await fetchServerDeferredDeepLink());
+      if (cancelled || !deferredDeepLink) return;
 
-    clearDeferredDeepLink();
-    navigate(next, { replace: true });
+      const next = buildDeferredDeepLinkUrl(deferredDeepLink);
+      if (!next) return;
+
+      clearDeferredDeepLink();
+      clearServerDeferredDeepLink(deferredDeepLink).catch(() => null);
+      navigate(next, { replace: true });
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [location.pathname, navigate]);
 
   return (

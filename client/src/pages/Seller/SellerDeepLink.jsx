@@ -227,6 +227,7 @@ export default function SellerDeepLink() {
       path: `/seller/deeplink/${encodeURIComponent(requirementIdValue)}`,
       source: "seller_deeplink",
       role: "seller",
+      actionType: "seller_offer",
       query: {
         city: cityFromUrl || city || "",
         cats: resumeCategory || "",
@@ -266,6 +267,7 @@ export default function SellerDeepLink() {
       path: "/seller/deeplink/" + encodeURIComponent(requirementIdValue),
       source: "seller_offer",
       role: "seller",
+      actionType: "seller_offer",
       query: {
         city: cityFromUrl || city || "",
         cats: resumeCategory || "",

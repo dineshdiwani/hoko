@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import api from "../services/api";
 import { getSession, setSession } from "../services/storage";
 import { refreshSession } from "../services/sessionRefresh";
+import { saveDeferredDeepLink } from "../services/deepLinks";
 import {
   extractAttachmentFileName,
   getAttachmentDisplayName,
@@ -442,6 +443,15 @@ export default function OfferModal({
           localStorage.setItem("post_login_redirect_source", "offer");
         }
         localStorage.setItem("login_intent_role", "seller");
+        saveDeferredDeepLink({
+          path: buildResumeTarget(),
+          source: "offer",
+          role: "seller",
+          actionType: "seller_offer",
+          query: {
+            requirementId
+          }
+        });
         const params = buildAuthParams();
         params.set("requirementId", requirementId);
         const target = sellerSession.reason === "login"

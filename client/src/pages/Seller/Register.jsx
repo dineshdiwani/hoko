@@ -14,7 +14,9 @@ import { refreshSession } from "../../services/sessionRefresh";
 import {
   getDeferredDeepLink,
   clearDeferredDeepLink,
-  buildDeferredDeepLinkUrl
+  buildDeferredDeepLinkUrl,
+  fetchServerDeferredDeepLink,
+  clearServerDeferredDeepLink
 } from "../../services/deepLinks";
 import { isCompleteSellerProfile } from "../../utils/sellerProfile";
 
@@ -124,17 +126,38 @@ export default function SellerRegister() {
   useEffect(() => {
     const currentSession = getSession();
     if (currentSession?.token && isCompleteSellerProfile(currentSession)) {
-      const params = new URLSearchParams();
-      const sellerCity = String(currentSession.city || seller.city || cityFromUrl || "").trim();
-      const sellerCats = Array.isArray(currentSession?.sellerProfile?.categories)
-        ? currentSession.sellerProfile.categories.join(",")
-        : "";
-      if (sellerCity) params.set("city", sellerCity);
-      if (sellerCats) params.set("cats", sellerCats);
-      params.set("from", "seller-login");
-      navigate(`/seller/dashboard${params.toString() ? `?${params.toString()}` : ""}`, {
-        replace: true
-      });
+      let cancelled = false;
+
+      (async () => {
+        const deferredDeepLink = getDeferredDeepLink() || (await fetchServerDeferredDeepLink());
+        if (cancelled) return;
+
+        if (deferredDeepLink?.path) {
+          const next = buildDeferredDeepLinkUrl(deferredDeepLink);
+          if (next) {
+            clearDeferredDeepLink();
+            clearServerDeferredDeepLink(deferredDeepLink).catch(() => null);
+            navigate(next, { replace: true });
+            return;
+          }
+        }
+
+        const params = new URLSearchParams();
+        const sellerCity = String(currentSession.city || seller.city || cityFromUrl || "").trim();
+        const sellerCats = Array.isArray(currentSession?.sellerProfile?.categories)
+          ? currentSession.sellerProfile.categories.join(",")
+          : "";
+        if (sellerCity) params.set("city", sellerCity);
+        if (sellerCats) params.set("cats", sellerCats);
+        params.set("from", "seller-login");
+        navigate(`/seller/dashboard${params.toString() ? `?${params.toString()}` : ""}`, {
+          replace: true
+        });
+      })();
+
+      return () => {
+        cancelled = true;
+      };
     }
   }, [navigate, cityFromUrl, seller.city]);
 
@@ -271,7 +294,7 @@ export default function SellerRegister() {
       setSession(updatedSession);
       setUiCitySelection(res.data.city || city);
       alert("Registration submitted successfully!");
-      const deferredDeepLink = getDeferredDeepLink();
+      const deferredDeepLink = getDeferredDeepLink() || (await fetchServerDeferredDeepLink());
       const resumeTarget =
         String(localStorage.getItem("post_login_redirect") || "").trim() ||
         (deferredDeepLink ? buildDeferredDeepLinkUrl(deferredDeepLink) : "");
@@ -285,6 +308,9 @@ export default function SellerRegister() {
       }
       localStorage.removeItem("post_login_redirect");
       clearDeferredDeepLink();
+      if (deferredDeepLink) {
+        clearServerDeferredDeepLink(deferredDeepLink).catch(() => null);
+      }
       const dashboardParams = new URLSearchParams();
       if (seller.city) dashboardParams.set("city", seller.city);
       if (catsFromUrl) dashboardParams.set("cats", catsFromUrl);

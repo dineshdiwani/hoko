@@ -7,7 +7,7 @@ import GoogleLoginButton from "../../components/GoogleLoginButton";
 import { isNativeAppRuntime } from "../../utils/runtime";
 import { ensureNativePushRegistration, isNativePushEnabled } from "../../services/nativePush";
 import { CapacitorSmsRetriever } from "@shaher/capacitor-sms-retriever";
-import { getDeferredDeepLink, clearDeferredDeepLink, buildDeferredDeepLinkUrl } from "../../services/deepLinks";
+import { getDeferredDeepLink, clearDeferredDeepLink, buildDeferredDeepLinkUrl, saveDeferredDeepLink } from "../../services/deepLinks";
 import { isCompleteSellerProfile } from "../../utils/sellerProfile";
 
 const BUYER_PENDING_REQUIREMENT_KEY = "buyer_pending_requirement_data";
@@ -554,6 +554,16 @@ useEffect(() => {
       if (reqRes.data?._id) {
         setBuyerDashboardDefaultTab(requirementCity || sessionCity);
         forceBuyerPostsTab();
+        saveDeferredDeepLink({
+          path: `/buyer/dashboard?tab=posts&highlight=${reqRes.data._id}`,
+          source: "buyer_requirement",
+          role: "buyer",
+          actionType: "buyer_requirement",
+          query: {
+            highlight: reqRes.data._id,
+            city: requirementCity || sessionCity
+          }
+        });
         navigate(`/buyer/dashboard?tab=posts&highlight=${reqRes.data._id}`, { replace: true });
         return true;
       }
