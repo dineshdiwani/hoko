@@ -17,8 +17,8 @@ function normalizeCategories(categories) {
 
 function getSellerProfileStatus(subject = {}) {
   const sellerProfile = subject?.sellerProfile || {};
-  const email = normalizeText(subject?.email || sellerProfile.email);
-  const mobile = normalizeText(subject?.mobile || sellerProfile.mobile);
+  const email = normalizeText(subject?.email);
+  const mobile = normalizeText(subject?.mobile);
   const city = normalizeText(
     subject?.city ||
       subject?.buyerSettings?.defaultCity ||
@@ -27,7 +27,6 @@ function getSellerProfileStatus(subject = {}) {
   const registeredBusinessName = normalizeText(sellerProfile.registeredBusinessName);
   const managerName = normalizeText(sellerProfile.managerName);
   const categories = normalizeCategories(sellerProfile.categories);
-  const onboardedAt = sellerProfile.onboardedAt ? new Date(sellerProfile.onboardedAt) : null;
 
   const missing = [];
   if (!email) missing.push("email");
@@ -38,7 +37,7 @@ function getSellerProfileStatus(subject = {}) {
   if (!categories.length) missing.push("categories");
 
   return {
-    isComplete: missing.length === 0 || Boolean(onboardedAt),
+    isComplete: missing.length === 0,
     missing,
     sellerFields: {
       email,
@@ -46,8 +45,7 @@ function getSellerProfileStatus(subject = {}) {
       city,
       registeredBusinessName,
       managerName,
-      categories,
-      onboardedAt
+      categories
     }
   };
 }

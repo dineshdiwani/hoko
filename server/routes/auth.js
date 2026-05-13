@@ -847,8 +847,7 @@ router.post("/switch-role", auth, async (req, res) => {
   
   if (nextRole === "seller") {
     const sellerProfile = currentUser?.sellerProfile || {};
-    const sellerOnboarded = Boolean(sellerProfile.onboardedAt);
-    const hasSellerProfile = sellerOnboarded || isCompleteSellerProfile({
+    const hasSellerProfile = isCompleteSellerProfile({
       ...currentUser,
       sellerProfile
     });
@@ -863,13 +862,6 @@ router.post("/switch-role", auth, async (req, res) => {
         requiresSellerRegistration: true,
         user: buildAuthUserPayload(currentUser, nextRole)
       });
-    }
-    if (!sellerOnboarded) {
-      await User.findByIdAndUpdate(
-        req.user._id,
-        { "sellerProfile.onboardedAt": new Date() },
-        { new: false }
-      );
     }
   }
 
