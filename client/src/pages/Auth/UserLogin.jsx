@@ -644,7 +644,7 @@ useEffect(() => {
       }
       setSession({
         _id: user._id,
-        role: user.role || currentRole,
+        role: currentRole,
         roles: user.roles,
         email: user.email,
         city: resolvedCity || user.city || "",
@@ -844,7 +844,7 @@ useEffect(() => {
           const sellerProfile = user.sellerProfile || profile || {};
           const registrationSession = {
             _id: user._id,
-            role: user.role || currentRole,
+            role: currentRole,
             roles: user.roles,
             email: user.email || email,
             city: resolvedCity || cityFromUrl || user.city || city || "",
@@ -868,7 +868,7 @@ useEffect(() => {
           if (!hasCompleteSellerProfile(user, profile)) {
             setSession({
               _id: user._id,
-              role: user.role || currentRole,
+              role: currentRole,
               roles: user.roles,
               email: user.email || email,
               city: resolvedCity || cityFromUrl || user.city || city || "",
@@ -884,7 +884,7 @@ useEffect(() => {
             }
             setPendingCitySession({
               _id: user._id,
-              role: user.role || currentRole,
+              role: currentRole,
               roles: user.roles,
               email: user.email || email,
               city: resolvedCity || user.city || city || cityFromUrl || "",
@@ -900,7 +900,7 @@ useEffect(() => {
 
           setSession({
             _id: user._id,
-            role: user.role || currentRole,
+            role: currentRole,
             roles: user.roles,
             email: user.email || email,
             city: cityFromUrl || user.city || city,
@@ -926,7 +926,7 @@ useEffect(() => {
           if (resolvedCity) {
             setSession({
               _id: user._id,
-              role: user.role || currentRole,
+              role: currentRole,
               roles: user.roles,
               email: user.email || (pendingLoginMethod === "email" ? email : ""),
               city: resolvedCity,
@@ -949,7 +949,7 @@ useEffect(() => {
           } else {
             setPendingCitySession({
               _id: user._id,
-              role: user.role || currentRole,
+              role: currentRole,
               roles: user.roles,
               email: user.email || (pendingLoginMethod === "email" ? email : ""),
               city: "",
@@ -967,7 +967,7 @@ useEffect(() => {
         // For other flows, proceed with session setup
         setSession({
           _id: user._id,
-          role: user.role || currentRole,
+          role: currentRole,
           roles: user.roles,
           email: user.email || email,
           city: resolvedCity || user.city || city,
