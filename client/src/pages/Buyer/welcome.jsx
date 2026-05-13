@@ -4,6 +4,7 @@ import { getSession, setSession } from "../../services/storage";
 import api from "../../services/api";
 import NotificationCenter from "../../components/NotificationCenter";
 import { captureSpeechInput } from "../../services/speechInput";
+import { isCompleteSellerProfile } from "../../utils/sellerProfile";
 
 export default function BuyerWelcome() {
   const logoSrc = "/logo.png";
@@ -251,43 +252,29 @@ export default function BuyerWelcome() {
                   navigate("/seller/login");
                   return;
                 }
-                try {
-                  const res = await api.post("/auth/switch-role", {
-                    role: "seller"
-                  });
-                  if (res?.data?.requiresSellerRegistration) {
-                    setSession({
-                      _id: res.data.user._id,
-                      role: "seller",
-                      roles: res.data.user.roles,
-                      email: res.data.user.email,
-                      city: res.data.user.city,
-                      name: "Seller",
-                      preferredCurrency: res.data.user.preferredCurrency,
-                      token: res.data.token
-                    });
-                    navigate("/seller/register");
-                    return;
-                  }
+                const sellerReady = isCompleteSellerProfile(session);
+                if (sellerReady) {
                   setSession({
-                    _id: res.data.user._id,
+                    ...session,
                     role: "seller",
-                    roles: res.data.user.roles,
-                    email: res.data.user.email,
-                    city: res.data.user.city,
-                    name: "Seller",
-                    preferredCurrency: res.data.user.preferredCurrency,
-                    token: res.data.token
+                    roles: {
+                      ...(session?.roles || {}),
+                      seller: true
+                    },
+                    name: session?.name || "Seller"
                   });
                   navigate("/seller/dashboard");
-                } catch (err) {
-                  const message = err?.response?.data?.message || "";
-                  if (message === "Role not enabled") {
-                    navigate("/seller/register");
-                    return;
-                  }
-                  alert(message || "Unable to switch role");
+                  return;
                 }
+                setSession({
+                  ...session,
+                  role: "seller",
+                  roles: {
+                    ...(session?.roles || {}),
+                    seller: true
+                  }
+                });
+                navigate("/seller/register");
               }}
               className="mf-btn-ghost text-xs sm:text-sm px-3 sm:px-6 py-2 sm:py-3 whitespace-nowrap"
             >

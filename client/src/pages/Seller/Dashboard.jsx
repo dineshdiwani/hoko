@@ -149,6 +149,22 @@ export default function SellerDashboard() {
   const allowSellerSamplePosts =
     import.meta.env.DEV;
 
+  useEffect(() => {
+    if (!session?.token) return;
+    if (session.role === "seller") return;
+    if (!isCompleteSellerProfile(session)) return;
+    const nextSession = {
+      ...session,
+      role: "seller",
+      roles: {
+        ...(session?.roles || {}),
+        seller: true
+      }
+    };
+    setSession(nextSession);
+    setSessionState(nextSession);
+  }, [session]);
+
   const currentUserId = session?._id || session?.id || session?.userId || null;
   const lastSyncedProfileCityRef = useRef(String(session?.city || "").trim());
   const handleCityChange = useCallback((nextCity) => {
@@ -594,12 +610,14 @@ export default function SellerDashboard() {
     if (isPublicRequirementView) {
       return;
     }
-    // For logged-in users, also stay on dashboard
-    if (session?.token) {
+    if (!session?.token) {
+      navigate("/seller/login");
       return;
     }
-    navigate("/seller/login");
-  }, [session, navigate, isPublicRequirementView]);
+    if (!isCompleteSellerProfile(session)) {
+      navigate(`/seller/register${location.search || ""}`, { replace: true });
+    }
+  }, [session, navigate, isPublicRequirementView, location.search]);
 
   useEffect(() => {
     const stored = getSellerDashboardCategories();

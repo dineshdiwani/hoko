@@ -31,14 +31,25 @@ const SellerDeepLink = lazy(() => import("./pages/Seller/SellerDeepLink"));
 function SellerDashboardWrapper() {
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
+  const session = getSession();
   const isPublicRequirementView =
-    !getSession()?.token && Boolean(searchParams.get("openRequirement") || searchParams.get("postId"));
+    !session?.token &&
+    Boolean(searchParams.get("openRequirement") || searchParams.get("postId"));
+  const isCompleteSeller = Boolean(session?.token && isCompleteSellerProfile(session));
 
-  return requireSeller() ? (
-    <SellerDashboard />
-  ) : (
-    isPublicRequirementView ? <SellerDashboard /> : <Navigate to="/seller/login" replace />
-  );
+  if (isPublicRequirementView) {
+    return <SellerDashboard />;
+  }
+
+  if (isCompleteSeller) {
+    return <SellerDashboard />;
+  }
+
+  if (session?.token) {
+    return <Navigate to={`/seller/register${location.search || ""}`} replace />;
+  }
+
+  return <Navigate to="/seller/login" replace />;
 }
 
 const AdminLogin = lazy(() => import("./pages/Admin/Login"));
@@ -69,6 +80,7 @@ import { fetchNotifications } from "./services/notifications";
 import { isFileProtocolRuntime, isNativeAppRuntime } from "./utils/runtime";
 import { ensureNativePushRegistration, isNativePushEnabled } from "./services/nativePush";
 import { getNotificationCategory } from "./utils/notifications";
+import { isCompleteSellerProfile } from "./utils/sellerProfile";
 
 function RouteLoader() {
   return <div className="min-h-[35vh] w-full" aria-hidden="true" />;
