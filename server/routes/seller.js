@@ -97,10 +97,19 @@ function normalizeMobileDigits(value) {
   return String(value || "").replace(/[^\d]/g, "");
 }
 
+function getComparableMobileDigits(value) {
+  const digits = normalizeMobileDigits(value);
+  if (digits.length === 12 && digits.startsWith("91")) return digits.slice(-10);
+  if (digits.length === 11 && digits.startsWith("0")) return digits.slice(-10);
+  if (digits.length > 10) return digits.slice(-10);
+  return digits;
+}
+
 async function findUserByMobile(mobile) {
   const candidates = getMobileLookupCandidates(mobile);
   const digits = normalizeMobileDigits(mobile);
-  if (!candidates.length && !digits) return null;
+  const comparableDigits = getComparableMobileDigits(mobile);
+  if (!candidates.length && !digits && !comparableDigits) return null;
 
   const matchClauses = [];
   if (candidates.length) {
@@ -116,6 +125,16 @@ async function findUserByMobile(mobile) {
       }
     });
   }
+  if (comparableDigits && comparableDigits !== digits) {
+    matchClauses.push({
+      $expr: {
+        $regexMatch: {
+          input: { $toString: "$mobile" },
+          regex: comparableDigits
+        }
+      }
+    });
+  }
 
   const matches = await User.aggregate([
     { $match: { $or: matchClauses } },
@@ -124,8 +143,8 @@ async function findUserByMobile(mobile) {
 
   if (!matches.length) return null;
 
-  const exactMatch = digits
-    ? matches.find((user) => normalizeMobileDigits(user.mobile) === digits)
+  const exactMatch = comparableDigits
+    ? matches.find((user) => getComparableMobileDigits(user.mobile) === comparableDigits)
     : null;
   const chosen = exactMatch || matches[0];
   return User.findById(chosen._id);

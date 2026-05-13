@@ -56,13 +56,21 @@ function normalizeMobileDigits(value) {
   return String(value || "").replace(/[^\d]/g, "");
 }
 
+function getComparableMobileDigits(value) {
+  const digits = normalizeMobileDigits(value);
+  if (digits.length === 12 && digits.startsWith("91")) return digits.slice(-10);
+  if (digits.length === 11 && digits.startsWith("0")) return digits.slice(-10);
+  if (digits.length > 10) return digits.slice(-10);
+  return digits;
+}
+
 async function findUserByMobile(mobile) {
   const matches = await findUsersByMobile(mobile);
   if (!matches.length) return null;
 
-  const digits = normalizeMobileDigits(mobile);
-  const exactMatch = digits
-    ? matches.find((user) => normalizeMobileDigits(user.mobile) === digits)
+  const comparableDigits = getComparableMobileDigits(mobile);
+  const exactMatch = comparableDigits
+    ? matches.find((user) => getComparableMobileDigits(user.mobile) === comparableDigits)
     : null;
   const chosen = exactMatch || matches[0];
   return User.findById(chosen._id);
@@ -71,7 +79,8 @@ async function findUserByMobile(mobile) {
 async function findUsersByMobile(mobile) {
   const candidates = getMobileLookupCandidates(mobile);
   const digits = normalizeMobileDigits(mobile);
-  if (!candidates.length && !digits) return [];
+  const comparableDigits = getComparableMobileDigits(mobile);
+  if (!candidates.length && !digits && !comparableDigits) return [];
 
   const matchClauses = [];
   if (candidates.length) {
@@ -83,6 +92,16 @@ async function findUsersByMobile(mobile) {
         $regexMatch: {
           input: { $toString: "$mobile" },
           regex: digits
+        }
+      }
+    });
+  }
+  if (comparableDigits && comparableDigits !== digits) {
+    matchClauses.push({
+      $expr: {
+        $regexMatch: {
+          input: { $toString: "$mobile" },
+          regex: comparableDigits
         }
       }
     });
@@ -293,42 +312,12 @@ router.post("/login", otpSendLimiter, async (req, res) => {
         retryAfterSeconds
       });
     }
-    let user = await findUserByMobile(mobileE164);
+    const user = await findUserByMobile(mobileE164);
     if (isSoftDeletedUser(user)) {
       reactivateSoftDeletedUser(user);
       await user.save();
     }
-    if (!user) {
-      user = await User.create({
-        mobile: mobileE164,
-        city: String(city || "").trim(),
-        roles: { buyer: true, seller: false, admin: false }
-      });
-      const matchedUsers = await findUsersByMobile(mobileE164);
-      if (matchedUsers.length > 1) {
-        const canonical = matchedUsers
-          .map((item) => ({
-            ...item,
-            digits: normalizeMobileDigits(item.mobile),
-            score:
-              (item.email ? 2 : 0) +
-              (item.roles?.seller ? 1 : 0) +
-              (item.sellerProfile?.registeredBusinessName ? 1 : 0)
-          }))
-          .filter((item) => item.digits === normalizeMobileDigits(mobileE164))
-          .sort((left, right) => {
-            if (right.score !== left.score) return right.score - left.score;
-            const leftTime = new Date(left.createdAt || 0).getTime();
-            const rightTime = new Date(right.createdAt || 0).getTime();
-            return leftTime - rightTime;
-          })[0];
-
-        if (canonical && String(canonical._id) !== String(user._id)) {
-          await User.findByIdAndDelete(user._id);
-          user = await User.findById(canonical._id);
-        }
-      }
-    } else if (user.mobile !== mobileE164) {
+    if (user && user.mobile !== mobileE164) {
       user.mobile = mobileE164;
       await user.save();
     }
@@ -450,9 +439,48 @@ router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
       return res.status(otpResult.reason === "locked" ? 429 : 401).json({ message });
     }
     
+    const normalizedRole = role === "seller" ? "seller" : "buyer";
     let user = await findUserByMobile(mobileE164);
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      if (normalizedRole === "seller") {
+        user = await User.create({
+          mobile: mobileE164,
+          city: String(city || "").trim(),
+          roles: { buyer: true, seller: false, admin: false }
+        });
+        const token = jwt.sign(
+          { id: user._id, role: normalizedRole, tokenVersion: user.tokenVersion || 0 },
+          process.env.JWT_SECRET,
+          { expiresIn: "7d" }
+        );
+        return res.status(200).json({
+          success: true,
+          requiresSellerRegistration: true,
+          user: {
+            _id: user._id,
+            email: user.email,
+            mobile: mobileE164,
+            role: normalizedRole,
+            roles: user.roles,
+            city: user.city,
+            name: user.name,
+            preferredCurrency: user.preferredCurrency || "INR",
+            sellerProfile: user.sellerProfile || {}
+          },
+          token
+        });
+      }
+      user = await User.create({
+        mobile: mobileE164,
+        city: String(city || "").trim(),
+        roles: { buyer: true, seller: false, admin: false }
+      });
+      queueAdminNewUserEmail({
+        user,
+        loginMethod: "mobile_otp",
+        requestedRole: normalizedRole
+      });
+      notifyNewBuyer(user.mobile || "", user.city || "", user.email);
     }
     if (isSoftDeletedUser(user)) {
       reactivateSoftDeletedUser(user);
@@ -469,7 +497,6 @@ router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
       await user.save();
     }
 
-    const normalizedRole = role === "seller" ? "seller" : "buyer";
     if (normalizedRole === "seller") {
       const hasSellerProfile = isCompleteSellerProfile(user);
       if (!hasSellerProfile) {
