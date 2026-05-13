@@ -186,7 +186,12 @@ export default function UserLogin({ role = "buyer" }) {
     const params = new URLSearchParams();
     const loginMobile = normalizeMobileValue(mobile || emailOrMobileFromUrl || "");
     if (loginMobile) params.set("mobile", loginMobile);
-    const waCity = cityFromUrl || localStorage.getItem("whatsapp_city") || "";
+    const sessionCity = String(getSession()?.city || getSession()?.sellerProfile?.city || "").trim();
+    const waCity =
+      cityFromUrl ||
+      sessionCity ||
+      localStorage.getItem("whatsapp_city") ||
+      "";
     const waCats = catsFromUrl || localStorage.getItem("whatsapp_categories") || "";
     if (waCity) params.set("city", waCity);
     if (waCats) params.set("cats", waCats);
