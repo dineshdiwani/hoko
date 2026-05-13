@@ -766,7 +766,7 @@ useEffect(() => {
           user,
           token: res.data.token,
           profile,
-          loginCity: resolvedCity || city
+          loginCity: city
         })) {
           return;
         }
@@ -778,7 +778,7 @@ useEffect(() => {
               role: user.role || currentRole,
               roles: user.roles,
               email: user.email || email,
-              city: resolvedCity || cityFromUrl || user.city || city || "",
+              city: cityFromUrl || user.city || city || "",
               name: buildDisplayName(user, currentRole, profile),
               preferredCurrency: user.preferredCurrency || "INR",
               mobile: user.mobile || mobile || "",
@@ -794,7 +794,7 @@ useEffect(() => {
               role: user.role || currentRole,
               roles: user.roles,
               email: user.email || email,
-              city: resolvedCity || user.city || city || cityFromUrl || "",
+              city: user.city || city || cityFromUrl || "",
               name: buildDisplayName(user, currentRole, profile),
               preferredCurrency: user.preferredCurrency || "INR",
               mobile: user.mobile || mobile || "",
@@ -830,13 +830,13 @@ useEffect(() => {
         }
         
         if (pendingLoginMethod === "email" || pendingLoginMethod === "mobile") {
-          if (resolvedCity) {
+          if (user.city || cityFromUrl) {
             setSession({
               _id: user._id,
               role: user.role || currentRole,
               roles: user.roles,
               email: user.email || (pendingLoginMethod === "email" ? email : ""),
-              city: resolvedCity,
+              city: cityFromUrl || user.city,
               name: buildDisplayName(user, currentRole, profile),
               preferredCurrency: user.preferredCurrency || "INR",
               mobile: user.mobile || mobile || "",
@@ -846,9 +846,9 @@ useEffect(() => {
             forceBuyerPostsTab();
             const dashboardParams = new URLSearchParams();
             dashboardParams.set("tab", "posts");
-            dashboardParams.set("city", resolvedCity);
+            if (cityFromUrl || user.city) dashboardParams.set("city", cityFromUrl || user.city);
             navigate(`/buyer/dashboard?${dashboardParams.toString()}`, { replace: true });
-          } else {
+          } else if (!user.city) {
             setPendingCitySession({
               _id: user._id,
               role: user.role || currentRole,
@@ -872,7 +872,7 @@ useEffect(() => {
           role: user.role || currentRole,
           roles: user.roles,
           email: user.email || email,
-          city: resolvedCity || user.city || city,
+          city: user.city || city,
           name: buildDisplayName(user, currentRole, profile),
           preferredCurrency: user.preferredCurrency || "INR",
           mobile: user.mobile || mobile || "",
@@ -910,7 +910,7 @@ useEffect(() => {
 
         setBuyerDashboardDefaultTab(city);
         const dashboardParams = new URLSearchParams();
-        if (resolvedCity || city) dashboardParams.set("city", resolvedCity || city);
+        if (city) dashboardParams.set("city", city);
         if (isSeller) dashboardParams.set("from", "seller-login");
         if (!isSeller) dashboardParams.set("tab", "posts");
         const targetDashboard = isSeller ? "/seller/dashboard" : "/buyer/dashboard";
