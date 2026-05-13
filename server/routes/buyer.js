@@ -49,7 +49,6 @@ const { setOtp, verifyOtp: verifyOtpCode } = require("../utils/otpStore");
 const { sendOtpEmail } = require("../utils/sendEmail");
 const { recordAppEvent } = require("../utils/appEvents");
 const { cleanupUserUploadFiles } = require("../utils/userDeletion");
-const { mergeUsersByCredentials } = require("../utils/userMerge");
 const {
   claimActionGuard,
   attachActionReference,
@@ -2070,32 +2069,48 @@ router.post("/profile", auth, buyerOnly, async (req, res) => {
     if (typeof email === "string" && email.trim()) {
       const existingUser = await User.findOne({ email: email.trim(), _id: { $ne: req.user._id } });
       if (existingUser) {
-        const mergeResult = await mergeUsersByCredentials({
-          targetUser: req.user,
-          sourceUsers: [existingUser],
-          candidateEmails: [email.trim()],
-          candidateMobiles: [req.user.mobile]
-        });
-        const mergedUser = mergeResult.user || req.user;
-        console.log(`[Account Merge] Merged duplicate buyer account ${existingUser._id} into ${mergedUser._id}`);
+        const requirementsMerged = await Requirement.updateMany(
+          { buyerId: req.user._id },
+          { $set: { buyerId: existingUser._id } }
+        );
+        await TempRequirement.updateMany(
+          { userId: req.user._id },
+          { $set: { userId: existingUser._id } }
+        );
+        existingUser.mobile = req.user.mobile;
+        if (existingUser.city && !existingUser.city.trim()) {
+          existingUser.city = req.user.city;
+        }
+        if (!existingUser.roles?.buyer) {
+          existingUser.roles = { ...existingUser.roles, buyer: true };
+        }
+        if (req.user.buyerSettings) {
+          existingUser.buyerSettings = {
+            ...existingUser.buyerSettings,
+            ...req.user.buyerSettings
+          };
+        }
+        await existingUser.save();
+        await User.findByIdAndDelete(req.user._id);
+        console.log(`[Account Merge] Merged WhatsApp user ${req.user._id} into Google user ${existingUser._id}, ${requirementsMerged.modifiedCount} requirements`);
         const token = jwt.sign(
-          { id: mergedUser._id, role: "buyer", tokenVersion: mergedUser.tokenVersion || 0 },
+          { id: existingUser._id, role: "buyer", tokenVersion: existingUser.tokenVersion || 0 },
           process.env.JWT_SECRET,
           { expiresIn: "7d" }
         );
         return res.json({
-          merged: Boolean(mergeResult.merged),
+          merged: true,
           message: "Account merged successfully!",
           token,
           user: {
-            _id: mergedUser._id,
-            email: mergedUser.email,
-            role: mergedUser.role,
-            roles: mergedUser.roles,
-            city: getEffectiveBuyerCity(mergedUser),
-            preferredCurrency: mergedUser.preferredCurrency || "INR",
-            mobile: mergedUser.mobile,
-            contactCompletion: getBuyerContactCompletion(mergedUser)
+            _id: existingUser._id,
+            email: existingUser.email,
+            role: existingUser.role,
+            roles: existingUser.roles,
+            city: getEffectiveBuyerCity(existingUser),
+            preferredCurrency: existingUser.preferredCurrency || "INR",
+            mobile: existingUser.mobile,
+            contactCompletion: getBuyerContactCompletion(existingUser)
           }
         });
       }
@@ -2104,32 +2119,48 @@ router.post("/profile", auth, buyerOnly, async (req, res) => {
     if (typeof mobile === "string" && mobile.trim()) {
       const existingMobileUser = await User.findOne({ mobile: mobile.trim(), _id: { $ne: req.user._id } });
       if (existingMobileUser) {
-        const mergeResult = await mergeUsersByCredentials({
-          targetUser: req.user,
-          sourceUsers: [existingMobileUser],
-          candidateEmails: [req.user.email],
-          candidateMobiles: [mobile.trim()]
-        });
-        const mergedUser = mergeResult.user || req.user;
-        console.log(`[Account Merge] Merged duplicate buyer account ${existingMobileUser._id} into ${mergedUser._id}`);
+        const requirementsMerged = await Requirement.updateMany(
+          { buyerId: req.user._id },
+          { $set: { buyerId: existingMobileUser._id } }
+        );
+        await TempRequirement.updateMany(
+          { userId: req.user._id },
+          { $set: { userId: existingMobileUser._id } }
+        );
+        existingMobileUser.email = req.user.email;
+        if (existingMobileUser.city && !existingMobileUser.city.trim()) {
+          existingMobileUser.city = req.user.city;
+        }
+        if (!existingMobileUser.roles?.buyer) {
+          existingMobileUser.roles = { ...existingMobileUser.roles, buyer: true };
+        }
+        if (req.user.buyerSettings) {
+          existingMobileUser.buyerSettings = {
+            ...existingMobileUser.buyerSettings,
+            ...req.user.buyerSettings
+          };
+        }
+        await existingMobileUser.save();
+        await User.findByIdAndDelete(req.user._id);
+        console.log(`[Account Merge] Merged Google user ${req.user._id} into WhatsApp user ${existingMobileUser._id}, ${requirementsMerged.modifiedCount} requirements`);
         const token = jwt.sign(
-          { id: mergedUser._id, role: "buyer", tokenVersion: mergedUser.tokenVersion || 0 },
+          { id: existingMobileUser._id, role: "buyer", tokenVersion: existingMobileUser.tokenVersion || 0 },
           process.env.JWT_SECRET,
           { expiresIn: "7d" }
         );
         return res.json({
-          merged: Boolean(mergeResult.merged),
+          merged: true,
           message: "Account merged successfully!",
           token,
           user: {
-            _id: mergedUser._id,
-            email: mergedUser.email,
-            role: mergedUser.role,
-            roles: mergedUser.roles,
-            city: getEffectiveBuyerCity(mergedUser),
-            preferredCurrency: mergedUser.preferredCurrency || "INR",
-            mobile: mergedUser.mobile,
-            contactCompletion: getBuyerContactCompletion(mergedUser)
+            _id: existingMobileUser._id,
+            email: existingMobileUser.email,
+            role: existingMobileUser.role,
+            roles: existingMobileUser.roles,
+            city: getEffectiveBuyerCity(existingMobileUser),
+            preferredCurrency: existingMobileUser.preferredCurrency || "INR",
+            mobile: existingMobileUser.mobile,
+            contactCompletion: getBuyerContactCompletion(existingMobileUser)
           }
         });
       }
@@ -2145,32 +2176,42 @@ router.post("/profile", auth, buyerOnly, async (req, res) => {
           const existingEmailUser = await User.findOne({ email: email, _id: { $ne: req.user._id } });
           if (existingEmailUser) {
             console.log("[Buyer Profile] Found existing user for merge:", existingEmailUser._id);
-            const mergeResult = await mergeUsersByCredentials({
-              targetUser: req.user,
-              sourceUsers: [existingEmailUser],
-              candidateEmails: [email],
-              candidateMobiles: [req.user.mobile]
-            });
-            const mergedUser = mergeResult.user || req.user;
-            console.log(`[Account Merge] Merged ${existingEmailUser._id} into ${mergedUser._id}`);
+            const requirementsMerged = await Requirement.updateMany(
+              { buyerId: req.user._id },
+              { $set: { buyerId: existingEmailUser._id } }
+            );
+            await TempRequirement.updateMany(
+              { userId: req.user._id },
+              { $set: { userId: existingEmailUser._id } }
+            );
+            existingEmailUser.mobile = req.user.mobile || existingEmailUser.mobile;
+            if (existingEmailUser.city && !existingEmailUser.city.trim()) {
+              existingEmailUser.city = req.user.city;
+            }
+            if (!existingEmailUser.roles?.buyer) {
+              existingEmailUser.roles = { ...existingEmailUser.roles, buyer: true };
+            }
+            await existingEmailUser.save();
+            await User.findByIdAndDelete(req.user._id);
+            console.log(`[Account Merge] Merged ${req.user._id} into ${existingEmailUser._id}, ${requirementsMerged.modifiedCount} requirements`);
             const token = jwt.sign(
-              { id: mergedUser._id, role: "buyer", tokenVersion: mergedUser.tokenVersion || 0 },
+              { id: existingEmailUser._id, role: "buyer", tokenVersion: existingEmailUser.tokenVersion || 0 },
               process.env.JWT_SECRET,
               { expiresIn: "7d" }
             );
             return res.json({
-              merged: Boolean(mergeResult.merged),
+              merged: true,
               message: "Account merged! Your posts and offers have been transferred.",
               token,
               user: {
-                _id: mergedUser._id,
-                email: mergedUser.email,
-                role: mergedUser.role,
-                roles: mergedUser.roles,
-                city: getEffectiveBuyerCity(mergedUser),
-                preferredCurrency: mergedUser.preferredCurrency || "INR",
-                mobile: mergedUser.mobile,
-                contactCompletion: getBuyerContactCompletion(mergedUser)
+                _id: existingEmailUser._id,
+                email: existingEmailUser.email,
+                role: existingEmailUser.role,
+                roles: existingEmailUser.roles,
+                city: getEffectiveBuyerCity(existingEmailUser),
+                preferredCurrency: existingEmailUser.preferredCurrency || "INR",
+                mobile: existingEmailUser.mobile,
+                contactCompletion: getBuyerContactCompletion(existingEmailUser)
               }
             });
           }
@@ -2230,51 +2271,6 @@ router.post("/profile", auth, buyerOnly, async (req, res) => {
     console.error("[Buyer Profile] Update failed:", err);
     if (err?.code === 11000) {
       const duplicateField = Object.keys(err?.keyPattern || {})[0] || "field";
-      if (duplicateField === "email" || duplicateField === "mobile") {
-        try {
-          const nextEmail = typeof update?.email === "string" ? update.email.trim().toLowerCase() : "";
-          const nextMobile = typeof update?.mobile === "string" ? normalizeE164(update.mobile) : "";
-          const conflictValue = duplicateField === "email" ? nextEmail : nextMobile;
-          const existingUser = conflictValue
-            ? await User.findOne({
-                [duplicateField]: conflictValue,
-                _id: { $ne: req.user._id }
-              })
-            : null;
-          if (existingUser) {
-            const mergeResult = await mergeUsersByCredentials({
-              targetUser: req.user,
-              sourceUsers: [existingUser],
-              patch: update,
-              candidateEmails: [nextEmail, req.user.email].filter(Boolean),
-              candidateMobiles: [nextMobile, req.user.mobile].filter(Boolean)
-            });
-            const mergedUser = mergeResult.user || req.user;
-            const token = jwt.sign(
-              { id: mergedUser._id, role: "buyer", tokenVersion: mergedUser.tokenVersion || 0 },
-              process.env.JWT_SECRET,
-              { expiresIn: "7d" }
-            );
-            return res.json({
-              merged: Boolean(mergeResult.merged),
-              message: "Account merged successfully!",
-              token,
-              user: {
-                _id: mergedUser._id,
-                email: mergedUser.email,
-                role: mergedUser.role,
-                roles: mergedUser.roles,
-                city: getEffectiveBuyerCity(mergedUser),
-                preferredCurrency: mergedUser.preferredCurrency || "INR",
-                mobile: mergedUser.mobile,
-                contactCompletion: getBuyerContactCompletion(mergedUser)
-              }
-            });
-          }
-        } catch (mergeErr) {
-          console.error("[Buyer Profile] Duplicate-field merge failed:", mergeErr);
-        }
-      }
       return res.status(400).json({
         message: `This ${duplicateField} is already registered. Please use a different value.`
       });
@@ -2361,27 +2357,7 @@ router.post("/profile/confirm-contact", auth, buyerOnly, async (req, res) => {
       }
       const existingUser = await User.findOne({ email: email.trim().toLowerCase(), _id: { $ne: req.user._id } });
       if (existingUser) {
-        const mergeResult = await mergeUsersByCredentials({
-          targetUser: req.user,
-          sourceUsers: [existingUser],
-          candidateEmails: [email.trim().toLowerCase()],
-          candidateMobiles: [req.user.mobile]
-        });
-        const mergedUser = mergeResult.user || req.user;
-        const token = jwt.sign(
-          { id: mergedUser._id, role: "buyer", tokenVersion: mergedUser.tokenVersion || 0 },
-          process.env.JWT_SECRET,
-          { expiresIn: "7d" }
-        );
-        return res.json({
-          merged: Boolean(mergeResult.merged),
-          ok: true,
-          user: {
-            email: mergedUser.email,
-            mobile: mergedUser.mobile
-          },
-          token
-        });
+        return res.status(409).json({ message: "This email is already in use by another account" });
       }
       req.user.email = email.trim().toLowerCase();
     }
@@ -2394,27 +2370,7 @@ router.post("/profile/confirm-contact", auth, buyerOnly, async (req, res) => {
       const normalizedMobile = normalizeE164(mobile);
       const existingMobileUser = await User.findOne({ mobile: normalizedMobile, _id: { $ne: req.user._id } });
       if (existingMobileUser) {
-        const mergeResult = await mergeUsersByCredentials({
-          targetUser: req.user,
-          sourceUsers: [existingMobileUser],
-          candidateEmails: [req.user.email],
-          candidateMobiles: [normalizedMobile]
-        });
-        const mergedUser = mergeResult.user || req.user;
-        const token = jwt.sign(
-          { id: mergedUser._id, role: "buyer", tokenVersion: mergedUser.tokenVersion || 0 },
-          process.env.JWT_SECRET,
-          { expiresIn: "7d" }
-        );
-        return res.json({
-          merged: Boolean(mergeResult.merged),
-          ok: true,
-          user: {
-            email: mergedUser.email,
-            mobile: mergedUser.mobile
-          },
-          token
-        });
+        return res.status(409).json({ message: "This mobile number is already in use by another account" });
       }
       req.user.mobile = normalizedMobile;
     }

@@ -30,7 +30,6 @@ const { normalizeOfferInvitedFrom, getEffectiveRequirementStatus } = require("..
 const { isCompleteSellerProfile } = require("../utils/sellerProfile");
 const { notifyNewOffer, notifyReverseAuction } = require("../services/adminNotifications");
 const { cleanupUserUploadFiles } = require("../utils/userDeletion");
-const { mergeUsersByCredentials } = require("../utils/userMerge");
 const { setOtp, verifyOtp: verifyOtpCode } = require("../utils/otpStore");
 const { sendOtpEmail } = require("../utils/sendEmail");
 const { sendOtpSms, sendEventSms } = require("../utils/sendSms");
@@ -577,20 +576,30 @@ router.post("/onboard", auth, async (req, res) => {
     if (err?.code === 11000 && err?.keyPattern?.email) {
       const existingUser = await User.findOne({ email: emailValue });
       if (!existingUser) throw err;
-      const mergeResult = await mergeUsersByCredentials({
-        targetUser: req.user,
-        sourceUsers: [existingUser],
-        candidateEmails: [emailValue],
-        candidateMobiles: [mobileValue],
-        patch: {
+
+      const currentUserId = req.user._id;
+      const targetUserId = existingUser._id;
+
+      await Offer.updateMany({ seller: currentUserId }, { $set: { seller: targetUserId } });
+      await Requirement.updateMany({ buyer: currentUserId }, { $set: { buyer: targetUserId } });
+      await Notification.updateMany({ to: currentUserId }, { $set: { to: targetUserId } });
+      await ChatMessage.updateMany({ from: currentUserId }, { $set: { from: targetUserId } });
+      await ChatMessage.updateMany({ to: currentUserId }, { $set: { to: targetUserId } });
+      await PendingOfferDraft.updateMany({ seller: currentUserId }, { $set: { seller: targetUserId } });
+
+      await User.findByIdAndDelete(currentUserId);
+
+      const mergedUser = await User.findByIdAndUpdate(
+        targetUserId,
+        {
           ...update,
           "roles.seller": true
-        }
-      });
-      const mergedUser = mergeResult.user || req.user;
+        },
+        { new: true }
+      );
 
       const token = jwt.sign(
-        { id: mergedUser._id, role: "seller", tokenVersion: mergedUser.tokenVersion || 0 },
+        { id: mergedUser._id, role: "seller", tokenVersion: mergedUser.tokenVersion },
         process.env.JWT_SECRET,
         { expiresIn: "30d" }
       );
@@ -611,8 +620,7 @@ router.post("/onboard", auth, async (req, res) => {
         email: mergedUser?.email,
         roles: mergedUser?.roles,
         termsAccepted: mergedUser?.termsAccepted,
-        token,
-        merged: Boolean(mergeResult.merged)
+        token
       });
     }
     throw err;
@@ -709,40 +717,6 @@ router.post("/profile", auth, sellerOnly, async (req, res) => {
     console.error("[Seller Profile] Update failed:", err);
     if (err?.code === 11000) {
       const duplicateField = Object.keys(err?.keyPattern || {})[0] || "field";
-      if (duplicateField === "email" || duplicateField === "mobile") {
-        try {
-          const nextEmail = typeof update?.email === "string" ? update.email.trim().toLowerCase() : "";
-          const nextMobile = typeof update?.mobile === "string" ? normalizeE164(update.mobile) : "";
-          const conflictValue = duplicateField === "email" ? nextEmail : nextMobile;
-          const existingUser = conflictValue
-            ? await User.findOne({
-                [duplicateField]: conflictValue,
-                _id: { $ne: req.user._id }
-              })
-            : null;
-          if (existingUser) {
-            const mergeResult = await mergeUsersByCredentials({
-              targetUser: req.user,
-              sourceUsers: [existingUser],
-              patch: update,
-              candidateEmails: [nextEmail, req.user.email].filter(Boolean),
-              candidateMobiles: [nextMobile, req.user.mobile].filter(Boolean)
-            });
-            const mergedUser = mergeResult.user || req.user;
-            return res.json({
-              merged: Boolean(mergeResult.merged),
-              name: mergedUser?.name || "",
-              sellerProfile: mergedUser?.sellerProfile || {},
-              city: mergedUser?.city,
-              email: mergedUser?.email || "",
-              preferredCurrency: mergedUser?.preferredCurrency || "INR",
-              sellerSettings: mergedUser?.sellerSettings || {}
-            });
-          }
-        } catch (mergeErr) {
-          console.error("[Seller Profile] Duplicate-field merge failed:", mergeErr);
-        }
-      }
       return res.status(400).json({
         message: `This ${duplicateField} is already registered. Please use a different value.`
       });
@@ -877,21 +851,7 @@ router.post("/profile/confirm-contact", auth, sellerOnly, async (req, res) => {
       }
       const existingUser = await User.findOne({ email: email.trim().toLowerCase(), _id: { $ne: req.user._id } });
       if (existingUser) {
-        const mergeResult = await mergeUsersByCredentials({
-          targetUser: req.user,
-          sourceUsers: [existingUser],
-          candidateEmails: [email.trim().toLowerCase()],
-          candidateMobiles: [req.user.mobile]
-        });
-        const mergedUser = mergeResult.user || req.user;
-        return res.json({
-          merged: Boolean(mergeResult.merged),
-          ok: true,
-          user: {
-            email: mergedUser.email,
-            mobile: mergedUser.mobile
-          }
-        });
+        return res.status(409).json({ message: "This email is already in use by another account" });
       }
       req.user.email = email.trim().toLowerCase();
     }
@@ -904,21 +864,7 @@ router.post("/profile/confirm-contact", auth, sellerOnly, async (req, res) => {
       const normalizedMobile = normalizeE164(mobile);
       const existingMobileUser = await User.findOne({ mobile: normalizedMobile, _id: { $ne: req.user._id } });
       if (existingMobileUser) {
-        const mergeResult = await mergeUsersByCredentials({
-          targetUser: req.user,
-          sourceUsers: [existingMobileUser],
-          candidateEmails: [req.user.email],
-          candidateMobiles: [normalizedMobile]
-        });
-        const mergedUser = mergeResult.user || req.user;
-        return res.json({
-          merged: Boolean(mergeResult.merged),
-          ok: true,
-          user: {
-            email: mergedUser.email,
-            mobile: mergedUser.mobile
-          }
-        });
+        return res.status(409).json({ message: "This mobile number is already in use by another account" });
       }
       req.user.mobile = normalizedMobile;
     }
