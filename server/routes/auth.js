@@ -145,7 +145,12 @@ function ensureRoles(user) {
 }
 
 function getEffectiveBuyerCity(user) {
-  const city = String(user?.city || user?.buyerSettings?.defaultCity || "").trim();
+  const city = String(
+    user?.city ||
+      user?.buyerSettings?.defaultCity ||
+      user?.sellerProfile?.city ||
+      ""
+  ).trim();
   return city && city.toLowerCase() !== "user_default" ? city : "";
 }
 

@@ -79,6 +79,16 @@ function getSellerAddress(user) {
   return String(user?.address || user?.sellerProfile?.businessAddress || "").trim();
 }
 
+function getEffectiveSellerCity(user) {
+  const city = String(
+    user?.city ||
+      user?.buyerSettings?.defaultCity ||
+      user?.sellerProfile?.city ||
+      ""
+  ).trim();
+  return city && city.toLowerCase() !== "user_default" ? city : "";
+}
+
 function safeFilename(originalname) {
   const ext = path.extname(String(originalname || "")).toLowerCase();
   const base = path
@@ -580,7 +590,7 @@ router.post("/onboard", auth, async (req, res) => {
 
     return res.json({
       sellerProfile: user?.sellerProfile || {},
-      city: user?.city,
+      city: getEffectiveSellerCity(user),
       email: user?.email,
       roles: user?.roles,
       termsAccepted: user?.termsAccepted
@@ -802,7 +812,7 @@ router.get("/profile", auth, sellerOnly, async (req, res) => {
     sellerProfile: user?.sellerProfile || {},
     email: user?.email || "",
     mobile: user?.mobile || "",
-    city: user?.city,
+    city: getEffectiveSellerCity(user),
     address: getSellerAddress(user),
     preferredCurrency: user?.preferredCurrency || "INR",
     terms: {

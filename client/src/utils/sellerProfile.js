@@ -17,18 +17,16 @@ function normalizeCategories(categories) {
 
 export function getSellerProfileStatus(subject = {}) {
   const sellerProfile = subject?.sellerProfile || {};
-  const sellerRole = subject?.role === "seller" || Boolean(subject?.roles?.seller);
   const sellerFields = {
     email: normalizeText(subject?.email),
     mobile: normalizeText(subject?.mobile),
-    city: normalizeText(subject?.city),
+    city: normalizeText(subject?.city || subject?.buyerSettings?.defaultCity || sellerProfile.city),
     registeredBusinessName: normalizeText(sellerProfile.registeredBusinessName),
     managerName: normalizeText(sellerProfile.managerName),
     categories: normalizeCategories(sellerProfile.categories)
   };
 
   const missing = [];
-  if (!sellerRole) missing.push("seller role");
   if (!sellerFields.email) missing.push("email");
   if (!sellerFields.mobile) missing.push("mobile");
   if (!sellerFields.city) missing.push("city");
