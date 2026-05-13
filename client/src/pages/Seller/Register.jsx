@@ -21,6 +21,8 @@ import { isCompleteSellerProfile } from "../../utils/sellerProfile";
 export default function SellerRegister() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const sourceFromUrl = String(searchParams.get("from") || "").trim().toLowerCase();
+  const isWhatsAppSellerRegister = sourceFromUrl === "wa";
   const normalizeMobileValue = (value) => {
     const raw = String(value || "").trim();
     if (!raw) return "";
@@ -30,6 +32,13 @@ export default function SellerRegister() {
   const mobileFromUrl = normalizeMobileValue(searchParams.get("mobile") || "");
   const cityFromUrl = searchParams.get("city") || "";
   const catsFromUrl = searchParams.get("cats") || "";
+  const cachedSellerProfile = (() => {
+    try {
+      return JSON.parse(localStorage.getItem("seller_profile") || "{}");
+    } catch {
+      return {};
+    }
+  })();
   const session = getSession();
   const sessionCity = String(session?.city || "").trim();
 
@@ -45,6 +54,7 @@ export default function SellerRegister() {
     taxId: "",
     city:
       cityFromUrl ||
+      String(cachedSellerProfile.city || "").trim() ||
       (() => {
         const sharedCity = String(getUiCitySelection(sessionCity || localStorage.getItem("whatsapp_city") || "")).trim();
         if (sharedCity && sharedCity.toLowerCase() !== "all") return sharedCity;
@@ -88,7 +98,7 @@ export default function SellerRegister() {
             if (whatsappMobile && !prev.mobile) {
               next.mobile = whatsappMobile;
             }
-            if (whatsappCats && Array.isArray(data.categories)) {
+            if (isWhatsAppSellerRegister && whatsappCats && Array.isArray(data.categories)) {
               const catArray = whatsappCats.includes(",") ? whatsappCats.split(",") : [whatsappCats];
               const selectedCats = catArray.filter(c => data.categories.includes(c));
               if (selectedCats.length > 0) {
@@ -103,7 +113,7 @@ export default function SellerRegister() {
         }
       })
       .catch(() => {});
-  }, [sessionCity, cityFromUrl, catsFromUrl, mobileFromUrl]);
+  }, [sessionCity, cityFromUrl, catsFromUrl, mobileFromUrl, isWhatsAppSellerRegister]);
 
   useEffect(() => {
     const currentSession = getSession();
@@ -255,6 +265,25 @@ export default function SellerRegister() {
         roles: { ...(session?.roles || {}), seller: true }
       };
       setSession(updatedSession);
+      try {
+        localStorage.setItem(
+          "seller_profile",
+          JSON.stringify({
+            ...(res.data.sellerProfile || {}),
+            registeredBusinessName,
+            managerName,
+            city,
+            email,
+            mobile,
+            categories,
+            registrationDetails: seller.registrationDetails || "",
+            businessAddress: seller.businessAddress || "",
+            ownerName: seller.ownerName || "",
+            website: seller.website || "",
+            taxId: seller.taxId || ""
+          })
+        );
+      } catch {}
       setUiCitySelection(res.data.city || city);
       alert("Registration submitted successfully!");
       const deferredDeepLink = getDeferredDeepLink();

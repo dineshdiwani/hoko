@@ -103,12 +103,19 @@ export default function UserLogin({ role = "buyer" }) {
       })()
     : normalizeMobileValue(rawMobile);
   const hasMobileInUrl = Boolean(emailOrMobileFromUrl);
+  const cachedSellerProfile = (() => {
+    try {
+      return JSON.parse(localStorage.getItem("seller_profile") || "{}");
+    } catch {
+      return {};
+    }
+  })();
 
   const [email, setEmail] = useState("");
   const [emailOrMobile, setEmailOrMobile] = useState(emailOrMobileFromUrl);
   const [mobile, setMobile] = useState("");
   const [otp, setOtp] = useState("");
-  const [city, setCity] = useState(cityFromUrl);
+  const [city, setCity] = useState(cityFromUrl || String(cachedSellerProfile?.city || "").trim());
   const [otpLoading, setOtpLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(true);

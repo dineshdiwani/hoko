@@ -123,7 +123,7 @@ const data = res.data || {};
     }
     setSaving(true);
     try {
-const res = await api.post("/seller/profile", {
+      const res = await api.post("/seller/profile", {
         name: profile.name,
         email: profile.email,
         registeredBusinessName: profile.registeredBusinessName,
@@ -144,6 +144,26 @@ const res = await api.post("/seller/profile", {
         preferredCurrency:
           res.data?.preferredCurrency || profile.preferredCurrency
       });
+      try {
+        localStorage.setItem(
+          "seller_profile",
+          JSON.stringify({
+            ...(res.data?.sellerProfile || {}),
+            name: profile.name || "",
+            email: res.data?.email || profile.email || "",
+            city: res.data?.city || profile.city || "",
+            preferredCurrency:
+              res.data?.preferredCurrency || profile.preferredCurrency || "INR",
+            registeredBusinessName: profile.registeredBusinessName || "",
+            registrationDetails: profile.registrationDetails || "",
+            businessAddress: profile.businessAddress || "",
+            ownerName: profile.ownerName || "",
+            managerName: profile.managerName || "",
+            website: profile.website || "",
+            taxId: profile.taxId || ""
+          })
+        );
+      } catch {}
       setUiCitySelection(res.data?.city || profile.city || "");
       alert("Seller profile updated");
     } catch {
