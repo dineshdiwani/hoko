@@ -57,9 +57,21 @@ function normalizeMobileDigits(value) {
 }
 
 async function findUserByMobile(mobile) {
+  const matches = await findUsersByMobile(mobile);
+  if (!matches.length) return null;
+
+  const digits = normalizeMobileDigits(mobile);
+  const exactMatch = digits
+    ? matches.find((user) => normalizeMobileDigits(user.mobile) === digits)
+    : null;
+  const chosen = exactMatch || matches[0];
+  return User.findById(chosen._id);
+}
+
+async function findUsersByMobile(mobile) {
   const candidates = getMobileLookupCandidates(mobile);
   const digits = normalizeMobileDigits(mobile);
-  if (!candidates.length && !digits) return null;
+  if (!candidates.length && !digits) return [];
 
   const matchClauses = [];
   if (candidates.length) {
@@ -81,13 +93,7 @@ async function findUserByMobile(mobile) {
     { $limit: 20 }
   ]);
 
-  if (!matches.length) return null;
-
-  const exactMatch = digits
-    ? matches.find((user) => normalizeMobileDigits(user.mobile) === digits)
-    : null;
-  const chosen = exactMatch || matches[0];
-  return User.findById(chosen._id);
+  return matches;
 }
 
 function generateOtp() {
@@ -298,6 +304,30 @@ router.post("/login", otpSendLimiter, async (req, res) => {
         city: String(city || "").trim(),
         roles: { buyer: true, seller: false, admin: false }
       });
+      const matchedUsers = await findUsersByMobile(mobileE164);
+      if (matchedUsers.length > 1) {
+        const canonical = matchedUsers
+          .map((item) => ({
+            ...item,
+            digits: normalizeMobileDigits(item.mobile),
+            score:
+              (item.email ? 2 : 0) +
+              (item.roles?.seller ? 1 : 0) +
+              (item.sellerProfile?.registeredBusinessName ? 1 : 0)
+          }))
+          .filter((item) => item.digits === normalizeMobileDigits(mobileE164))
+          .sort((left, right) => {
+            if (right.score !== left.score) return right.score - left.score;
+            const leftTime = new Date(left.createdAt || 0).getTime();
+            const rightTime = new Date(right.createdAt || 0).getTime();
+            return leftTime - rightTime;
+          })[0];
+
+        if (canonical && String(canonical._id) !== String(user._id)) {
+          await User.findByIdAndDelete(user._id);
+          user = await User.findById(canonical._id);
+        }
+      }
     } else if (user.mobile !== mobileE164) {
       user.mobile = mobileE164;
       await user.save();
