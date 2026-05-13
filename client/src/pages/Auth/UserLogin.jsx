@@ -225,18 +225,47 @@ export default function UserLogin({ role = "buyer" }) {
   useEffect(() => {
     const session = getSession();
     const sellerIntentActive = isSeller || loginIntentSeller;
-    if (sellerIntentActive && session?.token) {
-      const sellerProfile = session?.sellerProfile || {};
-      const hasSellerProfile = hasCompleteSellerProfile(session, sellerProfile);
-      if (hasSellerProfile) {
-        navigate(buildSellerDashboardRedirect(session?.city || cityFromUrl || ""), {
-          replace: true
-        });
-        return;
-      }
 
-      navigate(buildSellerRegisterRedirect(), { replace: true });
-      return;
+    if (sellerIntentActive && session?.token) {
+      let cancelled = false;
+
+      (async () => {
+        try {
+          const res = await api.post("/auth/switch-role", { role: "seller" });
+          if (cancelled) return;
+
+          if (res?.data?.requiresSellerRegistration) {
+            const sellerProfile = res.data.user?.sellerProfile || session?.sellerProfile || {};
+            setSession({
+              ...session,
+              ...res.data.user,
+              role: "seller",
+              sellerProfile,
+              token: res.data.token
+            });
+            navigate(buildSellerRegisterRedirect(), { replace: true });
+            return;
+          }
+
+          const nextUser = res?.data?.user || {};
+          const nextCity = String(nextUser.city || session?.city || cityFromUrl || "").trim();
+          setSession({
+            ...session,
+            ...nextUser,
+            role: "seller",
+            sellerProfile: nextUser.sellerProfile || session?.sellerProfile || {},
+            token: res.data.token
+          });
+          navigate(buildSellerDashboardRedirect(nextCity), { replace: true });
+        } catch {
+          if (cancelled) return;
+          navigate(buildSellerRegisterRedirect(), { replace: true });
+        }
+      })();
+
+      return () => {
+        cancelled = true;
+      };
     }
 
     if (session?.role === currentRole && session?.token) {
