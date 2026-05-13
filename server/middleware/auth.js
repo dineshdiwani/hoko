@@ -21,6 +21,9 @@ module.exports = async function auth(req, res, next) {
     if (req.user.blocked) {
       return res.status(403).json({ message: "User blocked" });
     }
+    if (req.user.deletedAt) {
+      return res.status(403).json({ message: "User account deleted" });
+    }
     next();
   } catch {
     res.status(401).json({ message: "Invalid token" });

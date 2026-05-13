@@ -29,6 +29,7 @@ const { normalizeE164, sendViaGupshupTemplate, sendWhatsAppMessage } = require("
 const { normalizeOfferInvitedFrom, getEffectiveRequirementStatus } = require("../utils/sharedUtils");
 const { isCompleteSellerProfile } = require("../utils/sellerProfile");
 const { notifyNewOffer, notifyReverseAuction } = require("../services/adminNotifications");
+const { cleanupUserUploadFiles } = require("../utils/userDeletion");
 const { setOtp, verifyOtp: verifyOtpCode } = require("../utils/otpStore");
 const { sendOtpEmail } = require("../utils/sendEmail");
 const { sendOtpSms, sendEventSms } = require("../utils/sendSms");
@@ -892,6 +893,8 @@ router.delete("/account", auth, sellerOnly, async (req, res) => {
     .select("_id")
     .lean();
   const reqIds = requirements.map((item) => item._id);
+
+  await cleanupUserUploadFiles({ userId, userDoc: req.user });
 
   await Promise.all([
     Requirement.deleteMany({ buyerId: userId }),

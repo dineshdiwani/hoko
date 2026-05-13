@@ -48,6 +48,7 @@ const { otpSendLimiter, otpVerifyLimiter, requirementCreateLimiter } = require("
 const { setOtp, verifyOtp: verifyOtpCode } = require("../utils/otpStore");
 const { sendOtpEmail } = require("../utils/sendEmail");
 const { recordAppEvent } = require("../utils/appEvents");
+const { cleanupUserUploadFiles } = require("../utils/userDeletion");
 const {
   claimActionGuard,
   attachActionReference,
@@ -2674,12 +2675,7 @@ router.delete("/account", auth, buyerOnly, async (req, res) => {
     .lean();
   const reqIds = requirements.map((item) => item._id);
 
-  const settings = getFreshBuyerSettings(req.user);
-  (settings.documents || []).forEach((doc) => {
-    if (doc?.filename) {
-      removeFileIfExists(path.join(buyerDocUploadDir, doc.filename));
-    }
-  });
+  await cleanupUserUploadFiles({ userId, userDoc: req.user });
 
   await Promise.all([
     Requirement.deleteMany({ buyerId: userId }),

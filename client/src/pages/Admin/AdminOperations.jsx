@@ -242,6 +242,26 @@ export default function AdminOperations() {
     await loadData();
   };
 
+  const softDeleteUser = async (user) => {
+    if (!user?._id) return;
+    const label = user.email || user.phone || user._id;
+    if (!await confirmDialog(`Soft delete ${label}? This will revoke access but keep the record for audit.`)) return;
+    await api.post(`/admin/user/${user._id}/soft-delete`, {
+      reason: "Soft deleted from admin operations"
+    });
+    logActivity("User Soft Deleted", `User ID: ${user._id}`);
+    await Promise.all([loadData(), loadKpis()]);
+  };
+
+  const deleteUser = async (user) => {
+    if (!user?._id) return;
+    const label = user.email || user.phone || user._id;
+    if (!await confirmDialog(`Permanently delete ${label}? This cannot be undone.`)) return;
+    await api.delete(`/admin/user/${user._id}`);
+    logActivity("User Deleted", `User ID: ${user._id}`);
+    await Promise.all([loadData(), loadKpis()]);
+  };
+
   const toggleUserChat = async (userId, disabled) => {
     await api.post("/admin/user/chat-toggle", { userId, disabled });
     logActivity(disabled ? "Chat Disabled" : "Chat Enabled", `User ID: ${userId}`);
@@ -762,7 +782,7 @@ export default function AdminOperations() {
           <div>
             <h2 className="text-lg font-bold mb-3">Users ({filteredUsers.length})</h2>
             <div className="space-y-2">
-              {filteredUsers.slice(0, 50).map((user) => (
+              {filteredUsers.map((user) => (
                 <div key={user._id} className="bg-white border rounded-xl p-3 flex flex-col md:flex-row md:justify-between md:items-center gap-3">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
@@ -770,6 +790,7 @@ export default function AdminOperations() {
                       {user.roles?.admin && <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded">Admin</span>}
                       {user.roles?.seller && <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded">Seller</span>}
                       {user.roles?.buyer && <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded">Buyer</span>}
+                      {user.deletedAt && <span className="px-2 py-0.5 bg-gray-200 text-gray-700 text-xs rounded">Soft Deleted</span>}
                       {user.blocked && <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded">Blocked</span>}
                     </div>
                     <p className="text-xs text-gray-500">{user.city || "N/A"} | {user.phone || "No phone"}</p>
@@ -777,6 +798,7 @@ export default function AdminOperations() {
                       <div className="mt-2 text-xs text-gray-600 space-y-1 bg-gray-50 p-2 rounded">
                         <div>ID: {user._id}</div>
                         <div>Joined: {new Date(user.createdAt).toLocaleString()}</div>
+                        {user.deletedAt && <div>Deleted: {formatDate(user.deletedAt)}</div>}
                         <div>Chat: {user.chatDisabled ? "Disabled" : "Enabled"}</div>
                         {user.sellerProfile && <div>Seller Approved: {user.sellerProfile.approved ? "Yes" : "No"}</div>}
                       </div>
@@ -786,19 +808,44 @@ export default function AdminOperations() {
                     <button onClick={() => toggleUserDetails(user._id)} className="px-3 py-1.5 rounded-lg text-xs border border-gray-300 bg-white">
                       {expandedUsers.has(user._id) ? "Hide" : "Details"}
                     </button>
-                    <button onClick={() => forceLogoutUser(user._id)} className="px-3 py-1.5 rounded-lg text-xs border border-gray-300 bg-white">Logout</button>
+                    <button
+                      onClick={() => forceLogoutUser(user._id)}
+                      className="px-3 py-1.5 rounded-lg text-xs border border-gray-300 bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={Boolean(user.deletedAt)}
+                    >
+                      Logout
+                    </button>
                     <button
                       onClick={() => toggleUserChat(user._id, !user.chatDisabled)}
-                      className={`px-3 py-1.5 rounded-lg text-xs ${user.chatDisabled ? "bg-amber-100 text-amber-700" : "border border-gray-300 bg-white"}`}
+                      className={`px-3 py-1.5 rounded-lg text-xs disabled:opacity-50 disabled:cursor-not-allowed ${user.chatDisabled ? "bg-amber-100 text-amber-700" : "border border-gray-300 bg-white"}`}
+                      disabled={Boolean(user.deletedAt)}
                     >
                       {user.chatDisabled ? "Enable Chat" : "Disable Chat"}
                     </button>
                     {!user.roles?.admin && (
                       <button
                         onClick={() => toggleUserBlock(user._id, !user.blocked)}
-                        className={`px-3 py-1.5 rounded-lg text-xs text-white ${user.blocked ? "bg-gray-500" : "bg-red-500"}`}
+                        className={`px-3 py-1.5 rounded-lg text-xs text-white disabled:opacity-50 disabled:cursor-not-allowed ${user.blocked ? "bg-gray-500" : "bg-red-500"}`}
+                        disabled={Boolean(user.deletedAt)}
                       >
                         {user.blocked ? "Unblock" : "Block"}
+                      </button>
+                    )}
+                    {!user.roles?.admin && (
+                      <button
+                        onClick={() => softDeleteUser(user)}
+                        className="px-3 py-1.5 rounded-lg text-xs text-white bg-gray-800"
+                        disabled={Boolean(user.deletedAt)}
+                      >
+                        {user.deletedAt ? "Soft Deleted" : "Soft Delete"}
+                      </button>
+                    )}
+                    {!user.roles?.admin && (
+                      <button
+                        onClick={() => deleteUser(user)}
+                        className="px-3 py-1.5 rounded-lg text-xs text-white bg-black"
+                      >
+                        Delete
                       </button>
                     )}
                     {user.roles?.seller && !user.roles?.admin && (

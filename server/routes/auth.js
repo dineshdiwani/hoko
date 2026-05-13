@@ -48,6 +48,7 @@ async function mergeSoftUserRequirements(userId, mobileE164) {
     mobile: mobileE164,
     _id: { $ne: userId },
     passwordHash: { $exists: false },
+    deletedAt: null,
     $or: [{ email: { $exists: false } }, { email: "" }]
   }).lean();
 
@@ -168,6 +169,10 @@ function ensureRoles(user) {
   };
 }
 
+function isSoftDeletedUser(user) {
+  return Boolean(user?.deletedAt);
+}
+
 function queueAdminNewUserEmail({ user, loginMethod, requestedRole }) {
   const userId = String(user?._id || "").trim();
   if (!userId) return;
@@ -207,6 +212,9 @@ router.post("/login", otpSendLimiter, async (req, res) => {
       });
     }
     let user = await User.findOne({ mobile: mobileE164 });
+    if (isSoftDeletedUser(user)) {
+      return res.status(403).json({ message: "User account deleted" });
+    }
     if (!user) {
       user = await User.create({
         mobile: mobileE164,
@@ -256,6 +264,9 @@ const otp = generateOtp();
   }
 
 let user = await User.findOne({ email: normalizedEmail });
+  if (isSoftDeletedUser(user)) {
+    return res.status(403).json({ message: "User account deleted" });
+  }
   if (!user) {
     if (normalizedRole === "seller" && !city) {
       return res.status(403).json({
@@ -330,6 +341,9 @@ router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
     }
     
     let user = await User.findOne({ mobile: mobileE164 });
+    if (isSoftDeletedUser(user)) {
+      return res.status(403).json({ message: "User account deleted" });
+    }
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -431,6 +445,9 @@ router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
   let user = await User.findOne({ email: normalizedEmail });
   if (!user) {
     return res.status(404).json({ message: "User not found" });
+  }
+  if (isSoftDeletedUser(user)) {
+    return res.status(403).json({ message: "User account deleted" });
   }
   ensureRoles(user);
 
@@ -575,6 +592,9 @@ router.post("/google", async (req, res) => {
     const normalizedRole = role === "seller" ? "seller" : "buyer";
 
     let user = await User.findOne({ email });
+    if (isSoftDeletedUser(user)) {
+      return res.status(403).json({ message: "User account deleted" });
+    }
     if (!user) {
       if (!city) {
         return res.status(400).json({ message: "City required" });

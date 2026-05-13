@@ -66,6 +66,20 @@ termsAccepted: {
       default: false
     },
 
+    deletedAt: {
+      type: Date,
+      default: null
+    },
+    deletedByAdminId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Admin",
+      default: null
+    },
+    deletedReason: {
+      type: String,
+      default: ""
+    },
+
     tokenVersion: {
       type: Number,
       default: 0

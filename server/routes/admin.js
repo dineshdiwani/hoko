@@ -53,6 +53,7 @@ const {
 } = require("../config/platformDefaults");
 const { isFirebaseMessagingConfigured } = require("../utils/firebaseAdmin");
 const { notifySellerApproved } = require("../services/adminNotifications");
+const { cleanupUserUploadFiles } = require("../utils/userDeletion");
 const router = require("express").Router();
 const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
@@ -877,6 +878,97 @@ router.post("/user/chat-toggle", adminAuth, requireAdminPermission("users.manage
   };
   await User.findByIdAndUpdate(userId, update);
   await logAdminAction(req.admin, "chat_toggle_user", "user", userId, update);
+  res.json({ success: true });
+});
+
+/**
+ * Soft delete a user for audit purposes
+ */
+router.post("/user/:userId/soft-delete", adminAuth, requireAdminPermission("users.manage"), async (req, res) => {
+  const userId = String(req.params.userId || "").trim();
+  if (!userId) {
+    return res.status(400).json({ message: "userId required" });
+  }
+  if (String(req.admin?._id) === userId) {
+    return res.status(400).json({ message: "You cannot soft delete your own admin account" });
+  }
+
+  const user = await User.findById(userId);
+  if (!user) {
+    return res.status(404).json({ message: "User not found" });
+  }
+  if (user.roles?.admin) {
+    return res.status(400).json({ message: "Admin accounts cannot be soft deleted from operations" });
+  }
+
+  if (user.deletedAt) {
+    return res.status(409).json({ message: "User is already soft deleted" });
+  }
+
+  user.deletedAt = new Date();
+  user.deletedByAdminId = req.admin?._id || null;
+  user.deletedReason = String(req.body?.reason || "Soft deleted by admin").trim();
+  user.blocked = true;
+  user.tokenVersion = (user.tokenVersion || 0) + 1;
+  await user.save();
+
+  await logAdminAction(req.admin, "user_soft_delete", "user", userId, {
+    deletedRoles: user.roles || {},
+    reason: user.deletedReason
+  });
+
+  res.json({ success: true, softDeleted: true });
+});
+
+/**
+ * Permanently delete a user and related data
+ */
+router.delete("/user/:userId", adminAuth, requireAdminPermission("users.manage"), async (req, res) => {
+  const userId = String(req.params.userId || "").trim();
+  if (!userId) {
+    return res.status(400).json({ message: "userId required" });
+  }
+  if (String(req.admin?._id) === userId) {
+    return res.status(400).json({ message: "You cannot delete your own admin account" });
+  }
+
+  const user = await User.findById(userId).lean();
+  if (!user) {
+    return res.status(404).json({ message: "User not found" });
+  }
+  if (user.roles?.admin) {
+    return res.status(400).json({ message: "Admin accounts cannot be deleted from operations" });
+  }
+
+  const requirements = await Requirement.find({ buyerId: userId }).select("_id").lean();
+  const requirementIds = requirements.map((item) => item._id);
+
+  await cleanupUserUploadFiles({ userId, userDoc: user });
+
+  await Promise.all([
+    Requirement.deleteMany({ buyerId: userId }),
+    Offer.deleteMany({
+      $or: [
+        { sellerId: userId },
+        { requirementId: { $in: requirementIds } }
+      ]
+    }),
+    ChatMessage.deleteMany({
+      $or: [{ fromUserId: userId }, { toUserId: userId }]
+    }),
+    Notification.deleteMany({
+      $or: [{ userId }, { fromUserId: userId }]
+    }),
+    PushSubscription.deleteMany({ userId }),
+    NativePushToken.deleteMany({ userId }),
+    User.findByIdAndDelete(userId)
+  ]);
+
+  await logAdminAction(req.admin, "user_delete", "user", userId, {
+    deletedRoles: user.roles || {},
+    requirementsDeleted: requirementIds.length
+  });
+
   res.json({ success: true });
 });
 
