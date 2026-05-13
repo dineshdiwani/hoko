@@ -31,19 +31,13 @@ const SellerDeepLink = lazy(() => import("./pages/Seller/SellerDeepLink"));
 function SellerDashboardWrapper() {
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
-  const sourceFromUrl = String(searchParams.get("from") || "").trim().toLowerCase();
-  const isWhatsAppFlow = sourceFromUrl === "wa";
-  
-  // For WhatsApp flow, BYPASS all auth checks - let them see the dashboard directly
-  if (isWhatsAppFlow) {
-    return <SellerDashboard />;
-  }
-  
-  // Normal flow: require seller auth
+  const isPublicRequirementView =
+    !getSession()?.token && Boolean(searchParams.get("openRequirement") || searchParams.get("postId"));
+
   return requireSeller() ? (
     <SellerDashboard />
   ) : (
-    <Navigate to="/seller/login" replace />
+    isPublicRequirementView ? <SellerDashboard /> : <Navigate to="/seller/login" replace />
   );
 }
 
