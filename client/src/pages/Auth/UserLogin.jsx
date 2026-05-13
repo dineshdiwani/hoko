@@ -943,16 +943,6 @@ useEffect(() => {
 
   function handleGoogleLogin(credential) {
     const explicitCity = String(city || cityFromUrl || "").trim();
-    if (!explicitCity) {
-      setPendingGoogleCredential(credential);
-      setPendingCitySession({
-        loginMode: "google",
-        credential
-      });
-      setShowCityModal(true);
-      return;
-    }
-
     setGoogleLoading(true);
     api
       .post("/auth/google", {
@@ -964,6 +954,15 @@ useEffect(() => {
       .then((res) => continueAfterGoogleLoginResponse({ res, loginCity: explicitCity }))
       .catch((err) => {
         const message = err?.response?.data?.message || "Login failed";
+        if (message === "City required") {
+          setPendingGoogleCredential(credential);
+          setPendingCitySession({
+            loginMode: "google",
+            credential
+          });
+          setShowCityModal(true);
+          return;
+        }
         if (isSeller && (message === "Complete seller registration before Google login" || message === "Complete seller registration before login")) {
           alert(message);
           navigate(buildSellerRegisterRedirect(), { replace: true });
