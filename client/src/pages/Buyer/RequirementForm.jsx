@@ -213,11 +213,8 @@ export default function RequirementForm({ isPublic = false }) {
     needsEmail: Boolean(effectiveMobile) && !Boolean(effectiveEmail),
     needsMobile: Boolean(effectiveEmail) && !Boolean(effectiveMobile)
   };
-  const requirementCity = String(form.city || resolvedBuyerCity || cityFromUrl || "").trim();
   const needsBuyerMobile = isLoggedIn && profileReady && Boolean(contactCompletion.needsMobile);
   const needsBuyerEmail = isLoggedIn && profileReady && Boolean(contactCompletion.needsEmail);
-  const showBuyerContactFields = !isLoggedIn || needsBuyerMobile || needsBuyerEmail;
-  const showCitySelector = !isLoggedIn || !requirementCity;
   const savedDraft = shouldRestoreDraft ? readSavedBuyerRequirementDraft() : null;
   const freshFormState = useMemo(
     () =>
@@ -244,6 +241,9 @@ export default function RequirementForm({ isPublic = false }) {
       sessionMobile
     ]
   );
+  const requirementCity = String(freshFormState.city || resolvedBuyerCity || cityFromUrl || "").trim();
+  const showBuyerContactFields = !isLoggedIn || needsBuyerMobile || needsBuyerEmail;
+  const showCitySelector = !isLoggedIn || !requirementCity;
 
   const [form, setForm] = useState(freshFormState);
   const [submitted, setSubmitted] = useState(false);
