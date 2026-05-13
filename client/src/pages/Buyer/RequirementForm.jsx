@@ -212,9 +212,11 @@ export default function RequirementForm({ isPublic = false }) {
     needsEmail: Boolean(effectiveMobile) && !Boolean(effectiveEmail),
     needsMobile: Boolean(effectiveEmail) && !Boolean(effectiveMobile)
   };
+  const requirementCity = String(form.city || sessionCity || cityFromUrl || "").trim();
   const needsBuyerMobile = isLoggedIn && profileReady && Boolean(contactCompletion.needsMobile);
   const needsBuyerEmail = isLoggedIn && profileReady && Boolean(contactCompletion.needsEmail);
   const showBuyerContactFields = !isLoggedIn || needsBuyerMobile || needsBuyerEmail;
+  const showCitySelector = !isLoggedIn || !sessionCity;
   const savedDraft = shouldRestoreDraft ? readSavedBuyerRequirementDraft() : null;
   const freshFormState = useMemo(
     () =>
@@ -771,7 +773,7 @@ useEffect(() => {
       (!isLoggedIn && !submittedMobile) ||
       (needsBuyerMobile && !submittedMobile) ||
       (needsBuyerEmail && !submittedEmail) ||
-      !form.city ||
+      !requirementCity ||
       !form.category ||
       !form.product ||
       !form.quantity ||
@@ -807,7 +809,7 @@ useEffect(() => {
       const payload = {
         mobile: submittedMobile,
         email: submittedEmail || "",
-        city: form.city,
+        city: requirementCity,
         category: form.category,
         productName: form.product,
         product: form.product,
@@ -897,7 +899,7 @@ useEffect(() => {
 
     if (
       !submittedMobile ||
-      !form.city ||
+      !requirementCity ||
       !form.category ||
       !form.product ||
       !form.quantity ||
@@ -916,9 +918,9 @@ useEffect(() => {
 
     // User not logged in - redirect to login
     // Store the requirement data in sessionStorage to be retrieved after login
-    sessionStorage.setItem("pending_requirement_data", JSON.stringify({
+      sessionStorage.setItem("pending_requirement_data", JSON.stringify({
       mobile: submittedMobile,
-      city: form.city,
+      city: requirementCity,
       category: form.category,
       productName: form.product,
       product: form.product,
@@ -933,7 +935,7 @@ useEffect(() => {
     saveBuyerRequirementDraft({
       mobile: submittedMobile,
       email: form.email,
-      city: form.city,
+      city: requirementCity,
       category: form.category,
       product: form.product,
       makeBrand: form.makeBrand,
@@ -1083,18 +1085,24 @@ useEffect(() => {
           />
 
         {/* City */}
-        <select
-          name="city"
-          value={form.city}
-          onChange={handleChange}
-          className="w-full px-3 py-2 border rounded-xl text-sm"
-          required
-        >
-          <option value="">Select City *</option>
-          {cities.map((c) => (
-            <option key={c}>{c}</option>
-          ))}
-        </select>
+        {showCitySelector ? (
+          <select
+            name="city"
+            value={form.city}
+            onChange={handleChange}
+            className="w-full px-3 py-2 border rounded-xl text-sm"
+            required
+          >
+            <option value="">Select City *</option>
+            {cities.map((c) => (
+              <option key={c}>{c}</option>
+            ))}
+          </select>
+        ) : (
+          <div className="md:col-span-2 w-full px-3 py-2 border rounded-xl text-sm bg-gray-50 text-gray-700">
+            <span className="font-medium">City:</span> {requirementCity}
+          </div>
+        )}
 
         {/* Category */}
         <select
