@@ -412,11 +412,19 @@ export default function AdminOperations() {
       .replace(/_/g, " ")
       .replace(/\b\w/g, (ch) => ch.toUpperCase());
 
+  const getUserIdentifier = (user) =>
+    String(user?.mobile || user?.email || user?.phone || user?._id || "").trim();
+
+  const getUserDisplayLabel = (user) => {
+    const identifier = getUserIdentifier(user);
+    return identifier || "Unknown user";
+  };
+
   const filteredUsers = users.filter(u => {
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       return (u.email || "").toLowerCase().includes(q) || 
-             (u.phone || "").includes(q) ||
+             (u.mobile || u.phone || "").includes(q) ||
              (u._id || "").toLowerCase().includes(q);
     }
     return true;
@@ -823,17 +831,19 @@ export default function AdminOperations() {
                 <div key={user._id} className="bg-white border rounded-xl p-3 flex flex-col md:flex-row md:justify-between md:items-center gap-3">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <p className="font-semibold text-sm">{user.phone || user.email || "No identifier"}</p>
+                      <p className="font-semibold text-sm">{getUserDisplayLabel(user)}</p>
                       {user.roles?.admin && <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded">Admin</span>}
                       {user.roles?.seller && <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded">Seller</span>}
                       {user.roles?.buyer && <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded">Buyer</span>}
                       {user.deletedAt && <span className="px-2 py-0.5 bg-gray-200 text-gray-700 text-xs rounded">Soft Deleted</span>}
                       {user.blocked && <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded">Blocked</span>}
                     </div>
-                    <p className="text-xs text-gray-500">{user.city || "N/A"} | {user.phone || "No phone"}</p>
+                    <p className="text-xs text-gray-500">{user.city || "N/A"} | {user.mobile || user.phone || user.email || "No contact"}</p>
                     {expandedUsers.has(user._id) && (
                       <div className="mt-2 text-xs text-gray-600 space-y-1 bg-gray-50 p-2 rounded">
                         <div>ID: {user._id}</div>
+                        <div>Email: {user.email || "-"}</div>
+                        <div>Mobile: {user.mobile || user.phone || "-"}</div>
                         <div>Joined: {new Date(user.createdAt).toLocaleString()}</div>
                         {user.deletedAt && <div>Deleted: {formatDate(user.deletedAt)}</div>}
                         <div>Chat: {user.chatDisabled ? "Disabled" : "Enabled"}</div>
