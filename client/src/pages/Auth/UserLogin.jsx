@@ -475,6 +475,25 @@ useEffect(() => {
     }
   }
 
+  async function resolveBuyerCityAfterLogin({ token, user, loginCity }) {
+    const directCity = String(loginCity || user?.city || "").trim();
+    if (directCity) return directCity;
+
+    try {
+      const res = await api.get("/buyer/profile", {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      const profileCity = String(
+        res?.data?.city || res?.data?.buyerSettings?.defaultCity || ""
+      ).trim();
+      return profileCity;
+    } catch {
+      return "";
+    }
+  }
+
   async function completePendingBuyerRequirementLogin({ user, token, profile, loginCity }) {
     const pendingRequirementData = readPendingRequirementData();
     if (!pendingRequirementData || isSeller) return false;
@@ -535,8 +554,12 @@ useEffect(() => {
 
   async function continueAfterGoogleLoginResponse({ res, loginCity = "" }) {
     const user = res.data.user || {};
-    const resolvedCity = String(loginCity || cityFromUrl || user.city || "").trim();
     const token = res.data.token;
+    const resolvedCity = await resolveBuyerCityAfterLogin({
+      token,
+      user,
+      loginCity: loginCity || cityFromUrl || ""
+    });
 
     // Show city modal before continuing
     if (currentRole === "buyer" && await completePendingBuyerRequirementLogin({
