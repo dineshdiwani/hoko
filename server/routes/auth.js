@@ -660,8 +660,49 @@ router.post("/google", async (req, res) => {
       if (normalizedRole === "seller") {
         const hasSellerProfile = isCompleteSellerProfile(user);
         if (!hasSellerProfile) {
-          return res.status(403).json({
-            message: "Complete seller registration before Google login"
+          if (!user.termsAccepted?.at && !acceptTerms) {
+            return res.status(403).json({
+              message: "Terms required"
+            });
+          }
+          if (!user.termsAccepted?.at && acceptTerms) {
+            user.termsAccepted = { at: new Date(), termsVersion: "1.0", privacyVersion: "1.0" };
+          }
+          user.googleProfile = {
+            sub,
+            name,
+            picture
+          };
+          await user.save();
+
+          const token = jwt.sign(
+            { id: user._id, role: normalizedRole, tokenVersion: user.tokenVersion || 0 },
+            process.env.JWT_SECRET,
+            { expiresIn: "7d" }
+          );
+          recordAppEvent({
+            eventType: "login_success",
+            actorRole: normalizedRole,
+            userId: user._id,
+            source: "auth.google",
+            payload: { email, requiresSellerRegistration: true }
+          });
+
+          return res.json({
+            token,
+            requiresSellerRegistration: true,
+            user: {
+              _id: user._id,
+              email: user.email,
+              name,
+              picture,
+              role: normalizedRole,
+              roles: user.roles,
+              city: getEffectiveBuyerCity(user),
+              preferredCurrency: user.preferredCurrency || "INR",
+              sellerProfile: user.sellerProfile,
+              mobile: user.mobile
+            }
           });
         }
         user.roles.seller = true;
