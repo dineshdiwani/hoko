@@ -200,6 +200,7 @@ export default function RequirementForm({ isPublic = false }) {
   const sessionLoginMethods = session?.loginMethods || {};
   const [buyerProfile, setBuyerProfile] = useState(null);
   const profileReady = !isLoggedIn || buyerProfile !== null;
+  const resolvedBuyerCity = String(buyerProfile?.city || sessionCity || "").trim();
   const effectiveEmail = String(
     buyerProfile?.email || sessionEmail || ""
   ).trim();
@@ -212,11 +213,11 @@ export default function RequirementForm({ isPublic = false }) {
     needsEmail: Boolean(effectiveMobile) && !Boolean(effectiveEmail),
     needsMobile: Boolean(effectiveEmail) && !Boolean(effectiveMobile)
   };
-  const requirementCity = String(form.city || sessionCity || cityFromUrl || "").trim();
+  const requirementCity = String(form.city || resolvedBuyerCity || cityFromUrl || "").trim();
   const needsBuyerMobile = isLoggedIn && profileReady && Boolean(contactCompletion.needsMobile);
   const needsBuyerEmail = isLoggedIn && profileReady && Boolean(contactCompletion.needsEmail);
   const showBuyerContactFields = !isLoggedIn || needsBuyerMobile || needsBuyerEmail;
-  const showCitySelector = !isLoggedIn || !sessionCity;
+  const showCitySelector = !isLoggedIn || !requirementCity;
   const savedDraft = shouldRestoreDraft ? readSavedBuyerRequirementDraft() : null;
   const freshFormState = useMemo(
     () =>
