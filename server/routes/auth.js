@@ -131,7 +131,8 @@ function ensureRoles(user) {
 }
 
 function getEffectiveBuyerCity(user) {
-  return String(user?.city || user?.buyerSettings?.defaultCity || "").trim();
+  const city = String(user?.city || user?.buyerSettings?.defaultCity || "").trim();
+  return city && city.toLowerCase() !== "user_default" ? city : "";
 }
 
 function isSoftDeletedUser(user) {
@@ -196,7 +197,7 @@ router.post("/login", otpSendLimiter, async (req, res) => {
     if (!user) {
       user = await User.create({
         mobile: mobileE164,
-        city: city || "user_default",
+        city: String(city || "").trim(),
         roles: { buyer: true, seller: false, admin: false },
         name: "WhatsApp User"
       });
@@ -736,7 +737,7 @@ router.post("/switch-role", auth, async (req, res) => {
   const { role } = req.body || {};
   const nextRole = role === "seller" ? "seller" : "buyer";
 
-  if (!req.user?.roles?.[nextRole]) {
+  if (nextRole !== "seller" && !req.user?.roles?.[nextRole]) {
     return res.status(403).json({ message: "Role not enabled" });
   }
   
@@ -752,8 +753,23 @@ router.post("/switch-role", auth, async (req, res) => {
       sellerProfile
     });
     if (!hasSellerProfile) {
-      return res.status(403).json({
-        message: "Seller onboarding required"
+      const token = jwt.sign(
+        { id: req.user._id, role: nextRole, tokenVersion: req.user.tokenVersion || 0 },
+        process.env.JWT_SECRET,
+        { expiresIn: "7d" }
+      );
+      return res.json({
+        token,
+        requiresSellerRegistration: true,
+        user: {
+          _id: currentUser._id,
+          email: currentUser.email,
+          role: nextRole,
+          roles: currentUser.roles,
+          city: getEffectiveBuyerCity(currentUser),
+          preferredCurrency: currentUser.preferredCurrency || "INR",
+          sellerProfile: currentUser.sellerProfile
+        }
       });
     }
   }

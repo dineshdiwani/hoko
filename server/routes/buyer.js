@@ -149,7 +149,8 @@ function getBuyerContactCompletion(user) {
   };
 }
 function getEffectiveBuyerCity(user) {
-  return String(user?.city || user?.buyerSettings?.defaultCity || "").trim();
+  const city = String(user?.city || user?.buyerSettings?.defaultCity || "").trim();
+  return city && city.toLowerCase() !== "user_default" ? city : "";
 }
 function getFreshBuyerSettings(user) {
   const base = user?.buyerSettings || {};
@@ -323,7 +324,7 @@ function resolveWhatsAppProvider() {
   return String(process.env.WHATSAPP_PROVIDER || "mock").trim().toLowerCase();
 }
 
-async function findOrCreateSoftUserByMobile(mobileE164, city = "user_default") {
+async function findOrCreateSoftUserByMobile(mobileE164, city = "") {
   const existingSoftUser = await User.findOne({
     mobile: mobileE164,
     passwordHash: { $exists: false },
@@ -339,7 +340,7 @@ async function findOrCreateSoftUserByMobile(mobileE164, city = "user_default") {
 
   const softUser = await User.create({
     mobile: mobileE164,
-    city: city || "user_default",
+    city: String(city || "").trim(),
     roles: { buyer: true, seller: false, admin: false }
   });
 
@@ -715,7 +716,7 @@ function generateOTP() {
 }
 
 async function findOrCreateSoftUserByMobileForOtp(mobile, city) {
-  return findOrCreateSoftUserByMobile(normalizeE164(mobile), city || "user_default");
+  return findOrCreateSoftUserByMobile(normalizeE164(mobile), city || "");
 }
 
 async function createRequirementFromOTPData(otpRecord) {

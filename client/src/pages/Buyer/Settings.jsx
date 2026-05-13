@@ -376,6 +376,17 @@ export default function BuyerSettings() {
     try {
       const res = await api.post("/auth/switch-role", { role: "seller" });
       const user = res?.data?.user || {};
+      if (res?.data?.requiresSellerRegistration) {
+        updateSession({
+          role: user.role || "seller",
+          roles: user.roles || profile.roles,
+          city: user.city || profile.city,
+          preferredCurrency: user.preferredCurrency || profile.preferredCurrency,
+          token: res?.data?.token || getSession()?.token
+        });
+        navigate("/seller/register");
+        return;
+      }
       updateSession({
         role: user.role || "seller",
         roles: user.roles || profile.roles,
@@ -385,7 +396,7 @@ export default function BuyerSettings() {
       navigate("/seller/dashboard");
     } catch (err) {
       const message = err?.response?.data?.message || "";
-      if (message === "Seller onboarding required" || message === "Role not enabled") {
+      if (message === "Role not enabled") {
         navigate("/seller/register");
         return;
       }

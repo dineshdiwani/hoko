@@ -255,6 +255,20 @@ export default function BuyerWelcome() {
                   const res = await api.post("/auth/switch-role", {
                     role: "seller"
                   });
+                  if (res?.data?.requiresSellerRegistration) {
+                    setSession({
+                      _id: res.data.user._id,
+                      role: res.data.user.role,
+                      roles: res.data.user.roles,
+                      email: res.data.user.email,
+                      city: res.data.user.city,
+                      name: "Seller",
+                      preferredCurrency: res.data.user.preferredCurrency,
+                      token: res.data.token
+                    });
+                    navigate("/seller/register");
+                    return;
+                  }
                   setSession({
                     _id: res.data.user._id,
                     role: res.data.user.role,
@@ -268,10 +282,7 @@ export default function BuyerWelcome() {
                   navigate("/seller/dashboard");
                 } catch (err) {
                   const message = err?.response?.data?.message || "";
-                  if (
-                    message === "Seller onboarding required" ||
-                    message === "Role not enabled"
-                  ) {
+                  if (message === "Role not enabled") {
                     navigate("/seller/register");
                     return;
                   }
