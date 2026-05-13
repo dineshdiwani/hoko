@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSearchParams } from "react-router-dom";
 import { fetchOptions } from "../../services/options";
@@ -56,7 +56,6 @@ export default function SellerRegister() {
   });
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const hydratedCityRef = useRef(false);
 
   const [cities, setCities] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -108,28 +107,6 @@ export default function SellerRegister() {
       })
       .catch(() => {});
   }, [sessionCity, cityFromUrl, catsFromUrl, mobileFromUrl]);
-
-  useEffect(() => {
-    if (hydratedCityRef.current) return;
-    if ((sourceFromUrl === "wa" && cityFromUrl) || String(seller.city || "").trim()) return;
-    const currentSession = getSession();
-    if (!currentSession?.token) return;
-
-    hydratedCityRef.current = true;
-    refreshSession()
-      .then((data) => {
-        const refreshedCity = String(
-          data?.user?.city ||
-          data?.user?.buyerSettings?.defaultCity ||
-          getSession()?.city ||
-          ""
-        ).trim();
-        if (!refreshedCity) return;
-        setSeller((prev) => (prev.city ? prev : { ...prev, city: refreshedCity }));
-        setUiCitySelection(refreshedCity);
-      })
-      .catch(() => {});
-  }, [cityFromUrl, seller.city, sourceFromUrl]);
 
   useEffect(() => {
     const currentSession = getSession();
