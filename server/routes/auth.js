@@ -230,9 +230,8 @@ router.post("/login", otpSendLimiter, async (req, res) => {
     if (!user) {
       user = await User.create({
         mobile: mobileE164,
-        city: city || "user_default",
-        roles: { buyer: true, seller: false, admin: false },
-        name: "WhatsApp User"
+        city: String(city || "").trim(),
+        roles: { buyer: true, seller: false, admin: false }
       });
     }
 const otp = generateOtp();
@@ -378,20 +377,20 @@ router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
           source: "auth.verify-otp.mobile",
           payload: { role: normalizedRole, hasSellerProfile: false }
         });
-          return res.status(200).json({
-            success: true,
-            requiresSellerRegistration: true,
-            user: {
-              _id: user._id,
-              email: user.email,
-              role: normalizedRole,
-              roles: user.roles,
-              city: user.city,
-              name: user.name,
-              preferredCurrency: user.preferredCurrency || "INR",
-              mobile: user.mobile,
-              sellerProfile: user.sellerProfile || {}
-            },
+        return res.status(200).json({
+          success: true,
+          requiresSellerRegistration: true,
+          user: {
+            _id: user._id,
+            email: user.email,
+            role: normalizedRole,
+            roles: user.roles,
+            city: user.city,
+            name: user.name,
+            preferredCurrency: user.preferredCurrency || "INR",
+            mobile: user.mobile,
+            sellerProfile: user.sellerProfile || {}
+          },
           token
         });
       }
@@ -470,31 +469,31 @@ router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
     user.city = city;
   }
 
-  if (normalizedRole === "seller") {
-    const hasSellerProfile = isCompleteSellerProfile(user);
-    if (!hasSellerProfile) {
-      const token = jwt.sign(
-        { id: user._id, role: normalizedRole, tokenVersion: user.tokenVersion || 0 },
-        process.env.JWT_SECRET,
-        { expiresIn: "7d" }
-      );
-      return res.status(200).json({
-        success: true,
-        requiresSellerRegistration: true,
-        user: {
-          _id: user._id,
-          email: user.email,
-          role: normalizedRole,
-          roles: user.roles,
-          city: user.city,
-          name: user.name,
-          preferredCurrency: user.preferredCurrency || "INR",
-          mobile: user.mobile,
-          sellerProfile: user.sellerProfile || {}
-        },
-        token
-      });
-    }
+    if (normalizedRole === "seller") {
+      const hasSellerProfile = isCompleteSellerProfile(user);
+      if (!hasSellerProfile) {
+        const token = jwt.sign(
+          { id: user._id, role: normalizedRole, tokenVersion: user.tokenVersion || 0 },
+          process.env.JWT_SECRET,
+          { expiresIn: "7d" }
+        );
+        return res.status(200).json({
+          success: true,
+          requiresSellerRegistration: true,
+          user: {
+            _id: user._id,
+            email: user.email,
+            role: normalizedRole,
+            roles: user.roles,
+            city: user.city,
+            name: user.name,
+            preferredCurrency: user.preferredCurrency || "INR",
+            mobile: user.mobile,
+            sellerProfile: user.sellerProfile || {}
+          },
+          token
+        });
+      }
     if (!user.termsAccepted?.at && !acceptTerms) {
       return res.status(403).json({
         message: "Terms required"
