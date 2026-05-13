@@ -72,6 +72,20 @@ async function mergeExistingRequirements(userId, mobileE164, extra = {}) {
   return mergeSoftUserRequirements(userId, mobileE164, extra);
 }
 
+function queueGooglePostLoginMerge(userId, mobileE164, email, label) {
+  if (!userId) return;
+  setImmediate(() => {
+    Promise.resolve(
+      mergeSoftUserRequirements(userId, mobileE164, { email })
+    ).catch((mergeErr) => {
+      console.log(
+        `[Google Login] ${label} merge skipped:`,
+        mergeErr?.message || mergeErr
+      );
+    });
+  });
+}
+
 let googleClient = null;
 let googleAuthInitError = null;
 const DEFAULT_GOOGLE_CLIENT_IDS = [
@@ -625,7 +639,9 @@ router.post("/google", async (req, res) => {
         loginMethod: "google",
         requestedRole: normalizedRole
       });
-      notifyNewBuyer(user.mobile || "", city, user.email);
+      Promise.resolve(notifyNewBuyer(user.mobile || "", city, user.email)).catch((err) => {
+        console.log("[Google Login] notifyNewBuyer failed:", err?.message || err);
+      });
     } else {
       if (isSoftDeletedUser(user)) {
         reactivateSoftDeletedUser(user);
@@ -652,21 +668,23 @@ router.post("/google", async (req, res) => {
             name,
             picture
           };
-          await user.save();
-          const mergeResult = await mergeSoftUserRequirements(user._id, mobile, {
-            email
-          });
-          const mergedUser = mergeResult.user || user;
+          let persistedUser = user;
+          try {
+            persistedUser = await user.save();
+          } catch (saveErr) {
+            console.log("[Google Login] seller save skipped:", saveErr?.message || saveErr);
+          }
+          queueGooglePostLoginMerge(persistedUser._id || user._id, mobile, email, "seller");
 
           const token = jwt.sign(
-            { id: mergedUser._id, role: normalizedRole, tokenVersion: mergedUser.tokenVersion || 0 },
+            { id: persistedUser._id || user._id, role: normalizedRole, tokenVersion: persistedUser.tokenVersion || user.tokenVersion || 0 },
             process.env.JWT_SECRET,
             { expiresIn: "7d" }
           );
           recordAppEvent({
             eventType: "login_success",
             actorRole: normalizedRole,
-            userId: mergedUser._id,
+            userId: persistedUser._id || user._id,
             source: "auth.google",
             payload: { email, requiresSellerRegistration: true }
           });
@@ -675,16 +693,16 @@ router.post("/google", async (req, res) => {
             token,
             requiresSellerRegistration: true,
             user: {
-              _id: mergedUser._id,
-              email: mergedUser.email,
-              name: getDisplayNameForUser(mergedUser, normalizedRole),
+              _id: persistedUser._id || user._id,
+              email: persistedUser.email || user.email,
+              name: getDisplayNameForUser(persistedUser, normalizedRole),
               picture,
               role: normalizedRole,
-              roles: mergedUser.roles,
-              city: getEffectiveBuyerCity(mergedUser),
-              preferredCurrency: mergedUser.preferredCurrency || "INR",
-              sellerProfile: mergedUser.sellerProfile,
-              mobile: mergedUser.mobile
+              roles: persistedUser.roles || user.roles,
+              city: getEffectiveBuyerCity(persistedUser),
+              preferredCurrency: persistedUser.preferredCurrency || user.preferredCurrency || "INR",
+              sellerProfile: persistedUser.sellerProfile || user.sellerProfile,
+              mobile: persistedUser.mobile || user.mobile
             }
           });
         }
@@ -707,21 +725,23 @@ router.post("/google", async (req, res) => {
       };
     }
 
-    await user.save();
-    const mergeResult = await mergeSoftUserRequirements(user._id, mobile, {
-      email
-    });
-    const mergedUser = mergeResult.user || user;
+    let persistedUser = user;
+    try {
+      persistedUser = await user.save();
+    } catch (saveErr) {
+      console.log("[Google Login] post-login save skipped:", saveErr?.message || saveErr);
+    }
+    queueGooglePostLoginMerge(persistedUser._id || user._id, mobile, email, "post-login");
 
     const token = jwt.sign(
-      { id: mergedUser._id, role: normalizedRole, tokenVersion: mergedUser.tokenVersion || 0 },
+      { id: persistedUser._id || user._id, role: normalizedRole, tokenVersion: persistedUser.tokenVersion || user.tokenVersion || 0 },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
     recordAppEvent({
       eventType: "login_success",
       actorRole: normalizedRole,
-      userId: mergedUser._id,
+      userId: persistedUser._id || user._id,
       source: "auth.google",
       payload: { email }
     });
@@ -729,18 +749,17 @@ router.post("/google", async (req, res) => {
     res.json({
       token,
       user: {
-        _id: mergedUser._id,
-        email: mergedUser.email,
-        name: getDisplayNameForUser(mergedUser, normalizedRole),
+        _id: persistedUser._id || user._id,
+        email: persistedUser.email || user.email,
+        name: getDisplayNameForUser(persistedUser, normalizedRole),
         picture,
         role: normalizedRole,
-        roles: mergedUser.roles,
-        city: getEffectiveBuyerCity(mergedUser),
-        preferredCurrency: mergedUser.preferredCurrency || "INR",
-        sellerProfile: mergedUser.sellerProfile,
-        mobile: mergedUser.mobile
+        roles: persistedUser.roles || user.roles,
+        city: getEffectiveBuyerCity(persistedUser),
+        preferredCurrency: persistedUser.preferredCurrency || user.preferredCurrency || "INR",
+        sellerProfile: persistedUser.sellerProfile || user.sellerProfile,
+        mobile: persistedUser.mobile || user.mobile
       },
-      merge: mergeResult.merged ? mergeResult : undefined
     });
   } catch (err) {
     console.error("Google login unexpected error:", err?.stack || err?.message || err);
