@@ -224,6 +224,21 @@ export default function UserLogin({ role = "buyer" }) {
   }
   useEffect(() => {
     const session = getSession();
+    const sellerIntentActive = isSeller || loginIntentSeller;
+    if (sellerIntentActive && session?.token) {
+      const sellerProfile = session?.sellerProfile || {};
+      const hasSellerProfile = hasCompleteSellerProfile(session, sellerProfile);
+      if (hasSellerProfile) {
+        navigate(buildSellerDashboardRedirect(session?.city || cityFromUrl || ""), {
+          replace: true
+        });
+        return;
+      }
+
+      navigate(buildSellerRegisterRedirect(), { replace: true });
+      return;
+    }
+
     if (session?.role === currentRole && session?.token) {
       const shouldResumeSellerFlow =
         isSeller &&
