@@ -40,9 +40,7 @@ export async function refreshSessionIfNeeded() {
     roles: nextUser.roles || session.roles,
     sellerProfile: nextUser.sellerProfile || session.sellerProfile || {},
     mobile: nextUser.mobile || session.mobile || "",
-    city: nextUser.city || session.city || "",
-    address: nextUser.address || session.address || "",
-    name: nextUser.displayName || nextUser.name || session.name || ""
+    city: nextUser.city || session.city || ""
   });
 
   return response.data;
@@ -69,9 +67,7 @@ export async function refreshSession() {
     roles: nextUser.roles || session.roles,
     sellerProfile: nextUser.sellerProfile || session.sellerProfile || {},
     mobile: nextUser.mobile || session.mobile || "",
-    city: nextUser.city || session.city || "",
-    address: nextUser.address || session.address || "",
-    name: nextUser.displayName || nextUser.name || session.name || ""
+    city: nextUser.city || session.city || ""
   });
 
   return response.data;

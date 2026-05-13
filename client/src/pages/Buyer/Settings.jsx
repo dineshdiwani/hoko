@@ -45,10 +45,8 @@ export default function BuyerSettings() {
 
   const [profile, setProfile] = useState({
     name: "",
-    displayName: "",
     email: "",
     mobile: "",
-    address: "",
     city: "",
     preferredCurrency: "INR",
     roles: { buyer: true, seller: false, admin: false },
@@ -70,8 +68,6 @@ export default function BuyerSettings() {
   const initialContactRef = useRef({ email: "", mobile: "" });
   const initialProfileRef = useRef({
     name: "",
-    displayName: "",
-    address: "",
     city: "",
     preferredCurrency: "INR",
     prefsSignature: ""
@@ -126,10 +122,8 @@ export default function BuyerSettings() {
         const data = res.data || {};
         setProfile({
           name: data.name || "",
-          displayName: data.displayName || data.name || session.name || "Buyer",
           email: data.email || session.email || "",
           mobile: data.mobile || "",
-          address: data.address || "",
           city: data.city || session.city || "",
           preferredCurrency:
             data.preferredCurrency || session.preferredCurrency || "INR",
@@ -150,8 +144,6 @@ export default function BuyerSettings() {
         });
         initialProfileRef.current = {
           name: String(data.name || "").trim(),
-          displayName: String(data.displayName || data.name || session.name || "Buyer").trim(),
-          address: String(data.address || "").trim(),
           city: String(data.city || session.city || "").trim(),
           preferredCurrency: String(data.preferredCurrency || session.preferredCurrency || "INR").trim(),
           prefsSignature: buildPrefsSignature({
@@ -181,8 +173,6 @@ export default function BuyerSettings() {
         setPrefs(fallbackPrefs);
         initialProfileRef.current = {
           name: String(session.name || "").trim(),
-          displayName: String(session.name || "Buyer").trim(),
-          address: "",
           city: String(session.city || "").trim(),
           preferredCurrency: String(session.preferredCurrency || "INR").trim(),
           prefsSignature: buildPrefsSignature(fallbackPrefs)
@@ -231,8 +221,6 @@ export default function BuyerSettings() {
       currentCity &&
       currentCity !== String(initialProfileRef.current.city || "").trim() &&
       String(profile.name || "").trim() === String(initialProfileRef.current.name || "").trim() &&
-      String(profile.displayName || "").trim() === String(initialProfileRef.current.displayName || "").trim() &&
-      String(profile.address || "").trim() === String(initialProfileRef.current.address || "").trim() &&
       String(profile.preferredCurrency || "INR").trim() === String(initialProfileRef.current.preferredCurrency || "INR").trim() &&
       currentSignature === String(initialProfileRef.current.prefsSignature || "");
     const changingEmail = email && email !== initialEmail;
@@ -288,7 +276,7 @@ export default function BuyerSettings() {
     setSaving(true);
     try {
       const payload = {
-        address: profile.address,
+        name: profile.name,
         city: profile.city,
         preferredCurrency: profile.preferredCurrency,
         buyerSettings: {
@@ -312,9 +300,6 @@ export default function BuyerSettings() {
       if (email && email !== initialEmail) {
         payload.email = email;
       }
-      if (String(profile.name || "").trim()) {
-        payload.name = profile.name;
-      }
       if (mobile && mobile !== initialMobile) {
         payload.mobile = mobile;
       }
@@ -328,8 +313,7 @@ export default function BuyerSettings() {
           roles: data.user.roles,
           email: data.user.email,
           city: data.user.city,
-          name: data.user.displayName || data.user.name || "Buyer",
-          address: data.user.address || profile.address || "",
+          name: data.user.name || "Buyer",
           preferredCurrency: data.user.preferredCurrency || "INR",
           mobile: data.user.mobile,
           token: data.token
@@ -343,10 +327,8 @@ export default function BuyerSettings() {
       setProfile((prev) => ({
         ...prev,
         name: data.name || prev.name,
-        displayName: data.displayName || data.name || prev.displayName,
         email: data.email || prev.email,
         mobile: data.mobile || prev.mobile,
-        address: data.address || prev.address,
         city: data.city || prev.city,
         preferredCurrency: data.preferredCurrency || prev.preferredCurrency,
         roles: data.roles || prev.roles,
@@ -375,8 +357,7 @@ export default function BuyerSettings() {
         })
       };
       updateSession({
-        name: data.displayName || data.name || profile.displayName || profile.name,
-        address: data.address || profile.address,
+        name: data.name || profile.name,
         city: data.city || profile.city,
         preferredCurrency: data.preferredCurrency || profile.preferredCurrency
       });
@@ -395,19 +376,8 @@ export default function BuyerSettings() {
     try {
       const res = await api.post("/auth/switch-role", { role: "seller" });
       const user = res?.data?.user || {};
-      if (res?.data?.requiresSellerRegistration) {
-        updateSession({
-          role: "seller",
-          roles: user.roles || profile.roles,
-          city: user.city || profile.city,
-          preferredCurrency: user.preferredCurrency || profile.preferredCurrency,
-          token: res?.data?.token || getSession()?.token
-        });
-        navigate("/seller/register");
-        return;
-      }
       updateSession({
-        role: "seller",
+        role: user.role || "seller",
         roles: user.roles || profile.roles,
         city: user.city || profile.city,
         preferredCurrency: user.preferredCurrency || profile.preferredCurrency
@@ -415,7 +385,7 @@ export default function BuyerSettings() {
       navigate("/seller/dashboard");
     } catch (err) {
       const message = err?.response?.data?.message || "";
-      if (message === "Role not enabled") {
+      if (message === "Seller onboarding required" || message === "Role not enabled") {
         navigate("/seller/register");
         return;
       }
@@ -519,12 +489,6 @@ export default function BuyerSettings() {
           <div>
             <h2 className="text-lg font-semibold mb-3">Profile</h2>
             <div className="grid gap-3 md:grid-cols-2">
-              <div className="md:col-span-2">
-                <span className="text-sm text-gray-600">Display Name</span>
-                <div className="w-full border rounded-xl px-4 py-3 bg-gray-50 mt-1">
-                  {profile.displayName || "Buyer"}
-                </div>
-              </div>
               <label className="block">
                 <span className="text-sm text-gray-600">Name</span>
                 <input
@@ -549,15 +513,6 @@ export default function BuyerSettings() {
                   value={profile.mobile}
                   onChange={(e) => setProfile((prev) => ({ ...prev, mobile: e.target.value }))}
                   className="w-full border rounded-xl px-4 py-3"
-                />
-              </label>
-              <label className="block md:col-span-2">
-                <span className="text-sm text-gray-600">Address</span>
-                <input
-                  value={profile.address}
-                  onChange={(e) => setProfile((prev) => ({ ...prev, address: e.target.value }))}
-                  className="w-full border rounded-xl px-4 py-3"
-                  placeholder="Enter your address"
                 />
               </label>
               <label className="block">

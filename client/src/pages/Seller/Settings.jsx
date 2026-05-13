@@ -27,10 +27,8 @@ export default function SellerSettings() {
   const [categoriesOpen, setCategoriesOpen] = useState(false);
 const [profile, setProfile] = useState({
     name: "",
-    displayName: "",
     email: "",
     mobile: "",
-    address: "",
     registeredBusinessName: "",
     registrationDetails: "",
     businessAddress: "",
@@ -121,12 +119,10 @@ const [profile, setProfile] = useState({
               .map((c) => normalizeCategory(c))
               .filter(Boolean);
         const uniqueCategories = dedupeCategories(normalizedCategories);
-        setProfile({
-          name: res.data?.name || "",
-          displayName: res.data?.displayName || res.data?.name || session?.name || "Seller",
+setProfile({
+          name: res.data?.name || session?.name || "",
           email: res.data?.email || session?.email || "",
           mobile: res.data?.mobile || "",
-          address: res.data?.address || "",
           registeredBusinessName: sellerProfile.registeredBusinessName || "",
           registrationDetails: sellerProfile.registrationDetails || "",
           businessAddress: sellerProfile.businessAddress || "",
@@ -265,7 +261,7 @@ const [profile, setProfile] = useState({
   async function saveProfileChanges(email, mobile, initialEmail, initialMobile, uniqueCategories) {
     try {
       const payload = {
-        address: profile.address,
+        name: profile.name,
         registeredBusinessName: profile.registeredBusinessName,
         registrationDetails: profile.registrationDetails,
         businessAddress: profile.businessAddress,
@@ -292,9 +288,6 @@ const [profile, setProfile] = useState({
         }
         payload.email = email;
       }
-      if (String(profile.name || "").trim()) {
-        payload.name = profile.name;
-      }
       if (mobile && mobile !== initialMobile) {
         payload.mobile = mobile;
       }
@@ -302,8 +295,6 @@ const [profile, setProfile] = useState({
       setProfile((prev) => ({ ...prev, categories: uniqueCategories }));
       setSellerDashboardCategories(uniqueCategories);
       updateSession({
-        name: res.data?.displayName || res.data?.name || profile.displayName || profile.name,
-        address: res.data?.address || profile.address,
         city: res.data?.city || profile.city || session?.city || "",
         preferredCurrency:
           res.data?.preferredCurrency ||
@@ -399,14 +390,6 @@ const [profile, setProfile] = useState({
               Business Profile
             </h2>
             <div className="grid gap-3 md:grid-cols-2">
-              <div className="md:col-span-2">
-                <span className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1">
-                  Display Name
-                </span>
-                <div className="w-full border rounded-xl px-4 py-3 bg-gray-50">
-                  {profile.displayName || "Seller"}
-                </div>
-              </div>
               <label className="block">
                 <span className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1">
                   Name
@@ -512,22 +495,6 @@ const [profile, setProfile] = useState({
                     </option>
                   ))}
                 </select>
-              </label>
-              <label className="md:col-span-2 block">
-                <span className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1">
-                  Address
-                </span>
-                <input
-                  value={profile.address}
-                  onChange={(e) =>
-                    setProfile({
-                      ...profile,
-                      address: e.target.value
-                    })
-                  }
-                  placeholder="Enter your address"
-                  className="w-full border rounded-xl px-4 py-3"
-                />
               </label>
               <label className="md:col-span-2 block">
                 <span className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1">

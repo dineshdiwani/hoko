@@ -20,8 +20,6 @@ export default function BuyerProfile() {
   const [currencies, setCurrencies] = useState([]);
 
   const [profile, setProfile] = useState({
-    name: "",
-    address: "",
     city: "",
     preferredCurrency: "INR"
   });
@@ -44,8 +42,6 @@ export default function BuyerProfile() {
       .get("/buyer/profile")
       .then((res) => {
         setProfile({
-          name: res.data?.displayName || res.data?.name || session.name || "Buyer",
-          address: res.data?.address || "",
           city: res.data?.city || session.city || "",
           preferredCurrency:
             res.data?.preferredCurrency ||
@@ -55,8 +51,6 @@ export default function BuyerProfile() {
       })
       .catch(() => {
         setProfile({
-          name: session.name || "Buyer",
-          address: "",
           city: session.city || "",
           preferredCurrency: session.preferredCurrency || "INR"
         });
@@ -75,8 +69,6 @@ export default function BuyerProfile() {
     setSaving(true);
     try {
       const res = await api.post("/buyer/profile", {
-        name: profile.name,
-        address: profile.address,
         city: profile.city,
         preferredCurrency: profile.preferredCurrency,
         buyerSettings: {
@@ -84,8 +76,6 @@ export default function BuyerProfile() {
         }
       });
       updateSession({
-        name: res.data?.displayName || res.data?.name || profile.name,
-        address: res.data?.address || profile.address,
         city: res.data?.city || profile.city,
         preferredCurrency:
           res.data?.preferredCurrency || profile.preferredCurrency
@@ -117,23 +107,6 @@ export default function BuyerProfile() {
             <div className="text-gray-500">Loading profile...</div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="md:col-span-2">
-                <p className="text-sm text-gray-600">Display Name</p>
-                <p className="text-lg font-semibold">
-                  {profile.name || "Buyer"}
-                </p>
-              </div>
-              <div className="md:col-span-2">
-                <label className="text-sm text-gray-600">Address</label>
-                <input
-                  value={profile.address}
-                  onChange={(e) =>
-                    setProfile({ ...profile, address: e.target.value })
-                  }
-                  className="w-full border rounded-xl px-4 py-3"
-                  placeholder="Enter your address"
-                />
-              </div>
               <div className="md:col-span-2">
                 <p className="text-sm text-gray-600">Your Rating</p>
                 <p className="text-lg font-semibold">

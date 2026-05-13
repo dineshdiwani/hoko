@@ -792,7 +792,6 @@ app.use("/api/auth", require("./routes/auth"));
 app.use("/api/buyer", require("./routes/buyer"));
 app.use("/api/seller", require("./routes/seller"));
 app.use("/api/dashboard", require("./routes/dashboard"));
-app.use("/api/deep-links", require("./routes/deepLinks"));
 app.use("/api/admin", require("./routes/admin"));
 app.use("/api/admin/analytics", require("./routes/adminAnalytics"));
 app.use("/api/chat", require("./routes/chat"));

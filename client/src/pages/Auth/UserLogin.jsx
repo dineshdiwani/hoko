@@ -7,7 +7,7 @@ import GoogleLoginButton from "../../components/GoogleLoginButton";
 import { isNativeAppRuntime } from "../../utils/runtime";
 import { ensureNativePushRegistration, isNativePushEnabled } from "../../services/nativePush";
 import { CapacitorSmsRetriever } from "@shaher/capacitor-sms-retriever";
-import { getDeferredDeepLink, clearDeferredDeepLink, buildDeferredDeepLinkUrl, saveDeferredDeepLink } from "../../services/deepLinks";
+import { getDeferredDeepLink, clearDeferredDeepLink, buildDeferredDeepLinkUrl } from "../../services/deepLinks";
 import { isCompleteSellerProfile } from "../../utils/sellerProfile";
 
 const BUYER_PENDING_REQUIREMENT_KEY = "buyer_pending_requirement_data";
@@ -63,7 +63,8 @@ export default function UserLogin({ role = "buyer" }) {
       postLoginRedirectSource === "offer" ||
       isDeepLinkRedirect);
   const isSellerWhatsAppFlow =
-    isSeller && sourceFromUrl === "wa";
+    isSeller &&
+    (sourceFromUrl === "wa" || Boolean(cityFromUrl) || Boolean(catsFromUrl));
   const defaultTermsContent = [
     "By using hoko, you agree to these Terms & Conditions.",
     "hoko is a marketplace platform connecting buyers and sellers. You are responsible for all negotiations, pricing, delivery, and payments.",
@@ -85,7 +86,7 @@ export default function UserLogin({ role = "buyer" }) {
   ].join("\n\n");
 
   const [step, setStep] = useState("EMAIL_LOGIN");
-  const rawMobile = searchParams.get("mobile") || (sourceFromUrl === "wa" ? localStorage.getItem("whatsapp_mobile") || "" : "") || "";
+  const rawMobile = searchParams.get("mobile") || localStorage.getItem("whatsapp_mobile") || "";
   const normalizeMobileValue = (value) => {
     const raw = String(value || "").trim();
     if (!raw) return "";
@@ -189,10 +190,9 @@ export default function UserLogin({ role = "buyer" }) {
     const waCity =
       cityFromUrl ||
       sessionCity ||
-      (isSellerWhatsAppFlow ? localStorage.getItem("whatsapp_city") || "" : "");
-    const waCats =
-      catsFromUrl ||
-      (isSellerWhatsAppFlow ? localStorage.getItem("whatsapp_categories") || "" : "");
+      localStorage.getItem("whatsapp_city") ||
+      "";
+    const waCats = catsFromUrl || localStorage.getItem("whatsapp_categories") || "";
     if (waCity) params.set("city", waCity);
     if (waCats) params.set("cats", waCats);
     if (sourceFromUrl) params.set("from", sourceFromUrl);
@@ -214,60 +214,8 @@ export default function UserLogin({ role = "buyer" }) {
       localStorage.setItem("buyer_dashboard_force_tab", "posts");
     } catch {}
   }
-
-  function clearWhatsAppFlowStorage() {
-    try {
-      localStorage.removeItem("whatsapp_mobile");
-      localStorage.removeItem("whatsapp_city");
-      localStorage.removeItem("whatsapp_categories");
-    } catch {}
-  }
   useEffect(() => {
     const session = getSession();
-    const sellerIntentActive = isSeller || loginIntentSeller;
-
-    if (sellerIntentActive && session?.token) {
-      let cancelled = false;
-
-      (async () => {
-        try {
-          const res = await api.post("/auth/switch-role", { role: "seller" });
-          if (cancelled) return;
-
-          if (res?.data?.requiresSellerRegistration) {
-            const sellerProfile = res.data.user?.sellerProfile || session?.sellerProfile || {};
-            setSession({
-              ...session,
-              ...res.data.user,
-              role: "seller",
-              sellerProfile,
-              token: res.data.token
-            });
-            navigate(buildSellerRegisterRedirect(), { replace: true });
-            return;
-          }
-
-          const nextUser = res?.data?.user || {};
-          const nextCity = String(nextUser.city || session?.city || cityFromUrl || "").trim();
-          setSession({
-            ...session,
-            ...nextUser,
-            role: "seller",
-            sellerProfile: nextUser.sellerProfile || session?.sellerProfile || {},
-            token: res.data.token
-          });
-          navigate(buildSellerDashboardRedirect(nextCity), { replace: true });
-        } catch {
-          if (cancelled) return;
-          navigate(buildSellerRegisterRedirect(), { replace: true });
-        }
-      })();
-
-      return () => {
-        cancelled = true;
-      };
-    }
-
     if (session?.role === currentRole && session?.token) {
       const shouldResumeSellerFlow =
         isSeller &&
@@ -565,7 +513,7 @@ useEffect(() => {
 
       setSession({
         _id: user._id,
-        role: currentRole,
+        role: user.role || currentRole,
         roles: user.roles,
         email: user.email || email,
         city: sessionCity,
@@ -598,16 +546,6 @@ useEffect(() => {
       if (reqRes.data?._id) {
         setBuyerDashboardDefaultTab(requirementCity || sessionCity);
         forceBuyerPostsTab();
-        saveDeferredDeepLink({
-          path: `/buyer/dashboard?tab=posts&highlight=${reqRes.data._id}`,
-          source: "buyer_requirement",
-          role: "buyer",
-          actionType: "buyer_requirement",
-          query: {
-            highlight: reqRes.data._id,
-            city: requirementCity || sessionCity
-          }
-        });
         navigate(`/buyer/dashboard?tab=posts&highlight=${reqRes.data._id}`, { replace: true });
         return true;
       }
@@ -697,7 +635,7 @@ useEffect(() => {
       }
       setSession({
         _id: user._id,
-        role: currentRole,
+        role: user.role || currentRole,
         roles: user.roles,
         email: user.email,
         city: resolvedCity || user.city || "",
@@ -897,7 +835,7 @@ useEffect(() => {
           const sellerProfile = user.sellerProfile || profile || {};
           const registrationSession = {
             _id: user._id,
-            role: currentRole,
+            role: user.role || currentRole,
             roles: user.roles,
             email: user.email || email,
             city: resolvedCity || cityFromUrl || user.city || city || "",
@@ -921,7 +859,7 @@ useEffect(() => {
           if (!hasCompleteSellerProfile(user, profile)) {
             setSession({
               _id: user._id,
-              role: currentRole,
+              role: user.role || currentRole,
               roles: user.roles,
               email: user.email || email,
               city: resolvedCity || cityFromUrl || user.city || city || "",
@@ -937,7 +875,7 @@ useEffect(() => {
             }
             setPendingCitySession({
               _id: user._id,
-              role: currentRole,
+              role: user.role || currentRole,
               roles: user.roles,
               email: user.email || email,
               city: resolvedCity || user.city || city || cityFromUrl || "",
@@ -953,7 +891,7 @@ useEffect(() => {
 
           setSession({
             _id: user._id,
-            role: currentRole,
+            role: user.role || currentRole,
             roles: user.roles,
             email: user.email || email,
             city: cityFromUrl || user.city || city,
@@ -979,7 +917,7 @@ useEffect(() => {
           if (resolvedCity) {
             setSession({
               _id: user._id,
-              role: currentRole,
+              role: user.role || currentRole,
               roles: user.roles,
               email: user.email || (pendingLoginMethod === "email" ? email : ""),
               city: resolvedCity,
@@ -989,20 +927,15 @@ useEffect(() => {
               sellerProfile: user.sellerProfile || profile || {},
               token: res.data.token
             });
+            forceBuyerPostsTab();
             const dashboardParams = new URLSearchParams();
+            dashboardParams.set("tab", "posts");
             dashboardParams.set("city", resolvedCity);
-            if (isSeller) {
-              dashboardParams.set("from", "seller-login");
-              navigate(`/seller/dashboard?${dashboardParams.toString()}`, { replace: true });
-            } else {
-              forceBuyerPostsTab();
-              dashboardParams.set("tab", "posts");
-              navigate(`/buyer/dashboard?${dashboardParams.toString()}`, { replace: true });
-            }
+            navigate(`/buyer/dashboard?${dashboardParams.toString()}`, { replace: true });
           } else {
             setPendingCitySession({
               _id: user._id,
-              role: currentRole,
+              role: user.role || currentRole,
               roles: user.roles,
               email: user.email || (pendingLoginMethod === "email" ? email : ""),
               city: "",
@@ -1020,7 +953,7 @@ useEffect(() => {
         // For other flows, proceed with session setup
         setSession({
           _id: user._id,
-          role: currentRole,
+          role: user.role || currentRole,
           roles: user.roles,
           email: user.email || email,
           city: resolvedCity || user.city || city,
@@ -1049,10 +982,6 @@ useEffect(() => {
           localStorage.removeItem("login_intent_role");
         }
 
-        if (!isSellerWhatsAppFlow) {
-          clearWhatsAppFlowStorage();
-        }
-
         if (shouldResumeSellerFlow) {
           if (!hasCompleteSellerProfile(user, profile)) {
             navigate(buildSellerRegisterRedirect(), { replace: true });
@@ -1063,9 +992,7 @@ useEffect(() => {
           return;
         }
 
-        if (!isSeller) {
-          setBuyerDashboardDefaultTab(city);
-        }
+        setBuyerDashboardDefaultTab(city);
         const dashboardParams = new URLSearchParams();
         if (resolvedCity || city) dashboardParams.set("city", resolvedCity || city);
         if (isSeller) dashboardParams.set("from", "seller-login");

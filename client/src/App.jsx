@@ -31,13 +31,19 @@ const SellerDeepLink = lazy(() => import("./pages/Seller/SellerDeepLink"));
 function SellerDashboardWrapper() {
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
-  const isPublicRequirementView =
-    !getSession()?.token && Boolean(searchParams.get("openRequirement") || searchParams.get("postId"));
-
+  const sourceFromUrl = String(searchParams.get("from") || "").trim().toLowerCase();
+  const isWhatsAppFlow = sourceFromUrl === "wa";
+  
+  // For WhatsApp flow, BYPASS all auth checks - let them see the dashboard directly
+  if (isWhatsAppFlow) {
+    return <SellerDashboard />;
+  }
+  
+  // Normal flow: require seller auth
   return requireSeller() ? (
     <SellerDashboard />
   ) : (
-    isPublicRequirementView ? <SellerDashboard /> : <Navigate to="/seller/login" replace />
+    <Navigate to="/seller/login" replace />
   );
 }
 
@@ -57,7 +63,7 @@ import NotificationPermissionPrompt from "./components/NotificationPermissionPro
 import { getSession } from "./services/auth";
 import { ensurePushSubscription } from "./services/pushNotifications";
 import { refreshSessionIfNeeded } from "./services/sessionRefresh";
-import { getDeferredDeepLink, buildDeferredDeepLinkUrl, clearDeferredDeepLink, clearServerDeferredDeepLink, fetchServerDeferredDeepLink, syncStoredDeferredDeepLinkToServer } from "./services/deepLinks";
+import { getDeferredDeepLink, buildDeferredDeepLinkUrl, clearDeferredDeepLink } from "./services/deepLinks";
 import socket, { connectSocket } from "./services/socket";
 import { showRuntimeNotification } from "./services/runtimeNotifications";
 import {
@@ -317,9 +323,11 @@ function AppShell() {
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
     const session = getSession();
-    if (!session?.token) return undefined;
+    if (!session?.token) return;
+
+    const deferredDeepLink = getDeferredDeepLink();
+    if (!deferredDeepLink) return;
 
     const currentPath = String(location.pathname || "");
     const shouldRestore =
@@ -328,25 +336,13 @@ function AppShell() {
       currentPath === "/buyer/login" ||
       currentPath === "/seller/login";
 
-    if (!shouldRestore) return undefined;
+    if (!shouldRestore) return;
 
-    (async () => {
-      await syncStoredDeferredDeepLinkToServer().catch(() => null);
-      const localDeferredDeepLink = getDeferredDeepLink();
-      const deferredDeepLink = localDeferredDeepLink || (await fetchServerDeferredDeepLink());
-      if (cancelled || !deferredDeepLink) return;
+    const next = buildDeferredDeepLinkUrl(deferredDeepLink);
+    if (!next) return;
 
-      const next = buildDeferredDeepLinkUrl(deferredDeepLink);
-      if (!next) return;
-
-      clearDeferredDeepLink();
-      clearServerDeferredDeepLink(deferredDeepLink).catch(() => null);
-      navigate(next, { replace: true });
-    })();
-
-    return () => {
-      cancelled = true;
-    };
+    clearDeferredDeepLink();
+    navigate(next, { replace: true });
   }, [location.pathname, navigate]);
 
   return (

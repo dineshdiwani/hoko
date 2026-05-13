@@ -14,9 +14,7 @@ import { refreshSession } from "../../services/sessionRefresh";
 import {
   getDeferredDeepLink,
   clearDeferredDeepLink,
-  buildDeferredDeepLinkUrl,
-  fetchServerDeferredDeepLink,
-  clearServerDeferredDeepLink
+  buildDeferredDeepLinkUrl
 } from "../../services/deepLinks";
 import { isCompleteSellerProfile } from "../../utils/sellerProfile";
 
@@ -35,15 +33,10 @@ export default function SellerRegister() {
   const sourceFromUrl = String(searchParams.get("from") || "").trim().toLowerCase();
   const session = getSession();
   const sessionCity = String(session?.city || "").trim();
-  const isWhatsAppFlow = sourceFromUrl === "wa";
 
   const [seller, setSeller] = useState({
     email: session?.email || localStorage.getItem("seller_email") || "",
-    mobile:
-      session?.mobile ||
-      (isWhatsAppFlow ? localStorage.getItem("whatsapp_mobile") || "" : "") ||
-      mobileFromUrl ||
-      "",
+    mobile: session?.mobile || localStorage.getItem("whatsapp_mobile") || mobileFromUrl || "",
     registeredBusinessName: "",
     managerName: "",
     registrationDetails: "",
@@ -52,16 +45,11 @@ export default function SellerRegister() {
     website: "",
     taxId: "",
     city:
-      (isWhatsAppFlow ? cityFromUrl : "") ||
+      (sourceFromUrl === "wa" ? cityFromUrl : "") ||
       (() => {
-        const sharedCity = String(
-          getUiCitySelection(
-            sessionCity ||
-              (isWhatsAppFlow ? localStorage.getItem("whatsapp_city") || "" : "")
-          )
-        ).trim();
+        const sharedCity = String(getUiCitySelection(sessionCity || localStorage.getItem("whatsapp_city") || "")).trim();
         if (sharedCity && sharedCity.toLowerCase() !== "all") return sharedCity;
-        return sessionCity || (isWhatsAppFlow ? localStorage.getItem("whatsapp_city") || "" : "");
+        return sessionCity || localStorage.getItem("whatsapp_city") || "";
       })(),
     categories: [],
     whatsappConsent: false
@@ -85,15 +73,12 @@ export default function SellerRegister() {
       .then((data) => {
         if (Array.isArray(data.cities) && data.cities.length) {
           setCities(data.cities);
-          const whatsappCity = isWhatsAppFlow
-            ? (localStorage.getItem("whatsapp_city") || cityFromUrl)
-            : "";
-          const whatsappCats = isWhatsAppFlow
-            ? (localStorage.getItem("whatsapp_categories") || catsFromUrl)
-            : "";
-          const whatsappMobile = isWhatsAppFlow
-            ? normalizeMobileValue(localStorage.getItem("whatsapp_mobile") || mobileFromUrl)
-            : mobileFromUrl;
+          const whatsappCity =
+            sourceFromUrl === "wa"
+              ? (localStorage.getItem("whatsapp_city") || cityFromUrl)
+              : "";
+          const whatsappCats = localStorage.getItem("whatsapp_categories") || catsFromUrl;
+          const whatsappMobile = normalizeMobileValue(localStorage.getItem("whatsapp_mobile") || mobileFromUrl);
           setSeller((prev) => {
             let next = { ...prev };
             if (whatsappCity) {
@@ -126,46 +111,25 @@ export default function SellerRegister() {
   useEffect(() => {
     const currentSession = getSession();
     if (currentSession?.token && isCompleteSellerProfile(currentSession)) {
-      let cancelled = false;
-
-      (async () => {
-        const deferredDeepLink = getDeferredDeepLink() || (await fetchServerDeferredDeepLink());
-        if (cancelled) return;
-
-        if (deferredDeepLink?.path) {
-          const next = buildDeferredDeepLinkUrl(deferredDeepLink);
-          if (next) {
-            clearDeferredDeepLink();
-            clearServerDeferredDeepLink(deferredDeepLink).catch(() => null);
-            navigate(next, { replace: true });
-            return;
-          }
-        }
-
-        const params = new URLSearchParams();
-        const sellerCity = String(currentSession.city || seller.city || cityFromUrl || "").trim();
-        const sellerCats = Array.isArray(currentSession?.sellerProfile?.categories)
-          ? currentSession.sellerProfile.categories.join(",")
-          : "";
-        if (sellerCity) params.set("city", sellerCity);
-        if (sellerCats) params.set("cats", sellerCats);
-        params.set("from", "seller-login");
-        navigate(`/seller/dashboard${params.toString() ? `?${params.toString()}` : ""}`, {
-          replace: true
-        });
-      })();
-
-      return () => {
-        cancelled = true;
-      };
+      const params = new URLSearchParams();
+      const sellerCity = String(currentSession.city || seller.city || cityFromUrl || "").trim();
+      const sellerCats = Array.isArray(currentSession?.sellerProfile?.categories)
+        ? currentSession.sellerProfile.categories.join(",")
+        : "";
+      if (sellerCity) params.set("city", sellerCity);
+      if (sellerCats) params.set("cats", sellerCats);
+      params.set("from", "seller-login");
+      navigate(`/seller/dashboard${params.toString() ? `?${params.toString()}` : ""}`, {
+        replace: true
+      });
     }
   }, [navigate, cityFromUrl, seller.city]);
 
   useEffect(() => {
     const savedEmail = localStorage.getItem("seller_email");
-    const savedMobile = isWhatsAppFlow ? normalizeMobileValue(localStorage.getItem("whatsapp_mobile")) : "";
-    const savedCity = isWhatsAppFlow ? localStorage.getItem("whatsapp_city") : "";
-    const savedCats = isWhatsAppFlow ? localStorage.getItem("whatsapp_categories") : "";
+    const savedMobile = normalizeMobileValue(localStorage.getItem("whatsapp_mobile"));
+    const savedCity = localStorage.getItem("whatsapp_city");
+    const savedCats = localStorage.getItem("whatsapp_categories");
     
     setSeller((prev) => {
       const next = { ...prev };
@@ -294,7 +258,7 @@ export default function SellerRegister() {
       setSession(updatedSession);
       setUiCitySelection(res.data.city || city);
       alert("Registration submitted successfully!");
-      const deferredDeepLink = getDeferredDeepLink() || (await fetchServerDeferredDeepLink());
+      const deferredDeepLink = getDeferredDeepLink();
       const resumeTarget =
         String(localStorage.getItem("post_login_redirect") || "").trim() ||
         (deferredDeepLink ? buildDeferredDeepLinkUrl(deferredDeepLink) : "");
@@ -308,9 +272,6 @@ export default function SellerRegister() {
       }
       localStorage.removeItem("post_login_redirect");
       clearDeferredDeepLink();
-      if (deferredDeepLink) {
-        clearServerDeferredDeepLink(deferredDeepLink).catch(() => null);
-      }
       const dashboardParams = new URLSearchParams();
       if (seller.city) dashboardParams.set("city", seller.city);
       if (catsFromUrl) dashboardParams.set("cats", catsFromUrl);

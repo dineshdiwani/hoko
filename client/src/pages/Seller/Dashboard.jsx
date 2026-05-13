@@ -106,6 +106,9 @@ export default function SellerDashboard() {
     }
   }, [isWhatsAppFlow, whatsappContextMobile, whatsappContextCity, whatsappContextCats]);
 
+  // COMPLETELY BYPASS AUTH for WhatsApp flow - let them see dashboard
+  const isWhatsAppPublicView = isWhatsAppFlow;
+  
   const isPublicRequirementView = !session?.token && Boolean(openRequirementFromUrl);
 
   const [requirements, setRequirements] = useState([]);
@@ -166,7 +169,7 @@ export default function SellerDashboard() {
         setLoading(true);
       }
       try {
-        if (isPublicRequirementView) {
+        if (isWhatsAppPublicView) {
           const publicCity =
             String(selectedCity || "").trim().toLowerCase() === "all"
               ? ""
@@ -249,6 +252,7 @@ export default function SellerDashboard() {
     [
       allowSellerSamplePosts,
       categories,
+      isWhatsAppPublicView,
       activeSmartTab,
       selectedCategory,
       selectedCity,
@@ -560,7 +564,7 @@ export default function SellerDashboard() {
   function handleSellerOfferClick(req, { isSample = false, isCityLocked = false } = {}) {
     if (!req || isSample || isCityLocked) return;
     if (!session?.token) {
-      if (isPublicRequirementView) {
+      if (isWhatsAppPublicView) {
         setActiveRequirement(req);
         return;
       }
@@ -591,15 +595,17 @@ export default function SellerDashboard() {
   }
 
   useEffect(() => {
-    if (isPublicRequirementView) {
+    // NEVER redirect for WhatsApp flow - let them see the dashboard
+    if (isWhatsAppFlow || isWhatsAppPublicView) {
       return;
     }
     // For logged-in users, also stay on dashboard
     if (session?.token) {
       return;
     }
+    // Only redirect if NOT in WhatsApp flow and NOT logged in
     navigate("/seller/login");
-  }, [session, navigate, isPublicRequirementView]);
+  }, [session, navigate, isWhatsAppPublicView, isWhatsAppFlow]);
 
   useEffect(() => {
     const stored = getSellerDashboardCategories();
@@ -618,7 +624,7 @@ export default function SellerDashboard() {
     activeSmartTab,
     session?.city,
     allowSellerSamplePosts,
-    isPublicRequirementView,
+    isWhatsAppPublicView,
     isWhatsAppFlow,
     categories,
     loadSellerRequirements
@@ -1332,7 +1338,7 @@ export default function SellerDashboard() {
               />
 
             <div className="relative" ref={menuRef}>
-              {!session?.token && isPublicRequirementView ? (
+              {!session?.token && isWhatsAppPublicView ? (
                 <button
                   onClick={() => navigateToLogin()}
                   className="ui-btn-primary px-4 py-2"
@@ -1372,7 +1378,7 @@ export default function SellerDashboard() {
                           });
                           setSession({
                             _id: res.data.user._id,
-                            role: "buyer",
+                            role: res.data.user.role,
                             roles: res.data.user.roles,
                             email: res.data.user.email,
                             city: res.data.user.city,
@@ -1540,7 +1546,7 @@ export default function SellerDashboard() {
                 {selectedCategory && selectedCategory !== "all" ? selectedCategory : "All categories"}
               </span>
               <span className="app-chip">
-                {isPublicRequirementView ? "Public preview" : "App view"}
+                {isWhatsAppPublicView ? "WhatsApp public view" : "App view"}
               </span>
               <span className="app-chip">
                 {activeSmartTab === "all"
@@ -1841,8 +1847,10 @@ export default function SellerDashboard() {
                           ? "bg-gray-200 text-gray-600 cursor-not-allowed"
                           : req.myOffer
                           ? "bg-green-600 text-white active:scale-95"
-                          : !session?.token
+                          : !session?.token && !isWhatsAppPublicView
                           ? "bg-blue-600 text-white active:scale-95"
+                          : !session?.token && isWhatsAppPublicView
+                          ? "btn-brand active:scale-95"
                           : "btn-brand active:scale-95"
                       }`}
                     >
@@ -1850,8 +1858,10 @@ export default function SellerDashboard() {
                         ? "Preview Only (Sample Post)"
                         : isCityLocked
                         ? "Offer Locked (City)"
-                        : !session?.token
+                        : !session?.token && !isWhatsAppPublicView
                         ? "Login to Submit Offer"
+                        : !session?.token && isWhatsAppPublicView
+                        ? "Submit Offer"
                         : req.myOffer
                         ? "Submitted Offer / Edit Offer"
                         : "Submit Offer"}

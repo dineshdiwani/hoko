@@ -67,28 +67,6 @@ function normalizeAndDedupeCategories(categories) {
   return Array.from(new Set(normalized));
 }
 
-function getSellerDisplayName(user) {
-  const name = String(user?.name || "").trim();
-  if (name) return name;
-  const businessName = String(user?.sellerProfile?.registeredBusinessName || "").trim();
-  if (businessName) return businessName;
-  return "Seller";
-}
-
-function getSellerAddress(user) {
-  return String(user?.address || user?.sellerProfile?.businessAddress || "").trim();
-}
-
-function getEffectiveSellerCity(user) {
-  const city = String(
-    user?.city ||
-      user?.buyerSettings?.defaultCity ||
-      user?.sellerProfile?.city ||
-      ""
-  ).trim();
-  return city && city.toLowerCase() !== "user_default" ? city : "";
-}
-
 function safeFilename(originalname) {
   const ext = path.extname(String(originalname || "")).toLowerCase();
   const base = path
@@ -590,7 +568,7 @@ router.post("/onboard", auth, async (req, res) => {
 
     return res.json({
       sellerProfile: user?.sellerProfile || {},
-      city: getEffectiveSellerCity(user),
+      city: user?.city,
       email: user?.email,
       roles: user?.roles,
       termsAccepted: user?.termsAccepted
@@ -650,7 +628,6 @@ router.post("/profile", auth, sellerOnly, async (req, res) => {
       name,
       email,
       mobile,
-      address,
       registeredBusinessName,
       registrationDetails,
       businessAddress,
@@ -674,7 +651,6 @@ router.post("/profile", auth, sellerOnly, async (req, res) => {
       ...(typeof mobile === "string" && mobile.trim()
         ? { mobile: normalizeE164(mobile) }
         : {}),
-      ...(typeof address === "string" ? { address: address.trim() } : {}),
       ...(registeredBusinessName
         ? { "sellerProfile.registeredBusinessName": registeredBusinessName }
         : {}),
@@ -722,11 +698,9 @@ router.post("/profile", auth, sellerOnly, async (req, res) => {
     );
 
     res.json({
-      name: String(user?.name || "").trim(),
-      displayName: getSellerDisplayName(user),
+      name: user?.name || "",
       sellerProfile: user?.sellerProfile || {},
       city: user?.city,
-      address: getSellerAddress(user),
       email: user?.email || "",
       preferredCurrency: user?.preferredCurrency || "INR",
       sellerSettings: user?.sellerSettings || {}
@@ -807,13 +781,11 @@ router.get("/profile", auth, sellerOnly, async (req, res) => {
     .sort({ updatedAt: -1 })
     .select("updatedAt");
   res.json({
-    name: String(user?.name || "").trim(),
-    displayName: getSellerDisplayName(user),
+    name: user?.name || "",
     sellerProfile: user?.sellerProfile || {},
     email: user?.email || "",
     mobile: user?.mobile || "",
-    city: getEffectiveSellerCity(user),
-    address: getSellerAddress(user),
+    city: user?.city,
     preferredCurrency: user?.preferredCurrency || "INR",
     terms: {
       acceptedAt: user?.termsAccepted?.at || null,
@@ -1930,14 +1902,14 @@ router.get("/check-mobile", async (req, res) => {
     return res.json({ exists: false });
   }
   
-  const hasSellerProfile = isCompleteSellerProfile(user);
-  const hasSellerRole = Boolean(user.roles?.seller || hasSellerProfile);
+  const hasSellerRole = Boolean(user.roles?.seller);
+  const hasSellerProfile = hasSellerRole && isCompleteSellerProfile(user);
   
   res.json({
     exists: true,
     hasSellerRole,
     hasSellerProfile,
-    city: getEffectiveSellerCity(user),
+    city: user.city,
     email: user.email
   });
 });

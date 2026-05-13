@@ -149,23 +149,7 @@ function getBuyerContactCompletion(user) {
   };
 }
 function getEffectiveBuyerCity(user) {
-  const city = String(
-    user?.city ||
-      user?.buyerSettings?.defaultCity ||
-      user?.sellerProfile?.city ||
-      ""
-  ).trim();
-  return city && city.toLowerCase() !== "user_default" ? city : "";
-}
-
-function getBuyerDisplayName(user) {
-  const name = String(user?.name || "").trim();
-  if (name) return name;
-  return "Buyer";
-}
-
-function getBuyerAddress(user) {
-  return String(user?.address || "").trim();
+  return String(user?.city || user?.buyerSettings?.defaultCity || "").trim();
 }
 function getFreshBuyerSettings(user) {
   const base = user?.buyerSettings || {};
@@ -339,7 +323,7 @@ function resolveWhatsAppProvider() {
   return String(process.env.WHATSAPP_PROVIDER || "mock").trim().toLowerCase();
 }
 
-async function findOrCreateSoftUserByMobile(mobileE164, city = "") {
+async function findOrCreateSoftUserByMobile(mobileE164, city = "user_default") {
   const existingSoftUser = await User.findOne({
     mobile: mobileE164,
     passwordHash: { $exists: false },
@@ -355,7 +339,7 @@ async function findOrCreateSoftUserByMobile(mobileE164, city = "") {
 
   const softUser = await User.create({
     mobile: mobileE164,
-    city: String(city || "").trim(),
+    city: city || "user_default",
     roles: { buyer: true, seller: false, admin: false }
   });
 
@@ -731,7 +715,7 @@ function generateOTP() {
 }
 
 async function findOrCreateSoftUserByMobileForOtp(mobile, city) {
-  return findOrCreateSoftUserByMobile(normalizeE164(mobile), city || "");
+  return findOrCreateSoftUserByMobile(normalizeE164(mobile), city || "user_default");
 }
 
 async function createRequirementFromOTPData(otpRecord) {
@@ -1934,12 +1918,10 @@ router.get("/profile", auth, buyerOnly, async (req, res) => {
   }
 
   res.json({
-    name: String(req.user.name || "").trim(),
-    displayName: getBuyerDisplayName(req.user),
+    name: req.user.name || req.user.googleProfile?.name || "",
     email: req.user.email || "",
     mobile: req.user.mobile || "",
     city: getEffectiveBuyerCity(req.user),
-    address: getBuyerAddress(req.user),
     preferredCurrency: req.user.preferredCurrency || "INR",
     roles: req.user.roles || {},
     loginMethods: {
@@ -1969,7 +1951,6 @@ router.post("/profile", auth, buyerOnly, async (req, res) => {
       email,
       mobile,
       city,
-      address,
       preferredCurrency,
       buyerSettings
     } = req.body || {};
@@ -1996,9 +1977,6 @@ router.post("/profile", auth, buyerOnly, async (req, res) => {
     }
     if (city) {
       req.user.city = city;
-    }
-    if (typeof address === "string") {
-      req.user.address = address.trim();
     }
     if (preferredCurrency) {
       req.user.preferredCurrency = preferredCurrency;
@@ -2229,12 +2207,10 @@ router.post("/profile", auth, buyerOnly, async (req, res) => {
       .map(normalizeBuyerDocument)
       .filter(Boolean);
     res.json({
-      name: String(req.user.name || "").trim(),
-      displayName: getBuyerDisplayName(req.user),
+      name: req.user.name || req.user.googleProfile?.name || "",
       email: req.user.email || "",
       mobile: req.user.mobile || "",
       city: getEffectiveBuyerCity(req.user),
-      address: getBuyerAddress(req.user),
       preferredCurrency: req.user.preferredCurrency || "INR",
       roles: req.user.roles || {},
       loginMethods: {

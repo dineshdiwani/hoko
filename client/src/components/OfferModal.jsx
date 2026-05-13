@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import api from "../services/api";
 import { getSession, setSession } from "../services/storage";
 import { refreshSession } from "../services/sessionRefresh";
-import { saveDeferredDeepLink } from "../services/deepLinks";
 import {
   extractAttachmentFileName,
   getAttachmentDisplayName,
@@ -347,29 +346,12 @@ export default function OfferModal({
       return { ok: false, reason: "login" };
     }
 
-    const res = await api.post("/auth/switch-role", { role: "seller" });
-    const nextUser = res?.data?.user || {};
-    if (res?.data?.requiresSellerRegistration) {
-      const registerSession = {
-        ...session,
-        _id: nextUser._id || session._id,
-        role: "seller",
-        roles: {
-          ...(session.roles || {}),
-          ...(nextUser.roles || {}),
-          seller: true
-        },
-        email: nextUser.email || session.email,
-        city: nextUser.city || session.city,
-        name: nextUser.name || session.name,
-        mobile: nextUser.mobile || session.mobile || "",
-        preferredCurrency: nextUser.preferredCurrency || session.preferredCurrency || "INR",
-        sellerProfile: nextUser.sellerProfile || session.sellerProfile || {},
-        token: res?.data?.token || session.token
-      };
-      setSession(registerSession);
+    if (!session?.roles?.seller) {
       return { ok: false, reason: "register" };
     }
+
+    const res = await api.post("/auth/switch-role", { role: "seller" });
+    const nextUser = res?.data?.user || {};
     let nextSession = {
       ...session,
       _id: nextUser._id || session._id,
@@ -443,15 +425,6 @@ export default function OfferModal({
           localStorage.setItem("post_login_redirect_source", "offer");
         }
         localStorage.setItem("login_intent_role", "seller");
-        saveDeferredDeepLink({
-          path: buildResumeTarget(),
-          source: "offer",
-          role: "seller",
-          actionType: "seller_offer",
-          query: {
-            requirementId
-          }
-        });
         const params = buildAuthParams();
         params.set("requirementId", requirementId);
         const target = sellerSession.reason === "login"

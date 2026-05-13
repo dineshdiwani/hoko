@@ -5,7 +5,6 @@ import { getSession, setSession, clearSession } from "../../services/storage";
 import { refreshSession } from "../../services/sessionRefresh";
 import { fetchOptions } from "../../services/options";
 import { saveDeferredDeepLink } from "../../services/deepLinks";
-import { isCompleteSellerProfile } from "../../utils/sellerProfile";
 
 const PENDING_OFFER_KEY = "pending_seller_offer_intent";
 const POST_LOGIN_REDIRECT_SOURCE_KEY = "post_login_redirect_source";
@@ -227,7 +226,6 @@ export default function SellerDeepLink() {
       path: `/seller/deeplink/${encodeURIComponent(requirementIdValue)}`,
       source: "seller_deeplink",
       role: "seller",
-      actionType: "seller_offer",
       query: {
         city: cityFromUrl || city || "",
         cats: resumeCategory || "",
@@ -267,7 +265,6 @@ export default function SellerDeepLink() {
       path: "/seller/deeplink/" + encodeURIComponent(requirementIdValue),
       source: "seller_offer",
       role: "seller",
-      actionType: "seller_offer",
       query: {
         city: cityFromUrl || city || "",
         cats: resumeCategory || "",
@@ -309,7 +306,7 @@ export default function SellerDeepLink() {
     if (!session?.token) {
       return { ok: false, reason: "login" };
     }
-    if (!(session?.role === "seller" || session?.roles?.seller || isCompleteSellerProfile(session))) {
+    if (!session?.roles?.seller) {
       return { ok: false, reason: "register" };
     }
     if (session.role === "seller") {
@@ -320,7 +317,7 @@ export default function SellerDeepLink() {
     const nextUser = res?.data?.user || {};
     const nextSession = {
       _id: nextUser._id,
-      role: "seller",
+      role: nextUser.role || "seller",
       roles: nextUser.roles || session.roles,
       email: nextUser.email || session.email,
       city: nextUser.city || session.city,
