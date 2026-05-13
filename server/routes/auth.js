@@ -25,6 +25,41 @@ function normalizeEmail(email) {
   return String(email || "").trim().toLowerCase();
 }
 
+function getMobileLookupCandidates(mobile) {
+  const raw = String(mobile || "").trim();
+  if (!raw) return [];
+
+  const digits = raw.replace(/[^\d]/g, "");
+  const normalized = normalizeE164(raw);
+  const candidates = new Set([raw, normalized]);
+
+  if (digits) {
+    candidates.add(digits);
+  }
+
+  if (digits.length === 10) {
+    candidates.add(`+91${digits}`);
+  }
+
+  if (digits.length === 12 && digits.startsWith("91")) {
+    candidates.add(`+${digits}`);
+  }
+
+  if (digits.length === 11 && digits.startsWith("0")) {
+    candidates.add(`+91${digits.slice(1)}`);
+  }
+
+  return Array.from(candidates).filter(Boolean);
+}
+
+async function findUserByMobile(mobile) {
+  const candidates = getMobileLookupCandidates(mobile);
+  if (!candidates.length) return null;
+  return User.findOne({
+    mobile: { $in: candidates }
+  });
+}
+
 function generateOtp() {
   return String(Math.floor(100000 + Math.random() * 900000));
 }
@@ -222,7 +257,7 @@ router.post("/login", otpSendLimiter, async (req, res) => {
         retryAfterSeconds
       });
     }
-    let user = await User.findOne({ mobile: mobileE164 });
+    let user = await findUserByMobile(mobileE164);
     if (isSoftDeletedUser(user)) {
       reactivateSoftDeletedUser(user);
       await user.save();
@@ -233,8 +268,11 @@ router.post("/login", otpSendLimiter, async (req, res) => {
         city: String(city || "").trim(),
         roles: { buyer: true, seller: false, admin: false }
       });
+    } else if (user.mobile !== mobileE164) {
+      user.mobile = mobileE164;
+      await user.save();
     }
-const otp = generateOtp();
+    const otp = generateOtp();
     console.log("[AUTH] Sending OTP to:", mobileE164, "via Fast2SMS DLT");
     try {
       const mobileDigits = mobileE164.replace(/^\+/, "");
@@ -352,7 +390,7 @@ router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
       return res.status(otpResult.reason === "locked" ? 429 : 401).json({ message });
     }
     
-    let user = await User.findOne({ mobile: mobileE164 });
+    let user = await findUserByMobile(mobileE164);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -360,7 +398,17 @@ router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
       reactivateSoftDeletedUser(user);
       await user.save();
     }
-    
+
+    if (user.mobile !== mobileE164) {
+      user.mobile = mobileE164;
+    }
+    if (city) {
+      user.city = city;
+    }
+    if (user.isModified?.("mobile") || user.isModified?.("city")) {
+      await user.save();
+    }
+
     const normalizedRole = role === "seller" ? "seller" : "buyer";
     if (normalizedRole === "seller") {
       const hasSellerProfile = isCompleteSellerProfile(user);
@@ -395,12 +443,7 @@ router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
         });
       }
     }
-    
-    if (city) {
-      user.city = city;
-      await user.save();
-    }
-    
+
     const token = jwt.sign(
       { id: user._id, role: normalizedRole, tokenVersion: user.tokenVersion || 0 },
       process.env.JWT_SECRET,

@@ -66,6 +66,39 @@ function normalizeAndDedupeCategories(categories) {
   return Array.from(new Set(normalized));
 }
 
+function getMobileLookupCandidates(mobile) {
+  const raw = String(mobile || "").trim();
+  if (!raw) return [];
+
+  const digits = raw.replace(/[^\d]/g, "");
+  const normalized = normalizeE164(raw);
+  const candidates = new Set([raw, normalized]);
+
+  if (digits) {
+    candidates.add(digits);
+  }
+
+  if (digits.length === 10) {
+    candidates.add(`+91${digits}`);
+  }
+
+  if (digits.length === 12 && digits.startsWith("91")) {
+    candidates.add(`+${digits}`);
+  }
+
+  if (digits.length === 11 && digits.startsWith("0")) {
+    candidates.add(`+91${digits.slice(1)}`);
+  }
+
+  return Array.from(candidates).filter(Boolean);
+}
+
+async function findUserByMobile(mobile) {
+  const candidates = getMobileLookupCandidates(mobile);
+  if (!candidates.length) return null;
+  return User.findOne({ mobile: { $in: candidates } });
+}
+
 function safeFilename(originalname) {
   const ext = path.extname(String(originalname || "")).toLowerCase();
   const base = path
@@ -509,7 +542,7 @@ router.post("/onboard", auth, async (req, res) => {
     city,
     whatsappConsent
   } = req.body || {};
-  const mobileValue = String(mobile || "").trim();
+  const mobileValue = normalizeE164(mobile);
   const emailValue = String(email || "").trim();
   const cityValue = String(city || "").trim();
   const registeredBusinessNameValue = String(registeredBusinessName || "").trim();
@@ -862,7 +895,10 @@ router.post("/profile/confirm-contact", auth, sellerOnly, async (req, res) => {
         return res.status(400).json({ message: `Invalid OTP: ${result.reason}` });
       }
       const normalizedMobile = normalizeE164(mobile);
-      const existingMobileUser = await User.findOne({ mobile: normalizedMobile, _id: { $ne: req.user._id } });
+      const existingMobileUser = await User.findOne({
+        mobile: { $in: getMobileLookupCandidates(normalizedMobile) },
+        _id: { $ne: req.user._id }
+      });
       if (existingMobileUser) {
         return res.status(409).json({ message: "This mobile number is already in use by another account" });
       }
@@ -1086,7 +1122,7 @@ router.post("/offer/public", async (req, res) => {
     }
 
     let sellerUser = null;
-    const existingUser = await User.findOne({ mobile: mobileE164 }).select("_id roles").lean();
+    const existingUser = await findUserByMobile(mobileE164);
     if (existingUser && existingUser.roles?.seller) {
       sellerUser = existingUser;
     }
@@ -1842,7 +1878,10 @@ router.get("/check-mobile", async (req, res) => {
   }
   
   const mobileE164 = normalizeE164(mobile);
-  const user = await User.findOne({ mobile: mobileE164 }).select("_id email roles sellerProfile city").lean();
+  const userDoc = await findUserByMobile(mobileE164);
+  const user = userDoc
+    ? await User.findById(userDoc._id).select("_id email roles sellerProfile city").lean()
+    : null;
   
   if (!user) {
     return res.json({ exists: false });
