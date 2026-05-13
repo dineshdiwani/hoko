@@ -122,6 +122,7 @@ export default function UserLogin({ role = "buyer" }) {
   const [showCityModal, setShowCityModal] = useState(false);
   const [pendingCitySession, setPendingCitySession] = useState(null);
   const [pendingLoginMethod, setPendingLoginMethod] = useState("");
+  const [pendingGoogleCredential, setPendingGoogleCredential] = useState("");
   const [resendTimer, setResendTimer] = useState(0);
   const otpInputRefs = useRef([]);
   const otpAutoFillRef = useRef(null);
@@ -532,6 +533,112 @@ useEffect(() => {
     return true;
   }
 
+  async function continueAfterGoogleLoginResponse({ res, loginCity = "" }) {
+    const user = res.data.user || {};
+    const resolvedCity = String(loginCity || cityFromUrl || user.city || "").trim();
+    const token = res.data.token;
+
+    // Show city modal before continuing
+    if (currentRole === "buyer" && await completePendingBuyerRequirementLogin({
+      user,
+      token,
+      profile: null,
+      loginCity: resolvedCity
+    })) {
+      return;
+    }
+
+    if (isSeller && isSellerWhatsAppFlow) {
+      const sellerProfile = user.sellerProfile || {};
+      if (!hasCompleteSellerProfile(user, sellerProfile)) {
+        setSession({
+          _id: user._id,
+          role: currentRole,
+          roles: user.roles,
+          email: user.email,
+          city: resolvedCity || "",
+          name: user.name || "Seller",
+          picture: user.picture,
+          preferredCurrency: user.preferredCurrency || "INR",
+          sellerProfile,
+          token
+        });
+        localStorage.setItem("seller_email", user.email || "");
+        setPendingCitySession({
+          _id: user._id,
+          role: currentRole,
+          roles: user.roles,
+          email: user.email,
+          city: resolvedCity || "",
+          name: user.name || "Seller",
+          picture: user.picture,
+          preferredCurrency: user.preferredCurrency || "INR",
+          sellerProfile,
+          token
+        });
+        navigate(buildSellerRegisterRedirect(), { replace: true });
+        return;
+      }
+      setSession({
+        _id: user._id,
+        role: user.role || currentRole,
+        roles: user.roles,
+        email: user.email,
+        city: resolvedCity || user.city || "",
+        name: user.name || "Seller",
+        picture: user.picture,
+        preferredCurrency: user.preferredCurrency || "INR",
+        sellerProfile,
+        token
+      });
+      localStorage.setItem("seller_email", user.email || "");
+      forceBuyerPostsTab();
+      navigate(buildSellerDashboardRedirect(resolvedCity || user.city || ""), {
+        replace: true
+      });
+      return;
+    }
+
+    if (resolvedCity) {
+      setSession({
+        _id: user._id,
+        role: currentRole,
+        roles: user.roles,
+        email: user.email,
+        city: resolvedCity,
+        name: user.name || (isSeller ? "Seller" : "Buyer"),
+        picture: user.picture,
+        preferredCurrency: user.preferredCurrency || "INR",
+        sellerProfile: user.sellerProfile || {},
+        token
+      });
+      if (isSeller) {
+        navigate(buildSellerDashboardRedirect(resolvedCity), { replace: true });
+      } else {
+        forceBuyerPostsTab();
+        const dashboardParams = new URLSearchParams();
+        dashboardParams.set("tab", "posts");
+        dashboardParams.set("city", resolvedCity);
+        navigate(`/buyer/dashboard?${dashboardParams.toString()}`, { replace: true });
+      }
+      return;
+    }
+
+    setPendingCitySession({
+      _id: user._id,
+      role: currentRole,
+      roles: user.roles,
+      email: user.email,
+      city: "",
+      name: user.name || "Buyer",
+      picture: user.picture,
+      preferredCurrency: user.preferredCurrency || "INR",
+      sellerProfile: user.sellerProfile || {},
+      token
+    });
+    setShowCityModal(true);
+  }
+
   function buildDisplayName(user, roleValue, profile) {
     if (roleValue === "seller") {
       return (
@@ -812,114 +919,26 @@ useEffect(() => {
   }
 
   function handleGoogleLogin(credential) {
+    const explicitCity = String(city || cityFromUrl || "").trim();
+    if (!explicitCity) {
+      setPendingGoogleCredential(credential);
+      setPendingCitySession({
+        loginMode: "google",
+        credential
+      });
+      setShowCityModal(true);
+      return;
+    }
+
     setGoogleLoading(true);
     api
       .post("/auth/google", {
         credential,
         role: currentRole,
-        city: "",
+        city: explicitCity,
         acceptTerms: true
       })
-      .then(async (res) => {
-        const user = res.data.user || {};
-        
-        // Show city modal before continuing
-        if (currentRole === "buyer" && await completePendingBuyerRequirementLogin({
-          user,
-          token: res.data.token,
-          profile: null,
-          loginCity: ""
-        })) {
-          return;
-        }
-        if (isSeller && isSellerWhatsAppFlow) {
-          const sellerProfile = user.sellerProfile || {};
-          if (!hasCompleteSellerProfile(user, sellerProfile)) {
-            setSession({
-              _id: user._id,
-              role: currentRole,
-              roles: user.roles,
-              email: user.email,
-              city: cityFromUrl || "",
-              name: user.name || "Seller",
-              picture: user.picture,
-              preferredCurrency: user.preferredCurrency || "INR",
-              sellerProfile,
-              token: res.data.token
-            });
-            localStorage.setItem("seller_email", user.email || "");
-            setPendingCitySession({
-              _id: user._id,
-              role: currentRole,
-              roles: user.roles,
-              email: user.email,
-              city: cityFromUrl || "",
-              name: user.name || "Seller",
-              picture: user.picture,
-              preferredCurrency: user.preferredCurrency || "INR",
-              sellerProfile,
-              token: res.data.token
-            });
-            navigate(buildSellerRegisterRedirect(), { replace: true });
-            return;
-          }
-          setSession({
-            _id: user._id,
-            role: user.role || currentRole,
-            roles: user.roles,
-            email: user.email,
-            city: cityFromUrl || user.city || "",
-            name: user.name || "Seller",
-            picture: user.picture,
-            preferredCurrency: user.preferredCurrency || "INR",
-            sellerProfile,
-            token: res.data.token
-          });
-          localStorage.setItem("seller_email", user.email || "");
-          forceBuyerPostsTab();
-          navigate(buildSellerDashboardRedirect(cityFromUrl || user.city || ""), {
-            replace: true
-          });
-          return;
-        }
-        if (user.city || cityFromUrl) {
-          setSession({
-            _id: user._id,
-            role: currentRole,
-            roles: user.roles,
-            email: user.email,
-            city: cityFromUrl || user.city,
-            name: user.name || (isSeller ? "Seller" : "Buyer"),
-            picture: user.picture,
-            preferredCurrency: user.preferredCurrency || "INR",
-            sellerProfile: user.sellerProfile || {},
-            token: res.data.token
-          });
-          if (isSeller) {
-            navigate(buildSellerDashboardRedirect(cityFromUrl || user.city || ""), { replace: true });
-          } else {
-            forceBuyerPostsTab();
-            const dashboardParams = new URLSearchParams();
-            dashboardParams.set("tab", "posts");
-            if (cityFromUrl || user.city) dashboardParams.set("city", cityFromUrl || user.city);
-            navigate(`/buyer/dashboard?${dashboardParams.toString()}`, { replace: true });
-          }
-        } else {
-          setPendingCitySession({
-            _id: user._id,
-            role: currentRole,
-            roles: user.roles,
-            email: user.email,
-            city: "",
-            name: user.name || "Buyer",
-            picture: user.picture,
-            preferredCurrency: user.preferredCurrency || "INR",
-            sellerProfile: user.sellerProfile || {},
-            token: res.data.token
-          });
-          setShowCityModal(true);
-        }
-      })
+      .then((res) => continueAfterGoogleLoginResponse({ res, loginCity: explicitCity }))
       .catch((err) => {
         const message = err?.response?.data?.message || "Login failed";
         if (isSeller && (message === "Complete seller registration before Google login" || message === "Complete seller registration before login")) {
@@ -1143,7 +1162,7 @@ useEffect(() => {
         </div>
       )}
 
-      {showCityModal && pendingCitySession && cities.length > 0 && (
+      {showCityModal && pendingCitySession && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white w-full max-w-md rounded-2xl shadow-xl p-6 mx-4">
             <h2 className="text-xl font-bold mb-4">Select Your City</h2>
@@ -1162,12 +1181,34 @@ useEffect(() => {
                 ))}
               </select>
             )}
-<button
+            <button
               onClick={async () => {
                 if (!city) {
                   alert("Please select your city");
                   return;
                 }
+
+                if (pendingCitySession?.loginMode === "google" && pendingGoogleCredential) {
+                  setShowCityModal(false);
+                  setGoogleLoading(true);
+                  try {
+                    const res = await api.post("/auth/google", {
+                      credential: pendingGoogleCredential,
+                      role: currentRole,
+                      city,
+                      acceptTerms: true
+                    });
+                    setPendingGoogleCredential("");
+                    setPendingCitySession(null);
+                    await continueAfterGoogleLoginResponse({ res, loginCity: city });
+                  } catch (err) {
+                    alert(err?.response?.data?.message || err.message || "Google login failed");
+                  } finally {
+                    setGoogleLoading(false);
+                  }
+                  return;
+                }
+
                 setShowCityModal(false);
                 
                 // Finalize session with selected city
@@ -1288,6 +1329,7 @@ useEffect(() => {
                 if (!isSellerRole) {
                   setBuyerDashboardDefaultTab(city);
                 }
+                setPendingCitySession(null);
                 navigate(`${targetDashboard}?${dashboardParams.toString()}`, { replace: true });
               }}
               className="w-full py-3 rounded-xl btn-brand font-semibold"
