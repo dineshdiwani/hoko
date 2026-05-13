@@ -74,7 +74,10 @@ export default function SellerRegister() {
       .then((data) => {
         if (Array.isArray(data.cities) && data.cities.length) {
           setCities(data.cities);
-          const whatsappCity = localStorage.getItem("whatsapp_city") || cityFromUrl;
+          const whatsappCity =
+            sourceFromUrl === "wa"
+              ? (localStorage.getItem("whatsapp_city") || cityFromUrl)
+              : "";
           const whatsappCats = localStorage.getItem("whatsapp_categories") || catsFromUrl;
           const whatsappMobile = normalizeMobileValue(localStorage.getItem("whatsapp_mobile") || mobileFromUrl);
           setSeller((prev) => {
