@@ -206,8 +206,14 @@ export default function RequirementForm({ isPublic = false }) {
   const effectiveMobile = normalizeMobileValue(
     buyerProfile?.mobile || sessionMobile || ""
   );
-  const needsBuyerMobile = isLoggedIn && profileReady && Boolean(effectiveEmail) && !effectiveMobile;
-  const needsBuyerEmail = isLoggedIn && profileReady && Boolean(effectiveMobile) && !effectiveEmail;
+  const contactCompletion = buyerProfile?.contactCompletion || {
+    hasEmail: Boolean(effectiveEmail),
+    hasMobile: Boolean(effectiveMobile),
+    needsEmail: Boolean(effectiveMobile) && !Boolean(effectiveEmail),
+    needsMobile: Boolean(effectiveEmail) && !Boolean(effectiveMobile)
+  };
+  const needsBuyerMobile = isLoggedIn && profileReady && Boolean(contactCompletion.needsMobile);
+  const needsBuyerEmail = isLoggedIn && profileReady && Boolean(contactCompletion.needsEmail);
   const showBuyerContactFields = !isLoggedIn || needsBuyerMobile || needsBuyerEmail;
   const savedDraft = shouldRestoreDraft ? readSavedBuyerRequirementDraft() : null;
   const freshFormState = useMemo(
@@ -400,7 +406,8 @@ useEffect(() => {
           mobile: normalizeMobileValue(profile.mobile || sessionMobile || ""),
           city: String(profile.city || sessionCity || "").trim(),
           roles: profile.roles || sessionRoles,
-          loginMethods: profile.loginMethods || sessionLoginMethods
+          loginMethods: profile.loginMethods || sessionLoginMethods,
+          contactCompletion: profile.contactCompletion || contactCompletion
         });
       } catch {
         if (!cancelled) {
@@ -408,7 +415,13 @@ useEffect(() => {
             email: sessionEmail,
             mobile: sessionMobile,
             city: sessionCity,
-            loginMethods: sessionLoginMethods
+            loginMethods: sessionLoginMethods,
+            contactCompletion: {
+              hasEmail: Boolean(sessionEmail),
+              hasMobile: Boolean(sessionMobile),
+              needsEmail: Boolean(sessionMobile) && !Boolean(sessionEmail),
+              needsMobile: Boolean(sessionEmail) && !Boolean(sessionMobile)
+            }
           });
           setForm((prev) => ({
             ...prev,
@@ -842,7 +855,13 @@ useEffect(() => {
         updateSession({
           ...(submittedEmail ? { email: submittedEmail } : {}),
           ...(submittedMobile ? { mobile: submittedMobile } : {}),
-          city: payload.city
+          city: payload.city,
+          contactCompletion: {
+            hasEmail: Boolean(submittedEmail || sessionEmail),
+            hasMobile: Boolean(submittedMobile || sessionMobile),
+            needsEmail: false,
+            needsMobile: false
+          }
         });
         navigate("/buyer/dashboard?tab=posts", { replace: true });
         return;
@@ -990,7 +1009,7 @@ useEffect(() => {
                     required
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    We will save this to your profile for future use.
+                    We need this once to complete your first requirement post.
                   </p>
                 </div>
               )}
@@ -1010,7 +1029,7 @@ useEffect(() => {
                     required
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    We will save this to your profile for future use.
+                    We need this once to complete your first requirement post.
                   </p>
                 </div>
               )}

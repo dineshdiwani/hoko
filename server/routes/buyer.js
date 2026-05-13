@@ -137,6 +137,16 @@ function normalizeOfferOutcomeStatus(value) {
   }
   return "pending";
 }
+function getBuyerContactCompletion(user) {
+  const hasEmail = Boolean(String(user?.email || "").trim());
+  const hasMobile = Boolean(String(user?.mobile || user?.phone || "").trim());
+  return {
+    hasEmail,
+    hasMobile,
+    needsEmail: hasMobile && !hasEmail,
+    needsMobile: hasEmail && !hasMobile
+  };
+}
 function getFreshBuyerSettings(user) {
   const base = user?.buyerSettings || {};
   return {
@@ -1312,7 +1322,8 @@ router.post("/requirement", requirementCreateLimiter, auth, buyerOnly, async (re
       city: req.user.city || "",
       preferredCurrency: req.user.preferredCurrency || "INR",
       roles: req.user.roles || {},
-      name: req.user.name || ""
+      name: req.user.name || "",
+      contactCompletion: getBuyerContactCompletion(req.user)
     }
   });
 
@@ -1885,6 +1896,7 @@ router.get("/profile", auth, buyerOnly, async (req, res) => {
   const documents = (settings.documents || [])
     .map(normalizeBuyerDocument)
     .filter(Boolean);
+  const contactCompletion = getBuyerContactCompletion(req.user);
   const mobileE164 = normalizeE164(req.user.mobile || "");
   let whatsappUpdatesOptedIn = false;
   if (mobileE164) {
@@ -1912,6 +1924,7 @@ router.get("/profile", auth, buyerOnly, async (req, res) => {
       otp: true,
       google: Boolean(req.user.googleProfile?.sub)
     },
+    contactCompletion,
     terms: {
       acceptedAt: req.user.termsAccepted?.at || null,
       versionDate: latestPlatformSettings?.updatedAt || null
@@ -1946,6 +1959,17 @@ router.post("/profile", auth, buyerOnly, async (req, res) => {
     }
     if (typeof mobile === "string") {
       req.user.mobile = mobile.trim();
+    }
+    const contactCompletion = getBuyerContactCompletion(req.user);
+    if (contactCompletion.needsEmail && !String(email || "").trim()) {
+      return res.status(400).json({
+        message: "Email is required before posting your first requirement"
+      });
+    }
+    if (contactCompletion.needsMobile && !String(mobile || "").trim()) {
+      return res.status(400).json({
+        message: "Mobile number is required before posting your first requirement"
+      });
     }
     if (city) {
       req.user.city = city;
@@ -2082,7 +2106,8 @@ router.post("/profile", auth, buyerOnly, async (req, res) => {
             roles: existingUser.roles,
             city: existingUser.city,
             preferredCurrency: existingUser.preferredCurrency || "INR",
-            mobile: existingUser.mobile
+            mobile: existingUser.mobile,
+            contactCompletion: getBuyerContactCompletion(existingUser)
           }
         });
       }
@@ -2131,7 +2156,8 @@ router.post("/profile", auth, buyerOnly, async (req, res) => {
             roles: existingMobileUser.roles,
             city: existingMobileUser.city,
             preferredCurrency: existingMobileUser.preferredCurrency || "INR",
-            mobile: existingMobileUser.mobile
+            mobile: existingMobileUser.mobile,
+            contactCompletion: getBuyerContactCompletion(existingMobileUser)
           }
         });
       }
@@ -2181,7 +2207,8 @@ router.post("/profile", auth, buyerOnly, async (req, res) => {
                 roles: existingEmailUser.roles,
                 city: existingEmailUser.city,
                 preferredCurrency: existingEmailUser.preferredCurrency || "INR",
-                mobile: existingEmailUser.mobile
+                mobile: existingEmailUser.mobile,
+                contactCompletion: getBuyerContactCompletion(existingEmailUser)
               }
             });
           }
@@ -2228,6 +2255,7 @@ router.post("/profile", auth, buyerOnly, async (req, res) => {
         otp: true,
         google: Boolean(req.user.googleProfile?.sub)
       },
+      contactCompletion: getBuyerContactCompletion(req.user),
       terms: {
         acceptedAt: req.user.termsAccepted?.at || null
       },
