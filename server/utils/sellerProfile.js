@@ -20,7 +20,7 @@ function getSellerProfileStatus(subject = {}) {
   const sellerRole = subject?.role === "seller" || Boolean(subject?.roles?.seller);
   const email = normalizeText(subject?.email);
   const mobile = normalizeText(subject?.mobile);
-  const city = normalizeText(subject?.city);
+  const city = normalizeText(subject?.city || subject?.buyerSettings?.defaultCity);
   const registeredBusinessName = normalizeText(sellerProfile.registeredBusinessName);
   const managerName = normalizeText(sellerProfile.managerName);
   const categories = normalizeCategories(sellerProfile.categories);
