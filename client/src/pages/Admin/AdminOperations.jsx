@@ -47,6 +47,7 @@ export default function AdminOperations() {
   const [filterCity, setFilterCity] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [hideDummyUsers, setHideDummyUsers] = useState(false);
 
   const loadKpis = useCallback(async () => {
     try {
@@ -420,15 +421,25 @@ export default function AdminOperations() {
     return identifier || "Unknown user";
   };
 
+  const isDummyUser = (user) => {
+    const contact = String(user?.phone || user?.mobile || "").replace(/\s+/g, "");
+    const buyerName = String(user?.buyerSettings?.name || user?.name || "").trim().toLowerCase();
+    return contact === "+919999999999" || contact === "9999999999" || buyerName === "demo buyer";
+  };
+
   const filteredUsers = users.filter(u => {
+    if (hideDummyUsers && isDummyUser(u)) return false;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       return (u.email || "").toLowerCase().includes(q) || 
              (u.mobile || u.phone || "").includes(q) ||
+             (u.name || "").toLowerCase().includes(q) ||
              (u._id || "").toLowerCase().includes(q);
     }
     return true;
   });
+
+  const hiddenDummyUserCount = hideDummyUsers ? users.filter(isDummyUser).length : 0;
 
   const filteredRequirements = requirements.filter(r => {
     if (filterCity && r.city !== filterCity) return false;
@@ -738,6 +749,17 @@ export default function AdminOperations() {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="px-3 py-2 border rounded-lg text-sm flex-1 min-w-[200px]"
             />
+            <button
+              type="button"
+              onClick={() => setHideDummyUsers((value) => !value)}
+              className={`px-3 py-2 rounded-lg text-sm font-medium border ${
+                hideDummyUsers
+                  ? "bg-blue-600 text-white border-blue-600"
+                  : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+              }`}
+            >
+              {hideDummyUsers ? `Dummy Users Hidden${hiddenDummyUserCount ? ` (${hiddenDummyUserCount})` : ""}` : "Hide Dummy Users"}
+            </button>
             <select
               value={filterCity}
               onChange={(e) => setFilterCity(e.target.value)}
