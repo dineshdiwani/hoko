@@ -17,11 +17,6 @@ router.get("/overview", adminAuth, requireAdminPermission("reports.read"), async
   const totalBuyers = await User.countDocuments({ "roles.buyer": true });
   const totalSellers = await User.countDocuments({ "roles.seller": true });
 
-  const approvedSellers = await User.countDocuments({
-    "roles.seller": true,
-    "sellerProfile.approved": true
-  });
-
   const totalRequirements = await Requirement.countDocuments();
   const totalOffers = await Offer.countDocuments();
 
@@ -34,8 +29,7 @@ router.get("/overview", adminAuth, requireAdminPermission("reports.read"), async
     totalUsers,
     totalBuyers,
     totalSellers,
-    approvedSellers,
-    pendingSellers: totalSellers - approvedSellers,
+    registeredSellers: totalSellers,
     totalRequirements,
     totalOffers,
     avgOffersPerRequirement

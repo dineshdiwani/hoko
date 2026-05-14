@@ -87,7 +87,6 @@ export default function AdminDashboard() {
         reverseAuction: true,
         whatsappInteraction: true,
         userReport: true,
-        sellerApproved: false,
         moderationAlert: true
       }
     }
@@ -337,15 +336,6 @@ export default function AdminDashboard() {
     }
     setManualMessagePreview(buildManualMessage(req));
   }, [buildManualMessage, manualRequirementId, requirements]);
-
-  const toggleSellerApproval = async (sellerId, approved) => {
-    await api.post("/admin/seller/approve", {
-      sellerId,
-      approved
-    });
-    alert("Seller status updated");
-    await loadDashboardData();
-  };
 
   const toggleUserBlock = async (userId, blocked) => {
     await api.post("/admin/user/block", { userId, blocked });
@@ -899,10 +889,10 @@ export default function AdminDashboard() {
               </div>
             </div>
             <div className="rounded-lg border border-gray-200 bg-white p-3">
-              <div className="text-xs uppercase tracking-wide text-gray-500">Seller Health</div>
-              <div className="mt-1 text-2xl font-semibold text-gray-900">{formatNumber(overview?.approvedSellers)}</div>
+              <div className="text-xs uppercase tracking-wide text-gray-500">Sellers</div>
+              <div className="mt-1 text-2xl font-semibold text-gray-900">{formatNumber(overview?.registeredSellers ?? overview?.totalSellers)}</div>
               <div className="mt-1 text-sm text-gray-600">
-                Pending {formatNumber(overview?.pendingSellers)} - Reviews {formatNumber(summaryStats?.reviews)}
+                Reviews {formatNumber(summaryStats?.reviews)}
               </div>
             </div>
             <div className="rounded-lg border border-gray-200 bg-white p-3">
@@ -1514,7 +1504,6 @@ export default function AdminDashboard() {
                       { key: "reverseAuction", label: "Reverse Auction" },
                       { key: "whatsappInteraction", label: "WA Interaction" },
                       { key: "userReport", label: "User Report" },
-                      { key: "sellerApproved", label: "Seller Approved" },
                       { key: "moderationAlert", label: "Moderation Alert" }
                     ].map((item) => (
                       <label key={item.key} className="flex items-center gap-2 ui-body text-gray-700">

@@ -50,11 +50,10 @@ export default function AdminAnalytics() {
           <Stat title="Total Users" value={overview.totalUsers} />
           <Stat title="Buyers" value={overview.totalBuyers} />
           <Stat title="Sellers" value={overview.totalSellers} />
-          <Stat title="Approved Sellers" value={overview.approvedSellers} />
+          <Stat title="Registered Sellers" value={overview.registeredSellers ?? overview.totalSellers} />
           <Stat title="Requirements" value={overview.totalRequirements} />
           <Stat title="Offers" value={overview.totalOffers} />
           <Stat title="Avg Offers / Req" value={overview.avgOffersPerRequirement} />
-          <Stat title="Pending Sellers" value={overview.pendingSellers} />
         </div>
 
         {/* KPI BAR CHART */}

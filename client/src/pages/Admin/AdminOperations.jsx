@@ -246,12 +246,6 @@ export default function AdminOperations() {
     });
   };
 
-  const toggleSellerApproval = async (sellerId, approved) => {
-    await api.post("/admin/seller/approve", { sellerId, approved });
-    logActivity(approved ? "Seller Approved" : "Seller Revoked", `Seller ID: ${sellerId}`);
-    await loadData();
-  };
-
   const toggleUserBlock = async (userId, blocked) => {
     await api.post("/admin/user/block", { userId, blocked });
     logActivity(blocked ? "User Blocked" : "User Unblocked", `User ID: ${userId}`);
@@ -902,7 +896,6 @@ export default function AdminOperations() {
                         <div>Joined: {new Date(user.createdAt).toLocaleString()}</div>
                         {user.deletedAt && <div>Deleted: {formatDate(user.deletedAt)}</div>}
                         <div>Chat: {user.chatDisabled ? "Disabled" : "Enabled"}</div>
-                        {user.sellerProfile && <div>Seller Approved: {user.sellerProfile.approved ? "Yes" : "No"}</div>}
                       </div>
                     )}
                   </div>
@@ -948,14 +941,6 @@ export default function AdminOperations() {
                         className="px-3 py-1.5 rounded-lg text-xs text-white bg-black"
                       >
                         Delete
-                      </button>
-                    )}
-                    {user.roles?.seller && !user.roles?.admin && (
-                      <button
-                        onClick={() => toggleSellerApproval(user._id, !user.sellerProfile?.approved)}
-                        className={`px-3 py-1.5 rounded-lg text-xs text-white ${user.sellerProfile?.approved ? "bg-red-500" : "bg-green-500"}`}
-                      >
-                        {user.sellerProfile?.approved ? "Revoke" : "Approve"}
                       </button>
                     )}
                   </div>
