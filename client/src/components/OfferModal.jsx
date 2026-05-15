@@ -175,7 +175,7 @@ export default function OfferModal({
         deliveryTime,
         paymentTerms,
         mobile: String(session?.mobile || "").trim(),
-        sellerCity: String(requirement.city || session?.city || "").trim()
+        sellerCity: String(session?.city || "").trim()
       },
       createdAt: Date.now()
     };

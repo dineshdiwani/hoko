@@ -306,26 +306,23 @@ export default function SellerDashboard() {
     const pendingOffer = JSON.parse(localStorage.getItem("pending_seller_offer_intent") || "null");
     if (!pendingOffer || !pendingOffer.requirementId) return;
     
-    // Clear the pending offer and redirect
-    localStorage.removeItem("pending_seller_offer_intent");
-    localStorage.removeItem("pending_offer_data");
-    localStorage.removeItem("post_login_redirect");
-    localStorage.removeItem("post_login_redirect_source");
-    localStorage.removeItem(`seller_offer_draft:${String(pendingOffer.requirementId).trim()}`);
-    
     // Submit the offer
     const submitOffer = async () => {
       try {
         const payload = {
+          requirementId: pendingOffer.requirementId,
           price: Number(pendingOffer.offerPayload?.price) || 0,
           message: pendingOffer.offerPayload?.message || "",
           deliveryTime: pendingOffer.offerPayload?.deliveryTime || "",
-          paymentTerms: pendingOffer.offerPayload?.paymentTerms || "",
-          mobile: pendingOffer.offerPayload?.mobile || session?.mobile || "",
-          sellerCity: pendingOffer.offerPayload?.sellerCity || session?.city || ""
+          paymentTerms: pendingOffer.offerPayload?.paymentTerms || ""
         };
         
-        await api.post(`/seller/requirement/${pendingOffer.requirementId}/offer`, payload);
+        await api.post("/seller/offer", payload);
+        localStorage.removeItem("pending_seller_offer_intent");
+        localStorage.removeItem("pending_offer_data");
+        localStorage.removeItem("post_login_redirect");
+        localStorage.removeItem("post_login_redirect_source");
+        localStorage.removeItem(`seller_offer_draft:${String(pendingOffer.requirementId).trim()}`);
         alert("Offer submitted successfully!");
         
         // Refresh the page to show updated offers

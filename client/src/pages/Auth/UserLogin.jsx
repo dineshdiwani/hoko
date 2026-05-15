@@ -863,6 +863,39 @@ useEffect(() => {
         }
         
         if (pendingLoginMethod === "email" || pendingLoginMethod === "mobile") {
+          if (isSeller) {
+            const sessionCity = cityFromUrl || user.city || city || "";
+            setSession({
+              _id: user._id,
+              role: user.role || currentRole,
+              roles: user.roles,
+              email: user.email || (pendingLoginMethod === "email" ? email : ""),
+              city: sessionCity,
+              name: buildDisplayName(user, currentRole, profile),
+              preferredCurrency: user.preferredCurrency || "INR",
+              mobile: user.mobile || mobile || "",
+              sellerProfile: user.sellerProfile || profile || {},
+              token: res.data.token
+            });
+            localStorage.setItem("seller_email", user.email || email || "");
+            if (acceptedTerms) {
+              localStorage.setItem("terms_accepted_at", new Date().toISOString());
+            }
+            if (useSellerPostLoginRedirect) {
+              if (!hasCompleteSellerProfile(user, profile)) {
+                navigate(buildSellerRegisterRedirect(), { replace: true });
+              } else {
+                navigate(buildSellerResumeRedirect(), { replace: true });
+                clearDeferredDeepLink();
+              }
+            } else {
+              localStorage.removeItem("login_intent_role");
+              navigate(buildSellerDashboardRedirect(sessionCity), { replace: true });
+            }
+            setOtpLoading(false);
+            return;
+          }
+
           if (user.city || cityFromUrl) {
             setSession({
               _id: user._id,
