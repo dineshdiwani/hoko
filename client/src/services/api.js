@@ -53,18 +53,22 @@ api.interceptors.response.use(
         localStorage.removeItem("hoko_session");
         localStorage.removeItem("session");
         
-        // Don't redirect if in WhatsApp public flow (public read-only mode)
-        const isWhatsAppFlow = window.location.search.includes("from=wa") || 
-          window.location.search.includes("mobile=");
+        // Don't redirect public browsing funnels when protected side calls return 401.
+        const currentPath = window.location.pathname;
+        const currentSearch = window.location.search || "";
+        const currentParams = new URLSearchParams(currentSearch);
+        const isWhatsAppFlow = currentParams.get("from") === "wa" || currentParams.has("mobile");
+        const isGuestDashboard =
+          currentParams.get("guest") === "1" &&
+          (currentPath === "/buyer/dashboard" || currentPath === "/seller/dashboard");
         
-        if (isWhatsAppFlow) {
-          console.log("[API] 401 in WhatsApp flow, staying on page");
+        if (isWhatsAppFlow || isGuestDashboard) {
+          console.log("[API] 401 in public browsing flow, staying on page");
           return Promise.reject(error);
         }
         
         // Store current location for post-login redirect
-        const currentPath = window.location.pathname;
-        const currentUrl = `${window.location.pathname}${window.location.search || ""}`;
+        const currentUrl = `${currentPath}${currentSearch}`;
         if (currentPath.startsWith("/seller")) {
           window.location.href = `/seller/login?redirect=${encodeURIComponent(currentUrl)}`;
         } else if (currentPath.startsWith("/buyer")) {
