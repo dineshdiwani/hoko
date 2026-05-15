@@ -661,12 +661,35 @@ useEffect(() => {
       "unknown",
       "user_default"
     ]);
+    const emailName = (() => {
+      const rawEmail = String(user?.email || email || "").trim();
+      if (!rawEmail || !rawEmail.includes("@")) return "";
+      const localPart = rawEmail.split("@")[0] || "";
+      const cleaned = localPart
+        .replace(/[._-]+/g, " ")
+        .replace(/\d+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+      if (!cleaned) return "";
+      return cleaned
+        .split(" ")
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+        .join(" ");
+    })();
+    const usedEmailLogin =
+      pendingLoginMethod === "email" ||
+      loginMethod === "email" ||
+      Boolean(user?.loginMethods?.email || user?.loginMethods?.google);
     if (roleValue === "seller") {
       return (
-        profile?.registeredBusinessName || (!placeholderNames.has(lowered) ? rawName : "") || String(user?.mobile || "").trim() || "Seller"
+        profile?.registeredBusinessName ||
+        user?.sellerProfile?.registeredBusinessName ||
+        (!placeholderNames.has(lowered) ? rawName : "") ||
+        (usedEmailLogin ? emailName : "") ||
+        "Seller"
       );
     }
-    return (!placeholderNames.has(lowered) ? rawName : "") || String(user?.mobile || "").trim() || "Buyer";
+    return (!placeholderNames.has(lowered) ? rawName : "") || (usedEmailLogin ? emailName : "") || "Buyer";
   }
 
   function setOtpBoxRef(index) {

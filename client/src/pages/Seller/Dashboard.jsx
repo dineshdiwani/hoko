@@ -39,6 +39,31 @@ import {
 } from "../../utils/notifications";
 import { isCompleteSellerProfile } from "../../utils/sellerProfile";
 
+function getSellerDisplayName(session) {
+  const rawName = String(session?.name || "").trim();
+  const lowered = rawName.toLowerCase();
+  const placeholders = new Set(["seller", "buyer", "user", "app user", "whatsapp user", "unknown", "user_default"]);
+  if (rawName && !placeholders.has(lowered)) return rawName;
+  const businessName = String(session?.sellerProfile?.registeredBusinessName || "").trim();
+  if (businessName) return businessName;
+  const rawEmail = String(session?.email || "").trim();
+  if (rawEmail && rawEmail.includes("@") && !String(session?.mobile || "").trim()) {
+    const cleaned = rawEmail
+      .split("@")[0]
+      .replace(/[._-]+/g, " ")
+      .replace(/\d+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (cleaned) {
+      return cleaned
+        .split(" ")
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+        .join(" ");
+    }
+  }
+  return "Seller";
+}
+
 
 
 export default function SellerDashboard() {
@@ -1352,7 +1377,7 @@ export default function SellerDashboard() {
                   onClick={() => setMenuOpen(!menuOpen)}
                   className="ui-btn-secondary ui-button-text px-2 md:px-3 py-2"
                 >
-                  {session?.name || "Seller"} v
+                  {getSellerDisplayName(session)} v
                 </button>
 
                 {menuOpen && (

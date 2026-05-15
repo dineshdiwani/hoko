@@ -90,8 +90,21 @@ function getDisplayName(session, fallbackRole = "buyer") {
     "user_default"
   ]);
   if (rawName && !placeholderNames.has(lowered)) return rawName;
-  const mobile = String(session?.mobile || "").trim();
-  if (mobile) return mobile;
+  const rawEmail = String(session?.email || "").trim();
+  if (rawEmail && rawEmail.includes("@") && !String(session?.mobile || "").trim()) {
+    const cleaned = rawEmail
+      .split("@")[0]
+      .replace(/[._-]+/g, " ")
+      .replace(/\d+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (cleaned) {
+      return cleaned
+        .split(" ")
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+        .join(" ");
+    }
+  }
   return fallbackRole === "seller" ? "Seller" : "Buyer";
 }
 

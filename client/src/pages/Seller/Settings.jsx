@@ -295,12 +295,19 @@ setProfile({
       setProfile((prev) => ({ ...prev, categories: uniqueCategories }));
       setSellerDashboardCategories(uniqueCategories);
       updateSession({
+        name: profile.name || profile.registeredBusinessName || session?.name || "Seller",
         city: res.data?.city || profile.city || session?.city || "",
         preferredCurrency:
           res.data?.preferredCurrency ||
           profile.preferredCurrency ||
           session?.preferredCurrency ||
-          "INR"
+          "INR",
+        sellerProfile: {
+          ...(session?.sellerProfile || {}),
+          ...(res.data?.sellerProfile || {}),
+          registeredBusinessName: profile.registeredBusinessName,
+          ownerName: profile.ownerName
+        }
       });
       setUiCitySelection(res.data?.city || profile.city || session?.city || "");
       updateSettings({ seller: prefs });
