@@ -247,12 +247,12 @@ export default function RequirementForm({ isPublic = false }) {
       sessionMobile
     ]
   );
-  const requirementCity = normalizeCityValue(form?.city || freshFormState.city || resolvedBuyerCity || cityFromUrl);
-  const offerInviteCityLabel = requirementCity || "Your city";
   const showBuyerContactFields = !isLoggedIn || needsBuyerMobile || needsBuyerEmail;
-  const showCitySelector = !isLoggedIn || !requirementCity;
 
   const [form, setForm] = useState(freshFormState);
+  const requirementCity = normalizeCityValue(form?.city || freshFormState.city || resolvedBuyerCity || cityFromUrl);
+  const offerInviteCityLabel = requirementCity || "Your city";
+  const showCitySelector = !isLoggedIn || !requirementCity;
   const [submitted, setSubmitted] = useState(false);
   const [attachments, setAttachments] = useState([]);
   const [existingAttachments, setExistingAttachments] = useState([]);
