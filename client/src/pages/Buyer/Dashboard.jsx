@@ -642,7 +642,7 @@ export default function BuyerDashboard() {
             ) : (
               <button
                 onClick={() => navigate("/buyer/login")}
-                className="ui-btn-secondary ui-button-text px-3 py-2"
+                className="btn-brand ui-button-text px-4 py-2 rounded-xl"
               >
                 Login
               </button>
