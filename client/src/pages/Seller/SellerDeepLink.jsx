@@ -393,6 +393,38 @@ export default function SellerDeepLink() {
     }
   };
 
+  const submitPublicOffer = async (payload) => {
+    setSubmitting(true);
+    try {
+      await api.post("/seller/offer/public", {
+        requirementId: requirementIdValue,
+        price: Number(payload.price),
+        message: payload.message || "",
+        deliveryTime: payload.deliveryTime || "",
+        paymentTerms: payload.paymentTerms || "",
+        mobile: payload.mobile || "",
+        sellerName: payload.sellerName || "",
+        sellerCity: payload.sellerCity || cityFromUrl || city || ""
+      });
+      clearPendingOfferIntent();
+      clearSellerOfferDraft(requirementIdValue);
+      setAttachments([]);
+      alert("Offer submitted successfully.");
+      const dashboardParams = new URLSearchParams();
+      dashboardParams.set("openRequirement", requirementIdValue);
+      if (payload.sellerCity || cityFromUrl || city) {
+        dashboardParams.set("city", payload.sellerCity || cityFromUrl || city);
+      }
+      navigate(`/seller/dashboard?${dashboardParams.toString()}`, {
+        replace: true
+      });
+    } catch (err) {
+      const serverMessage = err?.response?.data?.message;
+      alert(serverMessage || "Failed to submit offer. Please try again.");
+      setSubmitting(false);
+    }
+  };
+
   useEffect(() => {
     const session = getSession();
     if (session?.token && session?.roles?.seller) {
@@ -613,9 +645,7 @@ export default function SellerDeepLink() {
     }
 
     setPendingOfferPayload(payload);
-    if (!hasValidSession) {
-      redirectToAuthOrRegister(payload);
-    }
+    submitPublicOffer(payload);
   };
 
   async function compressImageFile(file) {

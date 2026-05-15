@@ -1172,42 +1172,128 @@ router.post("/offer/public", async (req, res) => {
       });
     }
 
-    let sellerUser = null;
-    const existingUser = await findUserByMobile(mobileE164);
-    if (existingUser && existingUser.roles?.seller) {
-      sellerUser = existingUser;
-    }
-
     const moderationRules = await getModerationRules();
     const flaggedReason = checkTextForFlags(message || "", moderationRules);
+    const buyer = await User.findById(requirement.buyerId).select("buyerSettings roles email mobile name");
+    const autoEnableChat =
+      buyer?.buyerSettings?.chatOnlyAfterOfferAcceptance === false &&
+      buyer?.buyerSettings?.hideProfileUntilApproved === false;
 
-    if (sellerUser) {
-      return res.status(403).json({
-        message: "You are already registered as a seller. Please login to submit your offer.",
-        requiresLogin: true,
-        redirectTo: "/seller/login"
+    let publicSeller = await findUserByMobile(mobileE164);
+    if (!publicSeller) {
+      const sellerDisplayName = String(
+        registeredBusinessName || sellerName || "Seller"
+      ).trim();
+      publicSeller = await User.create({
+        name: sellerDisplayName,
+        mobile: mobileE164,
+        city: sellerCityInput,
+        roles: { buyer: false, seller: true, admin: false },
+        sellerProfile: {
+          registeredBusinessName: String(registeredBusinessName || sellerName || sellerDisplayName).trim(),
+          managerName: String(sellerName || "").trim(),
+          city: sellerCityInput
+        }
       });
+    } else if (!publicSeller.roles?.seller) {
+      publicSeller.roles = {
+        ...(publicSeller.roles || {}),
+        seller: true
+      };
+      publicSeller.name = publicSeller.name || String(sellerName || registeredBusinessName || "Seller").trim();
+      publicSeller.city = publicSeller.city || sellerCityInput;
+      publicSeller.sellerProfile = {
+        ...(publicSeller.sellerProfile || {}),
+        registeredBusinessName:
+          publicSeller.sellerProfile?.registeredBusinessName ||
+          String(registeredBusinessName || sellerName || "Seller").trim(),
+        managerName:
+          publicSeller.sellerProfile?.managerName ||
+          String(sellerName || "").trim()
+      };
+      await publicSeller.save();
     }
 
-    const pendingOffer = await PendingOfferDraft.findOneAndUpdate(
+    const numericPrice = Number(price || 0);
+    const offer = await Offer.findOneAndUpdate(
+      { requirementId: requirement._id, sellerId: publicSeller._id },
+      {
+        price: numericPrice,
+        message,
+        deliveryTime: String(deliveryTime || "").trim(),
+        paymentTerms: String(paymentTerms || "").trim(),
+        attachments: [],
+        "moderation.removed": false,
+        "moderation.removedAt": null,
+        "moderation.removedBy": null,
+        "moderation.reason": "",
+        "moderation.flagged": Boolean(flaggedReason),
+        "moderation.flaggedAt": flaggedReason ? new Date() : null,
+        "moderation.flaggedReason": flaggedReason || "",
+        ...(autoEnableChat ? { contactEnabledByBuyer: true } : {})
+      },
+      { upsert: true, new: true }
+    );
+
+    recordAppEvent({
+      eventType: "offer_submitted",
+      actorRole: "seller",
+      userId: publicSeller._id,
+      requirementId: requirement._id,
+      offerId: offer?._id || null,
+      source: "seller.offer.public",
+      payload: {
+        price: numericPrice,
+        requirementCity: requirement.city || "",
+        requirementCategory: requirement.category || "",
+        publicSubmission: true
+      }
+    });
+
+    const auctionWasActive = requirement.reverseAuction?.active === true;
+    const nextLowest =
+      typeof requirement.currentLowestPrice === "number"
+        ? Math.min(requirement.currentLowestPrice, numericPrice)
+        : numericPrice;
+    requirement.reverseAuction = {
+      ...(requirement.reverseAuction || {}),
+      active: Boolean(auctionWasActive),
+      lowestPrice:
+        typeof requirement.reverseAuction?.lowestPrice === "number"
+          ? Math.min(requirement.reverseAuction.lowestPrice, numericPrice)
+          : numericPrice,
+      startedAt:
+        auctionWasActive
+          ? requirement.reverseAuction?.startedAt || new Date()
+          : requirement.reverseAuction?.startedAt || null,
+      updatedAt: new Date()
+    };
+    requirement.reverseAuctionActive = Boolean(auctionWasActive);
+    requirement.currentLowestPrice = nextLowest;
+    await requirement.save().catch((err) => {
+      console.error("[Public Offer] requirement save failed:", err?.message || err);
+    });
+
+    await PendingOfferDraft.findOneAndUpdate(
       {
         mobileE164,
         requirementId: requirement._id,
-        status: "pending"
+        status: { $in: ["pending", "submitted"] }
       },
       {
         $set: {
           mobileE164,
           requirementId: requirement._id,
           source: { type: "whatsapp_deep_link" },
-          price: price || 0,
+          price: numericPrice,
           deliveryDays: deliveryTime,
           note: message,
           rawMessage: message,
           sellerEmail: email,
           sellerFirmName: registeredBusinessName,
           sellerName: sellerName,
-          sellerCity: sellerCityInput
+          sellerCity: sellerCityInput,
+          status: "submitted"
         }
       },
       { upsert: true, new: true }
@@ -1255,7 +1341,6 @@ router.post("/offer/public", async (req, res) => {
           })
         );
         
-        const buyer = await User.findById(requirement.buyerId).select("mobile name").lean();
         const buyerMobileE164 = normalizeE164(buyer?.mobile);
         if (buyerMobileE164) {
           const buyerName = String(buyer?.name || "Buyer").trim();
@@ -1279,11 +1364,107 @@ router.post("/offer/public", async (req, res) => {
       })().catch((err) => console.error("[WhatsApp] Offer notification error:", err));
     });
 
+    const io = req.app.get("io");
+    if (shouldNotifyBuyerEvent(buyer, "newOffer")) {
+      const guardKey = `buyer:new_offer:${requirement._id}:${offer._id}:${requirement.buyerId}`;
+      const guard = await claimNotificationGuard(guardKey, 5 * 60 * 1000, "new_offer");
+      if (guard.ok) {
+        const notif = await Notification.create({
+          userId: requirement.buyerId,
+          message: `New offer received for ${requirement.product || requirement.productName}`,
+          type: "new_offer",
+          requirementId: requirement._id,
+          fromUserId: publicSeller._id,
+          data: buildNotificationData("new_offer", {
+            requirementId: String(requirement._id),
+            entityType: "requirement",
+            entityId: String(requirement._id),
+            offerId: String(offer._id),
+            sellerId: String(publicSeller._id),
+            url: `/buyer/requirement/${encodeURIComponent(String(requirement._id))}/offers`
+          })
+        });
+        if (io) {
+          io.to(String(requirement.buyerId)).emit(
+            "notification",
+            serializeNotification(notif, {
+              fallbackUrl: `/buyer/requirement/${encodeURIComponent(String(requirement._id))}/offers`
+            })
+          );
+        }
+      }
+    }
+
+    if (io && auctionWasActive) {
+      io.to(String(requirement.buyerId)).emit("auction_price_update", {
+        requirementId,
+        offerId: offer._id,
+        price: numericPrice
+      });
+    }
+
+    if (shouldSendBuyerPush(buyer)) {
+      await sendPush(requirement.buyerId.toString(), {
+        title: "New Offer Received",
+        body: `A seller submitted an offer of Rs ${numericPrice}`,
+        data: { url: "/buyer/dashboard" }
+      }).catch((err) => console.error("[Public Offer] buyer push failed:", err?.message || err));
+    }
+
+    setImmediate(() => {
+      (async () => {
+        const settingsDoc = await PlatformSettings.findOne()
+          .select("emailNotifications")
+          .lean();
+        const emailSettings = settingsDoc?.emailNotifications || {};
+        const events = emailSettings?.events || {};
+        if (!emailSettings.enabled) return;
+
+        const requirementName = requirement.product || requirement.productName || "Requirement";
+        const sellerDisplayName = publicSeller?.sellerProfile?.registeredBusinessName || publicSeller?.name || sellerName || "Seller";
+        const subject = `New offer submitted on ${requirementName}`;
+        const lines = [
+          "A new offer was submitted.",
+          `Requirement: ${requirementName}`,
+          `Requirement ID: ${requirement._id}`,
+          `Buyer ID: ${requirement.buyerId}`,
+          `Seller ID: ${publicSeller?._id || "-"}`,
+          `Seller name: ${sellerDisplayName}`,
+          `Seller mobile: ${publicSeller?.mobile || mobileE164 || "-"}`,
+          `Price: Rs ${numericPrice}`,
+          `Delivery time: ${String(deliveryTime || "").trim() || "-"}`,
+          `Payment terms: ${String(paymentTerms || "").trim() || "-"}`,
+          `City: ${requirement.city || "-"}`,
+          `Category: ${requirement.category || "-"}`
+        ];
+        const text = lines.join("\n");
+        const tasks = [];
+
+        if (events.newOfferToBuyer !== false && buyer?.email && buyer.buyerSettings?.emailNotificationToggles?.enabled !== false && buyer.buyerSettings?.emailNotificationToggles?.newOffer !== false) {
+          tasks.push(
+            sendEmailToRecipient({
+              to: buyer.email,
+              subject: `New offer received for ${requirementName}`,
+              text
+            })
+          );
+        }
+        if (emailSettings.adminCopy !== false) {
+          tasks.push(sendAdminEventEmail({ subject, text }));
+        }
+
+        if (tasks.length) {
+          await Promise.allSettled(tasks);
+        }
+      })().catch((err) => console.error("[Public Offer] admin email side-channel failed:", err?.message || err));
+    });
+
     return res.json({
       success: true,
       message: "Offer submitted successfully! You will be notified when the buyer responds.",
-      pendingOffer: true,
-      requirementId: requirement._id
+      pendingOffer: false,
+      requirementId: requirement._id,
+      offerId: offer._id
     });
   } catch (err) {
     console.error("[Public Offer] Error:", err?.message || err);
