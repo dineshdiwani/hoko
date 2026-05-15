@@ -123,12 +123,12 @@ export default function OfferModal({
 
   function buildResumeTarget() {
     const next = new URLSearchParams();
-    next.set("resume", "1");
+    next.set("openRequirement", requirementId);
     const requirementCity = String(requirement.city || "").trim();
     const requirementCategory = String(requirement.category || "").trim();
     if (requirementCity) next.set("city", requirementCity);
     if (requirementCategory) next.set("cats", requirementCategory);
-    return `/seller/deeplink/${encodeURIComponent(requirementId)}?${next.toString()}`;
+    return `/seller/dashboard?${next.toString()}`;
   }
 
   function buildAuthParams() {

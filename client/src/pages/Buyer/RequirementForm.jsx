@@ -138,6 +138,12 @@ function normalizeMobileValue(value) {
   return raw.replace(/[^\d]/g, "");
 }
 
+function normalizeCityValue(value) {
+  const raw = String(value || "").trim();
+  if (!raw || raw.toLowerCase() === "user_default") return "";
+  return raw;
+}
+
 function buildFreshRequirementFormState({
   isLoggedIn,
   isPublic,
@@ -193,14 +199,14 @@ export default function RequirementForm({ isPublic = false }) {
   });
   const session = getSession();
   const isLoggedIn = Boolean(session?.token);
-  const sessionCity = String(session?.city || "").trim();
+  const sessionCity = normalizeCityValue(session?.city);
   const sessionMobile = normalizeMobileValue(session?.mobile || "");
   const sessionEmail = String(session?.email || "").trim();
   const sessionRoles = session?.roles || {};
   const sessionLoginMethods = session?.loginMethods || {};
   const [buyerProfile, setBuyerProfile] = useState(null);
   const profileReady = !isLoggedIn || buyerProfile !== null;
-  const resolvedBuyerCity = String(buyerProfile?.city || sessionCity || "").trim();
+  const resolvedBuyerCity = normalizeCityValue(buyerProfile?.city || sessionCity);
   const effectiveEmail = String(
     buyerProfile?.email || sessionEmail || ""
   ).trim();
@@ -241,7 +247,8 @@ export default function RequirementForm({ isPublic = false }) {
       sessionMobile
     ]
   );
-  const requirementCity = String(freshFormState.city || resolvedBuyerCity || cityFromUrl || "").trim();
+  const requirementCity = normalizeCityValue(form?.city || freshFormState.city || resolvedBuyerCity || cityFromUrl);
+  const offerInviteCityLabel = requirementCity || "Your city";
   const showBuyerContactFields = !isLoggedIn || needsBuyerMobile || needsBuyerEmail;
   const showCitySelector = !isLoggedIn || !requirementCity;
 
@@ -327,8 +334,8 @@ useEffect(() => {
         if (Array.isArray(data.cities) && data.cities.length) {
           setCities(data.cities);
           setForm((prev) => {
-            if (prev.city) return prev;
-            const nextCity = resolveCityValue(sessionCity || defaults.city, data.cities);
+            if (normalizeCityValue(prev.city)) return prev;
+            const nextCity = resolveCityValue(sessionCity, data.cities);
             return nextCity ? { ...prev, city: nextCity } : prev;
           });
         }
@@ -402,7 +409,7 @@ useEffect(() => {
           ...prev,
           email: prev.email || String(profile.email || "").trim(),
           mobile: prev.mobile || normalizeMobileValue(profile.mobile || ""),
-          city: prev.city || String(profile.city || "").trim()
+          city: normalizeCityValue(prev.city) || normalizeCityValue(profile.city)
         }));
         updateSession({
           email: String(profile.email || sessionEmail || "").trim(),
@@ -430,7 +437,7 @@ useEffect(() => {
             ...prev,
             email: prev.email || sessionEmail,
             mobile: prev.mobile || sessionMobile,
-            city: prev.city || sessionCity
+            city: normalizeCityValue(prev.city) || sessionCity
           }));
         }
       }
@@ -547,9 +554,9 @@ useEffect(() => {
       const lastPrefs = readLastRequirementPrefs();
       setForm((prev) => ({
         ...prev,
-        city: isPublic
-          ? prev.city
-          : prev.city ||
+          city: isPublic
+          ? normalizeCityValue(prev.city)
+          : normalizeCityValue(prev.city) ||
             resolveCityValue(
               sessionCity || lastPrefs.city || buyerPrefs.defaultCity,
               cities
@@ -890,7 +897,6 @@ useEffect(() => {
   async function handlePublicSubmit(e) {
     e.preventDefault();
     setSubmitted(true);
-    const submittedMobile = normalizeMobileValue(form.mobile);
 
     if (isLoggedIn && !profileReady) {
       alert("Loading your account details. Please try again in a moment.");
@@ -899,7 +905,6 @@ useEffect(() => {
     }
 
     if (
-      !submittedMobile ||
       !requirementCity ||
       !form.category ||
       !form.product ||
@@ -920,7 +925,7 @@ useEffect(() => {
     // User not logged in - redirect to login
     // Store the requirement data in sessionStorage to be retrieved after login
       sessionStorage.setItem("pending_requirement_data", JSON.stringify({
-      mobile: submittedMobile,
+      mobile: "",
       city: requirementCity,
       category: form.category,
       productName: form.product,
@@ -934,7 +939,7 @@ useEffect(() => {
       ref: tempRequirementRef
     }));
     saveBuyerRequirementDraft({
-      mobile: submittedMobile,
+      mobile: "",
       email: form.email,
       city: requirementCity,
       category: form.category,
@@ -947,7 +952,6 @@ useEffect(() => {
       offerInvitedFrom: form.offerInvitedFrom || "city"
     });
     const loginParams = new URLSearchParams();
-    if (submittedMobile) loginParams.set("mobile", submittedMobile);
     loginParams.set("redirect", "/buyer/dashboard?tab=posts");
     localStorage.setItem(BUYER_DASHBOARD_FORCE_TAB_KEY, "posts");
     navigate(`/buyer/login?${loginParams.toString()}`, { replace: true });
@@ -1036,26 +1040,6 @@ useEffect(() => {
                   </p>
                 </div>
               )}
-            </div>
-          )}
-
-          {!isLoggedIn && (
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Mobile Number
-              </label>
-              <input
-                name="mobile"
-                type="tel"
-                value={form.mobile}
-                onChange={(e) => setForm({...form, mobile: e.target.value})}
-                placeholder="Enter your mobile number"
-                className="w-full px-3 py-2 border rounded-xl text-sm"
-                required
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Required for posting requirement.
-              </p>
             </div>
           )}
 
@@ -1168,7 +1152,7 @@ useEffect(() => {
                 checked={String(form.offerInvitedFrom || "city") === "city"}
                 onChange={handleChange}
               />
-              {session?.city || form.city || "Login city name"}
+              {offerInviteCityLabel}
             </label>
             <label className="inline-flex items-center gap-2">
               <input

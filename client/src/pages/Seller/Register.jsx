@@ -287,6 +287,7 @@ export default function SellerRegister() {
       setUiCitySelection(res.data.city || city);
       alert("Registration submitted successfully!");
       const deferredDeepLink = getDeferredDeepLink();
+      const redirectSource = String(localStorage.getItem("post_login_redirect_source") || "").trim();
       const resumeTarget =
         String(localStorage.getItem("post_login_redirect") || "").trim() ||
         (deferredDeepLink ? buildDeferredDeepLinkUrl(deferredDeepLink) : "");
@@ -295,16 +296,26 @@ export default function SellerRegister() {
       if (resumeTarget) {
         localStorage.removeItem("post_login_redirect");
         clearDeferredDeepLink();
-        window.location.href = resumeTarget;
+        try {
+          const url = new URL(resumeTarget, window.location.origin);
+          if (redirectSource === "offer") {
+            url.searchParams.set("autoSubmit", "true");
+          }
+          url.searchParams.set("city", res.data.city || city);
+          url.searchParams.set("cats", "all");
+          window.location.href = `${url.pathname}${url.search}`;
+        } catch {
+          window.location.href = resumeTarget;
+        }
         return;
       }
       localStorage.removeItem("post_login_redirect");
       clearDeferredDeepLink();
       const dashboardParams = new URLSearchParams();
       if (seller.city) dashboardParams.set("city", seller.city);
-      if (catsFromUrl) dashboardParams.set("cats", catsFromUrl);
+      dashboardParams.set("cats", "all");
       if (cityFromUrl && !seller.city) dashboardParams.set("city", cityFromUrl);
-      dashboardParams.set("from", "wa");
+      dashboardParams.set("from", "seller-login");
       window.location.href = `/seller/dashboard${
         dashboardParams.toString() ? `?${dashboardParams.toString()}` : ""
       }`;

@@ -29,7 +29,7 @@ export default function BuyerWelcome() {
 
   function goToBuyerDashboard() {
     localStorage.setItem("buyer_dashboard_force_tab", "posts");
-    navigate("/buyer/dashboard?tab=posts", { replace: true });
+    navigate("/buyer/dashboard?tab=posts&city=all&category=all&guest=1", { replace: true });
   }
 
   useEffect(() => {
@@ -235,7 +235,7 @@ export default function BuyerWelcome() {
                     }
                   }
                 }
-                navigate("/buyer/login");
+                navigate("/buyer/dashboard?tab=posts&city=all&category=all&guest=1", { replace: true });
               }}
               className="mf-btn text-xs sm:text-sm px-3 sm:px-6 py-2 sm:py-3 whitespace-nowrap"
             >
@@ -248,7 +248,7 @@ export default function BuyerWelcome() {
                   localStorage.setItem("login_intent_role", "seller");
                   localStorage.removeItem("post_login_redirect");
                   localStorage.removeItem("post_login_redirect_source");
-                  navigate("/seller/login");
+                  navigate("/seller/dashboard?city=all&cats=all&guest=1", { replace: true });
                   return;
                 }
                 try {

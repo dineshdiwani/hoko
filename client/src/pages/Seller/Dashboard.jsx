@@ -50,6 +50,7 @@ export default function SellerDashboard() {
 
   // Handle city/cats from URL params (from WhatsApp deep link)
   const sourceFromUrl = String(searchParams.get("from") || "").trim().toLowerCase();
+  const isGuestFlow = searchParams.get("guest") === "1";
   const cityFromUrl = searchParams.get("city") || "";
   const catsFromUrl = searchParams.get("cats") || "";
   const openChatFromUrl =
@@ -107,7 +108,7 @@ export default function SellerDashboard() {
   }, [isWhatsAppFlow, whatsappContextMobile, whatsappContextCity, whatsappContextCats]);
 
   // COMPLETELY BYPASS AUTH for WhatsApp flow - let them see dashboard
-  const isWhatsAppPublicView = isWhatsAppFlow;
+  const isWhatsAppPublicView = isWhatsAppFlow || isGuestFlow;
   
   const isPublicRequirementView = !session?.token && Boolean(openRequirementFromUrl);
 
@@ -130,7 +131,7 @@ export default function SellerDashboard() {
   const [categories, setCategories] = useState([]);
   const [selectedCity, setSelectedCity] = useState(
     normalizeSellerCityFilter(
-      cityFromUrl || getUiCitySelection(session?.city || "all")
+      cityFromUrl || (isGuestFlow ? "all" : getUiCitySelection(session?.city || "all"))
     )
   );
   const [cityManuallySet, setCityManuallySet] = useState(false);
@@ -279,10 +280,6 @@ export default function SellerDashboard() {
     
     const pendingOffer = JSON.parse(localStorage.getItem("pending_seller_offer_intent") || "null");
     if (!pendingOffer || !pendingOffer.requirementId) return;
-    
-    // Check if this is a post-login redirect
-    const redirectSource = localStorage.getItem("post_login_redirect_source");
-    if (redirectSource !== "offer") return;
     
     // Clear the pending offer and redirect
     localStorage.removeItem("pending_seller_offer_intent");
@@ -498,7 +495,8 @@ export default function SellerDashboard() {
     if (whatsappContextMobile) params.set("mobile", whatsappContextMobile);
     if (whatsappContextCity) params.set("city", whatsappContextCity);
     if (whatsappContextCats) params.set("cats", whatsappContextCats);
-    params.set("from", "wa");
+    if (isWhatsAppFlow) params.set("from", "wa");
+    if (isGuestFlow) params.set("guest", "1");
     navigate(`/seller/login?${params.toString()}`);
   }
 
@@ -514,7 +512,8 @@ export default function SellerDashboard() {
     if (waMobile) params.set("mobile", waMobile);
     if (reqCity) params.set("city", reqCity);
     if (reqCategory) params.set("cats", reqCategory);
-    params.set("from", "wa");
+    if (isWhatsAppFlow) params.set("from", "wa");
+    if (isGuestFlow) params.set("guest", "1");
     return `/seller/dashboard${params.toString() ? `?${params.toString()}` : ""}`;
   }
 
@@ -529,7 +528,8 @@ export default function SellerDashboard() {
     if (waMobile) params.set("mobile", waMobile);
     if (whatsappContextCity || String(req?.city || "").trim()) params.set("city", whatsappContextCity || String(req.city).trim());
     if (whatsappContextCats || String(req?.category || "").trim()) params.set("cats", whatsappContextCats || String(req.category).trim());
-    params.set("from", "wa");
+    if (isWhatsAppFlow) params.set("from", "wa");
+    if (isGuestFlow) params.set("guest", "1");
 
     const resumeTarget = buildWhatsAppOfferResumeTarget(req);
     localStorage.setItem("post_login_redirect", resumeTarget);
@@ -550,7 +550,8 @@ export default function SellerDashboard() {
     if (waMobile) params.set("mobile", waMobile);
     if (whatsappContextCity || String(req?.city || "").trim()) params.set("city", whatsappContextCity || String(req.city).trim());
     if (whatsappContextCats || String(req?.category || "").trim()) params.set("cats", whatsappContextCats || String(req.category).trim());
-    params.set("from", "wa");
+    if (isWhatsAppFlow) params.set("from", "wa");
+    if (isGuestFlow) params.set("guest", "1");
     params.set("requirementId", requirementId);
 
     const resumeTarget = buildWhatsAppOfferResumeTarget(req);
@@ -1546,7 +1547,7 @@ export default function SellerDashboard() {
                 {selectedCategory && selectedCategory !== "all" ? selectedCategory : "All categories"}
               </span>
               <span className="app-chip">
-                {isWhatsAppPublicView ? "WhatsApp public view" : "App view"}
+                {isWhatsAppPublicView ? "Guest public view" : "App view"}
               </span>
               <span className="app-chip">
                 {activeSmartTab === "all"
@@ -1847,9 +1848,7 @@ export default function SellerDashboard() {
                           ? "bg-gray-200 text-gray-600 cursor-not-allowed"
                           : req.myOffer
                           ? "bg-green-600 text-white active:scale-95"
-                          : !session?.token && !isWhatsAppPublicView
-                          ? "bg-blue-600 text-white active:scale-95"
-                          : !session?.token && isWhatsAppPublicView
+                          : !session?.token
                           ? "btn-brand active:scale-95"
                           : "btn-brand active:scale-95"
                       }`}
@@ -1858,9 +1857,7 @@ export default function SellerDashboard() {
                         ? "Preview Only (Sample Post)"
                         : isCityLocked
                         ? "Offer Locked (City)"
-                        : !session?.token && !isWhatsAppPublicView
-                        ? "Login to Submit Offer"
-                        : !session?.token && isWhatsAppPublicView
+                        : !session?.token
                         ? "Submit Offer"
                         : req.myOffer
                         ? "Submitted Offer / Edit Offer"

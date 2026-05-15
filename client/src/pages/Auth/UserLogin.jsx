@@ -508,7 +508,7 @@ useEffect(() => {
       }
 
       const reqPayload = {
-        mobile: reqData.mobile,
+        mobile: reqData.mobile || user.mobile || mobile || "",
         city: requirementCity || reqData.city,
         category: reqData.category,
         productName: reqData.productName,

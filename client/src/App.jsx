@@ -33,9 +33,10 @@ function SellerDashboardWrapper() {
   const searchParams = new URLSearchParams(location.search);
   const sourceFromUrl = String(searchParams.get("from") || "").trim().toLowerCase();
   const isWhatsAppFlow = sourceFromUrl === "wa";
+  const isGuestFlow = searchParams.get("guest") === "1";
   
-  // For WhatsApp flow, BYPASS all auth checks - let them see the dashboard directly
-  if (isWhatsAppFlow) {
+  // Public seller browsing is allowed from the welcome funnel and WhatsApp links.
+  if (isWhatsAppFlow || isGuestFlow) {
     return <SellerDashboard />;
   }
   
@@ -377,13 +378,7 @@ function AppShell() {
 
         <Route
           path="/buyer/dashboard"
-          element={
-            requireBuyer() ? (
-              <BuyerDashboard />
-            ) : (
-              <Navigate to="/buyer/login" replace />
-            )
-          }
+          element={<BuyerDashboard />}
         />
 
         <Route

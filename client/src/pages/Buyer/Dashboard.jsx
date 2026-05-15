@@ -117,10 +117,10 @@ export default function BuyerDashboard() {
     forcedTab || requestedTab || persistedState.activeTab
   );
   const [city, setCity] = useState(
-    normalizeBuyerCityFilter(getUiCitySelection(session?.city || "")) || "all"
+    normalizeBuyerCityFilter(searchParams.get("city") || getUiCitySelection(session?.city || "")) || "all"
   );
   const [selectedCategory, setSelectedCategory] = useState(
-    persistedState.selectedCategory || "all"
+    String(searchParams.get("category") || persistedState.selectedCategory || "all").trim().toLowerCase() || "all"
   );
   const [cities, setCities] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -174,10 +174,12 @@ export default function BuyerDashboard() {
     });
   }, [session?.city]);
 
-  // Safety guard
   useEffect(() => {
-    if (!session || !session.token) navigate("/buyer/login");
-  }, [session, navigate]);
+    if (session?.token) return;
+    if (activeTab === "offers") {
+      setActiveTab("posts");
+    }
+  }, [activeTab, session?.token]);
   // Ensure we have a buyer-role token if user has buyer role
   useEffect(() => {
     if (!session?.token || !session?.roles?.buyer) return;
@@ -378,11 +380,6 @@ export default function BuyerDashboard() {
   }, [triggerRefresh]);
 
   useEffect(() => {
-    if (!session?._id || !session?.token) {
-      setTabCounts({ posts: 0, city: 0, offers: 0 });
-      return;
-    }
-
     let cancelled = false;
 
     async function loadTabCounts() {
@@ -400,18 +397,21 @@ export default function BuyerDashboard() {
           buyerParams.category = buyerCategory;
         }
 
-        const [postsRes, cityRes] = await Promise.all([
-          api.get(`/buyer/my-posts/${session._id}`, { params: buyerParams }),
-          api.get(`/dashboard/city/${encodeURIComponent(buyerCity || "all")}`, {
-            params: {
-              ...(buyerCategory && buyerCategory.toLowerCase() !== "all"
-                ? { category: buyerCategory }
-                : {}),
-              page: 1,
-              limit: 1
-            }
-          })
-        ]);
+        const cityRequest = api.get(`/dashboard/city/${encodeURIComponent(buyerCity || "all")}`, {
+          params: {
+            ...(buyerCategory && buyerCategory.toLowerCase() !== "all"
+              ? { category: buyerCategory }
+              : {}),
+            page: 1,
+            limit: 1
+          }
+        });
+        const [postsRes, cityRes] = session?._id && session?.token
+          ? await Promise.all([
+              api.get(`/buyer/my-posts/${session._id}`, { params: buyerParams }),
+              cityRequest
+            ])
+          : [null, await cityRequest];
         if (cancelled) return;
 
         const postsCount = Number(postsRes?.headers?.["x-total-count"] || 0);
@@ -543,8 +543,9 @@ export default function BuyerDashboard() {
           </div>
 
           <div className="dashboard-layout-header-actions">
-            <NotificationCenter onNotificationClick={handleNotificationClick} />
+            {session?.token && <NotificationCenter onNotificationClick={handleNotificationClick} />}
 
+            {session?.token ? (
             <div className="relative" ref={menuRef}>
               <button
                 onClick={() => setMenuOpen(!menuOpen)}
@@ -628,6 +629,14 @@ export default function BuyerDashboard() {
                 </div>
               )}
             </div>
+            ) : (
+              <button
+                onClick={() => navigate("/buyer/login")}
+                className="ui-btn-secondary ui-button-text px-3 py-2"
+              >
+                Login
+              </button>
+            )}
           </div>
         </div>
 
@@ -647,12 +656,14 @@ export default function BuyerDashboard() {
             City Dashboard ({tabCounts.city})
           </button>
 
-          <button
-            onClick={() => handleTabClick("offers")}
-            className={`ui-tab ui-tab-center ${activeTab === "offers" ? "ui-tab-active" : ""}`}
-          >
-            Received Offers ({tabCounts.offers})
-          </button>
+          {session?.token && (
+            <button
+              onClick={() => handleTabClick("offers")}
+              className={`ui-tab ui-tab-center ${activeTab === "offers" ? "ui-tab-active" : ""}`}
+            >
+              Received Offers ({tabCounts.offers})
+            </button>
+          )}
         </div>
       </header>
 
