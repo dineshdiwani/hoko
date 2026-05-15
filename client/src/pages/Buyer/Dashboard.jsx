@@ -397,15 +397,25 @@ export default function BuyerDashboard() {
           buyerParams.category = buyerCategory;
         }
 
-        const cityRequest = api.get(`/dashboard/city/${encodeURIComponent(buyerCity || "all")}`, {
-          params: {
-            ...(buyerCategory && buyerCategory.toLowerCase() !== "all"
-              ? { category: buyerCategory }
-              : {}),
-            page: 1,
-            limit: 1
-          }
-        });
+        const cityParams = {
+          ...(buyerCategory && buyerCategory.toLowerCase() !== "all"
+            ? { category: buyerCategory }
+            : {}),
+          page: 1,
+          limit: 1
+        };
+        const cityRequest = session?._id && session?.token
+          ? api.get(`/dashboard/city/${encodeURIComponent(buyerCity || "all")}`, {
+              params: cityParams
+            })
+          : api.get("/meta/requirements", {
+              params: {
+                ...(buyerCity && buyerCity.toLowerCase() !== "all"
+                  ? { city: buyerCity }
+                  : {}),
+                ...cityParams
+              }
+            });
         const [postsRes, cityRes] = session?._id && session?.token
           ? await Promise.all([
               api.get(`/buyer/my-posts/${session._id}`, { params: buyerParams }),

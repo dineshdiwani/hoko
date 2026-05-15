@@ -37,6 +37,7 @@ export default function CityDashboard({
   const loadedCountRef = useRef(0);
   const session = getSession();
   const currentBuyerId = String(session?._id || session?.id || "");
+  const isGuestView = !session?.token;
   const sampleFlagEnabled =
     import.meta.env.DEV && samplePostsEnabled;
   const shouldPaginate =
@@ -252,7 +253,7 @@ export default function CityDashboard({
       }
 
       const shouldUseSample =
-        sampleFlagEnabled && (useSamplePosts || !session?.token);
+        sampleFlagEnabled && useSamplePosts;
       if (shouldUseSample) {
         const sampleRows = buildSampleRows(city);
         setRequirements(sampleRows);
@@ -273,10 +274,20 @@ export default function CityDashboard({
             ? { category }
             : {})
         };
-        const res = await api.get(
-          `/dashboard/city/${encodeURIComponent(city)}`,
-          { params }
-        );
+        const normalizedCity = String(city || "").trim();
+        const isAllCities = normalizedCity.toLowerCase() === "all";
+        const res = isGuestView
+          ? await api.get("/meta/requirements", {
+              params: {
+                ...(isAllCities ? {} : { city: normalizedCity }),
+                ...(params.category ? { category: params.category } : {}),
+                ...(params.page ? { page: params.page, limit: params.limit } : {})
+              }
+            })
+          : await api.get(
+              `/dashboard/city/${encodeURIComponent(city)}`,
+              { params }
+            );
         const liveRows = Array.isArray(res.data) ? res.data : [];
         const nextTotal = Number(res?.headers?.["x-total-count"] || liveRows.length || 0);
         const nextLoadedCount = append
