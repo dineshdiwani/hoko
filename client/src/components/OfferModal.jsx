@@ -61,6 +61,15 @@ function clearSellerOfferDraft(requirementId) {
   } catch {}
 }
 
+function navigateToAppRoute(path) {
+  const target = String(path || "/").trim() || "/";
+  if (String(window.location.hash || "").startsWith("#/")) {
+    window.location.hash = target.startsWith("/") ? target : `/${target}`;
+    return;
+  }
+  window.location.href = target;
+}
+
 export default function OfferModal({
   open,
   onClose,
@@ -146,6 +155,12 @@ export default function OfferModal({
     // Preserve WhatsApp flow
     if (localStorage.getItem("whatsapp_mobile")) {
       params.set("from", "wa");
+    }
+    const currentParams = new URLSearchParams(window.location.hash.includes("?")
+      ? window.location.hash.split("?")[1] || ""
+      : window.location.search || "");
+    if (currentParams.get("guest") === "1") {
+      params.set("guest", "1");
     }
     return params;
   }
@@ -430,7 +445,7 @@ export default function OfferModal({
         const target = sellerSession.reason === "login"
           ? `/seller/login${params.toString() ? `?${params.toString()}` : ""}`
           : `/seller/register${params.toString() ? `?${params.toString()}` : ""}`;
-        window.location.href = target;
+        navigateToAppRoute(target);
         return;
       }
 
