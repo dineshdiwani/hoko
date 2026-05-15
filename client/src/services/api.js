@@ -34,6 +34,37 @@ const api = axios.create({
   baseURL: normalizedBaseUrl,
 });
 
+function getCurrentAppRoute() {
+  const rawHash = String(window.location.hash || "");
+  if (rawHash.startsWith("#/")) {
+    const hashPath = rawHash.slice(1);
+    const [pathPart, searchPart = ""] = hashPath.split("?");
+    return {
+      path: pathPart || "/",
+      search: searchPart ? `?${searchPart}` : "",
+      url: hashPath || "/",
+      usesHash: true
+    };
+  }
+  const path = window.location.pathname || "/";
+  const search = window.location.search || "";
+  return {
+    path,
+    search,
+    url: `${path}${search}`,
+    usesHash: false
+  };
+}
+
+function navigateToAppRoute(path) {
+  const target = String(path || "/").trim() || "/";
+  if (String(window.location.hash || "").startsWith("#/")) {
+    window.location.hash = target.startsWith("/") ? target : `/${target}`;
+    return;
+  }
+  window.location.href = target;
+}
+
 api.interceptors.request.use((config) => {
   const session = getSession();
   if (session?.token) {
@@ -54,8 +85,9 @@ api.interceptors.response.use(
         localStorage.removeItem("session");
         
         // Don't redirect public browsing funnels when protected side calls return 401.
-        const currentPath = window.location.pathname;
-        const currentSearch = window.location.search || "";
+        const route = getCurrentAppRoute();
+        const currentPath = route.path;
+        const currentSearch = route.search;
         const currentParams = new URLSearchParams(currentSearch);
         const isWhatsAppFlow = currentParams.get("from") === "wa" || currentParams.has("mobile");
         const isGuestDashboard =
@@ -68,15 +100,15 @@ api.interceptors.response.use(
         }
         
         // Store current location for post-login redirect
-        const currentUrl = `${currentPath}${currentSearch}`;
+        const currentUrl = route.url;
         if (currentPath.startsWith("/seller")) {
-          window.location.href = `/seller/login?redirect=${encodeURIComponent(currentUrl)}`;
+          navigateToAppRoute(`/seller/login?redirect=${encodeURIComponent(currentUrl)}`);
         } else if (currentPath.startsWith("/buyer")) {
-          window.location.href = `/buyer/login?redirect=${encodeURIComponent(currentUrl)}`;
+          navigateToAppRoute(`/buyer/login?redirect=${encodeURIComponent(currentUrl)}`);
         } else if (currentPath.startsWith("/admin")) {
-          window.location.href = `/admin/login?redirect=${encodeURIComponent(currentUrl)}`;
+          navigateToAppRoute(`/admin/login?redirect=${encodeURIComponent(currentUrl)}`);
         } else {
-          window.location.href = "/auth";
+          navigateToAppRoute("/auth");
         }
       } else if (status === 403) {
         console.warn("[API] Access denied:", error.response.data?.message);
