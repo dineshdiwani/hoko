@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 import { getSession } from "../services/storage";
 import { generateSamplePostsForCity } from "../services/samplePosts";
@@ -23,6 +24,7 @@ export default function CityDashboard({
   samplePostsEnabled = true,
   onVisibleCountChange
 }) {
+  const navigate = useNavigate();
   const PAGE_SIZE = 50;
   const [requirements, setRequirements] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -575,7 +577,7 @@ export default function CityDashboard({
             ? "Be the first to post a requirement and connect with sellers." 
             : `No requirements posted for ${city} yet. Try another city or check back later.`}
           actionLabel="Post a requirement"
-          action={() => window.location.href = "/post-requirement"}
+          action={() => navigate("/post-requirement")}
         />
       )}
 

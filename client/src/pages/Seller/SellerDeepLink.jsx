@@ -416,9 +416,7 @@ export default function SellerDeepLink() {
   }, []);
 
   useEffect(() => {
-    const fullUrl = window.location.href;
-    const searchParams = new URLSearchParams(window.location.search);
-    const refValue = searchParams.get("ref");
+    const refValue = params.get("ref");
     if (!requirementIdValue) {
       setLoading(false);
       return;

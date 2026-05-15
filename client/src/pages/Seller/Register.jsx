@@ -41,6 +41,14 @@ export default function SellerRegister() {
   })();
   const session = getSession();
   const sessionCity = String(session?.city || "").trim();
+  const navigateToAppRoute = (path) => {
+    const target = String(path || "/").trim() || "/";
+    if (String(window.location.hash || "").startsWith("#/")) {
+      window.location.hash = target.startsWith("/") ? target : `/${target}`;
+      return;
+    }
+    window.location.href = target;
+  };
 
   const [seller, setSeller] = useState({
     email: session?.email || localStorage.getItem("seller_email") || "",
@@ -303,9 +311,9 @@ export default function SellerRegister() {
           }
           url.searchParams.set("city", res.data.city || city);
           url.searchParams.set("cats", "all");
-          window.location.href = `${url.pathname}${url.search}`;
+          navigateToAppRoute(`${url.pathname}${url.search}`);
         } catch {
-          window.location.href = resumeTarget;
+          navigateToAppRoute(resumeTarget);
         }
         return;
       }
@@ -316,9 +324,9 @@ export default function SellerRegister() {
       dashboardParams.set("cats", "all");
       if (cityFromUrl && !seller.city) dashboardParams.set("city", cityFromUrl);
       dashboardParams.set("from", "seller-login");
-      window.location.href = `/seller/dashboard${
+      navigateToAppRoute(`/seller/dashboard${
         dashboardParams.toString() ? `?${dashboardParams.toString()}` : ""
-      }`;
+      }`);
     } catch (err) {
       alert(err?.response?.data?.message || "Registration failed. Try again.");
     } finally {

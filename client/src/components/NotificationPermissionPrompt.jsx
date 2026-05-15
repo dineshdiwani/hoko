@@ -29,7 +29,10 @@ export default function NotificationPermissionPrompt() {
   }, []);
 
   const isLoggedIn = Boolean(session?.token);
-  const isAdminRoute = typeof window !== "undefined" && window.location.pathname.startsWith("/admin");
+  const isAdminRoute =
+    typeof window !== "undefined" &&
+    (window.location.pathname.startsWith("/admin") ||
+      String(window.location.hash || "").startsWith("#/admin"));
   const shouldRender =
     !isAdminRoute &&
     (state === "default" || state === "prompt");

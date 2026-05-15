@@ -56,7 +56,12 @@ function openNotificationUrl(notification) {
     window.location.href = url;
     return;
   }
-  window.location.href = url.startsWith("/") ? url : `/${url}`;
+  const target = url.startsWith("/") ? url : `/${url}`;
+  if (String(window.location.hash || "").startsWith("#/")) {
+    window.location.hash = target;
+    return;
+  }
+  window.location.href = target;
 }
 
 async function registerNativeToken(token) {
