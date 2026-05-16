@@ -29,6 +29,7 @@ const aiContentCampaignRunSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "AiGeneratedPost"
     }],
+    progress: { type: Number, default: 0, min: 0, max: 100 },
     lastError: { type: String, default: "" },
     createdByAdminId: {
       type: mongoose.Schema.Types.ObjectId,

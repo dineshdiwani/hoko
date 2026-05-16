@@ -177,7 +177,8 @@ async function createCampaignRunDrafts({
   useAppScreenshots = false,
   fixedCta = "",
   ctaLink = "",
-  adminId = null
+  adminId = null,
+  background = false
 } = {}) {
   const cleanMood = normalizeText(mood);
   if (!cleanMood) {
@@ -208,15 +209,46 @@ async function createCampaignRunDrafts({
     createdByAdminId: adminId
   });
 
+  if (background) {
+    setImmediate(() => {
+      processCampaignRunById(run._id).catch((err) => {
+        console.warn("[AiContentCampaignRun] background failed:", err?.message || err);
+      });
+    });
+    return { runId: String(run._id), accepted: true, status: "running" };
+  }
+
+  return processCampaignRunById(run._id);
+}
+
+async function processCampaignRunById(runId) {
+  const run = await AiContentCampaignRun.findById(runId);
+  if (!run) {
+    throw new Error("Campaign run not found");
+  }
+  if (run.status !== "running") {
+    return {
+      runId: String(run._id),
+      createdDrafts: Array.isArray(run.draftIds) ? run.draftIds.length : 0,
+      status: run.status
+    };
+  }
+
   try {
+    const settings = await getSettings();
+    const count = Math.max(1, Math.min(10, Number(run.postCount || 5)));
+    const categories = Array.isArray(run.selectedCategories) && run.selectedCategories.length
+      ? run.selectedCategories
+      : pickCategories(await getDashboardCategories(), count);
     const draftIds = [];
+
     for (let index = 0; index < count; index += 1) {
-      const categoryName = pickedCategories[index % pickedCategories.length];
+      const categoryName = categories[index % categories.length];
       const category = await ensureAiContentCategory(categoryName, {
-        description: `Auto-selected for campaign: ${cleanMood}`,
-        targetAudience: audienceMode === "auto" ? "" : audienceMode,
-        imageStyle: imageStyle === "auto" ? "" : imageStyle,
-        adminId
+        description: `Auto-selected for campaign: ${run.mood}`,
+        targetAudience: run.audienceMode === "auto" ? "" : run.audienceMode,
+        imageStyle: run.imageStyle === "auto" ? "" : run.imageStyle,
+        adminId: run.createdByAdminId || null
       });
 
       const campaignSettings = {
@@ -228,10 +260,10 @@ async function createCampaignRunDrafts({
         category: category.toObject(),
         settings: campaignSettings,
         campaign: {
-          mood: cleanMood,
-          audienceMode,
-          imageStyle,
-          useAppScreenshots
+          mood: run.mood,
+          audienceMode: run.audienceMode,
+          imageStyle: run.imageStyle,
+          useAppScreenshots: run.useAppScreenshots
         }
       });
 
@@ -262,14 +294,19 @@ async function createCampaignRunDrafts({
         lastError: generated.imageError || ""
       });
       draftIds.push(draft._id);
+      run.draftIds = draftIds;
+      run.progress = Math.min(95, Math.round((draftIds.length / count) * 100));
+      await run.save();
     }
 
     run.status = "completed";
+    run.progress = 100;
     run.draftIds = draftIds;
     await run.save();
-    return { runId: String(run._id), createdDrafts: draftIds.length, draftIds: draftIds.map(String) };
+    return { runId: String(run._id), createdDrafts: draftIds.length, draftIds: draftIds.map(String), status: run.status };
   } catch (err) {
     run.status = "failed";
+    run.progress = 100;
     run.lastError = err?.message || "campaign_generation_failed";
     await run.save();
     throw err;
@@ -295,6 +332,7 @@ function startAiContentScheduler() {
 module.exports = {
   getSettings,
   createCampaignRunDrafts,
+  processCampaignRunById,
   processAiContentGeneration,
   startAiContentScheduler
 };

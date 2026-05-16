@@ -151,9 +151,10 @@ router.post("/campaign-runs", adminAuth, requireAdminPermission("campaigns.manag
       useAppScreenshots: Boolean(req.body?.useAppScreenshots),
       fixedCta: req.body?.fixedCta,
       ctaLink: req.body?.ctaLink,
-      adminId: req.admin?._id || null
+      adminId: req.admin?._id || null,
+      background: true
     });
-    res.status(201).json({ success: true, result });
+    res.status(202).json({ success: true, result });
   } catch (err) {
     res.status(500).json({ message: err?.message || "Failed to create campaign run drafts" });
   }

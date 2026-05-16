@@ -217,7 +217,6 @@ export default function AdminAiContent() {
       return;
     }
 
-    let timer = null;
     try {
       setGenerating(true);
       setGenerationProgress({
@@ -225,18 +224,6 @@ export default function AdminAiContent() {
         title: "Starting campaign run",
         message: "AI is planning categories, audiences, and draft angles..."
       });
-      timer = window.setInterval(() => {
-        setGenerationProgress((current) => {
-          if (!current) return current;
-          const nextPercent = Math.min(92, Number(current.percent || 0) + 8);
-          return {
-            ...current,
-            percent: nextPercent,
-            title: nextPercent < 35 ? "Selecting categories" : nextPercent < 70 ? "Creating preview drafts" : "Generating images",
-            message: nextPercent < 70 ? "Building HOKO marketplace post previews..." : "Saving previews for review..."
-          };
-        });
-      }, 900);
 
       const fixedCta = campaignForm.fixedCta.trim() || settings?.fixedCta || "Learn More";
       const ctaLink = campaignForm.ctaLink.trim() || settings?.ctaLink || "";
@@ -245,18 +232,53 @@ export default function AdminAiContent() {
         fixedCta,
         ctaLink
       });
-      if (timer) window.clearInterval(timer);
-      timer = null;
       const result = res.data?.result || {};
-      setGenerationProgress({
-        percent: 100,
-        title: "Campaign previews ready",
-        message: `Created previews: ${result.createdDrafts || 0}`
-      });
-      await loadAll();
-      window.setTimeout(() => setGenerationProgress(null), 1400);
+      const runId = result.runId;
+      if (!runId) {
+        throw new Error("Campaign run did not return an id");
+      }
+
+      let completed = false;
+      for (let attempt = 0; attempt < 90; attempt += 1) {
+        await new Promise((resolve) => window.setTimeout(resolve, 2000));
+        const runsRes = await api.get("/ai-content/campaign-runs?limit=10");
+        const runs = Array.isArray(runsRes.data?.items) ? runsRes.data.items : [];
+        setCampaignRuns(runs);
+        const run = runs.find((item) => item._id === runId);
+        const progress = Math.max(10, Math.min(100, Number(run?.progress || 15)));
+        setGenerationProgress({
+          percent: progress,
+          title: run?.status === "failed" ? "Campaign generation failed" : run?.status === "completed" ? "Campaign previews ready" : "Generating campaign previews",
+          message: run?.status === "completed"
+            ? `Created previews: ${run?.draftIds?.length || 0}`
+            : run?.status === "failed"
+              ? run?.lastError || "Failed to create campaign previews"
+              : `Created ${run?.draftIds?.length || 0} of ${campaignForm.postCount} previews...`,
+          failed: run?.status === "failed"
+        });
+
+        if (run?.status === "completed") {
+          completed = true;
+          await loadAll();
+          window.setTimeout(() => setGenerationProgress(null), 1400);
+          break;
+        }
+        if (run?.status === "failed") {
+          completed = true;
+          await loadAll();
+          break;
+        }
+      }
+
+      if (!completed) {
+        await loadAll();
+        setGenerationProgress({
+          percent: 95,
+          title: "Still generating",
+          message: "The campaign is still running in the background. Refresh in a moment to see new previews."
+        });
+      }
     } catch (err) {
-      if (timer) window.clearInterval(timer);
       setGenerationProgress({
         percent: 100,
         title: "Campaign generation failed",
