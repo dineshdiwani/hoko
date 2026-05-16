@@ -540,7 +540,6 @@ export default function AdminAiContent() {
                         {draft.status}
                       </span>
                     </div>
-                    <p><span className="font-medium">Category:</span> {draft.categorySnapshot?.name || draft.categoryId?.name || "-"}</p>
                     <div className="overflow-hidden rounded-xl border bg-white">
                       {draft.imageUrl ? (
                         <img src={draft.imageUrl} alt="" className="w-full aspect-square object-cover" />
@@ -578,6 +577,7 @@ export default function AdminAiContent() {
                       <summary className="cursor-pointer text-[11px] font-semibold text-gray-600">Generation details</summary>
                       <div className="mt-2 space-y-1 text-[11px] text-gray-600">
                         <p><span className="font-medium">Topic:</span> {preview(draft.topic, 120)}</p>
+                        <p><span className="font-medium">Category:</span> {draft.categorySnapshot?.name || draft.categoryId?.name || "-"}</p>
                         <p><span className="font-medium">Image prompt:</span> {preview(draft.imagePrompt, 180)}</p>
                         {Array.isArray(draft.hashtags) && draft.hashtags.length ? (
                           <p>{draft.hashtags.join(" ")}</p>
