@@ -28,6 +28,7 @@ function formatTime(value) {
 export default function AdminAiContent() {
   const [settings, setSettings] = useState(null);
   const [settingsSaving, setSettingsSaving] = useState(false);
+  const [dashboardCategories, setDashboardCategories] = useState([]);
   const [categories, setCategories] = useState([]);
   const [drafts, setDrafts] = useState([]);
   const [logs, setLogs] = useState([]);
@@ -61,8 +62,22 @@ export default function AdminAiContent() {
     }
   }
 
+  async function loadDashboardCategories() {
+    try {
+      const res = await api.get("/admin/options/categories");
+      const values = Array.isArray(res.data?.values) ? res.data.values : [];
+      setDashboardCategories(values.filter(Boolean));
+      if (!categoryForm.name && values.length > 0) {
+        setCategoryForm((current) => current.name ? current : { ...current, name: values[0] });
+      }
+    } catch (err) {
+      alert(err?.response?.data?.message || err.message || "Failed to load dashboard categories");
+    }
+  }
+
   useEffect(() => {
     loadAll().catch(() => {});
+    loadDashboardCategories().catch(() => {});
   }, []);
 
   async function saveSettings() {
@@ -253,12 +268,23 @@ export default function AdminAiContent() {
 
               <div className="border rounded-xl p-3 space-y-3">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <input
+                  <select
                     className="border rounded-lg px-3 py-2 text-sm bg-white"
-                    placeholder="Category name"
                     value={categoryForm.name}
                     onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
-                  />
+                  >
+                    <option value="" disabled>
+                      Select dashboard category
+                    </option>
+                    {dashboardCategories.map((category) => (
+                      <option key={category} value={category}>
+                        {category}
+                      </option>
+                    ))}
+                    {categoryForm.name && !dashboardCategories.includes(categoryForm.name) ? (
+                      <option value={categoryForm.name}>{categoryForm.name}</option>
+                    ) : null}
+                  </select>
                   <input
                     className="border rounded-lg px-3 py-2 text-sm bg-white"
                     placeholder="Target audience"
@@ -299,6 +325,11 @@ export default function AdminAiContent() {
                     />
                     Active
                   </label>
+                  {dashboardCategories.length === 0 ? (
+                    <p className="md:col-span-2 text-xs text-red-600">
+                      No dashboard categories found. Add categories from Admin options first.
+                    </p>
+                  ) : null}
                   <textarea
                     className="md:col-span-2 border rounded-lg px-3 py-2 text-sm min-h-20 bg-white"
                     placeholder="Category description"

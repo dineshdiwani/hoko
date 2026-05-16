@@ -5,6 +5,8 @@ const AiContentCategory = require("../models/AiContentCategory");
 const AiContentSettings = require("../models/AiContentSettings");
 const AiGeneratedPost = require("../models/AiGeneratedPost");
 const AiContentJobLog = require("../models/AiContentJobLog");
+const PlatformSettings = require("../models/PlatformSettings");
+const { buildOptionsResponse } = require("../config/platformDefaults");
 const { getSettings, processAiContentGeneration } = require("../services/aiContentScheduler");
 
 const router = express.Router();
@@ -26,6 +28,19 @@ function categoryPayload(body = {}, adminId = null) {
     dailyGenerationLimit: Math.max(0, Math.min(20, Number(body.dailyGenerationLimit || 1))),
     updatedByAdminId: adminId
   };
+}
+
+async function getDashboardCategoryValues() {
+  const doc = await PlatformSettings.findOne().lean();
+  const options = buildOptionsResponse(doc);
+  return Array.isArray(options.categories) ? options.categories : [];
+}
+
+async function isDashboardCategory(value) {
+  const name = normalizeText(value);
+  if (!name) return false;
+  const values = await getDashboardCategoryValues();
+  return values.some((item) => normalizeText(item).toLowerCase() === name.toLowerCase());
 }
 
 router.get("/settings", adminAuth, requireAdminPermission("campaigns.read"), async (req, res) => {
@@ -66,6 +81,9 @@ router.post("/categories", adminAuth, requireAdminPermission("campaigns.manage")
   if (!payload.name) {
     return res.status(400).json({ message: "Category name is required" });
   }
+  if (!(await isDashboardCategory(payload.name))) {
+    return res.status(400).json({ message: "Select a category from admin dashboard options" });
+  }
   payload.createdByAdminId = req.admin?._id || null;
   const category = await AiContentCategory.create(payload);
   res.status(201).json({ category });
@@ -75,6 +93,9 @@ router.patch("/categories/:id", adminAuth, requireAdminPermission("campaigns.man
   const payload = categoryPayload(req.body, req.admin?._id || null);
   if (!payload.name) {
     return res.status(400).json({ message: "Category name is required" });
+  }
+  if (!(await isDashboardCategory(payload.name))) {
+    return res.status(400).json({ message: "Select a category from admin dashboard options" });
   }
   const category = await AiContentCategory.findByIdAndUpdate(req.params.id, payload, { new: true }).lean();
   if (!category) {
