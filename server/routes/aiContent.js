@@ -6,9 +6,14 @@ const AiContentSettings = require("../models/AiContentSettings");
 const AiGeneratedPost = require("../models/AiGeneratedPost");
 const AiContentJobLog = require("../models/AiContentJobLog");
 const AiContentTrainingNote = require("../models/AiContentTrainingNote");
+const AiContentCampaignRun = require("../models/AiContentCampaignRun");
 const PlatformSettings = require("../models/PlatformSettings");
 const { buildOptionsResponse } = require("../config/platformDefaults");
-const { getSettings, processAiContentGeneration } = require("../services/aiContentScheduler");
+const {
+  createCampaignRunDrafts,
+  getSettings,
+  processAiContentGeneration
+} = require("../services/aiContentScheduler");
 
 const router = express.Router();
 
@@ -124,6 +129,34 @@ router.get("/drafts", adminAuth, requireAdminPermission("campaigns.read"), async
     .populate("categoryId", "name")
     .lean();
   res.json({ items });
+});
+
+router.get("/campaign-runs", adminAuth, requireAdminPermission("campaigns.read"), async (req, res) => {
+  const items = await AiContentCampaignRun.find()
+    .sort({ createdAt: -1 })
+    .limit(Math.max(1, Math.min(50, Number(req.query?.limit || 20))))
+    .lean();
+  res.json({ items });
+});
+
+router.post("/campaign-runs", adminAuth, requireAdminPermission("campaigns.manage"), async (req, res) => {
+  try {
+    const result = await createCampaignRunDrafts({
+      mood: req.body?.mood,
+      postCount: req.body?.postCount,
+      categoryMode: req.body?.categoryMode,
+      selectedCategories: Array.isArray(req.body?.selectedCategories) ? req.body.selectedCategories : [],
+      audienceMode: req.body?.audienceMode,
+      imageStyle: req.body?.imageStyle,
+      useAppScreenshots: Boolean(req.body?.useAppScreenshots),
+      fixedCta: req.body?.fixedCta,
+      ctaLink: req.body?.ctaLink,
+      adminId: req.admin?._id || null
+    });
+    res.status(201).json({ success: true, result });
+  } catch (err) {
+    res.status(500).json({ message: err?.message || "Failed to create campaign run drafts" });
+  }
 });
 
 router.patch("/drafts/:id/status", adminAuth, requireAdminPermission("campaigns.manage"), async (req, res) => {

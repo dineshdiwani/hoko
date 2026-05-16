@@ -40,7 +40,19 @@ export default function AdminAiContent() {
   const [drafts, setDrafts] = useState([]);
   const [logs, setLogs] = useState([]);
   const [trainingNotes, setTrainingNotes] = useState([]);
+  const [campaignRuns, setCampaignRuns] = useState([]);
   const [trainingText, setTrainingText] = useState("");
+  const [campaignForm, setCampaignForm] = useState({
+    mood: "",
+    postCount: 5,
+    categoryMode: "auto",
+    selectedCategories: [],
+    audienceMode: "auto",
+    imageStyle: "auto",
+    useAppScreenshots: true,
+    fixedCta: "",
+    ctaLink: ""
+  });
   const [categoryForm, setCategoryForm] = useState(emptyCategory);
   const [editingId, setEditingId] = useState("");
   const [loading, setLoading] = useState(false);
@@ -55,18 +67,20 @@ export default function AdminAiContent() {
   async function loadAll() {
     try {
       setLoading(true);
-      const [settingsRes, categoriesRes, draftsRes, logsRes, trainingRes] = await Promise.all([
+      const [settingsRes, categoriesRes, draftsRes, logsRes, trainingRes, runsRes] = await Promise.all([
         api.get("/ai-content/settings"),
         api.get("/ai-content/categories"),
         api.get("/ai-content/drafts?limit=30"),
         api.get("/ai-content/logs?limit=10"),
-        api.get("/ai-content/training-notes?limit=20")
+        api.get("/ai-content/training-notes?limit=20"),
+        api.get("/ai-content/campaign-runs?limit=10")
       ]);
       setSettings(settingsRes.data?.settings || null);
       setCategories(Array.isArray(categoriesRes.data?.items) ? categoriesRes.data.items : []);
       setDrafts(Array.isArray(draftsRes.data?.items) ? draftsRes.data.items : []);
       setLogs(Array.isArray(logsRes.data?.items) ? logsRes.data.items : []);
       setTrainingNotes(Array.isArray(trainingRes.data?.items) ? trainingRes.data.items : []);
+      setCampaignRuns(Array.isArray(runsRes.data?.items) ? runsRes.data.items : []);
     } catch (err) {
       alert(err?.response?.data?.message || err.message || "Failed to load AI content data");
     } finally {
@@ -197,6 +211,64 @@ export default function AdminAiContent() {
     }
   }
 
+  async function runCampaignGeneration() {
+    if (!campaignForm.mood.trim()) {
+      alert("Enter today's mood or campaign direction first");
+      return;
+    }
+
+    let timer = null;
+    try {
+      setGenerating(true);
+      setGenerationProgress({
+        percent: 10,
+        title: "Starting campaign run",
+        message: "AI is planning categories, audiences, and draft angles..."
+      });
+      timer = window.setInterval(() => {
+        setGenerationProgress((current) => {
+          if (!current) return current;
+          const nextPercent = Math.min(92, Number(current.percent || 0) + 8);
+          return {
+            ...current,
+            percent: nextPercent,
+            title: nextPercent < 35 ? "Selecting categories" : nextPercent < 70 ? "Creating preview drafts" : "Generating images",
+            message: nextPercent < 70 ? "Building HOKO marketplace post previews..." : "Saving previews for review..."
+          };
+        });
+      }, 900);
+
+      const fixedCta = campaignForm.fixedCta.trim() || settings?.fixedCta || "Learn More";
+      const ctaLink = campaignForm.ctaLink.trim() || settings?.ctaLink || "";
+      const res = await api.post("/ai-content/campaign-runs", {
+        ...campaignForm,
+        fixedCta,
+        ctaLink
+      });
+      if (timer) window.clearInterval(timer);
+      timer = null;
+      const result = res.data?.result || {};
+      setGenerationProgress({
+        percent: 100,
+        title: "Campaign previews ready",
+        message: `Created previews: ${result.createdDrafts || 0}`
+      });
+      await loadAll();
+      window.setTimeout(() => setGenerationProgress(null), 1400);
+    } catch (err) {
+      if (timer) window.clearInterval(timer);
+      setGenerationProgress({
+        percent: 100,
+        title: "Campaign generation failed",
+        message: err?.response?.data?.message || err.message || "Failed to create campaign previews",
+        failed: true
+      });
+      alert(err?.response?.data?.message || err.message || "Failed to create campaign previews");
+    } finally {
+      setGenerating(false);
+    }
+  }
+
   async function setDraftStatus(draftId, status) {
     try {
       await api.patch(`/ai-content/drafts/${draftId}/status`, { status });
@@ -264,6 +336,144 @@ export default function AdminAiContent() {
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
           <div className="xl:col-span-2 space-y-4">
+            <section className="bg-white border rounded-2xl p-4 space-y-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h2 className="font-semibold">Morning Campaign Run</h2>
+                  <p className="text-xs text-gray-500">
+                    Enter mood once. AI selects categories, audience, hook angle, image environment, and creates preview drafts.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={runCampaignGeneration}
+                  disabled={generating}
+                  className="px-4 py-2 rounded-lg text-sm font-semibold bg-black text-white disabled:opacity-60"
+                >
+                  {generating ? "Generating..." : "Generate Campaign Previews"}
+                </button>
+              </div>
+
+              <textarea
+                className="w-full border rounded-lg px-3 py-2 text-sm min-h-28 bg-white"
+                value={campaignForm.mood}
+                onChange={(e) => setCampaignForm({ ...campaignForm, mood: e.target.value })}
+                placeholder="Example: Today focus on buyers saving money through lower seller offers and reverse auction. Make it sharp for Indian traders and contractors."
+              />
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <label className="text-xs font-medium text-gray-600">
+                  Draft count
+                  <select
+                    className="mt-1 w-full border rounded-lg px-3 py-2 text-sm bg-white"
+                    value={campaignForm.postCount}
+                    onChange={(e) => setCampaignForm({ ...campaignForm, postCount: Number(e.target.value) })}
+                  >
+                    {[5, 6, 7, 8, 9, 10].map((count) => (
+                      <option key={count} value={count}>{count}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="text-xs font-medium text-gray-600">
+                  Categories
+                  <select
+                    className="mt-1 w-full border rounded-lg px-3 py-2 text-sm bg-white"
+                    value={campaignForm.categoryMode}
+                    onChange={(e) => setCampaignForm({ ...campaignForm, categoryMode: e.target.value })}
+                  >
+                    <option value="auto">Auto select</option>
+                    <option value="selected">Use selected</option>
+                  </select>
+                </label>
+                <label className="text-xs font-medium text-gray-600">
+                  Audience
+                  <select
+                    className="mt-1 w-full border rounded-lg px-3 py-2 text-sm bg-white"
+                    value={campaignForm.audienceMode}
+                    onChange={(e) => setCampaignForm({ ...campaignForm, audienceMode: e.target.value })}
+                  >
+                    <option value="auto">Auto</option>
+                    <option value="buyers">Buyers</option>
+                    <option value="sellers">Sellers</option>
+                    <option value="both">Both</option>
+                  </select>
+                </label>
+                <label className="text-xs font-medium text-gray-600">
+                  Image direction
+                  <input
+                    className="mt-1 w-full border rounded-lg px-3 py-2 text-sm bg-white"
+                    value={campaignForm.imageStyle}
+                    onChange={(e) => setCampaignForm({ ...campaignForm, imageStyle: e.target.value })}
+                    placeholder="auto, clean app ad, warehouse, shop counter..."
+                  />
+                </label>
+                <label className="text-xs font-medium text-gray-600">
+                  CTA text
+                  <input
+                    className="mt-1 w-full border rounded-lg px-3 py-2 text-sm bg-white"
+                    value={campaignForm.fixedCta}
+                    onChange={(e) => setCampaignForm({ ...campaignForm, fixedCta: e.target.value })}
+                    placeholder={settings?.fixedCta || "Learn More"}
+                  />
+                </label>
+                <label className="text-xs font-medium text-gray-600">
+                  CTA link
+                  <input
+                    className="mt-1 w-full border rounded-lg px-3 py-2 text-sm bg-white"
+                    value={campaignForm.ctaLink}
+                    onChange={(e) => setCampaignForm({ ...campaignForm, ctaLink: e.target.value })}
+                    placeholder={settings?.ctaLink || "https://hokoapp.in"}
+                  />
+                </label>
+              </div>
+
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={campaignForm.useAppScreenshots}
+                  onChange={(e) => setCampaignForm({ ...campaignForm, useAppScreenshots: e.target.checked })}
+                />
+                Allow app screenshot/mockup direction in image prompts
+              </label>
+
+              {campaignForm.categoryMode === "selected" ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {dashboardCategories.map((category) => {
+                    const checked = campaignForm.selectedCategories.includes(category);
+                    return (
+                      <label key={category} className="flex items-center gap-2 rounded-lg border px-3 py-2 text-xs">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(e) => {
+                            const next = e.target.checked
+                              ? [...campaignForm.selectedCategories, category]
+                              : campaignForm.selectedCategories.filter((item) => item !== category);
+                            setCampaignForm({ ...campaignForm, selectedCategories: next });
+                          }}
+                        />
+                        {category}
+                      </label>
+                    );
+                  })}
+                </div>
+              ) : null}
+
+              {campaignRuns.length ? (
+                <div className="rounded-xl border bg-gray-50 p-3 text-xs">
+                  <p className="font-semibold mb-2">Recent campaign runs</p>
+                  <div className="space-y-1">
+                    {campaignRuns.slice(0, 4).map((run) => (
+                      <div key={run._id} className="flex items-center justify-between gap-3">
+                        <span className="truncate">{preview(run.mood, 80)}</span>
+                        <span className="shrink-0 uppercase">{run.status} · {run.draftIds?.length || 0}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </section>
+
             <section className="bg-white border rounded-2xl p-4 space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>

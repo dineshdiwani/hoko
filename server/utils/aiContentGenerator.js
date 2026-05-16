@@ -38,10 +38,11 @@ function extractResponseText(payload) {
   return chunks.join("\n").trim();
 }
 
-function buildFallbackDraft({ category, fixedCta }) {
+function buildFallbackDraft({ category, fixedCta, campaign = {} }) {
   const name = normalizeText(category?.name) || "Business";
-  const topic = `Get competing seller offers for ${name.toLowerCase()} requirements`;
-  const hook = `Post your ${name.toLowerCase()} requirement on HOKO and let sellers compete with price offers. Pick the best deal, or start a reverse auction for even sharper prices.`;
+  const mood = normalizeText(campaign?.mood);
+  const topic = mood || `Get competing seller offers for ${name.toLowerCase()} requirements`;
+  const hook = `Post your ${name.toLowerCase()} requirement on HOKO and let sellers compete with price offers. Pick the best deal, or start a reverse auction for sharper prices.`;
   const caption = [
     hook
   ].filter(Boolean).join("\n\n");
@@ -64,7 +65,11 @@ function buildFallbackDraft({ category, fixedCta }) {
   };
 }
 
-function buildPrompt({ category, fixedCta }) {
+function buildPrompt({ category, fixedCta, campaign = {} }) {
+  const campaignMood = normalizeText(campaign?.mood);
+  const audienceMode = normalizeText(campaign?.audienceMode);
+  const imageStyle = normalizeText(campaign?.imageStyle);
+  const useAppScreenshots = Boolean(campaign?.useAppScreenshots);
   return [
     "Create one automated social media draft to market the HOKO app.",
     "Core HOKO positioning:",
@@ -76,6 +81,10 @@ function buildPrompt({ category, fixedCta }) {
     "The content must make this marketplace value instantly clear to the audience.",
     "The admin selects only a category; you must choose the topic yourself based on that category.",
     "The system only generates drafts and images; it does not publish.",
+    campaignMood ? `Today's campaign mood/direction: ${campaignMood}.` : "",
+    audienceMode && audienceMode !== "auto" ? `Audience focus: ${audienceMode}.` : "Audience focus: choose the strongest audience automatically.",
+    imageStyle && imageStyle !== "auto" ? `Preferred image style/background: ${imageStyle}.` : "Choose image environment/background automatically.",
+    useAppScreenshots ? "If helpful, ask for a clean app screenshot/mockup placement in the image prompt without inventing unreadable UI text." : "Do not require app screenshots unless the hook clearly benefits from a phone mockup.",
     `Category: ${normalizeText(category?.name)}.`,
     `Optional category context: ${normalizeText(category?.description) || "not provided"}.`,
     `Optional target audience: ${normalizeText(category?.targetAudience) || "buyers and sellers in this category"}.`,
@@ -96,11 +105,12 @@ function buildPrompt({ category, fixedCta }) {
   ].filter(Boolean).join(" ");
 }
 
-async function generateTextDraft({ category, settings }) {
+async function generateTextDraft({ category, settings, campaign = {} }) {
   const fixedCta = normalizeText(settings?.fixedCta) || "Learn More";
   const fallback = buildFallbackDraft({
     category,
-    fixedCta
+    fixedCta,
+    campaign
   });
   const apiKey = normalizeText(process.env.OPENAI_API_KEY);
   if (!apiKey) return fallback;
@@ -112,7 +122,8 @@ async function generateTextDraft({ category, settings }) {
       model,
       input: buildPrompt({
         category,
-        fixedCta
+        fixedCta,
+        campaign
       })
     },
     {
@@ -190,8 +201,8 @@ async function generateImage({ imagePrompt }) {
   };
 }
 
-async function generateAiContentDraft({ category, settings }) {
-  const textDraft = await generateTextDraft({ category, settings });
+async function generateAiContentDraft({ category, settings, campaign = {} }) {
+  const textDraft = await generateTextDraft({ category, settings, campaign });
   let imageResult = {
     provider: "none",
     model: "",

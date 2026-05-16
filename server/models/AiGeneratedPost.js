@@ -8,6 +8,12 @@ const aiGeneratedPostSchema = new mongoose.Schema(
       required: true,
       index: true
     },
+    campaignRunId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "AiContentCampaignRun",
+      default: null,
+      index: true
+    },
     categorySnapshot: {
       name: { type: String, default: "" },
       description: { type: String, default: "" },
