@@ -804,6 +804,7 @@ app.use("/api/meta", require("./routes/meta"));
 app.use("/api/sitemap", require("./routes/sitemap"));
 app.use("/api/whatsapp", require("./routes/whatsapp"));
 app.use("/api/social-media", require("./routes/socialMedia"));
+app.use("/api/ai-content", require("./routes/aiContent"));
 app.use("/api/bulk-sms", require("./routes/bulkSms"));
 app.use("/api/dummy-requirements", require("./routes/dummyRequirementApi"));
 app.use("/api/bulk-whatsapp", require("./routes/bulkWhatsApp"));
@@ -1188,8 +1189,11 @@ server.listen(PORT, () => {
   
   const { startBatchProcessor } = require("./services/adminNotifications");
   const { startSocialMediaScheduler } = require("./services/socialMediaScheduler");
+  const { startAiContentScheduler } = require("./services/aiContentScheduler");
   startBatchProcessor();
   console.log("Admin notification batch processor started");
   startSocialMediaScheduler();
   console.log("Social media scheduler started");
+  startAiContentScheduler();
+  console.log("AI content scheduler started");
 });

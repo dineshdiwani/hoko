@@ -8,6 +8,7 @@ export default function AdminNav() {
   const isAnalytics = location.pathname === "/admin/analytics";
   const isWhatsApp = location.pathname === "/admin/whatsapp";
   const isInstagram = location.pathname === "/admin/instagram" || location.pathname === "/admin/social-media";
+  const isAiContent = location.pathname === "/admin/ai-content";
   const isOperations = location.pathname === "/admin/operations";
   const isBulkSms = location.pathname === "/admin/bulk-sms";
   const isDummyRequirements = location.pathname === "/admin/dummy-requirements";
@@ -51,6 +52,14 @@ export default function AdminNav() {
         }`}
       >
         Instagram
+      </button>
+      <button
+        onClick={() => navigate("/admin/ai-content")}
+        className={`ui-button-text px-3 py-2 rounded-lg ${
+          isAiContent ? "ui-btn-primary" : "ui-btn-secondary"
+        }`}
+      >
+        AI Content
       </button>
       <button
         onClick={() => navigate("/admin/operations")}
