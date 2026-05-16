@@ -169,7 +169,7 @@ export default function AdminAiContent() {
           <div>
             <h1 className="page-hero">AI Content</h1>
             <p className="text-sm text-gray-600">
-              Category-driven topic, hook, CTA, and image draft generation. Posting stays isolated.
+              Select categories once; automation creates HOKO marketing topics, short hooks, CTA, and matching images.
             </p>
           </div>
           <AdminNav />
@@ -253,7 +253,7 @@ export default function AdminAiContent() {
                 <div>
                   <h2 className="font-semibold">Categories</h2>
                   <p className="text-xs text-gray-500">
-                    Active categories: {activeCount}. Generation uses these records only.
+                    Active categories: {activeCount}. The worker chooses topics automatically from these category selections.
                   </p>
                 </div>
                 <button
@@ -287,7 +287,7 @@ export default function AdminAiContent() {
                   </select>
                   <input
                     className="border rounded-lg px-3 py-2 text-sm bg-white"
-                    placeholder="Target audience"
+                    placeholder="Audience hint, optional"
                     value={categoryForm.targetAudience}
                     onChange={(e) => setCategoryForm({ ...categoryForm, targetAudience: e.target.value })}
                   />
@@ -313,7 +313,7 @@ export default function AdminAiContent() {
                   />
                   <input
                     className="border rounded-lg px-3 py-2 text-sm bg-white"
-                    placeholder="Image style"
+                    placeholder="Image style, optional"
                     value={categoryForm.imageStyle}
                     onChange={(e) => setCategoryForm({ ...categoryForm, imageStyle: e.target.value })}
                   />
@@ -332,7 +332,7 @@ export default function AdminAiContent() {
                   ) : null}
                   <textarea
                     className="md:col-span-2 border rounded-lg px-3 py-2 text-sm min-h-20 bg-white"
-                    placeholder="Category description"
+                    placeholder="Optional context for this category. The AI still chooses the topic automatically."
                     value={categoryForm.description}
                     onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })}
                   />

@@ -40,15 +40,12 @@ function extractResponseText(payload) {
 
 function buildFallbackDraft({ category, fixedCta, brandInstructions }) {
   const name = normalizeText(category?.name) || "Business";
-  const audience = normalizeText(category?.targetAudience) || "local buyers";
-  const description = normalizeText(category?.description);
-  const topic = `${name} update for ${audience}`;
-  const hook = `Looking for ${name.toLowerCase()} options that are easier to act on?`;
+  const audience = normalizeText(category?.targetAudience) || "buyers and sellers";
+  const topic = `Find verified ${name.toLowerCase()} leads faster`;
+  const hook = `Need ${name.toLowerCase()} leads without chasing everywhere? HOKO connects ${audience} in one simple app.`;
   const caption = [
     hook,
-    description || `Explore current ${name.toLowerCase()} opportunities with HOKO.`,
-    fixedCta ? `CTA: ${fixedCta}` : "",
-    brandInstructions ? "" : ""
+    fixedCta ? fixedCta : ""
   ].filter(Boolean).join("\n\n");
 
   return {
@@ -58,25 +55,37 @@ function buildFallbackDraft({ category, fixedCta, brandInstructions }) {
     hook,
     caption,
     hashtags: ["#HOKO", "#Business", `#${name.replace(/[^a-zA-Z0-9]/g, "")}`].filter((item) => item.length > 1),
-    imagePrompt: `Create a clean social media image for ${name}. Style: ${normalizeText(category?.imageStyle) || "modern business visual"}.`,
+    imagePrompt: [
+      `Create a square social media image for the HOKO app about ${name}.`,
+      `Depict this hook visually: "${hook}"`,
+      "Show a modern mobile app, buyer-seller connection, lead discovery, and trust.",
+      `Style: ${normalizeText(category?.imageStyle) || "clean modern Indian business app ad"}.`,
+      "Do not add small unreadable text. Avoid fake app UI details."
+    ].join(" "),
     raw: null
   };
 }
 
 function buildPrompt({ category, fixedCta, brandInstructions }) {
   return [
-    "Create one social media draft for an admin-controlled AI content system.",
-    "The system only generates drafts; it does not publish.",
+    "Create one automated social media draft to market the HOKO app.",
+    "HOKO is a buyer-seller business app where buyers post requirements and sellers find relevant leads.",
+    "The admin selects only a category; you must choose the topic yourself based on that category.",
+    "The system only generates drafts and images; it does not publish.",
     `Category: ${normalizeText(category?.name)}.`,
-    `Category description: ${normalizeText(category?.description) || "not provided"}.`,
-    `Target audience: ${normalizeText(category?.targetAudience) || "general business audience"}.`,
+    `Optional category context: ${normalizeText(category?.description) || "not provided"}.`,
+    `Optional target audience: ${normalizeText(category?.targetAudience) || "buyers and sellers in this category"}.`,
     `Tone: ${normalizeText(category?.tone) || "professional"}.`,
     `Image style: ${normalizeText(category?.imageStyle) || "clean business social image"}.`,
     `Fixed CTA: ${normalizeText(fixedCta) || "Learn More"}.`,
     brandInstructions ? `Brand instructions: ${normalizeText(brandInstructions)}.` : "",
     "Return only valid JSON with keys: topic, hook, caption, hashtags, imagePrompt.",
-    "The hook must be short and strong. The caption must include the fixed CTA naturally.",
-    "Hashtags must be an array of strings. Do not include markdown fences."
+    "topic: a fresh marketing angle for HOKO in this category, not copied from the category name.",
+    "hook: one or two short lines only, written to market the HOKO app. Mention HOKO naturally.",
+    "caption: use the hook plus the fixed CTA. Keep it short; no long paragraph.",
+    "imagePrompt: describe an AI image that visually depicts the hook and HOKO app value for this category.",
+    "Image prompt must request a square social post, mobile app/business lead visual, and avoid unreadable text.",
+    "Hashtags must be an array of 3 to 6 strings. Do not include markdown fences."
   ].filter(Boolean).join(" ");
 }
 
