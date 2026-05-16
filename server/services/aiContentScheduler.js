@@ -138,7 +138,7 @@ async function processAiContentGeneration({ force = false, limit } = {}) {
         imageModel: generated.imageModel,
         rawTextResponse: generated.raw,
         rawImageResponse: generated.rawImageResponse,
-        lastError: generated.imageError || ""
+        lastError: generated.error || generated.imageError || ""
       });
 
       category.lastGeneratedAt = new Date();
@@ -291,7 +291,7 @@ async function processCampaignRunById(runId) {
         imageModel: generated.imageModel,
         rawTextResponse: generated.raw,
         rawImageResponse: generated.rawImageResponse,
-        lastError: generated.imageError || ""
+        lastError: generated.error || generated.imageError || ""
       });
       draftIds.push(draft._id);
       run.draftIds = draftIds;

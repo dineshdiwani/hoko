@@ -116,24 +116,37 @@ async function generateTextDraft({ category, settings, campaign = {} }) {
   if (!apiKey) return fallback;
 
   const model = normalizeText(process.env.OPENAI_CONTENT_MODEL) || "gpt-5.4-mini";
-  const response = await axios.post(
-    "https://api.openai.com/v1/responses",
-    {
-      model,
-      input: buildPrompt({
-        category,
-        fixedCta,
-        campaign
-      })
-    },
-    {
-      timeout: 30000,
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json"
+  let response;
+  try {
+    response = await axios.post(
+      "https://api.openai.com/v1/responses",
+      {
+        model,
+        input: buildPrompt({
+          category,
+          fixedCta,
+          campaign
+        })
+      },
+      {
+        timeout: 30000,
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json"
+        }
       }
-    }
-  );
+    );
+  } catch (err) {
+    return {
+      ...fallback,
+      provider: "fallback",
+      model: "",
+      raw: err?.response?.data || err?.message || null,
+      error: err?.response?.status === 429
+        ? "openai_rate_limited"
+        : err?.message || "openai_text_generation_failed"
+    };
+  }
 
   const raw = response?.data || null;
   const parsed = safeJsonParse(extractResponseText(raw));
