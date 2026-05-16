@@ -234,13 +234,16 @@ export default function AdminAiContent() {
                     Require approval
                   </label>
                   <label className="md:col-span-2 text-xs font-medium text-gray-600">
-                    Brand instructions
+                    Hook training instructions
                     <textarea
-                      className="mt-1 w-full border rounded-lg px-3 py-2 text-sm min-h-20 bg-white"
+                      className="mt-1 w-full border rounded-lg px-3 py-2 text-sm min-h-32 bg-white"
                       value={settings.brandInstructions || ""}
                       onChange={(e) => setSettings({ ...settings, brandInstructions: e.target.value })}
-                      placeholder="Voice, offer rules, words to prefer, compliance notes..."
+                      placeholder="Describe how hooks should be written. Example: Focus on buyers saving time and getting lower seller offers. Use simple Indian business language. Make hooks urgent but not fake. Mention reverse auction when useful. Avoid generic startup/marketplace lines."
                     />
+                    <span className="mt-1 block text-[11px] font-normal text-gray-500">
+                      This text is sent to the AI on every cron/manual generation run.
+                    </span>
                   </label>
                 </div>
               ) : (

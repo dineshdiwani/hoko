@@ -66,6 +66,7 @@ function buildFallbackDraft({ category, fixedCta, brandInstructions }) {
 }
 
 function buildPrompt({ category, fixedCta, brandInstructions }) {
+  const trainingText = normalizeText(brandInstructions);
   return [
     "Create one automated social media draft to market the HOKO app.",
     "Core HOKO positioning:",
@@ -83,7 +84,9 @@ function buildPrompt({ category, fixedCta, brandInstructions }) {
     `Tone: ${normalizeText(category?.tone) || "professional"}.`,
     `Image style: ${normalizeText(category?.imageStyle) || "clean business social image"}.`,
     `Fixed CTA: ${normalizeText(fixedCta) || "Learn More"}.`,
-    brandInstructions ? `Brand instructions: ${normalizeText(brandInstructions)}.` : "",
+    trainingText ? "Admin hook training instructions:" : "",
+    trainingText || "",
+    trainingText ? "Use the admin hook training instructions as the highest-priority style and relevance guide, as long as they do not conflict with the core HOKO positioning." : "",
     "Return only valid JSON with keys: topic, hook, caption, hashtags, imagePrompt.",
     "topic: a fresh buyer pain point or benefit for this category, not copied from the category name.",
     "hook: one or two short lines only. Make it attractive, direct, and conversion-oriented.",
