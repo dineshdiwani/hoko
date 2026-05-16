@@ -241,19 +241,18 @@ export default function AdminAiContent() {
       let completed = false;
       for (let attempt = 0; attempt < 90; attempt += 1) {
         await new Promise((resolve) => window.setTimeout(resolve, 2000));
-        const runsRes = await api.get("/ai-content/campaign-runs?limit=10");
-        const runs = Array.isArray(runsRes.data?.items) ? runsRes.data.items : [];
-        setCampaignRuns(runs);
-        const run = runs.find((item) => item._id === runId);
+        const detailRes = await api.get(`/ai-content/campaign-runs/${runId}`);
+        const run = detailRes.data?.run || null;
+        const currentDrafts = Array.isArray(detailRes.data?.drafts) ? detailRes.data.drafts : [];
         const progress = Math.max(10, Math.min(100, Number(run?.progress || 15)));
         setGenerationProgress({
           percent: progress,
           title: run?.status === "failed" ? "Campaign generation failed" : run?.status === "completed" ? "Campaign previews ready" : "Generating campaign previews",
           message: run?.status === "completed"
-            ? `Created previews: ${run?.draftIds?.length || 0}`
+            ? `Created previews: ${currentDrafts.length || run?.draftIds?.length || 0}`
             : run?.status === "failed"
               ? run?.lastError || "Failed to create campaign previews"
-              : `Created ${run?.draftIds?.length || 0} of ${campaignForm.postCount} previews...`,
+              : `Created ${currentDrafts.length || run?.draftIds?.length || 0} of ${campaignForm.postCount} previews...`,
           failed: run?.status === "failed"
         });
 
@@ -277,6 +276,7 @@ export default function AdminAiContent() {
           title: "Still generating",
           message: "The campaign is still running in the background. Refresh in a moment to see new previews."
         });
+        window.setTimeout(() => setGenerationProgress(null), 3000);
       }
     } catch (err) {
       setGenerationProgress({
@@ -486,9 +486,14 @@ export default function AdminAiContent() {
                   <p className="font-semibold mb-2">Recent campaign runs</p>
                   <div className="space-y-1">
                     {campaignRuns.slice(0, 4).map((run) => (
-                      <div key={run._id} className="flex items-center justify-between gap-3">
-                        <span className="truncate">{preview(run.mood, 80)}</span>
-                        <span className="shrink-0 uppercase">{run.status} · {run.draftIds?.length || 0}</span>
+                      <div key={run._id} className="space-y-0.5">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="truncate">{preview(run.mood, 80)}</span>
+                          <span className="shrink-0 uppercase">{run.status} · {run.draftIds?.length || 0}</span>
+                        </div>
+                        {run.lastError ? (
+                          <p className="text-red-600">{run.lastError}</p>
+                        ) : null}
                       </div>
                     ))}
                   </div>

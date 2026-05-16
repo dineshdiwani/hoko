@@ -139,6 +139,17 @@ router.get("/campaign-runs", adminAuth, requireAdminPermission("campaigns.read")
   res.json({ items });
 });
 
+router.get("/campaign-runs/:id", adminAuth, requireAdminPermission("campaigns.read"), async (req, res) => {
+  const run = await AiContentCampaignRun.findById(req.params.id).lean();
+  if (!run) {
+    return res.status(404).json({ message: "Campaign run not found" });
+  }
+  const drafts = await AiGeneratedPost.find({ campaignRunId: run._id })
+    .sort({ createdAt: -1 })
+    .lean();
+  res.json({ run, drafts });
+});
+
 router.post("/campaign-runs", adminAuth, requireAdminPermission("campaigns.manage"), async (req, res) => {
   try {
     const result = await createCampaignRunDrafts({

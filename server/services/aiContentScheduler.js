@@ -299,6 +299,10 @@ async function processCampaignRunById(runId) {
       await run.save();
     }
 
+    if (!draftIds.length) {
+      throw new Error("No drafts were generated for this campaign run");
+    }
+
     run.status = "completed";
     run.progress = 100;
     run.draftIds = draftIds;
