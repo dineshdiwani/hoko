@@ -169,7 +169,7 @@ async function processAiContentGeneration({ force = false, limit } = {}) {
 
 async function createCampaignRunDrafts({
   mood,
-  postCount = 5,
+  postCount = 3,
   categoryMode = "auto",
   selectedCategories = [],
   audienceMode = "auto",
@@ -186,7 +186,7 @@ async function createCampaignRunDrafts({
   }
 
   const settings = await getSettings();
-  const count = Math.max(1, Math.min(10, Number(postCount || 5)));
+  const count = Math.max(1, Math.min(5, Number(postCount || 3)));
   const dashboardCategories = await getDashboardCategories();
   const sourceCategories = categoryMode === "selected" && selectedCategories.length
     ? selectedCategories
@@ -236,7 +236,7 @@ async function processCampaignRunById(runId) {
 
   try {
     const settings = await getSettings();
-    const count = Math.max(1, Math.min(10, Number(run.postCount || 5)));
+    const count = Math.max(1, Math.min(5, Number(run.postCount || 3)));
     const categories = Array.isArray(run.selectedCategories) && run.selectedCategories.length
       ? run.selectedCategories
       : pickCategories(await getDashboardCategories(), count);

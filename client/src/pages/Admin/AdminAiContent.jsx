@@ -44,7 +44,7 @@ export default function AdminAiContent() {
   const [trainingText, setTrainingText] = useState("");
   const [campaignForm, setCampaignForm] = useState({
     mood: "",
-    postCount: 5,
+    postCount: 3,
     categoryMode: "auto",
     selectedCategories: [],
     audienceMode: "auto",
@@ -391,7 +391,7 @@ export default function AdminAiContent() {
                     value={campaignForm.postCount}
                     onChange={(e) => setCampaignForm({ ...campaignForm, postCount: Number(e.target.value) })}
                   >
-                    {[5, 6, 7, 8, 9, 10].map((count) => (
+                    {[1, 2, 3, 4, 5].map((count) => (
                       <option key={count} value={count}>{count}</option>
                     ))}
                   </select>

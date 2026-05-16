@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const aiContentCampaignRunSchema = new mongoose.Schema(
   {
     mood: { type: String, required: true, trim: true },
-    postCount: { type: Number, default: 5, min: 1, max: 10 },
+    postCount: { type: Number, default: 3, min: 1, max: 5 },
     audienceMode: {
       type: String,
       enum: ["auto", "buyers", "sellers", "both"],
