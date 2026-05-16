@@ -43,8 +43,7 @@ function buildFallbackDraft({ category, fixedCta }) {
   const topic = `Get competing seller offers for ${name.toLowerCase()} requirements`;
   const hook = `Post your ${name.toLowerCase()} requirement on HOKO and let sellers compete with price offers. Pick the best deal, or start a reverse auction for even sharper prices.`;
   const caption = [
-    hook,
-    fixedCta ? fixedCta : ""
+    hook
   ].filter(Boolean).join("\n\n");
 
   return {
@@ -89,7 +88,7 @@ function buildPrompt({ category, fixedCta }) {
     "Every hook must mention HOKO and at least one core value: post requirement, compare seller offers, choose lower price, or reverse auction.",
     "Prefer hooks that create curiosity or urgency, but do not exaggerate or make unverifiable guarantees.",
     "Use plain Indian business English. Avoid generic lines like grow your business, discover opportunities, or connect buyers and sellers unless tied to price offers.",
-    "caption: use the hook plus the fixed CTA. Keep it short; no long paragraph.",
+    "caption: repeat the hook only. Do not add extra copy. CTA is stored separately as button text.",
     "imagePrompt: describe an AI image that visually depicts the hook and the HOKO marketplace workflow for this category.",
     "Image prompt must request a square social post showing buyer requirement, seller price offers, price comparison, and reverse auction where relevant.",
     "Avoid unreadable text, fake screenshots, platform logos, or celebrity/brand references.",

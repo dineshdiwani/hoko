@@ -22,6 +22,7 @@ const aiGeneratedPostSchema = new mongoose.Schema(
     imagePrompt: { type: String, default: "" },
     imageUrl: { type: String, default: "" },
     cta: { type: String, default: "" },
+    ctaLink: { type: String, default: "" },
     status: {
       type: String,
       enum: ["draft", "approved", "rejected", "queued", "posted", "failed"],

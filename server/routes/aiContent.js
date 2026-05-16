@@ -56,6 +56,7 @@ router.put("/settings", adminAuth, requireAdminPermission("campaigns.manage"), a
     {
       $set: {
         fixedCta: normalizeText(body.fixedCta) || "Learn More",
+        ctaLink: normalizeText(body.ctaLink),
         generationEnabled: Boolean(body.generationEnabled),
         approvalRequired: body.approvalRequired !== false,
         maxDraftsPerRun: Math.max(1, Math.min(20, Number(body.maxDraftsPerRun || 3))),

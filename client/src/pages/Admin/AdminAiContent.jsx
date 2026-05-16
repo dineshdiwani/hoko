@@ -25,6 +25,13 @@ function formatTime(value) {
   return date.toLocaleString();
 }
 
+function normalizeUrl(value) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  if (/^https?:\/\//i.test(text)) return text;
+  return `https://${text}`;
+}
+
 export default function AdminAiContent() {
   const [settings, setSettings] = useState(null);
   const [settingsSaving, setSettingsSaving] = useState(false);
@@ -287,6 +294,15 @@ export default function AdminAiContent() {
                     />
                   </label>
                   <label className="text-xs font-medium text-gray-600">
+                    CTA link
+                    <input
+                      className="mt-1 w-full border rounded-lg px-3 py-2 text-sm bg-white"
+                      value={settings.ctaLink || ""}
+                      onChange={(e) => setSettings({ ...settings, ctaLink: e.target.value })}
+                      placeholder="https://hokoapp.in"
+                    />
+                  </label>
+                  <label className="text-xs font-medium text-gray-600">
                     Max drafts per run
                     <input
                       type="number"
@@ -525,16 +541,49 @@ export default function AdminAiContent() {
                       </span>
                     </div>
                     <p><span className="font-medium">Category:</span> {draft.categorySnapshot?.name || draft.categoryId?.name || "-"}</p>
-                    <p><span className="font-medium">Hook:</span> {preview(draft.hook, 120)}</p>
-                    <p><span className="font-medium">Caption:</span> {preview(draft.caption, 180)}</p>
-                    <p><span className="font-medium">CTA:</span> {draft.cta || "-"}</p>
-                    <p><span className="font-medium">Image prompt:</span> {preview(draft.imagePrompt, 160)}</p>
-                    {draft.imageUrl ? (
-                      <img src={draft.imageUrl} alt="" className="w-full aspect-square object-cover rounded-lg border" />
-                    ) : null}
-                    {Array.isArray(draft.hashtags) && draft.hashtags.length ? (
-                      <p className="text-gray-600">{draft.hashtags.join(" ")}</p>
-                    ) : null}
+                    <div className="overflow-hidden rounded-xl border bg-white">
+                      {draft.imageUrl ? (
+                        <img src={draft.imageUrl} alt="" className="w-full aspect-square object-cover" />
+                      ) : (
+                        <div className="flex aspect-square items-center justify-center bg-gray-100 px-4 text-center text-xs text-gray-500">
+                          Image will appear here after generation
+                        </div>
+                      )}
+                      <div className="space-y-3 p-3">
+                        <p className="text-sm font-semibold leading-snug text-gray-900">
+                          {draft.hook || draft.caption || "-"}
+                        </p>
+                        {draft.cta ? (
+                          draft.ctaLink ? (
+                            <a
+                              href={normalizeUrl(draft.ctaLink)}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex w-full items-center justify-center rounded-lg bg-black px-3 py-2 text-xs font-semibold text-white"
+                            >
+                              {draft.cta}
+                            </a>
+                          ) : (
+                            <button
+                              type="button"
+                              className="w-full rounded-lg bg-black px-3 py-2 text-xs font-semibold text-white"
+                            >
+                              {draft.cta}
+                            </button>
+                          )
+                        ) : null}
+                      </div>
+                    </div>
+                    <details className="rounded-lg border bg-gray-50 p-2">
+                      <summary className="cursor-pointer text-[11px] font-semibold text-gray-600">Generation details</summary>
+                      <div className="mt-2 space-y-1 text-[11px] text-gray-600">
+                        <p><span className="font-medium">Topic:</span> {preview(draft.topic, 120)}</p>
+                        <p><span className="font-medium">Image prompt:</span> {preview(draft.imagePrompt, 180)}</p>
+                        {Array.isArray(draft.hashtags) && draft.hashtags.length ? (
+                          <p>{draft.hashtags.join(" ")}</p>
+                        ) : null}
+                      </div>
+                    </details>
                     {draft.lastError ? <p className="text-red-600">Image note: {draft.lastError}</p> : null}
                     <div className="flex flex-wrap gap-2">
                       <button

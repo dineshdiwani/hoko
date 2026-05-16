@@ -89,6 +89,7 @@ async function processAiContentGeneration({ force = false, limit } = {}) {
         imagePrompt: generated.imagePrompt,
         imageUrl: generated.imageUrl,
         cta: settings.fixedCta || "Learn More",
+        ctaLink: settings.ctaLink || "",
         status: settings.approvalRequired === false ? "approved" : "draft",
         generationProvider: generated.provider,
         textModel: generated.model,
