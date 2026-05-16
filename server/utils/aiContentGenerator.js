@@ -40,9 +40,8 @@ function extractResponseText(payload) {
 
 function buildFallbackDraft({ category, fixedCta, brandInstructions }) {
   const name = normalizeText(category?.name) || "Business";
-  const audience = normalizeText(category?.targetAudience) || "buyers and sellers";
-  const topic = `Find verified ${name.toLowerCase()} leads faster`;
-  const hook = `Need ${name.toLowerCase()} leads without chasing everywhere? HOKO connects ${audience} in one simple app.`;
+  const topic = `Get competing seller offers for ${name.toLowerCase()} requirements`;
+  const hook = `Post your ${name.toLowerCase()} requirement on HOKO and let sellers compete with price offers. Pick the best deal, or start a reverse auction for even sharper prices.`;
   const caption = [
     hook,
     fixedCta ? fixedCta : ""
@@ -56,9 +55,9 @@ function buildFallbackDraft({ category, fixedCta, brandInstructions }) {
     caption,
     hashtags: ["#HOKO", "#Business", `#${name.replace(/[^a-zA-Z0-9]/g, "")}`].filter((item) => item.length > 1),
     imagePrompt: [
-      `Create a square social media image for the HOKO app about ${name}.`,
+      `Create a square social media image for the HOKO online marketplace app about ${name}.`,
       `Depict this hook visually: "${hook}"`,
-      "Show a modern mobile app, buyer-seller connection, lead discovery, and trust.",
+      "Show a buyer posting a requirement, multiple sellers submitting price offers, best lower-price offer selection, and reverse auction competition.",
       `Style: ${normalizeText(category?.imageStyle) || "clean modern Indian business app ad"}.`,
       "Do not add small unreadable text. Avoid fake app UI details."
     ].join(" "),
@@ -69,7 +68,13 @@ function buildFallbackDraft({ category, fixedCta, brandInstructions }) {
 function buildPrompt({ category, fixedCta, brandInstructions }) {
   return [
     "Create one automated social media draft to market the HOKO app.",
-    "HOKO is a buyer-seller business app where buyers post requirements and sellers find relevant leads.",
+    "Core HOKO positioning:",
+    "HOKO is an online marketplace for buyers and sellers.",
+    "Buyers post their requirements in a category.",
+    "Sellers post price offers on those buyer requirements.",
+    "Buyers compare offers and choose the best or lower-price offer.",
+    "Buyers can also invoke reverse auction so sellers compete further and improve their prices.",
+    "The content must make this marketplace value instantly clear to the audience.",
     "The admin selects only a category; you must choose the topic yourself based on that category.",
     "The system only generates drafts and images; it does not publish.",
     `Category: ${normalizeText(category?.name)}.`,
@@ -80,11 +85,15 @@ function buildPrompt({ category, fixedCta, brandInstructions }) {
     `Fixed CTA: ${normalizeText(fixedCta) || "Learn More"}.`,
     brandInstructions ? `Brand instructions: ${normalizeText(brandInstructions)}.` : "",
     "Return only valid JSON with keys: topic, hook, caption, hashtags, imagePrompt.",
-    "topic: a fresh marketing angle for HOKO in this category, not copied from the category name.",
-    "hook: one or two short lines only, written to market the HOKO app. Mention HOKO naturally.",
+    "topic: a fresh buyer pain point or benefit for this category, not copied from the category name.",
+    "hook: one or two short lines only. Make it attractive, direct, and conversion-oriented.",
+    "Every hook must mention HOKO and at least one core value: post requirement, compare seller offers, choose lower price, or reverse auction.",
+    "Prefer hooks that create curiosity or urgency, but do not exaggerate or make unverifiable guarantees.",
+    "Use plain Indian business English. Avoid generic lines like grow your business, discover opportunities, or connect buyers and sellers unless tied to price offers.",
     "caption: use the hook plus the fixed CTA. Keep it short; no long paragraph.",
-    "imagePrompt: describe an AI image that visually depicts the hook and HOKO app value for this category.",
-    "Image prompt must request a square social post, mobile app/business lead visual, and avoid unreadable text.",
+    "imagePrompt: describe an AI image that visually depicts the hook and the HOKO marketplace workflow for this category.",
+    "Image prompt must request a square social post showing buyer requirement, seller price offers, price comparison, and reverse auction where relevant.",
+    "Avoid unreadable text, fake screenshots, platform logos, or celebrity/brand references.",
     "Hashtags must be an array of 3 to 6 strings. Do not include markdown fences."
   ].filter(Boolean).join(" ");
 }
