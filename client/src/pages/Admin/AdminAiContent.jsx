@@ -32,10 +32,13 @@ export default function AdminAiContent() {
   const [categories, setCategories] = useState([]);
   const [drafts, setDrafts] = useState([]);
   const [logs, setLogs] = useState([]);
+  const [trainingNotes, setTrainingNotes] = useState([]);
+  const [trainingText, setTrainingText] = useState("");
   const [categoryForm, setCategoryForm] = useState(emptyCategory);
   const [editingId, setEditingId] = useState("");
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState(null);
 
   const activeCount = useMemo(
     () => categories.filter((item) => item.active !== false).length,
@@ -45,16 +48,18 @@ export default function AdminAiContent() {
   async function loadAll() {
     try {
       setLoading(true);
-      const [settingsRes, categoriesRes, draftsRes, logsRes] = await Promise.all([
+      const [settingsRes, categoriesRes, draftsRes, logsRes, trainingRes] = await Promise.all([
         api.get("/ai-content/settings"),
         api.get("/ai-content/categories"),
         api.get("/ai-content/drafts?limit=30"),
-        api.get("/ai-content/logs?limit=10")
+        api.get("/ai-content/logs?limit=10"),
+        api.get("/ai-content/training-notes?limit=20")
       ]);
       setSettings(settingsRes.data?.settings || null);
       setCategories(Array.isArray(categoriesRes.data?.items) ? categoriesRes.data.items : []);
       setDrafts(Array.isArray(draftsRes.data?.items) ? draftsRes.data.items : []);
       setLogs(Array.isArray(logsRes.data?.items) ? logsRes.data.items : []);
+      setTrainingNotes(Array.isArray(trainingRes.data?.items) ? trainingRes.data.items : []);
     } catch (err) {
       alert(err?.response?.data?.message || err.message || "Failed to load AI content data");
     } finally {
@@ -140,13 +145,45 @@ export default function AdminAiContent() {
   }
 
   async function runGeneration() {
+    let timer = null;
     try {
       setGenerating(true);
+      setGenerationProgress({
+        percent: 15,
+        title: "Starting generation",
+        message: "Picking active categories..."
+      });
+      timer = window.setInterval(() => {
+        setGenerationProgress((current) => {
+          if (!current) return current;
+          const nextPercent = Math.min(90, Number(current.percent || 0) + 10);
+          return {
+            ...current,
+            percent: nextPercent,
+            title: nextPercent < 45 ? "Choosing topics" : nextPercent < 75 ? "Generating hooks and images" : "Saving drafts",
+            message: nextPercent < 75 ? "AI is preparing HOKO marketplace drafts..." : "Almost done..."
+          };
+        });
+      }, 900);
       const res = await api.post("/ai-content/generate/run", { force: true });
+      if (timer) window.clearInterval(timer);
+      timer = null;
       const result = res.data?.result || {};
-      alert(`Generated drafts: ${result.createdDrafts || 0}`);
+      setGenerationProgress({
+        percent: 100,
+        title: "Generation complete",
+        message: `Generated drafts: ${result.createdDrafts || 0}`
+      });
       await loadAll();
+      window.setTimeout(() => setGenerationProgress(null), 1200);
     } catch (err) {
+      if (timer) window.clearInterval(timer);
+      setGenerationProgress({
+        percent: 100,
+        title: "Generation failed",
+        message: err?.response?.data?.message || err.message || "Failed to generate drafts",
+        failed: true
+      });
       alert(err?.response?.data?.message || err.message || "Failed to generate drafts");
     } finally {
       setGenerating(false);
@@ -159,6 +196,49 @@ export default function AdminAiContent() {
       await loadAll();
     } catch (err) {
       alert(err?.response?.data?.message || err.message || "Failed to update draft");
+    }
+  }
+
+  async function deleteDraft(draftId) {
+    if (!window.confirm("Delete this generated draft?")) return;
+    try {
+      await api.delete(`/ai-content/drafts/${draftId}`);
+      await loadAll();
+    } catch (err) {
+      alert(err?.response?.data?.message || err.message || "Failed to delete draft");
+    }
+  }
+
+  async function saveTrainingNote() {
+    if (!trainingText.trim()) {
+      alert("Enter training text first");
+      return;
+    }
+    try {
+      await api.post("/ai-content/training-notes", { text: trainingText.trim() });
+      setTrainingText("");
+      await loadAll();
+    } catch (err) {
+      alert(err?.response?.data?.message || err.message || "Failed to save training note");
+    }
+  }
+
+  async function setTrainingNoteStatus(noteId, status) {
+    try {
+      await api.patch(`/ai-content/training-notes/${noteId}/status`, { status });
+      await loadAll();
+    } catch (err) {
+      alert(err?.response?.data?.message || err.message || "Failed to update training note");
+    }
+  }
+
+  async function deleteTrainingNote(noteId) {
+    if (!window.confirm("Delete this training note?")) return;
+    try {
+      await api.delete(`/ai-content/training-notes/${noteId}`);
+      await loadAll();
+    } catch (err) {
+      alert(err?.response?.data?.message || err.message || "Failed to delete training note");
     }
   }
 
@@ -233,22 +313,57 @@ export default function AdminAiContent() {
                     />
                     Require approval
                   </label>
-                  <label className="md:col-span-2 text-xs font-medium text-gray-600">
-                    Hook training instructions
-                    <textarea
-                      className="mt-1 w-full border rounded-lg px-3 py-2 text-sm min-h-32 bg-white"
-                      value={settings.brandInstructions || ""}
-                      onChange={(e) => setSettings({ ...settings, brandInstructions: e.target.value })}
-                      placeholder="Describe how hooks should be written. Example: Focus on buyers saving time and getting lower seller offers. Use simple Indian business language. Make hooks urgent but not fake. Mention reverse auction when useful. Avoid generic startup/marketplace lines."
-                    />
-                    <span className="mt-1 block text-[11px] font-normal text-gray-500">
-                      This text is sent to the AI on every cron/manual generation run.
-                    </span>
-                  </label>
                 </div>
               ) : (
                 <p className="text-sm text-gray-500">{loading ? "Loading..." : "No settings loaded."}</p>
               )}
+            </section>
+
+            <section className="bg-white border rounded-2xl p-4 space-y-4">
+              <div>
+                <h2 className="font-semibold">Model Training Notes</h2>
+                <p className="text-xs text-gray-500">
+                  Store hook guidance for future model tuning. These notes are not sent with each generated post.
+                </p>
+              </div>
+              <textarea
+                className="w-full border rounded-lg px-3 py-2 text-sm min-h-28 bg-white"
+                value={trainingText}
+                onChange={(e) => setTrainingText(e.target.value)}
+                placeholder="Example: HOKO hooks should focus on buyers posting requirements, sellers competing with price offers, lower price selection, and reverse auction urgency."
+              />
+              <button
+                type="button"
+                onClick={saveTrainingNote}
+                className="px-4 py-2 rounded-lg text-sm font-semibold bg-black text-white"
+              >
+                Save Training Note
+              </button>
+              <div className="space-y-2">
+                {trainingNotes.map((note) => (
+                  <div key={note._id} className="border rounded-xl p-3 text-xs space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-semibold uppercase">{note.status}</span>
+                      <span className="text-gray-500">{formatTime(note.createdAt)}</span>
+                    </div>
+                    <p className="whitespace-pre-wrap text-gray-700">{note.text}</p>
+                    <div className="flex flex-wrap gap-2">
+                      <button onClick={() => setTrainingNoteStatus(note._id, "sent")} className="px-3 py-1.5 rounded border text-[11px] font-semibold">
+                        Mark Sent
+                      </button>
+                      <button onClick={() => setTrainingNoteStatus(note._id, "archived")} className="px-3 py-1.5 rounded border text-[11px] font-semibold">
+                        Archive
+                      </button>
+                      <button onClick={() => deleteTrainingNote(note._id)} className="px-3 py-1.5 rounded border text-[11px] font-semibold text-red-600">
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {!trainingNotes.length ? (
+                  <div className="border rounded-xl p-3 text-sm text-gray-500">No training notes yet.</div>
+                ) : null}
+              </div>
             </section>
 
             <section className="bg-white border rounded-2xl p-4 space-y-4">
@@ -443,6 +558,12 @@ export default function AdminAiContent() {
                       >
                         Draft
                       </button>
+                      <button
+                        onClick={() => deleteDraft(draft._id)}
+                        className="px-3 py-1.5 rounded border text-[11px] font-semibold text-red-600"
+                      >
+                        Delete
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -469,6 +590,38 @@ export default function AdminAiContent() {
           </div>
         </div>
       </div>
+      {generationProgress ? (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-md rounded-2xl border bg-white p-5 shadow-xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className={`font-semibold ${generationProgress.failed ? "text-red-600" : "text-gray-900"}`}>
+                  {generationProgress.title}
+                </h2>
+                <p className="mt-1 text-sm text-gray-600">{generationProgress.message}</p>
+              </div>
+              {generationProgress.failed ? (
+                <button
+                  type="button"
+                  onClick={() => setGenerationProgress(null)}
+                  className="rounded border px-2 py-1 text-xs font-semibold"
+                >
+                  Close
+                </button>
+              ) : null}
+            </div>
+            <div className="mt-4 h-3 w-full overflow-hidden rounded-full bg-gray-100">
+              <div
+                className={`h-full transition-all duration-300 ${generationProgress.failed ? "bg-red-500" : "bg-black"}`}
+                style={{ width: `${Math.max(5, Math.min(100, Number(generationProgress.percent || 0)))}%` }}
+              />
+            </div>
+            <p className="mt-2 text-right text-xs text-gray-500">
+              {Math.max(0, Math.min(100, Number(generationProgress.percent || 0)))}%
+            </p>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

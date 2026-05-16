@@ -38,7 +38,7 @@ function extractResponseText(payload) {
   return chunks.join("\n").trim();
 }
 
-function buildFallbackDraft({ category, fixedCta, brandInstructions }) {
+function buildFallbackDraft({ category, fixedCta }) {
   const name = normalizeText(category?.name) || "Business";
   const topic = `Get competing seller offers for ${name.toLowerCase()} requirements`;
   const hook = `Post your ${name.toLowerCase()} requirement on HOKO and let sellers compete with price offers. Pick the best deal, or start a reverse auction for even sharper prices.`;
@@ -65,8 +65,7 @@ function buildFallbackDraft({ category, fixedCta, brandInstructions }) {
   };
 }
 
-function buildPrompt({ category, fixedCta, brandInstructions }) {
-  const trainingText = normalizeText(brandInstructions);
+function buildPrompt({ category, fixedCta }) {
   return [
     "Create one automated social media draft to market the HOKO app.",
     "Core HOKO positioning:",
@@ -84,9 +83,6 @@ function buildPrompt({ category, fixedCta, brandInstructions }) {
     `Tone: ${normalizeText(category?.tone) || "professional"}.`,
     `Image style: ${normalizeText(category?.imageStyle) || "clean business social image"}.`,
     `Fixed CTA: ${normalizeText(fixedCta) || "Learn More"}.`,
-    trainingText ? "Admin hook training instructions:" : "",
-    trainingText || "",
-    trainingText ? "Use the admin hook training instructions as the highest-priority style and relevance guide, as long as they do not conflict with the core HOKO positioning." : "",
     "Return only valid JSON with keys: topic, hook, caption, hashtags, imagePrompt.",
     "topic: a fresh buyer pain point or benefit for this category, not copied from the category name.",
     "hook: one or two short lines only. Make it attractive, direct, and conversion-oriented.",
@@ -105,8 +101,7 @@ async function generateTextDraft({ category, settings }) {
   const fixedCta = normalizeText(settings?.fixedCta) || "Learn More";
   const fallback = buildFallbackDraft({
     category,
-    fixedCta,
-    brandInstructions: settings?.brandInstructions
+    fixedCta
   });
   const apiKey = normalizeText(process.env.OPENAI_API_KEY);
   if (!apiKey) return fallback;
@@ -118,8 +113,7 @@ async function generateTextDraft({ category, settings }) {
       model,
       input: buildPrompt({
         category,
-        fixedCta,
-        brandInstructions: settings?.brandInstructions
+        fixedCta
       })
     },
     {

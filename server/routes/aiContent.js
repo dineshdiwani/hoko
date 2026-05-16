@@ -5,6 +5,7 @@ const AiContentCategory = require("../models/AiContentCategory");
 const AiContentSettings = require("../models/AiContentSettings");
 const AiGeneratedPost = require("../models/AiGeneratedPost");
 const AiContentJobLog = require("../models/AiContentJobLog");
+const AiContentTrainingNote = require("../models/AiContentTrainingNote");
 const PlatformSettings = require("../models/PlatformSettings");
 const { buildOptionsResponse } = require("../config/platformDefaults");
 const { getSettings, processAiContentGeneration } = require("../services/aiContentScheduler");
@@ -147,6 +148,60 @@ router.patch("/drafts/:id/status", adminAuth, requireAdminPermission("campaigns.
     return res.status(404).json({ message: "Draft not found" });
   }
   res.json({ draft });
+});
+
+router.delete("/drafts/:id", adminAuth, requireAdminPermission("campaigns.manage"), async (req, res) => {
+  const draft = await AiGeneratedPost.findByIdAndDelete(req.params.id).lean();
+  if (!draft) {
+    return res.status(404).json({ message: "Draft not found" });
+  }
+  res.json({ success: true });
+});
+
+router.get("/training-notes", adminAuth, requireAdminPermission("campaigns.read"), async (req, res) => {
+  const items = await AiContentTrainingNote.find()
+    .sort({ createdAt: -1 })
+    .limit(Math.max(1, Math.min(100, Number(req.query?.limit || 30))))
+    .lean();
+  res.json({ items });
+});
+
+router.post("/training-notes", adminAuth, requireAdminPermission("campaigns.manage"), async (req, res) => {
+  const text = normalizeText(req.body?.text);
+  if (!text) {
+    return res.status(400).json({ message: "Training text is required" });
+  }
+  const note = await AiContentTrainingNote.create({
+    text,
+    createdByAdminId: req.admin?._id || null,
+    updatedByAdminId: req.admin?._id || null
+  });
+  res.status(201).json({ note });
+});
+
+router.patch("/training-notes/:id/status", adminAuth, requireAdminPermission("campaigns.manage"), async (req, res) => {
+  const status = normalizeText(req.body?.status);
+  if (!["stored", "sent", "archived"].includes(status)) {
+    return res.status(400).json({ message: "Unsupported training note status" });
+  }
+  const update = {
+    status,
+    updatedByAdminId: req.admin?._id || null
+  };
+  if (status === "sent") update.sentAt = new Date();
+  const note = await AiContentTrainingNote.findByIdAndUpdate(req.params.id, update, { new: true }).lean();
+  if (!note) {
+    return res.status(404).json({ message: "Training note not found" });
+  }
+  res.json({ note });
+});
+
+router.delete("/training-notes/:id", adminAuth, requireAdminPermission("campaigns.manage"), async (req, res) => {
+  const note = await AiContentTrainingNote.findByIdAndDelete(req.params.id).lean();
+  if (!note) {
+    return res.status(404).json({ message: "Training note not found" });
+  }
+  res.json({ success: true });
 });
 
 router.post("/generate/run", adminAuth, requireAdminPermission("campaigns.manage"), async (req, res) => {
