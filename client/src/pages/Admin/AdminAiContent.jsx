@@ -12,6 +12,17 @@ const emptyCategory = {
   dailyGenerationLimit: 1
 };
 
+const defaultSettings = {
+  fixedCta: "Learn More",
+  ctaLink: "",
+  generationEnabled: false,
+  approvalRequired: true,
+  maxDraftsPerRun: 3,
+  cronIntervalMinutes: 60,
+  brandInstructions: "",
+  blockedWords: []
+};
+
 function preview(value, limit = 140) {
   const text = String(value || "").trim();
   if (!text) return "-";
@@ -184,7 +195,16 @@ export default function AdminAiContent() {
   async function saveSettings() {
     try {
       setSettingsSaving(true);
-      const res = await api.put("/ai-content/settings", settings || {});
+      const payload = {
+        ...defaultSettings,
+        ...(settings || {}),
+        maxDraftsPerRun: Math.max(1, Math.min(20, Number(settings?.maxDraftsPerRun || 3))),
+        cronIntervalMinutes: Math.max(5, Math.min(1440, Number(settings?.cronIntervalMinutes || 60))),
+        blockedWords: Array.isArray(settings?.blockedWords)
+          ? settings.blockedWords
+          : String(settings?.blockedWords || "").split(",").map((item) => item.trim()).filter(Boolean)
+      };
+      const res = await api.put("/ai-content/settings", payload);
       setSettings(res.data?.settings || null);
     } catch (err) {
       alert(err?.response?.data?.message || err.message || "Failed to save settings");
@@ -710,10 +730,42 @@ export default function AdminAiContent() {
                       onChange={(e) => setSettings({ ...settings, maxDraftsPerRun: Number(e.target.value) })}
                     />
                   </label>
+                  <label className="text-xs font-medium text-gray-600">
+                    Cron interval minutes
+                    <input
+                      type="number"
+                      min="5"
+                      max="1440"
+                      className="mt-1 w-full border rounded-lg px-3 py-2 text-sm bg-white"
+                      value={settings.cronIntervalMinutes ?? 60}
+                      onChange={(e) => setSettings({ ...settings, cronIntervalMinutes: Number(e.target.value) })}
+                    />
+                  </label>
+                  <label className="md:col-span-2 text-xs font-medium text-gray-600">
+                    Brand instructions
+                    <textarea
+                      className="mt-1 w-full border rounded-lg px-3 py-2 text-sm min-h-20 bg-white"
+                      value={settings.brandInstructions || ""}
+                      onChange={(e) => setSettings({ ...settings, brandInstructions: e.target.value })}
+                      placeholder="Example: Keep copy direct, practical, and focused on HOKO reverse auction value."
+                    />
+                  </label>
+                  <label className="md:col-span-2 text-xs font-medium text-gray-600">
+                    Blocked words
+                    <input
+                      className="mt-1 w-full border rounded-lg px-3 py-2 text-sm bg-white"
+                      value={Array.isArray(settings.blockedWords) ? settings.blockedWords.join(", ") : settings.blockedWords || ""}
+                      onChange={(e) => setSettings({
+                        ...settings,
+                        blockedWords: e.target.value.split(",").map((item) => item.trim()).filter(Boolean)
+                      })}
+                      placeholder="Comma-separated words to avoid"
+                    />
+                  </label>
                   <label className="flex items-center gap-2 text-sm text-gray-700">
                     <input
                       type="checkbox"
-                      checked={settings.generationEnabled !== false}
+                      checked={Boolean(settings.generationEnabled)}
                       onChange={(e) => setSettings({ ...settings, generationEnabled: e.target.checked })}
                     />
                     Enable cron generation

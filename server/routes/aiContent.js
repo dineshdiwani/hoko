@@ -61,6 +61,11 @@ router.get("/settings", adminAuth, requireAdminPermission("campaigns.read"), asy
 
 router.put("/settings", adminAuth, requireAdminPermission("campaigns.manage"), async (req, res) => {
   const body = req.body || {};
+  const maxDraftsPerRun = Math.max(1, Math.min(20, Number(body.maxDraftsPerRun || 3)));
+  const cronIntervalMinutes = Math.max(5, Math.min(1440, Number(body.cronIntervalMinutes || 60)));
+  const blockedWords = Array.isArray(body.blockedWords)
+    ? body.blockedWords.map((item) => normalizeText(item)).filter(Boolean)
+    : String(body.blockedWords || "").split(",").map((item) => normalizeText(item)).filter(Boolean);
   const settings = await AiContentSettings.findOneAndUpdate(
     { key: "default" },
     {
@@ -69,12 +74,10 @@ router.put("/settings", adminAuth, requireAdminPermission("campaigns.manage"), a
         ctaLink: normalizeText(body.ctaLink),
         generationEnabled: Boolean(body.generationEnabled),
         approvalRequired: body.approvalRequired !== false,
-        maxDraftsPerRun: Math.max(1, Math.min(20, Number(body.maxDraftsPerRun || 3))),
-        cronIntervalMinutes: Math.max(5, Math.min(1440, Number(body.cronIntervalMinutes || 60))),
+        maxDraftsPerRun,
+        cronIntervalMinutes,
         brandInstructions: normalizeText(body.brandInstructions),
-        blockedWords: Array.isArray(body.blockedWords)
-          ? body.blockedWords.map((item) => normalizeText(item)).filter(Boolean)
-          : []
+        blockedWords
       }
     },
     { upsert: true, new: true }

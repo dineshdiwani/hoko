@@ -169,6 +169,10 @@ function buildPrompt({ category, fixedCta, campaign = {} }) {
   const audienceMode = normalizeText(campaign?.audienceMode);
   const imageStyle = normalizeText(campaign?.imageStyle);
   const useAppScreenshots = Boolean(campaign?.useAppScreenshots);
+  const brandInstructions = normalizeText(campaign?.brandInstructions);
+  const blockedWords = Array.isArray(campaign?.blockedWords)
+    ? campaign.blockedWords.map(normalizeText).filter(Boolean)
+    : [];
   return [
     "Create one automated social media draft to market the HOKO app.",
     "Core HOKO positioning:",
@@ -184,6 +188,8 @@ function buildPrompt({ category, fixedCta, campaign = {} }) {
     audienceMode && audienceMode !== "auto" ? `Audience focus: ${audienceMode}.` : "Audience focus: choose the strongest audience automatically.",
     imageStyle && imageStyle !== "auto" ? `Preferred image style/background: ${imageStyle}.` : "Choose image environment/background automatically.",
     useAppScreenshots ? "If helpful, ask for a clean app screenshot/mockup placement in the image prompt without inventing unreadable UI text." : "Do not require app screenshots unless the hook clearly benefits from a phone mockup.",
+    brandInstructions ? `Brand instructions: ${brandInstructions}.` : "",
+    blockedWords.length ? `Do not use these blocked words or phrases: ${blockedWords.join(", ")}.` : "",
     `Category: ${normalizeText(category?.name)}.`,
     `Optional category context: ${normalizeText(category?.description) || "not provided"}.`,
     `Optional target audience: ${normalizeText(category?.targetAudience) || "buyers and sellers in this category"}.`,
@@ -220,7 +226,7 @@ async function generateTextDraft({ category, settings, campaign = {} }) {
   const model = normalizeText(process.env.GEMINI_CONTENT_MODEL) || "gemini-2.5-flash";
   let response;
   try {
-    response = await axios.post(
+      response = await axios.post(
       `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
       {
         contents: [
@@ -231,7 +237,11 @@ async function generateTextDraft({ category, settings, campaign = {} }) {
                 text: buildPrompt({
                   category,
                   fixedCta,
-                  campaign
+                  campaign: {
+                    ...campaign,
+                    brandInstructions: campaign?.brandInstructions ?? settings?.brandInstructions,
+                    blockedWords: campaign?.blockedWords ?? settings?.blockedWords
+                  }
                 })
               }
             ]

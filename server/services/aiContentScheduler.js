@@ -263,7 +263,9 @@ async function processCampaignRunById(runId) {
           mood: run.mood,
           audienceMode: run.audienceMode,
           imageStyle: run.imageStyle,
-          useAppScreenshots: run.useAppScreenshots
+          useAppScreenshots: run.useAppScreenshots,
+          brandInstructions: settings.brandInstructions,
+          blockedWords: settings.blockedWords
         },
         generateImages: process.env.AI_CONTENT_CAMPAIGN_GENERATE_IMAGES === "true"
       });
