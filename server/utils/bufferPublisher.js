@@ -215,6 +215,46 @@ function detectImageInfo(buffer) {
   return { mimeType: "", extension: "", width: 0, height: 0 };
 }
 
+function escapeSvgText(value = "") {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function buildOverlaySvg(text = "") {
+  const cleanText = normalizeText(text);
+  if (!cleanText) return null;
+  const words = cleanText.split(/\s+/).filter(Boolean);
+  const lines = [];
+  let current = "";
+  for (const word of words) {
+    const next = current ? `${current} ${word}` : word;
+    if (next.length > 18 && current) {
+      lines.push(current);
+      current = word;
+    } else {
+      current = next;
+    }
+  }
+  if (current) lines.push(current);
+  const displayLines = lines.slice(0, 3);
+  const width = 720;
+  const height = 230;
+  const fontSize = displayLines.length > 2 ? 54 : 64;
+  const textNodes = displayLines.map((line, index) => (
+    `<text x="42" y="${86 + index * (fontSize + 8)}" font-family="Arial, Helvetica, sans-serif" font-size="${fontSize}" font-weight="800" fill="#111827">${escapeSvgText(line)}</text>`
+  )).join("");
+  return Buffer.from(`
+    <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+      <rect x="0" y="0" width="${width}" height="${height}" rx="34" ry="34" fill="white" fill-opacity="0.86"/>
+      <rect x="20" y="20" width="12" height="${height - 40}" rx="6" fill="#16a34a"/>
+      ${textNodes}
+    </svg>
+  `);
+}
+
 function extensionFromUrl(value = "") {
   const pathname = (() => {
     try {
@@ -227,7 +267,7 @@ function extensionFromUrl(value = "") {
   return ["jpg", "jpeg", "png", "webp", "gif"].includes(extension) ? (extension === "jpeg" ? "jpg" : extension) : "";
 }
 
-async function saveImageBufferAsPublicUrl(buffer, mimeType = "", sourceUrl = "") {
+async function saveImageBufferAsPublicUrl(buffer, mimeType = "", sourceUrl = "", draft = {}) {
   if (!buffer?.length) return "";
   const detected = detectImageInfo(buffer);
   const cleanMime = normalizeText(mimeType).split(";")[0].toLowerCase();
@@ -278,6 +318,16 @@ async function saveImageBufferAsPublicUrl(buffer, mimeType = "", sourceUrl = "")
       })
       .toBuffer();
   }
+  const overlaySvg = buildOverlaySvg(draft?.imageTextOverlay);
+  if (overlaySvg) {
+    normalizedBuffer = await sharp(normalizedBuffer)
+      .composite([{ input: overlaySvg, left: 32, top: 806 }])
+      .jpeg({
+        quality: 90,
+        mozjpeg: true
+      })
+      .toBuffer();
+  }
   const normalizedInfo = detectImageInfo(normalizedBuffer);
   if (!normalizedInfo.width || !normalizedInfo.height) {
     throw new Error("Normalized image dimensions could not be read before Buffer publishing");
@@ -287,7 +337,7 @@ async function saveImageBufferAsPublicUrl(buffer, mimeType = "", sourceUrl = "")
   return `${resolvePublicAppUrl()}/api/uploads/social-media/${encodeURIComponent(fileName)}`;
 }
 
-async function saveDataImageAsPublicUrl(value = "") {
+async function saveDataImageAsPublicUrl(value = "", draft = {}) {
   const text = normalizeText(value);
   const match = text.match(/^data:(image\/[a-z0-9.+-]+);base64,([a-z0-9+/=\s]+)$/i);
   if (!match) return "";
@@ -297,7 +347,7 @@ async function saveDataImageAsPublicUrl(value = "") {
   const buffer = Buffer.from(data, "base64");
   if (!buffer.length) return "";
 
-  return saveImageBufferAsPublicUrl(buffer, mimeType);
+  return saveImageBufferAsPublicUrl(buffer, mimeType, "", draft);
 }
 
 function isOwnPublicUploadUrl(value = "") {
@@ -312,7 +362,7 @@ function isOwnPublicUploadUrl(value = "") {
   );
 }
 
-async function cacheRemoteImageAsPublicUrl(value = "") {
+async function cacheRemoteImageAsPublicUrl(value = "", draft = {}) {
   const url = normalizeText(value);
   if (!/^https?:\/\//i.test(url)) return "";
   if (isOwnPublicUploadUrl(url)) return url;
@@ -330,14 +380,14 @@ async function cacheRemoteImageAsPublicUrl(value = "") {
   if (mimeType && !mimeType.startsWith("image/")) {
     throw new Error(`Image URL returned ${mimeType} instead of an image`);
   }
-  return saveImageBufferAsPublicUrl(Buffer.from(response.data), mimeType, url);
+  return saveImageBufferAsPublicUrl(Buffer.from(response.data), mimeType, url, draft);
 }
 
 async function resolvePublicImageUrl(draft, imageUrlOverride = "") {
   const value = normalizeText(imageUrlOverride) || normalizeText(draft?.imageUrl);
   if (!value) return "";
-  if (/^https?:\/\//i.test(value)) return cacheRemoteImageAsPublicUrl(value);
-  if (value.startsWith("data:")) return saveDataImageAsPublicUrl(value);
+  if (/^https?:\/\//i.test(value)) return cacheRemoteImageAsPublicUrl(value, draft);
+  if (value.startsWith("data:")) return saveDataImageAsPublicUrl(value, draft);
   return "";
 }
 

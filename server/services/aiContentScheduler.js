@@ -6,6 +6,7 @@ const AiContentCampaignRun = require("../models/AiContentCampaignRun");
 const PlatformSettings = require("../models/PlatformSettings");
 const { buildOptionsResponse } = require("../config/platformDefaults");
 const { generateAiContentDraft } = require("../utils/aiContentGenerator");
+const { createBufferPost, getBufferChannels } = require("../utils/bufferPublisher");
 
 let schedulerStarted = false;
 let schedulerIntervalId = null;
@@ -34,6 +35,114 @@ async function getTodaysDraftCount(categoryId) {
 
 function normalizeText(value) {
   return String(value || "").trim();
+}
+
+function getChannelCaption(draft, service = "") {
+  const cleanService = normalizeText(service).toLowerCase();
+  const captions = draft?.channelCaptions || {};
+  return normalizeText(captions[cleanService]) || "";
+}
+
+async function resolveAutoBufferChannels(settings = {}) {
+  const selectedIds = Array.isArray(settings.autoBufferChannelIds)
+    ? settings.autoBufferChannelIds.map(normalizeText).filter(Boolean)
+    : [];
+  const result = await getBufferChannels();
+  const channels = Array.isArray(result.channels) ? result.channels : [];
+  if (!selectedIds.length) return channels;
+  const selected = new Set(selectedIds);
+  return channels.filter((channel) => selected.has(normalizeText(channel.id)));
+}
+
+async function autoSendDraftToBuffer({ draft, settings }) {
+  if (!settings?.autoBufferEnabled) return { skipped: true, reason: "auto_buffer_disabled" };
+  const channels = await resolveAutoBufferChannels(settings);
+  if (!channels.length) return { skipped: true, reason: "no_auto_buffer_channels" };
+
+  const results = [];
+  for (const channel of channels) {
+    try {
+      const mode = normalizeText(settings.autoBufferMode) || "addToQueue";
+      const dueAt = mode === "customScheduled"
+        ? new Date(Date.now() + Math.max(0, Number(settings.autoBufferDelayMinutes || 30)) * 60000).toISOString()
+        : "";
+      const result = await createBufferPost({
+        draft: draft.toObject ? draft.toObject() : draft,
+        channelId: channel.id,
+        channelName: channel.name,
+        channelService: channel.service,
+        postType: settings.autoBufferPostType || "post",
+        mode,
+        dueAt,
+        text: getChannelCaption(draft, channel.service)
+      });
+      results.push({
+        success: true,
+        channelId: channel.id,
+        channelName: channel.name,
+        channelService: channel.service,
+        postId: result.post.id,
+        imageAttached: Boolean(result.post.assets?.length)
+      });
+    } catch (err) {
+      results.push({
+        success: false,
+        channelId: channel.id,
+        channelName: channel.name,
+        channelService: channel.service,
+        message: err?.message || "Buffer publish failed"
+      });
+    }
+  }
+
+  const success = results.find((item) => item.success);
+  if (success) {
+    draft.status = settings.autoBufferMode === "shareNow" ? "posted" : "queued";
+    draft.scheduledAt = new Date();
+    draft.buffer = {
+      postId: success.postId,
+      channelId: success.channelId,
+      channelName: success.channelName,
+      channelService: success.channelService,
+      mode: settings.autoBufferMode || "addToQueue",
+      dueAt: null,
+      status: settings.autoBufferMode === "shareNow" ? "posted" : "queued",
+      sentAt: new Date(),
+      rawResponse: { automationResults: results }
+    };
+    draft.bufferImageAttached = Boolean(success.imageAttached);
+    draft.lastError = results.some((item) => !item.success)
+      ? results.filter((item) => !item.success).map((item) => `${item.channelName || item.channelService}: ${item.message}`).join("; ")
+      : "";
+    await draft.save();
+  } else {
+    draft.status = "failed";
+    draft.lastError = results.map((item) => `${item.channelName || item.channelService}: ${item.message}`).join("; ") || "Auto Buffer publish failed";
+    await draft.save();
+  }
+  return { results };
+}
+
+async function processAutoBufferQueue(settings = {}, limit = 10) {
+  if (!settings?.autoBufferEnabled) return { skipped: true, reason: "auto_buffer_disabled" };
+  const drafts = await AiGeneratedPost.find({
+    status: "approved",
+    $or: [
+      { "buffer.postId": "" },
+      { "buffer.postId": { $exists: false } }
+    ]
+  })
+    .sort({ approvedAt: 1, createdAt: 1 })
+    .limit(Math.max(1, Math.min(25, Number(limit || 10))));
+  let sent = 0;
+  const failures = [];
+  for (const draft of drafts) {
+    const result = await autoSendDraftToBuffer({ draft, settings });
+    const results = Array.isArray(result?.results) ? result.results : [];
+    if (results.some((item) => item.success)) sent += 1;
+    if (results.some((item) => !item.success)) failures.push(String(draft._id));
+  }
+  return { picked: drafts.length, sent, failures };
 }
 
 async function getDashboardCategories() {
@@ -89,8 +198,12 @@ async function processAiContentGeneration({ force = false, limit } = {}) {
   try {
     const settings = await getSettings();
     if (!force && !settings?.generationEnabled) {
+      const autoBuffer = await processAutoBufferQueue(settings, settings?.maxDraftsPerRun || 3);
       log.status = "skipped";
-      log.message = "AI content generation is paused";
+      log.message = settings?.autoBufferEnabled
+        ? "AI content generation is paused; auto Buffer queue checked"
+        : "AI content generation is paused";
+      log.details = { autoBuffer };
       log.finishedAt = new Date();
       await log.save();
       return { skipped: true, reason: "generation_paused" };
@@ -127,6 +240,7 @@ async function processAiContentGeneration({ force = false, limit } = {}) {
         topic: generated.topic,
         hook: generated.hook,
         caption: generated.caption,
+        channelCaptions: generated.channelCaptions,
         hashtags: generated.hashtags,
         imagePrompt: generated.imagePrompt,
         imageTextOverlay: generated.imageTextOverlay,
@@ -147,12 +261,16 @@ async function processAiContentGeneration({ force = false, limit } = {}) {
       await category.save();
       draftIds.push(String(draft._id));
       createdDrafts += 1;
+      if (draft.status === "approved" && settings.autoBufferEnabled) {
+        await autoSendDraftToBuffer({ draft, settings });
+      }
     }
+    const autoBuffer = await processAutoBufferQueue(settings, maxDrafts);
 
     log.status = "completed";
     log.picked = picked;
     log.createdDrafts = createdDrafts;
-    log.details = { draftIds };
+    log.details = { draftIds, autoBuffer };
     log.finishedAt = new Date();
     await log.save();
 
@@ -285,6 +403,7 @@ async function processCampaignRunById(runId) {
         topic: generated.topic,
         hook: generated.hook,
         caption: generated.caption,
+        channelCaptions: generated.channelCaptions,
         hashtags: generated.hashtags,
         imagePrompt: generated.imagePrompt,
         imageTextOverlay: generated.imageTextOverlay,
@@ -300,6 +419,9 @@ async function processCampaignRunById(runId) {
         rawImageResponse: generated.rawImageResponse,
         lastError: generated.error || generated.imageError || ""
       });
+      if (draft.status === "approved" && settings.autoBufferEnabled) {
+        await autoSendDraftToBuffer({ draft, settings });
+      }
       draftIds.push(draft._id);
       run.draftIds = draftIds;
       run.progress = Math.min(95, Math.round((draftIds.length / count) * 100));

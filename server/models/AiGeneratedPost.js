@@ -24,6 +24,11 @@ const aiGeneratedPostSchema = new mongoose.Schema(
     topic: { type: String, default: "" },
     hook: { type: String, default: "" },
     caption: { type: String, default: "" },
+    channelCaptions: {
+      facebook: { type: String, default: "" },
+      instagram: { type: String, default: "" },
+      linkedin: { type: String, default: "" }
+    },
     hashtags: [{ type: String }],
     imagePrompt: { type: String, default: "" },
     imageTextOverlay: { type: String, default: "" },

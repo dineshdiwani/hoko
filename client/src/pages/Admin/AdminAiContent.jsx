@@ -19,6 +19,11 @@ const defaultSettings = {
   imageProvider: "modelslab",
   generationEnabled: false,
   approvalRequired: true,
+  autoBufferEnabled: false,
+  autoBufferChannelIds: [],
+  autoBufferMode: "addToQueue",
+  autoBufferDelayMinutes: 30,
+  autoBufferPostType: "post",
   maxDraftsPerRun: 3,
   cronIntervalMinutes: 60,
   brandInstructions: "",
@@ -330,6 +335,10 @@ export default function AdminAiContent() {
         imageProvider: ["gemini", "modelslab", "none"].includes(settings?.imageProvider) ? settings.imageProvider : "modelslab",
         maxDraftsPerRun: Math.max(1, Math.min(20, Number(settings?.maxDraftsPerRun || 3))),
         cronIntervalMinutes: Math.max(5, Math.min(1440, Number(settings?.cronIntervalMinutes || 60))),
+        autoBufferChannelIds: Array.isArray(settings?.autoBufferChannelIds) ? settings.autoBufferChannelIds : [],
+        autoBufferMode: ["shareNow", "shareNext", "customScheduled", "addToQueue"].includes(settings?.autoBufferMode) ? settings.autoBufferMode : "addToQueue",
+        autoBufferPostType: ["post", "story", "reel"].includes(settings?.autoBufferPostType) ? settings.autoBufferPostType : "post",
+        autoBufferDelayMinutes: Math.max(0, Math.min(10080, Number(settings?.autoBufferDelayMinutes || 30))),
         blockedWords: Array.isArray(settings?.blockedWords)
           ? settings.blockedWords
           : String(settings?.blockedWords || "").split(",").map((item) => item.trim()).filter(Boolean)
@@ -994,6 +1003,90 @@ export default function AdminAiContent() {
                     />
                     Require approval
                   </label>
+                  <label className="flex items-center gap-2 text-sm text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(settings.autoBufferEnabled)}
+                      onChange={(e) => setSettings({ ...settings, autoBufferEnabled: e.target.checked })}
+                    />
+                    Auto-send approved drafts to Buffer
+                  </label>
+                  <div className="md:col-span-2 rounded-xl border bg-gray-50 p-3 space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-gray-800">Auto Buffer Channels</p>
+                        <p className="text-xs text-gray-500">Cron uses these channels when auto-send is enabled.</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={loadBufferChannels}
+                        className="rounded-lg border px-3 py-1.5 text-xs font-semibold"
+                      >
+                        Load
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      {bufferChannels.map((channel) => {
+                        const checked = Array.isArray(settings.autoBufferChannelIds) && settings.autoBufferChannelIds.includes(channel.id);
+                        return (
+                          <label key={channel.id} className="flex items-center gap-2 rounded-lg border bg-white p-2 text-xs">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => {
+                                const current = Array.isArray(settings.autoBufferChannelIds) ? settings.autoBufferChannelIds : [];
+                                setSettings({
+                                  ...settings,
+                                  autoBufferChannelIds: checked
+                                    ? current.filter((id) => id !== channel.id)
+                                    : [...current, channel.id]
+                                });
+                              }}
+                            />
+                            <span>{channel.name || channel.service} <span className="text-gray-400">({channel.service})</span></span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <label className="text-xs font-medium text-gray-600">
+                        Auto mode
+                        <select
+                          className="mt-1 w-full border rounded-lg px-3 py-2 text-sm bg-white"
+                          value={settings.autoBufferMode || "addToQueue"}
+                          onChange={(e) => setSettings({ ...settings, autoBufferMode: e.target.value })}
+                        >
+                          <option value="addToQueue">Add to Buffer queue</option>
+                          <option value="shareNext">Share next</option>
+                          <option value="customScheduled">Schedule after delay</option>
+                          <option value="shareNow">Publish now</option>
+                        </select>
+                      </label>
+                      <label className="text-xs font-medium text-gray-600">
+                        Delay minutes
+                        <input
+                          type="number"
+                          min="0"
+                          max="10080"
+                          className="mt-1 w-full border rounded-lg px-3 py-2 text-sm bg-white"
+                          value={settings.autoBufferDelayMinutes ?? 30}
+                          onChange={(e) => setSettings({ ...settings, autoBufferDelayMinutes: Number(e.target.value) })}
+                        />
+                      </label>
+                      <label className="text-xs font-medium text-gray-600">
+                        Post type
+                        <select
+                          className="mt-1 w-full border rounded-lg px-3 py-2 text-sm bg-white"
+                          value={settings.autoBufferPostType || "post"}
+                          onChange={(e) => setSettings({ ...settings, autoBufferPostType: e.target.value })}
+                        >
+                          <option value="post">Post</option>
+                          <option value="story">Story</option>
+                          <option value="reel">Reel</option>
+                        </select>
+                      </label>
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <p className="text-sm text-gray-500">{loading ? "Loading..." : "No settings loaded."}</p>

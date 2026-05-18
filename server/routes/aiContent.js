@@ -73,6 +73,16 @@ router.put("/settings", adminAuth, requireAdminPermission("campaigns.manage"), a
   const body = req.body || {};
   const maxDraftsPerRun = Math.max(1, Math.min(20, Number(body.maxDraftsPerRun || 3)));
   const cronIntervalMinutes = Math.max(5, Math.min(1440, Number(body.cronIntervalMinutes || 60)));
+  const autoBufferDelayMinutes = Math.max(0, Math.min(10080, Number(body.autoBufferDelayMinutes || 30)));
+  const autoBufferChannelIds = Array.isArray(body.autoBufferChannelIds)
+    ? body.autoBufferChannelIds.map((item) => normalizeText(item)).filter(Boolean)
+    : [];
+  const autoBufferMode = ["shareNow", "shareNext", "customScheduled", "addToQueue"].includes(body.autoBufferMode)
+    ? body.autoBufferMode
+    : "addToQueue";
+  const autoBufferPostType = ["post", "story", "reel"].includes(body.autoBufferPostType)
+    ? body.autoBufferPostType
+    : "post";
   const blockedWords = Array.isArray(body.blockedWords)
     ? body.blockedWords.map((item) => normalizeText(item)).filter(Boolean)
     : String(body.blockedWords || "").split(",").map((item) => normalizeText(item)).filter(Boolean);
@@ -86,6 +96,11 @@ router.put("/settings", adminAuth, requireAdminPermission("campaigns.manage"), a
         imageProvider: normalizeImageProvider(body.imageProvider),
         generationEnabled: Boolean(body.generationEnabled),
         approvalRequired: body.approvalRequired !== false,
+        autoBufferEnabled: Boolean(body.autoBufferEnabled),
+        autoBufferChannelIds,
+        autoBufferMode,
+        autoBufferDelayMinutes,
+        autoBufferPostType,
         maxDraftsPerRun,
         cronIntervalMinutes,
         brandInstructions: normalizeText(body.brandInstructions),

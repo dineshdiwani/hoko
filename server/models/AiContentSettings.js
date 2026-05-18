@@ -17,6 +17,19 @@ const aiContentSettingsSchema = new mongoose.Schema(
     },
     generationEnabled: { type: Boolean, default: false },
     approvalRequired: { type: Boolean, default: true },
+    autoBufferEnabled: { type: Boolean, default: false },
+    autoBufferChannelIds: [{ type: String }],
+    autoBufferMode: {
+      type: String,
+      enum: ["shareNow", "shareNext", "customScheduled", "addToQueue"],
+      default: "addToQueue"
+    },
+    autoBufferDelayMinutes: { type: Number, default: 30, min: 0, max: 10080 },
+    autoBufferPostType: {
+      type: String,
+      enum: ["post", "story", "reel"],
+      default: "post"
+    },
     maxDraftsPerRun: { type: Number, default: 3, min: 1, max: 20 },
     cronIntervalMinutes: { type: Number, default: 60, min: 5, max: 1440 },
     brandInstructions: { type: String, default: "" },

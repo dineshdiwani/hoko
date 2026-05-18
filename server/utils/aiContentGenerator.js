@@ -175,6 +175,17 @@ function buildHashtags({ categoryName = "", angle = "", seed = "" }) {
   return ["#HOKO", categoryTag, picked].filter((item) => item.length > 1);
 }
 
+function buildChannelCaptions({ hook = "", hashtags = [], ctaLink = "" }) {
+  const cleanHook = normalizeText(hook);
+  const tagText = Array.isArray(hashtags) ? hashtags.map(normalizeText).filter(Boolean).join(" ") : "";
+  const link = normalizeText(ctaLink);
+  return {
+    facebook: [cleanHook, "Compare seller offers on HOKO.", tagText, link].filter(Boolean).join("\n\n"),
+    instagram: [cleanHook, tagText].filter(Boolean).join("\n\n"),
+    linkedin: [cleanHook, "A practical way for buyers to post requirements and compare seller responses before deciding.", link].filter(Boolean).join("\n\n")
+  };
+}
+
 function buildFallbackDraft({ category, fixedCta, campaign = {} }) {
   const name = normalizeText(category?.name) || "Business";
   const mood = normalizeText(campaign?.mood);
@@ -296,6 +307,8 @@ function buildFallbackDraft({ category, fixedCta, campaign = {} }) {
   const caption = [
     hook
   ].filter(Boolean).join("\n\n");
+  const hashtags = buildHashtags({ categoryName: name, angle: selected.angle, seed });
+  const ctaLink = normalizeText(campaign?.ctaLink);
 
   return {
     provider: "fallback",
@@ -303,7 +316,8 @@ function buildFallbackDraft({ category, fixedCta, campaign = {} }) {
     topic,
     hook,
     caption,
-    hashtags: buildHashtags({ categoryName: name, angle: selected.angle, seed }),
+    channelCaptions: buildChannelCaptions({ hook, hashtags, ctaLink }),
+    hashtags,
     imageTextOverlay,
     imagePrompt: [
       visualOpener,
@@ -355,7 +369,7 @@ function buildPrompt({ category, fixedCta, campaign = {} }) {
     `Choose one primary creative angle from this list and make it obvious in the copy: ${CONTENT_ANGLES.join(", ")}.`,
     "Content rules: never generate generic content; avoid robotic wording; content must feel fresh every time; use urgency where relevant; use curiosity hooks; use emotional triggers; mention local area naturally if available; adapt tone according to audience; mention trends/festivals if relevant; keep content mobile-friendly; use natural human language; do not overuse emojis; make captions readable with spacing.",
     "Avoid repeated hashtags. Hashtags must be fresh, relevant, and not the same set every time.",
-    "Return only valid JSON with keys: topic, hook, caption, hashtags, imagePrompt, imageTextOverlay.",
+    "Return only valid JSON with keys: topic, hook, caption, channelCaptions, hashtags, imagePrompt, imageTextOverlay.",
     "topic: a fresh category-specific buyer pain point, buying scenario, urgency, comparison benefit, negotiation angle, or seller-response angle. Do not copy the category name alone.",
     "hook: one or two short lines only. Make it attractive, direct, and conversion-oriented, but vary the sentence structure.",
     "Every hook must mention HOKO and at least one core value: posting a requirement, comparing seller offers, choosing a lower/better price, or getting seller responses.",
@@ -367,6 +381,7 @@ function buildPrompt({ category, fixedCta, campaign = {} }) {
     "Prefer hooks that create curiosity or urgency, but do not exaggerate, promise guaranteed savings, or make unverifiable guarantees.",
     "Use plain Indian business English. Avoid generic lines like grow your business, discover opportunities, or connect buyers and sellers unless tied to price offers.",
     "caption: short mobile-friendly caption. It may repeat the hook, but add spacing only if it improves readability. Do not write long paragraphs. CTA is stored separately as button text.",
+    "channelCaptions: object with facebook, instagram, linkedin strings. Facebook should feel local/community-oriented, Instagram should be short and visual, LinkedIn should sound professional and B2B. Keep each mobile-friendly.",
     "imageTextOverlay: 2 to 5 words only, strong ad-style overlay text for the image, such as 'Compare Before You Buy' or 'Limited Time Deal'. Do not include hashtags.",
     "imagePrompt: write an ultra-detailed final image-generation prompt for ModelsLab. It must be aligned with the hook, imageTextOverlay, and campaign mood.",
     campaignMood ? "imagePrompt must use today's campaign mood/direction as visual guidance and connect it directly to the generated hook." : "",
@@ -652,6 +667,9 @@ async function generateTextDraft({ category, settings, campaign = {} }) {
   const hashtags = Array.isArray(parsed.hashtags)
     ? parsed.hashtags.map((item) => normalizeText(item)).filter(Boolean)
     : fallback.hashtags;
+  const parsedChannelCaptions = parsed.channelCaptions && typeof parsed.channelCaptions === "object"
+    ? parsed.channelCaptions
+    : {};
 
   return {
     provider: "gemini",
@@ -659,6 +677,11 @@ async function generateTextDraft({ category, settings, campaign = {} }) {
     topic: normalizeText(parsed.topic) || fallback.topic,
     hook: normalizeText(parsed.hook) || fallback.hook,
     caption: normalizeText(parsed.caption) || fallback.caption,
+    channelCaptions: {
+      facebook: normalizeText(parsedChannelCaptions.facebook) || fallback.channelCaptions?.facebook || "",
+      instagram: normalizeText(parsedChannelCaptions.instagram) || fallback.channelCaptions?.instagram || "",
+      linkedin: normalizeText(parsedChannelCaptions.linkedin) || fallback.channelCaptions?.linkedin || ""
+    },
     hashtags,
     imageTextOverlay: normalizeText(parsed.imageTextOverlay) || fallback.imageTextOverlay,
     imagePrompt: normalizeText(parsed.imagePrompt) || fallback.imagePrompt,
@@ -731,6 +754,9 @@ async function generateOpenAiTextDraft({ category, settings, campaign = {}, fall
   const hashtags = Array.isArray(parsed.hashtags)
     ? parsed.hashtags.map((item) => normalizeText(item)).filter(Boolean)
     : fallback.hashtags;
+  const parsedChannelCaptions = parsed.channelCaptions && typeof parsed.channelCaptions === "object"
+    ? parsed.channelCaptions
+    : {};
 
   return {
     provider: "openai",
@@ -738,6 +764,11 @@ async function generateOpenAiTextDraft({ category, settings, campaign = {}, fall
     topic: normalizeText(parsed.topic) || fallback.topic,
     hook: normalizeText(parsed.hook) || fallback.hook,
     caption: normalizeText(parsed.caption) || fallback.caption,
+    channelCaptions: {
+      facebook: normalizeText(parsedChannelCaptions.facebook) || fallback.channelCaptions?.facebook || "",
+      instagram: normalizeText(parsedChannelCaptions.instagram) || fallback.channelCaptions?.instagram || "",
+      linkedin: normalizeText(parsedChannelCaptions.linkedin) || fallback.channelCaptions?.linkedin || ""
+    },
     hashtags,
     imageTextOverlay: normalizeText(parsed.imageTextOverlay) || fallback.imageTextOverlay,
     imagePrompt: normalizeText(parsed.imagePrompt) || fallback.imagePrompt,
