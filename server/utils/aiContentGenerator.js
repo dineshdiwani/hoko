@@ -287,7 +287,7 @@ function buildFinalImagePrompt({ imagePrompt = "", draft = {}, category = {}, ca
     categoryStyle ? `Category style hint: ${categoryStyle}.` : "",
     normalizeText(imagePrompt) ? `Additional visual direction: ${normalizeText(imagePrompt)}.` : "",
     "Use Indian marketplace/business context. Make the scene practical and product-specific.",
-    "Do not include readable small text, fake social media UI, platform logos, brand logos, celebrity faces, wall portraits, framed photos, watermarks, or distorted hands.",
+    "Do not include readable text, the word HOKO, fake social media UI, platform logos, brand logos, celebrity faces, wall portraits, framed photos, watermarks, pavement text, signboards, or distorted hands.",
     "If showing an app/phone, keep UI symbolic and simple; do not invent detailed unreadable screens.",
     "High quality, clean composition, realistic commercial illustration or polished ad visual."
   ].filter(Boolean);
@@ -298,12 +298,17 @@ function buildProviderImagePrompt({ imagePrompt = "", draft = {}, category = {},
   const categoryName = normalizeText(category?.name || draft?.categorySnapshot?.name);
   const hook = normalizeText(draft?.hook || draft?.caption || draft?.topic);
   const aiPrompt = normalizeText(imagePrompt);
+  const cleanAiPrompt = aiPrompt
+    .replace(/\bHOKO\b/gi, "the marketplace app")
+    .replace(/logo/gi, "app")
+    .replace(/brand/gi, "business")
+    .trim();
   return [
-    aiPrompt || buildFinalImagePrompt({ imagePrompt, draft, category, campaign }),
+    cleanAiPrompt || buildFinalImagePrompt({ imagePrompt, draft, category, campaign }).replace(/\bHOKO\b/gi, "the marketplace app"),
     hook ? `Must align with this post hook: "${hook}".` : "",
     categoryName ? `Category context: ${categoryName}.` : "",
     "Create a square 1:1 professional social media image.",
-    "No unrelated portraits, no wall photos, no random people, no decorative text, no fake logos, no unreadable text, no watermark."
+    "Do not render the word HOKO. Do not render any logo, pavement text, wall text, signboard, typography, unrelated portraits, wall photos, random people, decorative text, fake logos, unreadable text, or watermark."
   ].filter(Boolean).join(" ");
 }
 
