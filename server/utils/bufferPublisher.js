@@ -2,6 +2,7 @@ const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 const axios = require("axios");
+const sharp = require("sharp");
 const { resolvePublicAppUrl } = require("./publicAppUrl");
 const { generateImage } = require("./aiContentGenerator");
 
@@ -129,6 +130,85 @@ function extensionFromMimeType(mimeType = "") {
   return "png";
 }
 
+function detectImageInfo(buffer) {
+  if (!Buffer.isBuffer(buffer) || buffer.length < 12) {
+    return { mimeType: "", extension: "", width: 0, height: 0 };
+  }
+  if (buffer.readUInt32BE(0) === 0x89504e47 && buffer.readUInt32BE(4) === 0x0d0a1a0a && buffer.length >= 24) {
+    return {
+      mimeType: "image/png",
+      extension: "png",
+      width: buffer.readUInt32BE(16),
+      height: buffer.readUInt32BE(20)
+    };
+  }
+  if (buffer[0] === 0xff && buffer[1] === 0xd8) {
+    let offset = 2;
+    while (offset + 9 < buffer.length) {
+      if (buffer[offset] !== 0xff) {
+        offset += 1;
+        continue;
+      }
+      const marker = buffer[offset + 1];
+      const length = buffer.readUInt16BE(offset + 2);
+      if (length < 2) break;
+      if (
+        [0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf].includes(marker)
+        && offset + 8 < buffer.length
+      ) {
+        return {
+          mimeType: "image/jpeg",
+          extension: "jpg",
+          width: buffer.readUInt16BE(offset + 7),
+          height: buffer.readUInt16BE(offset + 5)
+        };
+      }
+      offset += 2 + length;
+    }
+    return { mimeType: "image/jpeg", extension: "jpg", width: 0, height: 0 };
+  }
+  if (
+    buffer.toString("ascii", 0, 4) === "RIFF"
+    && buffer.toString("ascii", 8, 12) === "WEBP"
+  ) {
+    if (buffer.toString("ascii", 12, 16) === "VP8X" && buffer.length >= 30) {
+      return {
+        mimeType: "image/webp",
+        extension: "webp",
+        width: 1 + buffer.readUIntLE(24, 3),
+        height: 1 + buffer.readUIntLE(27, 3)
+      };
+    }
+    if (buffer.toString("ascii", 12, 16) === "VP8 " && buffer.length >= 30) {
+      return {
+        mimeType: "image/webp",
+        extension: "webp",
+        width: buffer.readUInt16LE(26) & 0x3fff,
+        height: buffer.readUInt16LE(28) & 0x3fff
+      };
+    }
+    if (buffer.toString("ascii", 12, 16) === "VP8L" && buffer.length >= 25) {
+      const bits = buffer.readUInt32LE(21);
+      return {
+        mimeType: "image/webp",
+        extension: "webp",
+        width: (bits & 0x3fff) + 1,
+        height: ((bits >> 14) & 0x3fff) + 1
+      };
+    }
+    return { mimeType: "image/webp", extension: "webp", width: 0, height: 0 };
+  }
+  if (buffer.toString("ascii", 0, 6) === "GIF87a" || buffer.toString("ascii", 0, 6) === "GIF89a") {
+    return {
+      mimeType: "image/gif",
+      extension: "gif",
+      width: buffer.readUInt16LE(6),
+      height: buffer.readUInt16LE(8)
+    };
+  }
+  return { mimeType: "", extension: "", width: 0, height: 0 };
+}
+
 function extensionFromUrl(value = "") {
   const pathname = (() => {
     try {
@@ -143,10 +223,33 @@ function extensionFromUrl(value = "") {
 
 async function saveImageBufferAsPublicUrl(buffer, mimeType = "", sourceUrl = "") {
   if (!buffer?.length) return "";
+  const detected = detectImageInfo(buffer);
+  const cleanMime = normalizeText(mimeType).split(";")[0].toLowerCase();
+  if (!detected.mimeType && !cleanMime.startsWith("image/")) {
+    throw new Error("Image file could not be recognized as a valid image");
+  }
+  if (detected.mimeType && (!detected.width || !detected.height)) {
+    throw new Error("Image dimensions could not be read before Buffer publishing");
+  }
+
   await fs.promises.mkdir(AI_CONTENT_UPLOAD_DIR, { recursive: true });
-  const extension = extensionFromMimeType(mimeType) || extensionFromUrl(sourceUrl) || "png";
-  const fileName = `ai-content-${Date.now()}-${crypto.randomBytes(6).toString("hex")}.${extension}`;
-  await fs.promises.writeFile(path.join(AI_CONTENT_UPLOAD_DIR, fileName), buffer);
+  const normalizedBuffer = await sharp(buffer)
+    .rotate()
+    .resize(1024, 1024, {
+      fit: "cover",
+      position: "centre"
+    })
+    .jpeg({
+      quality: 90,
+      mozjpeg: true
+    })
+    .toBuffer();
+  const normalizedInfo = detectImageInfo(normalizedBuffer);
+  if (!normalizedInfo.width || !normalizedInfo.height) {
+    throw new Error("Normalized image dimensions could not be read before Buffer publishing");
+  }
+  const fileName = `ai-content-${Date.now()}-${crypto.randomBytes(6).toString("hex")}.jpg`;
+  await fs.promises.writeFile(path.join(AI_CONTENT_UPLOAD_DIR, fileName), normalizedBuffer);
   return `${resolvePublicAppUrl()}/uploads/social-media/${encodeURIComponent(fileName)}`;
 }
 
