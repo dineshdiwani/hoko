@@ -256,6 +256,10 @@ router.post("/drafts/:id/buffer", adminAuth, requireAdminPermission("campaigns.m
     if (result.request.imageUrl && result.request.imageUrl !== draft.imageUrl) {
       draft.imageUrl = result.request.imageUrl;
     }
+    const bufferImageAttached = Boolean(result.post.assets?.length);
+    if (result.request.hasImage && !bufferImageAttached) {
+      throw new Error("Buffer accepted the post text but did not attach the image. The post was not marked as sent.");
+    }
     draft.status = result.request.mode === "shareNow" ? "posted" : "queued";
     draft.scheduledAt = result.post.dueAt ? new Date(result.post.dueAt) : null;
     draft.buffer = {
@@ -269,6 +273,7 @@ router.post("/drafts/:id/buffer", adminAuth, requireAdminPermission("campaigns.m
       sentAt: new Date(),
       rawResponse: result.post
     };
+    draft.bufferImageAttached = bufferImageAttached;
     draft.lastError = "";
     if (result.request.hasImage && !result.post.assets?.length) {
       draft.lastError = "Buffer accepted the post but did not confirm an attached image";
@@ -313,6 +318,10 @@ router.post("/drafts/buffer/bulk", adminAuth, requireAdminPermission("campaigns.
       if (result.request.imageUrl && result.request.imageUrl !== draft.imageUrl) {
         draft.imageUrl = result.request.imageUrl;
       }
+      const bufferImageAttached = Boolean(result.post.assets?.length);
+      if (result.request.hasImage && !bufferImageAttached) {
+        throw new Error("Buffer accepted the post text but did not attach the image. The post was not marked as sent.");
+      }
       draft.status = result.request.mode === "shareNow" ? "posted" : "queued";
       draft.scheduledAt = result.post.dueAt ? new Date(result.post.dueAt) : null;
       draft.buffer = {
@@ -326,6 +335,7 @@ router.post("/drafts/buffer/bulk", adminAuth, requireAdminPermission("campaigns.
         sentAt: new Date(),
         rawResponse: result.post
       };
+      draft.bufferImageAttached = bufferImageAttached;
       draft.lastError = "";
       if (result.request.hasImage && !result.post.assets?.length) {
         draft.lastError = "Buffer accepted the post but did not confirm an attached image";

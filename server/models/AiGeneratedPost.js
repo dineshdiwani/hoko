@@ -52,6 +52,7 @@ const aiGeneratedPostSchema = new mongoose.Schema(
       sentAt: { type: Date, default: null },
       rawResponse: { type: mongoose.Schema.Types.Mixed, default: null }
     },
+    bufferImageAttached: { type: Boolean, default: false },
     scheduledAt: { type: Date, default: null, index: true },
     approvedAt: { type: Date, default: null },
     approvedByAdminId: {

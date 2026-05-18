@@ -1319,6 +1319,7 @@ export default function AdminAiContent() {
                         Buffer post: {draft.buffer.postId}
                         {draft.buffer.channelName ? ` | ${draft.buffer.channelName}` : ""}
                         {draft.buffer.dueAt ? ` | ${formatTime(draft.buffer.dueAt)}` : ""}
+                        {draft.bufferImageAttached ? " | image attached" : " | no image confirmation"}
                       </div>
                     ) : null}
                     {editingPostId === draft._id ? (
