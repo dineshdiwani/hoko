@@ -40,6 +40,14 @@ function composePostText(draft) {
   ].filter(Boolean).join("\n\n");
 }
 
+function withTimeout(promise, ms = 20000) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = window.setTimeout(() => reject(new Error("Request timed out")), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => window.clearTimeout(timer));
+}
+
 export default function AdminAiContent() {
   const [settings, setSettings] = useState(null);
   const [settingsSaving, setSettingsSaving] = useState(false);
@@ -64,6 +72,7 @@ export default function AdminAiContent() {
   const [categoryForm, setCategoryForm] = useState(emptyCategory);
   const [editingId, setEditingId] = useState("");
   const [loading, setLoading] = useState(false);
+  const [draftsLoading, setDraftsLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(null);
   const [bufferChannels, setBufferChannels] = useState([]);
@@ -87,14 +96,14 @@ export default function AdminAiContent() {
   async function loadAll() {
     try {
       setLoading(true);
-      const [settingsRes, categoriesRes, draftsRes, logsRes, trainingRes, runsRes] = await Promise.all([
+      const [settingsRes, categoriesRes, draftsRes, logsRes, trainingRes, runsRes] = await withTimeout(Promise.all([
         api.get("/ai-content/settings"),
         api.get("/ai-content/categories"),
         api.get("/ai-content/drafts?limit=30"),
         api.get("/ai-content/logs?limit=10"),
         api.get("/ai-content/training-notes?limit=20"),
         api.get("/ai-content/campaign-runs?limit=10")
-      ]);
+      ]));
       setSettings(settingsRes.data?.settings || null);
       setCategories(Array.isArray(categoriesRes.data?.items) ? categoriesRes.data.items : []);
       setDrafts(Array.isArray(draftsRes.data?.items) ? draftsRes.data.items : []);
@@ -105,6 +114,18 @@ export default function AdminAiContent() {
       alert(err?.response?.data?.message || err.message || "Failed to load AI content data");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadDraftsOnly() {
+    try {
+      setDraftsLoading(true);
+      const draftsRes = await withTimeout(api.get("/ai-content/drafts?limit=30"), 12000);
+      setDrafts(Array.isArray(draftsRes.data?.items) ? draftsRes.data.items : []);
+    } catch (err) {
+      alert(err?.response?.data?.message || err.message || "Failed to load generated drafts");
+    } finally {
+      setDraftsLoading(false);
     }
   }
 
@@ -874,11 +895,11 @@ export default function AdminAiContent() {
               <div className="flex items-center justify-between gap-3">
                 <h2 className="font-semibold">Generated Drafts</h2>
                 <button
-                  onClick={loadAll}
-                  disabled={loading}
+                  onClick={loadDraftsOnly}
+                  disabled={draftsLoading}
                   className="px-3 py-2 rounded-lg text-sm font-semibold border border-gray-300 disabled:opacity-60"
                 >
-                  {loading ? "Loading..." : "Refresh"}
+                  {draftsLoading ? "Loading..." : "Refresh"}
                 </button>
               </div>
 
