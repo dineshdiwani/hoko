@@ -129,6 +129,27 @@ function extensionFromMimeType(mimeType = "") {
   return "png";
 }
 
+function extensionFromUrl(value = "") {
+  const pathname = (() => {
+    try {
+      return new URL(value).pathname;
+    } catch {
+      return "";
+    }
+  })();
+  const extension = path.extname(pathname).replace(".", "").toLowerCase();
+  return ["jpg", "jpeg", "png", "webp", "gif"].includes(extension) ? (extension === "jpeg" ? "jpg" : extension) : "";
+}
+
+async function saveImageBufferAsPublicUrl(buffer, mimeType = "", sourceUrl = "") {
+  if (!buffer?.length) return "";
+  await fs.promises.mkdir(AI_CONTENT_UPLOAD_DIR, { recursive: true });
+  const extension = extensionFromMimeType(mimeType) || extensionFromUrl(sourceUrl) || "png";
+  const fileName = `ai-content-${Date.now()}-${crypto.randomBytes(6).toString("hex")}.${extension}`;
+  await fs.promises.writeFile(path.join(AI_CONTENT_UPLOAD_DIR, fileName), buffer);
+  return `${resolvePublicAppUrl()}/uploads/social-media/${encodeURIComponent(fileName)}`;
+}
+
 async function saveDataImageAsPublicUrl(value = "") {
   const text = normalizeText(value);
   const match = text.match(/^data:(image\/[a-z0-9.+-]+);base64,([a-z0-9+/=\s]+)$/i);
@@ -139,16 +160,40 @@ async function saveDataImageAsPublicUrl(value = "") {
   const buffer = Buffer.from(data, "base64");
   if (!buffer.length) return "";
 
-  await fs.promises.mkdir(AI_CONTENT_UPLOAD_DIR, { recursive: true });
-  const fileName = `ai-content-${Date.now()}-${crypto.randomBytes(6).toString("hex")}.${extensionFromMimeType(mimeType)}`;
-  await fs.promises.writeFile(path.join(AI_CONTENT_UPLOAD_DIR, fileName), buffer);
-  return `${resolvePublicAppUrl()}/uploads/social-media/${encodeURIComponent(fileName)}`;
+  return saveImageBufferAsPublicUrl(buffer, mimeType);
+}
+
+function isOwnPublicUploadUrl(value = "") {
+  const publicBase = normalizeText(resolvePublicAppUrl()).replace(/\/+$/, "");
+  const url = normalizeText(value);
+  return Boolean(publicBase && url.startsWith(`${publicBase}/uploads/social-media/`));
+}
+
+async function cacheRemoteImageAsPublicUrl(value = "") {
+  const url = normalizeText(value);
+  if (!/^https?:\/\//i.test(url)) return "";
+  if (isOwnPublicUploadUrl(url)) return url;
+
+  const response = await axios.get(url, {
+    timeout: 45000,
+    responseType: "arraybuffer",
+    maxRedirects: 5,
+    headers: {
+      Accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+      "User-Agent": "HOKO-AI-Content/1.0"
+    }
+  });
+  const mimeType = normalizeText(response.headers?.["content-type"]).split(";")[0];
+  if (mimeType && !mimeType.startsWith("image/")) {
+    throw new Error(`Image URL returned ${mimeType} instead of an image`);
+  }
+  return saveImageBufferAsPublicUrl(Buffer.from(response.data), mimeType, url);
 }
 
 async function resolvePublicImageUrl(draft, imageUrlOverride = "") {
   const value = normalizeText(imageUrlOverride) || normalizeText(draft?.imageUrl);
   if (!value) return "";
-  if (/^https?:\/\//i.test(value)) return value;
+  if (/^https?:\/\//i.test(value)) return cacheRemoteImageAsPublicUrl(value);
   if (value.startsWith("data:")) return saveDataImageAsPublicUrl(value);
   return "";
 }
