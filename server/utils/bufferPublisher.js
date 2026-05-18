@@ -250,7 +250,7 @@ async function saveImageBufferAsPublicUrl(buffer, mimeType = "", sourceUrl = "")
   }
   const fileName = `ai-content-${Date.now()}-${crypto.randomBytes(6).toString("hex")}.jpg`;
   await fs.promises.writeFile(path.join(AI_CONTENT_UPLOAD_DIR, fileName), normalizedBuffer);
-  return `${resolvePublicAppUrl()}/uploads/social-media/${encodeURIComponent(fileName)}`;
+  return `${resolvePublicAppUrl()}/api/uploads/social-media/${encodeURIComponent(fileName)}`;
 }
 
 async function saveDataImageAsPublicUrl(value = "") {
@@ -269,7 +269,13 @@ async function saveDataImageAsPublicUrl(value = "") {
 function isOwnPublicUploadUrl(value = "") {
   const publicBase = normalizeText(resolvePublicAppUrl()).replace(/\/+$/, "");
   const url = normalizeText(value);
-  return Boolean(publicBase && url.startsWith(`${publicBase}/uploads/social-media/`));
+  return Boolean(
+    publicBase
+    && (
+      url.startsWith(`${publicBase}/uploads/social-media/`)
+      || url.startsWith(`${publicBase}/api/uploads/social-media/`)
+    )
+  );
 }
 
 async function cacheRemoteImageAsPublicUrl(value = "") {

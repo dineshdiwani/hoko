@@ -21,7 +21,7 @@ const upload = multer({
   limits: { fileSize: 15 * 1024 * 1024 }
 });
 
-const SOCIAL_MEDIA_UPLOAD_DIR = path.join(process.cwd(), "uploads", "social-media");
+const SOCIAL_MEDIA_UPLOAD_DIR = path.join(__dirname, "..", "uploads", "social-media");
 
 function normalizeText(value) {
   return String(value || "").trim();
@@ -62,7 +62,7 @@ async function saveMediaUpload(file) {
     originalName: String(file.originalname || storedName),
     mimeType: String(file.mimetype || "application/octet-stream"),
     size: Number(file.size || file.buffer.length || 0),
-    publicUrl: `${resolvePublicAppUrl()}/uploads/social-media/${encodeURIComponent(storedName)}`
+    publicUrl: `${resolvePublicAppUrl()}/api/uploads/social-media/${encodeURIComponent(storedName)}`
   };
 }
 

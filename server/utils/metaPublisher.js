@@ -172,7 +172,7 @@ function resolveInstagramPublicImageUrl(mediaFile = {}) {
   }
 
   const baseUrl = String(resolvePublicAppUrl() || "https://hokoapp.in").trim().replace(/\/+$/, "");
-  return `${baseUrl}/uploads/social-media/${encodeURIComponent(path.basename(fileName))}`;
+  return `${baseUrl}/api/uploads/social-media/${encodeURIComponent(path.basename(fileName))}`;
 }
 
 async function postInstagramImageUrl({ userId = "", accessToken = "", caption = "", imageUrl = "" }) {

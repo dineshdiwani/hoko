@@ -951,7 +951,7 @@ const baseDir = path.join(__dirname, "uploads", "buyer-documents");
   return res.sendFile(filePath);
 });
 
-app.get("/uploads/social-media/:filename", async (req, res) => {
+async function sendSocialMediaUpload(req, res) {
   const safeName = path.basename(String(req.params.filename || ""));
   const baseDir = path.join(__dirname, "uploads", "social-media");
   const filePath = path.join(baseDir, safeName);
@@ -977,7 +977,10 @@ app.get("/uploads/social-media/:filename", async (req, res) => {
   res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
   res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
   return res.sendFile(filePath);
-});
+}
+
+app.get("/uploads/social-media/:filename", sendSocialMediaUpload);
+app.get("/api/uploads/social-media/:filename", sendSocialMediaUpload);
 
 /* -------------------- DYNAMIC OG TAGS FOR SOCIAL SCRAPERS -------------------- */
 const CRITERIA_QUERY = /^(facebookexternalhit|facebookcatalog|facebookplatform|facebot|Meta-ExternalAgent|Meta-ExternalFetcher|LinkedInBot|Twitterbot|WhatsApp|GoogleBot|bingbot|Slackbot|Discordbot|TelegramBot)/i;
