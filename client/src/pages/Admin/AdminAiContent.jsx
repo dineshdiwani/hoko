@@ -23,6 +23,9 @@ const defaultSettings = {
   blockedWords: []
 };
 
+const DRAFT_CACHE_KEY = "hoko_ai_content_drafts";
+const DRAFT_SELECTION_KEY = "hoko_ai_content_selected_drafts";
+
 function preview(value, limit = 140) {
   const text = String(value || "").trim();
   if (!text) return "-";
@@ -61,6 +64,25 @@ function mergeDrafts(currentDrafts, incomingDrafts) {
   ];
 }
 
+function readStoredJson(key, fallback) {
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(key) || "null");
+    return parsed ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function getStoredDrafts() {
+  const drafts = readStoredJson(DRAFT_CACHE_KEY, []);
+  return Array.isArray(drafts) ? drafts.filter((item) => item?._id) : [];
+}
+
+function getStoredSelection() {
+  const ids = readStoredJson(DRAFT_SELECTION_KEY, []);
+  return Array.isArray(ids) ? ids.filter(Boolean) : [];
+}
+
 function replaceDraft(drafts, updatedDraft) {
   if (!updatedDraft?._id) return drafts;
   return drafts.map((draft) => draft._id === updatedDraft._id ? updatedDraft : draft);
@@ -79,7 +101,7 @@ export default function AdminAiContent() {
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [dashboardCategories, setDashboardCategories] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [drafts, setDrafts] = useState([]);
+  const [drafts, setDrafts] = useState(() => getStoredDrafts());
   const [logs, setLogs] = useState([]);
   const [trainingNotes, setTrainingNotes] = useState([]);
   const [campaignRuns, setCampaignRuns] = useState([]);
@@ -109,7 +131,7 @@ export default function AdminAiContent() {
     postType: "post",
     dueAt: ""
   });
-  const [selectedDraftIds, setSelectedDraftIds] = useState([]);
+  const [selectedDraftIds, setSelectedDraftIds] = useState(() => getStoredSelection());
   const [publishingId, setPublishingId] = useState("");
   const [bulkPublishing, setBulkPublishing] = useState(false);
   const [editingPostId, setEditingPostId] = useState("");
@@ -197,6 +219,18 @@ export default function AdminAiContent() {
     loadDashboardCategories().catch(() => {});
     loadBufferChannels().catch(() => {});
   }, []);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(DRAFT_CACHE_KEY, JSON.stringify(drafts.slice(0, 300)));
+    } catch {}
+  }, [drafts]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(DRAFT_SELECTION_KEY, JSON.stringify(selectedDraftIds));
+    } catch {}
+  }, [selectedDraftIds]);
 
   async function saveSettings() {
     try {
@@ -502,6 +536,7 @@ export default function AdminAiContent() {
     try {
       await api.delete(`/ai-content/drafts/${draftId}`);
       setDrafts((current) => current.filter((draft) => draft._id !== draftId));
+      setSelectedDraftIds((current) => current.filter((id) => id !== draftId));
       await refreshDraftsQuietly();
     } catch (err) {
       alert(err?.response?.data?.message || err.message || "Failed to delete draft");
