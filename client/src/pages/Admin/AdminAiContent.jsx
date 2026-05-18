@@ -127,7 +127,7 @@ export default function AdminAiContent() {
       ]));
       setSettings(settingsRes.data?.settings || null);
       setCategories(Array.isArray(categoriesRes.data?.items) ? categoriesRes.data.items : []);
-      setDrafts(Array.isArray(draftsRes.data?.items) ? draftsRes.data.items : []);
+      setDrafts((existing) => mergeDrafts(existing, Array.isArray(draftsRes.data?.items) ? draftsRes.data.items : []));
       setLogs(Array.isArray(logsRes.data?.items) ? logsRes.data.items : []);
       setTrainingNotes(Array.isArray(trainingRes.data?.items) ? trainingRes.data.items : []);
       setCampaignRuns(Array.isArray(runsRes.data?.items) ? runsRes.data.items : []);
@@ -142,7 +142,7 @@ export default function AdminAiContent() {
     try {
       setDraftsLoading(true);
       const draftsRes = await withTimeout(api.get("/ai-content/drafts?limit=200"), 12000);
-      setDrafts(Array.isArray(draftsRes.data?.items) ? draftsRes.data.items : []);
+      setDrafts((existing) => mergeDrafts(existing, Array.isArray(draftsRes.data?.items) ? draftsRes.data.items : []));
     } catch (err) {
       if (!silent) {
         alert(err?.response?.data?.message || err.message || "Failed to load generated drafts");
@@ -487,6 +487,7 @@ export default function AdminAiContent() {
     if (!window.confirm("Delete this generated draft?")) return;
     try {
       await api.delete(`/ai-content/drafts/${draftId}`);
+      setDrafts((current) => current.filter((draft) => draft._id !== draftId));
       await refreshDraftsQuietly();
     } catch (err) {
       alert(err?.response?.data?.message || err.message || "Failed to delete draft");
