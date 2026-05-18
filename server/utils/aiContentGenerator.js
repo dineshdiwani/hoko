@@ -105,64 +105,188 @@ function hashText(value = "") {
   return Math.abs(hash);
 }
 
+function isServiceCategory(text = "") {
+  return /insurance|loan|finance|bank|legal|consult|service|health|life|policy|motor insurance|vehicle insurance/i.test(text);
+}
+
+function hasInsuranceContext(text = "") {
+  return /insurance|policy|life|health|motor insurance|vehicle insurance|claim|premium/i.test(text);
+}
+
+function getHumanCategoryLabel(name = "") {
+  const cleanName = normalizeText(name);
+  if (hasInsuranceContext(cleanName)) {
+    return "life, health, or motor insurance";
+  }
+  return cleanName.toLowerCase();
+}
+
+const CONTENT_ANGLES = [
+  "Curiosity",
+  "FOMO",
+  "Relatability",
+  "Social proof",
+  "Transformation",
+  "Humor where relevant",
+  "Local pride",
+  "Emotional connection",
+  "Problem-solving",
+  "Trend adaptation"
+];
+
+function buildImageTextOverlay({ angle = "", categoryName = "", hook = "" }) {
+  const label = getHumanCategoryLabel(categoryName);
+  const options = [
+    "Compare Before You Buy",
+    "Better Offers Start Here",
+    "Need It Soon?",
+    "One Requirement. Many Offers.",
+    "Stop Chasing Quotes",
+    "Choose Smarter",
+    "Offers Worth Comparing",
+    "Local Sellers. Clear Prices."
+  ];
+  if (/insurance|policy|premium/i.test(`${label} ${hook}`)) {
+    options.push("Compare Policy Offers", "Premiums Made Clear", "Cover That Fits");
+  }
+  if (angle === "FOMO" || /soon|urgent|limited/i.test(hook)) {
+    options.push("Do Not Miss Better Offers", "Needed Soon?");
+  }
+  return options[hashText(`${angle}|${categoryName}|${hook}|overlay`) % options.length];
+}
+
+function buildHashtags({ categoryName = "", angle = "", seed = "" }) {
+  const categoryTag = `#${normalizeText(categoryName).replace(/[^a-zA-Z0-9]/g, "")}`;
+  const angleTags = {
+    Curiosity: ["#CompareFirst", "#SmartBuying"],
+    FOMO: ["#DontMissBetterOffers", "#NeededSoon"],
+    Relatability: ["#BusinessBuying", "#NoMoreFollowUps"],
+    "Social proof": ["#SellerOffers", "#MarketPrices"],
+    Transformation: ["#BuySmarter", "#ClearComparison"],
+    "Humor where relevant": ["#BuyingMadeSimple", "#QuoteChasing"],
+    "Local pride": ["#LocalBusiness", "#LocalSellers"],
+    "Emotional connection": ["#LessStress", "#ClearChoices"],
+    "Problem-solving": ["#PriceComparison", "#RequirementToOffers"],
+    "Trend adaptation": ["#SmartBuyers", "#DigitalProcurement"],
+    Urgency: ["#ActFast", "#QuickQuotes"]
+  };
+  const options = angleTags[angle] || ["#SmartBuying", "#SellerOffers"];
+  const picked = options[hashText(`${seed}|hashtag`) % options.length];
+  return ["#HOKO", categoryTag, picked].filter((item) => item.length > 1);
+}
+
 function buildFallbackDraft({ category, fixedCta, campaign = {} }) {
   const name = normalizeText(category?.name) || "Business";
   const mood = normalizeText(campaign?.mood);
-  const lowerName = name.toLowerCase();
+  const lowerName = getHumanCategoryLabel(name);
   const seed = [
     name,
     normalizeText(category?.description),
     normalizeText(category?.targetAudience),
     mood,
-    new Date().toISOString().slice(0, 10)
+    new Date().toISOString(),
+    Math.random().toString(36).slice(2)
   ].join("|");
-  const angles = [
+  const creativeAngle = CONTENT_ANGLES[hashText(`${seed}|angle`) % CONTENT_ANGLES.length];
+  const genericAngles = [
     {
+      angle: "Problem-solving",
       topic: `Compare seller quotes for ${lowerName}`,
       hook: `Need ${lowerName} without chasing every supplier? Share it on HOKO, compare seller offers, and move ahead with the price that fits.`
     },
     {
-      topic: `Bring suppliers into one price comparison`,
-      hook: `One ${lowerName} requirement. Multiple seller prices. HOKO helps you see the better deal before you decide.`
+      angle: "Curiosity",
+      topic: `What changes when sellers quote in one place`,
+      hook: `What happens when your ${lowerName} requirement reaches multiple sellers on HOKO? You get prices you can compare before deciding.`
     },
     {
+      angle: "FOMO",
       topic: `Use reverse auction for ${lowerName} buying`,
-      hook: `Buying ${lowerName}? Put the requirement on HOKO and use reverse auction when you want sellers to sharpen their offers.`
+      hook: `Buying ${lowerName} soon? Do not decide on the first quote. Put it on HOKO and let more sellers respond.`
     },
     {
+      angle: "Relatability",
       topic: `Reduce quote follow-ups for ${lowerName}`,
       hook: `Stop collecting ${lowerName} prices one by one. HOKO brings seller offers to your requirement so comparison is faster.`
     },
     {
+      angle: "Transformation",
       topic: `Find the practical offer for ${lowerName}`,
-      hook: `For your next ${lowerName} purchase, let HOKO line up seller offers clearly: compare price, choose confidently, save time.`
+      hook: `Turn your next ${lowerName} purchase from scattered calls into one clear HOKO comparison.`
     },
     {
+      angle: "Urgency",
       topic: `Turn a buying need into seller responses`,
       hook: `${name} needed soon? Add the requirement on HOKO and let interested sellers respond with prices you can compare.`
     },
     {
+      angle: "Emotional connection",
       topic: `Make ${lowerName} buying less scattered`,
-      hook: `No more scattered calls for ${lowerName} quotes. HOKO keeps the requirement and seller offers in one clear place.`
+      hook: `Buying should feel clear, not chaotic. HOKO keeps your ${lowerName} requirement and seller offers in one place.`
     },
     {
+      angle: "Social proof",
       topic: `Give sellers a reason to compete`,
-      hook: `When sellers see the same ${lowerName} requirement on HOKO, price comparison becomes easier and reverse auction can push offers further.`
+      hook: `More sellers seeing the same ${lowerName} requirement means better comparison for the buyer on HOKO.`
     },
     {
+      angle: "Local pride",
       topic: `Move from enquiry to comparison`,
-      hook: `Have a ${lowerName} enquiry? Put it on HOKO, get seller prices, and compare before you commit.`
+      hook: `Local buyers deserve clear seller offers. Put your ${lowerName} requirement on HOKO and compare before you commit.`
     },
     {
+      angle: "Trend adaptation",
       topic: `Choose with clearer price visibility`,
-      hook: `HOKO makes ${lowerName} buying more transparent: one requirement, visible seller offers, and a better way to choose.`
+      hook: `Smart buyers compare before they commit. HOKO brings ${lowerName} seller offers into one clearer view.`
     }
   ];
-  const selected = angles[hashText(seed) % angles.length];
+  const insuranceAngles = [
+    {
+      angle: "Curiosity",
+      topic: `Compare insurance quotes before deciding`,
+      hook: `Looking for ${lowerName}? Put one requirement on HOKO and compare policy offers before you choose.`
+    },
+    {
+      angle: "Relatability",
+      topic: `Bring insurance sellers to one enquiry`,
+      hook: `Life, health, or motor cover should not need scattered calls. HOKO helps sellers respond to one clear requirement.`
+    },
+    {
+      angle: "Problem-solving",
+      topic: `See policy offers side by side`,
+      hook: `Use HOKO to collect ${lowerName} offers in one place, then compare premium, cover fit, and seller response clearly.`
+    },
+    {
+      angle: "Social proof",
+      topic: `Make insurance buying easier to compare`,
+      hook: `One insurance requirement on HOKO can bring multiple seller responses, so the buyer can compare before moving ahead.`
+    },
+    {
+      angle: "Urgency",
+      topic: `Get practical insurance offers faster`,
+      hook: `Need ${lowerName} for business or family needs? Add the requirement on HOKO and review seller offers without repeat follow-ups.`
+    },
+    {
+      angle: "Transformation",
+      topic: `Turn policy enquiry into seller responses`,
+      hook: `HOKO turns one ${lowerName} enquiry into comparable seller offers, helping buyers choose with better visibility.`
+    }
+  ];
+  const angles = hasInsuranceContext(`${name} ${category?.description || ""}`) ? insuranceAngles : genericAngles;
+  const angleMatches = angles.filter((item) => item.angle === creativeAngle);
+  const sourceAngles = angleMatches.length ? angleMatches : angles;
+  const selected = sourceAngles[hashText(`${seed}|selected`) % sourceAngles.length];
   const topic = mood || selected.topic;
   const hook = selected.hook;
+  const imageTextOverlay = buildImageTextOverlay({ angle: selected.angle, categoryName: name, hook });
   const concreteScene = inferConcreteVisualScene({ mood, categoryName: name, hook });
-  const visualOpeners = [
+  const serviceCategory = isServiceCategory(`${name} ${category?.description || ""}`);
+  const visualOpeners = serviceCategory ? [
+    `Square service-offer comparison scene: ${concreteScene}.`,
+    `Realistic Indian advisory scene for ${name}: ${concreteScene}.`,
+    `Service marketplace visual for ${name}: ${concreteScene}.`,
+    `Policy and offer comparison image showing ${concreteScene}.`
+  ] : [
     `Square social media ad scene: ${concreteScene}.`,
     `Product-first visual for ${name}: ${concreteScene}.`,
     `Realistic Indian procurement scene for ${name}: ${concreteScene}.`,
@@ -179,9 +303,12 @@ function buildFallbackDraft({ category, fixedCta, campaign = {} }) {
     topic,
     hook,
     caption,
-    hashtags: ["#HOKO", "#Business", `#${name.replace(/[^a-zA-Z0-9]/g, "")}`].filter((item) => item.length > 1),
+    hashtags: buildHashtags({ categoryName: name, angle: selected.angle, seed }),
+    imageTextOverlay,
     imagePrompt: [
       visualOpener,
+      `Creative angle: ${selected.angle}.`,
+      `Reserve clean top-left or bottom-left space for this separate text overlay: "${imageTextOverlay}". Do not render the text inside the image.`,
       mood ? `Admin direction to reflect: ${mood}.` : `Post hook to reflect: ${hook}.`,
       "Include 2-3 seller offer cards or price tags only as supporting visual elements.",
       `Visual style: ${normalizeText(category?.imageStyle) || "clean realistic commercial ad"}.`,
@@ -209,6 +336,7 @@ function buildPrompt({ category, fixedCta, campaign = {} }) {
     "Buyers compare offers and choose the best or lower-price offer.",
     "Buyers can also invoke reverse auction so sellers compete further and improve their prices.",
     "The content must make this marketplace value instantly clear to the audience.",
+    "Quality bar: every output must feel like it was created by a top-tier social media agency specializing in viral local business marketing.",
     "The admin selects only a category; you must choose the topic yourself based on that category.",
     "The system only generates drafts and images; it does not publish.",
     campaignMood ? `Today's campaign mood/direction: ${campaignMood}.` : "",
@@ -224,21 +352,30 @@ function buildPrompt({ category, fixedCta, campaign = {} }) {
     `Tone: ${normalizeText(category?.tone) || "professional"}.`,
     `Image style: ${normalizeText(category?.imageStyle) || "clean business social image"}.`,
     `Fixed CTA: ${normalizeText(fixedCta) || "Learn More"}.`,
-    "Return only valid JSON with keys: topic, hook, caption, hashtags, imagePrompt.",
+    `Choose one primary creative angle from this list and make it obvious in the copy: ${CONTENT_ANGLES.join(", ")}.`,
+    "Content rules: never generate generic content; avoid robotic wording; content must feel fresh every time; use urgency where relevant; use curiosity hooks; use emotional triggers; mention local area naturally if available; adapt tone according to audience; mention trends/festivals if relevant; keep content mobile-friendly; use natural human language; do not overuse emojis; make captions readable with spacing.",
+    "Avoid repeated hashtags. Hashtags must be fresh, relevant, and not the same set every time.",
+    "Return only valid JSON with keys: topic, hook, caption, hashtags, imagePrompt, imageTextOverlay.",
     "topic: a fresh category-specific buyer pain point, buying scenario, urgency, comparison benefit, negotiation angle, or seller-response angle. Do not copy the category name alone.",
     "hook: one or two short lines only. Make it attractive, direct, and conversion-oriented, but vary the sentence structure.",
-    "Every hook must mention HOKO and at least one core value: posting a requirement, comparing seller offers, choosing a lower/better price, or using reverse auction.",
+    "Every hook must mention HOKO and at least one core value: posting a requirement, comparing seller offers, choosing a lower/better price, or getting seller responses.",
+    "Mention reverse auction only when it naturally fits the category and hook. Do not force reverse auction into every post.",
+    "For service categories such as insurance, finance, legal, consulting, or health services, focus on enquiry, seller responses, offer comparison, policy/plan fit, coverage, premium, or service terms instead of industrial procurement visuals.",
     "Do not use this repeated pattern or close variants: 'Post your [category] requirement on HOKO and let sellers compete with price offers. Pick the best deal, or start a reverse auction for sharper prices.'",
     "Avoid starting every hook with 'Post your'. Use varied openings such as a buyer problem, a question, a contrast, a time-saving angle, a price-comparison angle, or a category-specific buying situation.",
     "Write the hook as fresh advertising copy, not a feature explanation. Make it feel different from previous generic HOKO drafts.",
     "Prefer hooks that create curiosity or urgency, but do not exaggerate, promise guaranteed savings, or make unverifiable guarantees.",
     "Use plain Indian business English. Avoid generic lines like grow your business, discover opportunities, or connect buyers and sellers unless tied to price offers.",
-    "caption: repeat the hook only. Do not add extra copy. CTA is stored separately as button text.",
-    "imagePrompt: write the final image-generation prompt for ModelsLab. It must be aligned with the hook and campaign mood.",
+    "caption: short mobile-friendly caption. It may repeat the hook, but add spacing only if it improves readability. Do not write long paragraphs. CTA is stored separately as button text.",
+    "imageTextOverlay: 2 to 5 words only, strong ad-style overlay text for the image, such as 'Compare Before You Buy' or 'Limited Time Deal'. Do not include hashtags.",
+    "imagePrompt: write an ultra-detailed final image-generation prompt for ModelsLab. It must be aligned with the hook, imageTextOverlay, and campaign mood.",
     campaignMood ? "imagePrompt must use today's campaign mood/direction as visual guidance and connect it directly to the generated hook." : "",
+    "imagePrompt must include: subject, environment, lighting, camera angle, mood, colors, realistic details, platform style, audience appeal, and festival/trend relevance if applicable.",
+    "Image style must be hyper realistic, viral social media style, high CTR, bright and premium, and mobile-first composition.",
+    "The image prompt must reserve clean space for the separate imageTextOverlay, but must explicitly say not to render any text inside the generated image.",
     "imagePrompt must include: exact main subject, concrete setting, people/roles, visible product/category objects, and how seller offers/price comparison are shown.",
     "imagePrompt must not be generic. Do not say only 'HOKO marketplace workflow'. Make it a literal scene a designer can draw.",
-    "imagePrompt must show buyer requirement, seller price offers, price comparison, and reverse auction only where relevant, as part of the scene.",
+    "imagePrompt must show buyer requirement, seller offers, and comparison only where relevant, as part of the scene. Use reverse auction visuals only when the hook explicitly needs them.",
     "Avoid unreadable text, fake screenshots, platform logos, or celebrity/brand references.",
     "Hashtags must be an array of 3 to 6 strings. Do not include markdown fences."
   ].filter(Boolean).join(" ");
@@ -247,7 +384,11 @@ function buildPrompt({ category, fixedCta, campaign = {} }) {
 function inferConcreteVisualScene({ mood = "", categoryName = "", hook = "" }) {
   const text = `${mood} ${categoryName} ${hook}`.toLowerCase();
   const parts = [];
-  if (/motor|industrial motor|electrical/i.test(text)) {
+  if (hasInsuranceContext(text)) {
+    parts.push("insurance advisory desk scene with a buyer reviewing life, health, and vehicle policy documents");
+    parts.push("insurance advisor or seller representative explaining options on a tablet");
+    parts.push("visible policy folders, vehicle insurance icon card, medical shield icon card, and premium comparison cards");
+  } else if (/motor|industrial motor|electrical/i.test(text) && !isServiceCategory(text)) {
     parts.push("large industrial electric motor on a workshop or factory floor");
     parts.push("2-3 electrical engineers or technicians inspecting the motor with tools and safety helmets");
     parts.push("electrical parts such as cables, switchgear, control panel parts, bearings, connectors, and terminal blocks nearby");
@@ -269,6 +410,7 @@ function inferConcreteVisualScene({ mood = "", categoryName = "", hook = "" }) {
 function buildFinalImagePrompt({ imagePrompt = "", draft = {}, category = {}, campaign = {} }) {
   const categoryName = normalizeText(category?.name || draft?.categorySnapshot?.name) || "business requirement";
   const hook = normalizeText(draft?.hook || draft?.caption || draft?.topic);
+  const imageTextOverlay = normalizeText(draft?.imageTextOverlay);
   const mood = normalizeText(campaign?.mood);
   const audienceMode = normalizeText(campaign?.audienceMode);
   const imageStyle = normalizeText(campaign?.imageStyle);
@@ -277,8 +419,13 @@ function buildFinalImagePrompt({ imagePrompt = "", draft = {}, category = {}, ca
   const concreteScene = inferConcreteVisualScene({ mood, categoryName, hook });
   const sceneFocus = [
     `Create one square 1:1 social media advertising image for this exact post topic: ${concreteSubject}.`,
+    "Agency quality bar: hyper realistic, viral local business marketing style, high CTR, bright and premium, mobile-first composition.",
     mood ? `Admin intent to convert into a visual scene: ${mood}. Do not render abstract words like "wish"; render the concrete product, people, and offer-comparison scene.` : "",
     `Required concrete scene: ${concreteScene}.`,
+    "Include subject, environment, lighting, camera angle, mood, colors, realistic details, platform style, audience appeal, and festival/trend relevance if applicable.",
+    "Lighting: bright premium commercial lighting with natural shadows. Camera: eye-level or slight three-quarter angle optimized for mobile feed.",
+    "Colors: clean, high-contrast, trustworthy business palette with warm Indian local-market energy.",
+    imageTextOverlay ? `Leave clean negative space for separate overlay text "${imageTextOverlay}", but do not render any readable text in the image.` : "Leave clean negative space for a short ad text overlay, but do not render any readable text in the image.",
     `Primary visual subject: ${categoryName}. The image must clearly show real items, tools, shop/warehouse context, or service context from this category.`,
     hook ? `Match this exact post message visually: "${hook}".` : "",
     "Do not make a generic office, handshake, abstract app promotion, or random business meeting.",
@@ -338,6 +485,7 @@ function buildProviderImagePrompt({ imagePrompt = "", draft = {}, category = {},
 function buildImagePromptRefinementPrompt({ imagePrompt = "", draft = {}, category = {}, campaign = {} }) {
   const categoryName = normalizeText(category?.name || draft?.categorySnapshot?.name);
   const hook = normalizeText(draft?.hook || draft?.caption || draft?.topic);
+  const imageTextOverlay = normalizeText(draft?.imageTextOverlay);
   const mood = normalizeText(campaign?.mood);
   const cleanAiPrompt = cleanSupportingImagePrompt(imagePrompt);
   const finalPrompt = buildFinalImagePrompt({ imagePrompt: cleanAiPrompt, draft, category, campaign });
@@ -346,12 +494,15 @@ function buildImagePromptRefinementPrompt({ imagePrompt = "", draft = {}, catego
     "Goal: create a relevant square social media image aligned with the post hook and admin mood.",
     mood ? `Admin mood / visual direction: ${mood}.` : "",
     hook ? `Post hook: ${hook}.` : "",
+    imageTextOverlay ? `Separate text overlay planned by app: ${imageTextOverlay}. The image model must leave clean space for it but must not render the text.` : "",
     categoryName ? `Category: ${categoryName}.` : "",
     `Base scene prompt to improve without changing the requirement: ${finalPrompt}.`,
     cleanAiPrompt ? `Supporting visual note: ${cleanAiPrompt}.` : "",
     "Return only the final image prompt, no JSON, no markdown.",
     "Prompt requirements:",
     "- Describe a concrete scene with visible objects, people/roles, setting, and action.",
+    "- Include subject, environment, lighting, camera angle, mood, colors, realistic details, platform style, audience appeal, and festival/trend relevance if applicable.",
+    "- Style: hyper realistic, viral social media, high CTR, bright and premium, mobile-first composition.",
     "- Make the product/category visually central.",
     "- Include buyer requirement and 2-3 seller offer/price comparison cards only if it fits naturally.",
     "- Avoid generic marketplace/app UI visuals.",
@@ -509,6 +660,7 @@ async function generateTextDraft({ category, settings, campaign = {} }) {
     hook: normalizeText(parsed.hook) || fallback.hook,
     caption: normalizeText(parsed.caption) || fallback.caption,
     hashtags,
+    imageTextOverlay: normalizeText(parsed.imageTextOverlay) || fallback.imageTextOverlay,
     imagePrompt: normalizeText(parsed.imagePrompt) || fallback.imagePrompt,
     raw
   };
@@ -587,6 +739,7 @@ async function generateOpenAiTextDraft({ category, settings, campaign = {}, fall
     hook: normalizeText(parsed.hook) || fallback.hook,
     caption: normalizeText(parsed.caption) || fallback.caption,
     hashtags,
+    imageTextOverlay: normalizeText(parsed.imageTextOverlay) || fallback.imageTextOverlay,
     imagePrompt: normalizeText(parsed.imagePrompt) || fallback.imagePrompt,
     raw
   };
@@ -648,17 +801,34 @@ async function generateModelsLabImage({ imagePrompt, draft = {}, category = {}, 
   }
 
   const model = normalizeText(process.env.MODELSLAB_IMAGE_MODEL) || "flux";
+  const finalPrompt = await refineImagePrompt({ imagePrompt, draft, category, campaign, settings });
   const response = await axios.post(
     "https://modelslab.com/api/v6/images/text2img",
     {
       key: apiKey,
-      prompt: await refineImagePrompt({ imagePrompt, draft, category, campaign, settings }),
+      prompt: finalPrompt,
+      negative_prompt: [
+        "wall portrait",
+        "framed photo",
+        "boy portrait",
+        "child portrait",
+        "single person headshot",
+        "random face on wall",
+        "decorative painting",
+        "unrelated person",
+        "unrelated room decor",
+        "readable text",
+        "logo",
+        "signboard",
+        "watermark",
+        "fake app screenshot"
+      ].join(", "),
       model_id: model,
       width: "1024",
       height: "1024",
       samples: "1",
       safety_checker: false,
-      enhance_prompt: true,
+      enhance_prompt: false,
       webhook: null,
       track_id: null
     },
@@ -682,7 +852,10 @@ async function generateModelsLabImage({ imagePrompt, draft = {}, category = {}, 
     provider: "modelslab",
     model,
     imageUrl,
-    raw: finalRaw,
+    raw: {
+      ...(finalRaw && typeof finalRaw === "object" ? finalRaw : { response: finalRaw }),
+      prompt: finalPrompt
+    },
     error: imageUrl ? "" : normalizeText(finalRaw?.message || raw?.message) || "modelslab_image_not_returned"
   };
 }

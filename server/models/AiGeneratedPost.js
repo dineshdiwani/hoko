@@ -26,6 +26,7 @@ const aiGeneratedPostSchema = new mongoose.Schema(
     caption: { type: String, default: "" },
     hashtags: [{ type: String }],
     imagePrompt: { type: String, default: "" },
+    imageTextOverlay: { type: String, default: "" },
     imageUrl: { type: String, default: "" },
     cta: { type: String, default: "" },
     ctaLink: { type: String, default: "" },

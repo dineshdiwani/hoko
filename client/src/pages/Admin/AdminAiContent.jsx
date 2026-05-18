@@ -1350,6 +1350,9 @@ export default function AdminAiContent() {
                       <div className="mt-2 space-y-1 text-[11px] text-gray-600">
                         <p><span className="font-medium">Topic:</span> {preview(draft.topic, 120)}</p>
                         <p><span className="font-medium">Category:</span> {draft.categorySnapshot?.name || draft.categoryId?.name || "-"}</p>
+                        {draft.imageTextOverlay ? (
+                          <p><span className="font-medium">Image overlay:</span> {draft.imageTextOverlay}</p>
+                        ) : null}
                         <p><span className="font-medium">Image prompt:</span> {preview(draft.imagePrompt, 180)}</p>
                         {Array.isArray(draft.hashtags) && draft.hashtags.length ? (
                           <p>{draft.hashtags.join(" ")}</p>
