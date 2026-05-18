@@ -61,10 +61,15 @@ function mergeDrafts(currentDrafts, incomingDrafts) {
   ];
 }
 
-function withTimeout(promise, ms = 20000) {
+function replaceDraft(drafts, updatedDraft) {
+  if (!updatedDraft?._id) return drafts;
+  return drafts.map((draft) => draft._id === updatedDraft._id ? updatedDraft : draft);
+}
+
+function withTimeout(promise, ms = 20000, message = "Request timed out") {
   let timer;
   const timeout = new Promise((_, reject) => {
-    timer = window.setTimeout(() => reject(new Error("Request timed out")), ms);
+    timer = window.setTimeout(() => reject(new Error(message)), ms);
   });
   return Promise.race([promise, timeout]).finally(() => window.clearTimeout(timer));
 }
@@ -125,7 +130,7 @@ export default function AdminAiContent() {
         api.get("/ai-content/logs?limit=10"),
         api.get("/ai-content/training-notes?limit=20"),
         api.get("/ai-content/campaign-runs?limit=10")
-      ]));
+      ]), 30000, "AI content data is still loading. Please try Refresh in a moment.");
       setSettings(settingsRes.data?.settings || null);
       setCategories(Array.isArray(categoriesRes.data?.items) ? categoriesRes.data.items : []);
       setDrafts((existing) => mergeDrafts(existing, Array.isArray(draftsRes.data?.items) ? draftsRes.data.items : []));
@@ -133,7 +138,7 @@ export default function AdminAiContent() {
       setTrainingNotes(Array.isArray(trainingRes.data?.items) ? trainingRes.data.items : []);
       setCampaignRuns(Array.isArray(runsRes.data?.items) ? runsRes.data.items : []);
     } catch (err) {
-      alert(err?.response?.data?.message || err.message || "Failed to load AI content data");
+      console.warn("Failed to load AI content data", err?.response?.data?.message || err.message);
     } finally {
       setLoading(false);
     }
@@ -142,7 +147,7 @@ export default function AdminAiContent() {
   async function loadDraftsOnly({ silent = false } = {}) {
     try {
       setDraftsLoading(true);
-      const draftsRes = await withTimeout(api.get("/ai-content/drafts?limit=200"), 12000);
+      const draftsRes = await withTimeout(api.get("/ai-content/drafts?limit=200"), 20000, "Drafts are still loading. Please try again.");
       setDrafts((existing) => mergeDrafts(existing, Array.isArray(draftsRes.data?.items) ? draftsRes.data.items : []));
     } catch (err) {
       if (!silent) {
@@ -399,7 +404,10 @@ export default function AdminAiContent() {
 
   async function setDraftStatus(draftId, status) {
     try {
-      await api.patch(`/ai-content/drafts/${draftId}/status`, { status });
+      const res = await api.patch(`/ai-content/drafts/${draftId}/status`, { status });
+      if (res.data?.draft) {
+        setDrafts((current) => replaceDraft(current, res.data.draft));
+      }
       await refreshDraftsQuietly();
     } catch (err) {
       alert(err?.response?.data?.message || err.message || "Failed to update draft");
@@ -426,7 +434,7 @@ export default function AdminAiContent() {
     const channel = selectedBufferChannel();
     try {
       setPublishingId(draft._id);
-      await api.post(`/ai-content/drafts/${draft._id}/buffer`, {
+      const res = await api.post(`/ai-content/drafts/${draft._id}/buffer`, {
         channelId: bufferForm.channelId,
         channelName: channel?.name || "",
         channelService: channel?.service || "",
@@ -435,6 +443,9 @@ export default function AdminAiContent() {
         dueAt: bufferForm.mode === "customScheduled" ? bufferForm.dueAt : "",
         text: postTextByDraftId[draft._id] || composePostText(draft)
       });
+      if (res.data?.draft) {
+        setDrafts((current) => replaceDraft(current, res.data.draft));
+      }
       await refreshDraftsQuietly();
       setSelectedDraftIds((current) => current.filter((id) => id !== draft._id));
     } catch (err) {
