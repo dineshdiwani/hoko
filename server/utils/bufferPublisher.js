@@ -344,7 +344,10 @@ async function resolveOrGeneratePublicImageUrl(draft, imageUrlOverride = "") {
     imagePrompt,
     settings: {
       imageProvider: normalizeText(draft?.imageProvider)
-    }
+    },
+    draft,
+    category: draft?.categorySnapshot || {},
+    campaign: {}
   });
   return resolvePublicImageUrl({ imageUrl: generated?.imageUrl || "" });
 }

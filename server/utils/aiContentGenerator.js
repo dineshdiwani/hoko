@@ -223,6 +223,30 @@ function buildPrompt({ category, fixedCta, campaign = {} }) {
   ].filter(Boolean).join(" ");
 }
 
+function buildFinalImagePrompt({ imagePrompt = "", draft = {}, category = {}, campaign = {} }) {
+  const categoryName = normalizeText(category?.name || draft?.categorySnapshot?.name) || "business requirement";
+  const hook = normalizeText(draft?.hook || draft?.caption || draft?.topic);
+  const audienceMode = normalizeText(campaign?.audienceMode);
+  const imageStyle = normalizeText(campaign?.imageStyle);
+  const categoryStyle = normalizeText(category?.imageStyle);
+  const sceneFocus = [
+    `Create one square 1:1 social media advertising image for HOKO about: ${categoryName}.`,
+    hook ? `The image must visually match this exact post message: "${hook}".` : "",
+    "Show the specific product/category context clearly, not a generic office or abstract business scene.",
+    "Core story to visualize: a buyer posts a requirement on HOKO, multiple sellers respond with price offers, and the buyer compares prices to choose the better offer.",
+    "If reverse auction is relevant, show sellers competing with improved price offers using simple visual cues.",
+    audienceMode && audienceMode !== "auto" ? `Audience focus: ${audienceMode}.` : "",
+    imageStyle && imageStyle !== "auto" ? `Requested style/background: ${imageStyle}.` : "",
+    categoryStyle ? `Category style hint: ${categoryStyle}.` : "",
+    normalizeText(imagePrompt) ? `Additional visual direction: ${normalizeText(imagePrompt)}.` : "",
+    "Use Indian marketplace/business context. Make the scene practical and product-specific.",
+    "Do not include readable small text, fake social media UI, platform logos, brand logos, celebrity faces, watermarks, or distorted hands.",
+    "If showing an app/phone, keep UI symbolic and simple; do not invent detailed unreadable screens.",
+    "High quality, clean composition, realistic commercial illustration or polished ad visual."
+  ].filter(Boolean);
+  return sceneFocus.join(" ");
+}
+
 async function generateTextDraft({ category, settings, campaign = {} }) {
   const fixedCta = normalizeText(settings?.fixedCta) || "Learn More";
   const fallback = buildFallbackDraft({
@@ -437,7 +461,7 @@ async function fetchModelsLabImage({ apiKey, requestId }) {
   return null;
 }
 
-async function generateModelsLabImage({ imagePrompt }) {
+async function generateModelsLabImage({ imagePrompt, draft = {}, category = {}, campaign = {} }) {
   const apiKey = normalizeText(process.env.MODELSLAB_API_KEY || process.env.MODELSLAB_KEY);
   if (!apiKey) {
     return {
@@ -454,10 +478,7 @@ async function generateModelsLabImage({ imagePrompt }) {
     "https://modelslab.com/api/v6/images/text2img",
     {
       key: apiKey,
-      prompt: [
-        normalizeText(imagePrompt),
-        "square social media image, professional advertising visual, high quality"
-      ].filter(Boolean).join(", "),
+      prompt: buildFinalImagePrompt({ imagePrompt, draft, category, campaign }),
       model_id: model,
       width: "1024",
       height: "1024",
@@ -492,7 +513,7 @@ async function generateModelsLabImage({ imagePrompt }) {
   };
 }
 
-async function generateGeminiImage({ imagePrompt }) {
+async function generateGeminiImage({ imagePrompt, draft = {}, category = {}, campaign = {} }) {
   const apiKey = normalizeText(process.env.GEMINI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY);
   if (!apiKey) {
     return {
@@ -515,7 +536,7 @@ async function generateGeminiImage({ imagePrompt }) {
               text: [
                 "Generate one square social media image for this prompt.",
                 "Return an image output.",
-                normalizeText(imagePrompt)
+                buildFinalImagePrompt({ imagePrompt, draft, category, campaign })
               ].filter(Boolean).join(" ")
             }
           ]
@@ -554,7 +575,7 @@ async function generateGeminiImage({ imagePrompt }) {
   };
 }
 
-async function generateImage({ imagePrompt, settings = {} }) {
+async function generateImage({ imagePrompt, settings = {}, draft = {}, category = {}, campaign = {} }) {
   const provider = normalizeImageProvider(settings?.imageProvider || process.env.AI_CONTENT_IMAGE_PROVIDER);
   if (provider === "none" || process.env.AI_CONTENT_GENERATE_IMAGES !== "true") {
     return {
@@ -565,9 +586,9 @@ async function generateImage({ imagePrompt, settings = {} }) {
     };
   }
   if (provider === "gemini") {
-    return generateGeminiImage({ imagePrompt });
+    return generateGeminiImage({ imagePrompt, draft, category, campaign });
   }
-  return generateModelsLabImage({ imagePrompt });
+  return generateModelsLabImage({ imagePrompt, draft, category, campaign });
 }
 
 async function generateAiContentDraft({ category, settings, campaign = {}, generateImages = true }) {
@@ -581,7 +602,13 @@ async function generateAiContentDraft({ category, settings, campaign = {}, gener
 
   if (generateImages) {
     try {
-      imageResult = await generateImage({ imagePrompt: textDraft.imagePrompt, settings });
+      imageResult = await generateImage({
+        imagePrompt: textDraft.imagePrompt,
+        settings,
+        draft: textDraft,
+        category,
+        campaign
+      });
     } catch (err) {
       imageResult = {
         provider: "failed",
