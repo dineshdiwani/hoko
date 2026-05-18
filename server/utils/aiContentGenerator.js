@@ -216,8 +216,9 @@ function buildPrompt({ category, fixedCta, campaign = {} }) {
     "Prefer hooks that create curiosity or urgency, but do not exaggerate, promise guaranteed savings, or make unverifiable guarantees.",
     "Use plain Indian business English. Avoid generic lines like grow your business, discover opportunities, or connect buyers and sellers unless tied to price offers.",
     "caption: repeat the hook only. Do not add extra copy. CTA is stored separately as button text.",
-    "imagePrompt: describe an AI image that visually depicts the hook and the HOKO marketplace workflow for this category.",
-    "Image prompt must request a square social post showing buyer requirement, seller price offers, price comparison, and reverse auction where relevant.",
+    "imagePrompt: describe a concrete square social post image that visually depicts the exact hook, with the selected category/product as the main visual subject.",
+    "Image prompt must name specific visible objects, setting, and buyer/seller action for the category. Avoid generic business scenes.",
+    "Image prompt must show buyer requirement, seller price offers, price comparison, and reverse auction where relevant, but these should support the category/product visual, not replace it.",
     "Avoid unreadable text, fake screenshots, platform logos, or celebrity/brand references.",
     "Hashtags must be an array of 3 to 6 strings. Do not include markdown fences."
   ].filter(Boolean).join(" ");
@@ -229,12 +230,17 @@ function buildFinalImagePrompt({ imagePrompt = "", draft = {}, category = {}, ca
   const audienceMode = normalizeText(campaign?.audienceMode);
   const imageStyle = normalizeText(campaign?.imageStyle);
   const categoryStyle = normalizeText(category?.imageStyle);
+  const concreteSubject = normalizeText(draft?.topic) || categoryName;
   const sceneFocus = [
-    `Create one square 1:1 social media advertising image for HOKO about: ${categoryName}.`,
-    hook ? `The image must visually match this exact post message: "${hook}".` : "",
-    "Show the specific product/category context clearly, not a generic office or abstract business scene.",
-    "Core story to visualize: a buyer posts a requirement on HOKO, multiple sellers respond with price offers, and the buyer compares prices to choose the better offer.",
-    "If reverse auction is relevant, show sellers competing with improved price offers using simple visual cues.",
+    `Create one square 1:1 social media advertising image for this exact post topic: ${concreteSubject}.`,
+    `Primary visual subject: ${categoryName}. The image must clearly show real items, tools, shop/warehouse context, or service context from this category.`,
+    hook ? `Match this exact post message visually: "${hook}".` : "",
+    "Do not make a generic office, handshake, abstract app promotion, or random business meeting.",
+    "The first thing visible should be the category/product need, then the HOKO buying workflow.",
+    "Show a buyer with the relevant product/category requirement, and 2-3 seller price offers as simple large visual cards or price tags.",
+    "Show comparison of prices/offers visually, but avoid small unreadable text. Use simple symbolic numbers or price tags only if readable.",
+    "If the post says 'needed soon', show urgency with practical buying context such as a shop counter, warehouse shelf, contractor site, or procurement desk.",
+    "If reverse auction is relevant, show sellers competing with downward price arrows or offer cards.",
     audienceMode && audienceMode !== "auto" ? `Audience focus: ${audienceMode}.` : "",
     imageStyle && imageStyle !== "auto" ? `Requested style/background: ${imageStyle}.` : "",
     categoryStyle ? `Category style hint: ${categoryStyle}.` : "",
