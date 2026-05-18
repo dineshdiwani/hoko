@@ -312,6 +312,7 @@ export default function AdminAiContent() {
       };
       const res = await api.put("/ai-content/settings", payload);
       setSettings(res.data?.settings ? { ...defaultSettings, ...res.data.settings } : defaultSettings);
+      alert("Automation settings saved successfully");
     } catch (err) {
       alert(err?.response?.data?.message || err.message || "Failed to save settings");
     } finally {
@@ -347,6 +348,7 @@ export default function AdminAiContent() {
     }
 
     try {
+      const wasEditing = Boolean(editingId);
       if (editingId) {
         await api.patch(`/ai-content/categories/${editingId}`, categoryForm);
       } else {
@@ -354,6 +356,7 @@ export default function AdminAiContent() {
       }
       resetCategoryForm();
       await loadAll();
+      alert(wasEditing ? "Category updated successfully" : "Category saved successfully");
     } catch (err) {
       alert(err?.response?.data?.message || err.message || "Failed to save category");
     }
@@ -364,6 +367,7 @@ export default function AdminAiContent() {
     try {
       await api.delete(`/ai-content/categories/${categoryId}`);
       await loadAll();
+      alert("Category deleted successfully");
     } catch (err) {
       alert(err?.response?.data?.message || err.message || "Failed to delete category");
     }
@@ -400,6 +404,7 @@ export default function AdminAiContent() {
         message: `Generated drafts: ${result.createdDrafts || 0}`
       });
       await refreshDraftsQuietly();
+      alert(`Generated drafts: ${result.createdDrafts || 0}`);
       window.setTimeout(() => setGenerationProgress(null), 1200);
     } catch (err) {
       if (timer) window.clearInterval(timer);
@@ -470,6 +475,7 @@ export default function AdminAiContent() {
           }
           refreshDraftsQuietly();
           setGenerationProgress(null);
+          alert(`Campaign previews ready: ${currentDrafts.length || run?.draftIds?.length || 0}`);
           break;
         }
         if (run?.status === "failed") {
@@ -490,6 +496,7 @@ export default function AdminAiContent() {
           title: "Still generating",
           message: "The campaign is still running in the background. Refresh in a moment to see new previews."
         });
+        alert("Campaign is still generating in the background");
         window.setTimeout(() => setGenerationProgress(null), 3000);
       }
     } catch (err) {
@@ -512,6 +519,7 @@ export default function AdminAiContent() {
         setDrafts((current) => replaceDraft(current, res.data.draft));
       }
       await refreshDraftsQuietly();
+      alert("Draft updated successfully");
     } catch (err) {
       alert(err?.response?.data?.message || err.message || "Failed to update draft");
     }
@@ -551,6 +559,7 @@ export default function AdminAiContent() {
       }
       await refreshDraftsQuietly();
       setSelectedDraftIds((current) => current.filter((id) => id !== draft._id));
+      alert("Draft sent to Buffer successfully");
     } catch (err) {
       alert(err?.response?.data?.message || err.message || "Failed to send draft to Buffer");
       await refreshDraftsQuietly();
@@ -607,6 +616,7 @@ export default function AdminAiContent() {
       setDrafts((current) => current.filter((draft) => draft._id !== draftId));
       setSelectedDraftIds((current) => current.filter((id) => id !== draftId));
       await refreshDraftsQuietly();
+      alert("Draft deleted successfully");
     } catch (err) {
       alert(err?.response?.data?.message || err.message || "Failed to delete draft");
     }
@@ -624,6 +634,7 @@ export default function AdminAiContent() {
         window.localStorage.removeItem(TRAINING_TEXT_KEY);
       } catch {}
       await loadTrainingNotesOnly();
+      alert("Training note saved successfully");
     } catch (err) {
       alert(err?.response?.data?.message || err.message || "Failed to save training note");
     }
@@ -633,6 +644,7 @@ export default function AdminAiContent() {
     try {
       await api.patch(`/ai-content/training-notes/${noteId}/status`, { status });
       await loadTrainingNotesOnly();
+      alert(status === "active" ? "Training note activated successfully" : "Training note paused successfully");
     } catch (err) {
       alert(err?.response?.data?.message || err.message || "Failed to update training note");
     }
@@ -644,6 +656,7 @@ export default function AdminAiContent() {
       await api.delete(`/ai-content/training-notes/${noteId}`);
       setTrainingNotes((current) => current.filter((note) => note._id !== noteId));
       await loadTrainingNotesOnly({ silent: true });
+      alert("Training note deleted successfully");
     } catch (err) {
       alert(err?.response?.data?.message || err.message || "Failed to delete training note");
     }
