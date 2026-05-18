@@ -425,7 +425,9 @@ async function createBufferPost({
     input.dueAt = parsedDueAt.toISOString();
   }
   if (publicImageUrl) {
-    input.assets = [{ image: { url: publicImageUrl } }];
+    input.assets = {
+      images: [{ url: publicImageUrl }]
+    };
   }
   const metadata = getPostMetadata(channelService, postType, draft?.ctaLink || getFirstUrl(postText));
   if (metadata) {
@@ -442,6 +444,11 @@ async function createBufferPost({
               text
               dueAt
               channelId
+              assets {
+                id
+                mimeType
+                source
+              }
             }
           }
           ... on MutationError {

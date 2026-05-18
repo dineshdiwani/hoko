@@ -270,6 +270,9 @@ router.post("/drafts/:id/buffer", adminAuth, requireAdminPermission("campaigns.m
       rawResponse: result.post
     };
     draft.lastError = "";
+    if (result.request.hasImage && !result.post.assets?.length) {
+      draft.lastError = "Buffer accepted the post but did not confirm an attached image";
+    }
     await draft.save();
 
     res.json({ draft, bufferPost: result.post });
@@ -324,6 +327,9 @@ router.post("/drafts/buffer/bulk", adminAuth, requireAdminPermission("campaigns.
         rawResponse: result.post
       };
       draft.lastError = "";
+      if (result.request.hasImage && !result.post.assets?.length) {
+        draft.lastError = "Buffer accepted the post but did not confirm an attached image";
+      }
       await draft.save();
       results.push({ draftId, success: true, bufferPostId: result.post.id });
     } catch (err) {
