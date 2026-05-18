@@ -40,6 +40,16 @@ function composePostText(draft) {
   ].filter(Boolean).join("\n\n");
 }
 
+function mergeDrafts(currentDrafts, incomingDrafts) {
+  const incoming = Array.isArray(incomingDrafts) ? incomingDrafts.filter((item) => item?._id) : [];
+  if (!incoming.length) return currentDrafts;
+  const seen = new Set(incoming.map((item) => item._id));
+  return [
+    ...incoming,
+    ...currentDrafts.filter((item) => !seen.has(item._id))
+  ];
+}
+
 function withTimeout(promise, ms = 20000) {
   let timer;
   const timeout = new Promise((_, reject) => {
@@ -117,24 +127,22 @@ export default function AdminAiContent() {
     }
   }
 
-  async function loadDraftsOnly() {
+  async function loadDraftsOnly({ silent = false } = {}) {
     try {
       setDraftsLoading(true);
       const draftsRes = await withTimeout(api.get("/ai-content/drafts?limit=30"), 12000);
       setDrafts(Array.isArray(draftsRes.data?.items) ? draftsRes.data.items : []);
     } catch (err) {
-      alert(err?.response?.data?.message || err.message || "Failed to load generated drafts");
+      if (!silent) {
+        alert(err?.response?.data?.message || err.message || "Failed to load generated drafts");
+      }
     } finally {
       setDraftsLoading(false);
     }
   }
 
   async function refreshDraftsQuietly() {
-    try {
-      await loadDraftsOnly();
-    } catch {
-      // loadDraftsOnly already reports errors.
-    }
+    await loadDraftsOnly({ silent: true });
   }
 
   async function loadBufferChannels() {
@@ -311,6 +319,9 @@ export default function AdminAiContent() {
         const detailRes = await api.get(`/ai-content/campaign-runs/${runId}`);
         const run = detailRes.data?.run || null;
         const currentDrafts = Array.isArray(detailRes.data?.drafts) ? detailRes.data.drafts : [];
+        if (currentDrafts.length) {
+          setDrafts((existing) => mergeDrafts(existing, currentDrafts));
+        }
         const progress = Math.max(10, Math.min(100, Number(run?.progress || 15)));
         setGenerationProgress({
           percent: progress,
@@ -325,20 +336,26 @@ export default function AdminAiContent() {
 
         if (run?.status === "completed") {
           completed = true;
-          await refreshDraftsQuietly();
+          if (currentDrafts.length) {
+            setDrafts((existing) => mergeDrafts(existing, currentDrafts));
+          }
+          refreshDraftsQuietly();
           setGenerationProgress(null);
           break;
         }
         if (run?.status === "failed") {
           completed = true;
-          await refreshDraftsQuietly();
+          if (currentDrafts.length) {
+            setDrafts((existing) => mergeDrafts(existing, currentDrafts));
+          }
+          refreshDraftsQuietly();
           setGenerationProgress(null);
           break;
         }
       }
 
       if (!completed) {
-        await refreshDraftsQuietly();
+        refreshDraftsQuietly();
         setGenerationProgress({
           percent: 95,
           title: "Still generating",
