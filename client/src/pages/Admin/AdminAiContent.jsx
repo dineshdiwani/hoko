@@ -101,7 +101,7 @@ function withTimeout(promise, ms = 20000, message = "Request timed out") {
 }
 
 export default function AdminAiContent() {
-  const [settings, setSettings] = useState(null);
+  const [settings, setSettings] = useState(defaultSettings);
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [dashboardCategories, setDashboardCategories] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -169,7 +169,7 @@ export default function AdminAiContent() {
         withTimeout(api.get("/ai-content/campaign-runs?limit=10"), 10000)
       ]);
 
-      if (settingsRes.status === "fulfilled") setSettings(settingsRes.value.data?.settings || null);
+      if (settingsRes.status === "fulfilled") setSettings(settingsRes.value.data?.settings ? { ...defaultSettings, ...settingsRes.value.data.settings } : defaultSettings);
       if (categoriesRes.status === "fulfilled") setCategories(Array.isArray(categoriesRes.value.data?.items) ? categoriesRes.value.data.items : []);
       if (draftsRes.status === "fulfilled") {
         setDrafts((existing) => mergeDrafts(existing, Array.isArray(draftsRes.value.data?.items) ? draftsRes.value.data.items : []));
@@ -200,6 +200,28 @@ export default function AdminAiContent() {
 
   async function refreshDraftsQuietly() {
     await loadDraftsOnly({ silent: true });
+  }
+
+  async function loadSettingsOnly({ silent = false } = {}) {
+    try {
+      const res = await withTimeout(api.get("/ai-content/settings"), 15000);
+      setSettings(res.data?.settings ? { ...defaultSettings, ...res.data.settings } : defaultSettings);
+    } catch (err) {
+      if (!silent) {
+        alert(err?.response?.data?.message || err.message || "Failed to load automation settings");
+      }
+    }
+  }
+
+  async function loadTrainingNotesOnly({ silent = false } = {}) {
+    try {
+      const res = await withTimeout(api.get("/ai-content/training-notes?limit=20"), 15000);
+      setTrainingNotes(Array.isArray(res.data?.items) ? res.data.items : []);
+    } catch (err) {
+      if (!silent) {
+        alert(err?.response?.data?.message || err.message || "Failed to load training notes");
+      }
+    }
   }
 
   async function loadBufferChannels() {
@@ -234,6 +256,8 @@ export default function AdminAiContent() {
 
   useEffect(() => {
     loadAll().catch(() => {});
+    loadSettingsOnly({ silent: true }).catch(() => {});
+    loadTrainingNotesOnly({ silent: true }).catch(() => {});
     loadDashboardCategories().catch(() => {});
     loadBufferChannels().catch(() => {});
   }, []);
@@ -287,7 +311,7 @@ export default function AdminAiContent() {
           : String(settings?.blockedWords || "").split(",").map((item) => item.trim()).filter(Boolean)
       };
       const res = await api.put("/ai-content/settings", payload);
-      setSettings(res.data?.settings || null);
+      setSettings(res.data?.settings ? { ...defaultSettings, ...res.data.settings } : defaultSettings);
     } catch (err) {
       alert(err?.response?.data?.message || err.message || "Failed to save settings");
     } finally {
@@ -599,7 +623,7 @@ export default function AdminAiContent() {
       try {
         window.localStorage.removeItem(TRAINING_TEXT_KEY);
       } catch {}
-      await loadAll();
+      await loadTrainingNotesOnly();
     } catch (err) {
       alert(err?.response?.data?.message || err.message || "Failed to save training note");
     }
@@ -608,7 +632,7 @@ export default function AdminAiContent() {
   async function setTrainingNoteStatus(noteId, status) {
     try {
       await api.patch(`/ai-content/training-notes/${noteId}/status`, { status });
-      await loadAll();
+      await loadTrainingNotesOnly();
     } catch (err) {
       alert(err?.response?.data?.message || err.message || "Failed to update training note");
     }
@@ -618,7 +642,8 @@ export default function AdminAiContent() {
     if (!window.confirm("Delete this training note?")) return;
     try {
       await api.delete(`/ai-content/training-notes/${noteId}`);
-      await loadAll();
+      setTrainingNotes((current) => current.filter((note) => note._id !== noteId));
+      await loadTrainingNotesOnly({ silent: true });
     } catch (err) {
       alert(err?.response?.data?.message || err.message || "Failed to delete training note");
     }
