@@ -69,11 +69,72 @@ function extractGeminiInlineImage(payload) {
   return null;
 }
 
+function hashText(value = "") {
+  let hash = 0;
+  const text = String(value || "");
+  for (let index = 0; index < text.length; index += 1) {
+    hash = ((hash << 5) - hash) + text.charCodeAt(index);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+}
+
 function buildFallbackDraft({ category, fixedCta, campaign = {} }) {
   const name = normalizeText(category?.name) || "Business";
   const mood = normalizeText(campaign?.mood);
-  const topic = mood || `Get competing seller offers for ${name.toLowerCase()} requirements`;
-  const hook = `Post your ${name.toLowerCase()} requirement on HOKO and let sellers compete with price offers. Pick the best deal, or start a reverse auction for sharper prices.`;
+  const lowerName = name.toLowerCase();
+  const seed = [
+    name,
+    normalizeText(category?.description),
+    normalizeText(category?.targetAudience),
+    mood,
+    new Date().toISOString().slice(0, 10)
+  ].join("|");
+  const angles = [
+    {
+      topic: `Compare seller quotes for ${lowerName}`,
+      hook: `Need ${lowerName} without chasing every supplier? Share it on HOKO, compare seller offers, and move ahead with the price that fits.`
+    },
+    {
+      topic: `Bring suppliers into one price comparison`,
+      hook: `One ${lowerName} requirement. Multiple seller prices. HOKO helps you see the better deal before you decide.`
+    },
+    {
+      topic: `Use reverse auction for ${lowerName} buying`,
+      hook: `Buying ${lowerName}? Put the requirement on HOKO and use reverse auction when you want sellers to sharpen their offers.`
+    },
+    {
+      topic: `Reduce quote follow-ups for ${lowerName}`,
+      hook: `Stop collecting ${lowerName} prices one by one. HOKO brings seller offers to your requirement so comparison is faster.`
+    },
+    {
+      topic: `Find the practical offer for ${lowerName}`,
+      hook: `For your next ${lowerName} purchase, let HOKO line up seller offers clearly: compare price, choose confidently, save time.`
+    },
+    {
+      topic: `Turn a buying need into seller responses`,
+      hook: `${name} needed soon? Add the requirement on HOKO and let interested sellers respond with prices you can compare.`
+    },
+    {
+      topic: `Make ${lowerName} buying less scattered`,
+      hook: `No more scattered calls for ${lowerName} quotes. HOKO keeps the requirement and seller offers in one clear place.`
+    },
+    {
+      topic: `Give sellers a reason to compete`,
+      hook: `When sellers see the same ${lowerName} requirement on HOKO, price comparison becomes easier and reverse auction can push offers further.`
+    },
+    {
+      topic: `Move from enquiry to comparison`,
+      hook: `Have a ${lowerName} enquiry? Put it on HOKO, get seller prices, and compare before you commit.`
+    },
+    {
+      topic: `Choose with clearer price visibility`,
+      hook: `HOKO makes ${lowerName} buying more transparent: one requirement, visible seller offers, and a better way to choose.`
+    }
+  ];
+  const selected = angles[hashText(seed) % angles.length];
+  const topic = mood || selected.topic;
+  const hook = selected.hook;
   const caption = [
     hook
   ].filter(Boolean).join("\n\n");
@@ -123,10 +184,13 @@ function buildPrompt({ category, fixedCta, campaign = {} }) {
     `Image style: ${normalizeText(category?.imageStyle) || "clean business social image"}.`,
     `Fixed CTA: ${normalizeText(fixedCta) || "Learn More"}.`,
     "Return only valid JSON with keys: topic, hook, caption, hashtags, imagePrompt.",
-    "topic: a fresh buyer pain point or benefit for this category, not copied from the category name.",
-    "hook: one or two short lines only. Make it attractive, direct, and conversion-oriented.",
-    "Every hook must mention HOKO and at least one core value: post requirement, compare seller offers, choose lower price, or reverse auction.",
-    "Prefer hooks that create curiosity or urgency, but do not exaggerate or make unverifiable guarantees.",
+    "topic: a fresh category-specific buyer pain point, buying scenario, urgency, comparison benefit, negotiation angle, or seller-response angle. Do not copy the category name alone.",
+    "hook: one or two short lines only. Make it attractive, direct, and conversion-oriented, but vary the sentence structure.",
+    "Every hook must mention HOKO and at least one core value: posting a requirement, comparing seller offers, choosing a lower/better price, or using reverse auction.",
+    "Do not use this repeated pattern or close variants: 'Post your [category] requirement on HOKO and let sellers compete with price offers. Pick the best deal, or start a reverse auction for sharper prices.'",
+    "Avoid starting every hook with 'Post your'. Use varied openings such as a buyer problem, a question, a contrast, a time-saving angle, a price-comparison angle, or a category-specific buying situation.",
+    "Write the hook as fresh advertising copy, not a feature explanation. Make it feel different from previous generic HOKO drafts.",
+    "Prefer hooks that create curiosity or urgency, but do not exaggerate, promise guaranteed savings, or make unverifiable guarantees.",
     "Use plain Indian business English. Avoid generic lines like grow your business, discover opportunities, or connect buyers and sellers unless tied to price offers.",
     "caption: repeat the hook only. Do not add extra copy. CTA is stored separately as button text.",
     "imagePrompt: describe an AI image that visually depicts the hook and the HOKO marketplace workflow for this category.",
