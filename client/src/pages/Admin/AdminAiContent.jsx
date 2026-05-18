@@ -160,20 +160,23 @@ export default function AdminAiContent() {
   async function loadAll() {
     try {
       setLoading(true);
-      const [settingsRes, categoriesRes, draftsRes, logsRes, trainingRes, runsRes] = await withTimeout(Promise.all([
-        api.get("/ai-content/settings"),
-        api.get("/ai-content/categories"),
-        api.get("/ai-content/drafts?limit=200"),
-        api.get("/ai-content/logs?limit=10"),
-        api.get("/ai-content/training-notes?limit=20"),
-        api.get("/ai-content/campaign-runs?limit=10")
-      ]), 30000, "AI content data is still loading. Please try Refresh in a moment.");
-      setSettings(settingsRes.data?.settings || null);
-      setCategories(Array.isArray(categoriesRes.data?.items) ? categoriesRes.data.items : []);
-      setDrafts((existing) => mergeDrafts(existing, Array.isArray(draftsRes.data?.items) ? draftsRes.data.items : []));
-      setLogs(Array.isArray(logsRes.data?.items) ? logsRes.data.items : []);
-      setTrainingNotes(Array.isArray(trainingRes.data?.items) ? trainingRes.data.items : []);
-      setCampaignRuns(Array.isArray(runsRes.data?.items) ? runsRes.data.items : []);
+      const [settingsRes, categoriesRes, draftsRes, logsRes, trainingRes, runsRes] = await Promise.allSettled([
+        withTimeout(api.get("/ai-content/settings"), 15000),
+        withTimeout(api.get("/ai-content/categories"), 15000),
+        withTimeout(api.get("/ai-content/drafts?limit=500"), 30000),
+        withTimeout(api.get("/ai-content/logs?limit=10"), 10000),
+        withTimeout(api.get("/ai-content/training-notes?limit=20"), 10000),
+        withTimeout(api.get("/ai-content/campaign-runs?limit=10"), 10000)
+      ]);
+
+      if (settingsRes.status === "fulfilled") setSettings(settingsRes.value.data?.settings || null);
+      if (categoriesRes.status === "fulfilled") setCategories(Array.isArray(categoriesRes.value.data?.items) ? categoriesRes.value.data.items : []);
+      if (draftsRes.status === "fulfilled") {
+        setDrafts((existing) => mergeDrafts(existing, Array.isArray(draftsRes.value.data?.items) ? draftsRes.value.data.items : []));
+      }
+      if (logsRes.status === "fulfilled") setLogs(Array.isArray(logsRes.value.data?.items) ? logsRes.value.data.items : []);
+      if (trainingRes.status === "fulfilled") setTrainingNotes(Array.isArray(trainingRes.value.data?.items) ? trainingRes.value.data.items : []);
+      if (runsRes.status === "fulfilled") setCampaignRuns(Array.isArray(runsRes.value.data?.items) ? runsRes.value.data.items : []);
     } catch (err) {
       console.warn("Failed to load AI content data", err?.response?.data?.message || err.message);
     } finally {
@@ -184,7 +187,7 @@ export default function AdminAiContent() {
   async function loadDraftsOnly({ silent = false } = {}) {
     try {
       setDraftsLoading(true);
-      const draftsRes = await withTimeout(api.get("/ai-content/drafts?limit=200"), 20000, "Drafts are still loading. Please try again.");
+      const draftsRes = await withTimeout(api.get("/ai-content/drafts?limit=500"), 30000, "Drafts are still loading. Please try again.");
       setDrafts((existing) => mergeDrafts(existing, Array.isArray(draftsRes.data?.items) ? draftsRes.data.items : []));
     } catch (err) {
       if (!silent) {
