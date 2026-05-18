@@ -16,6 +16,7 @@ const defaultSettings = {
   fixedCta: "Learn More",
   ctaLink: "",
   aiProvider: "gemini",
+  imageProvider: "modelslab",
   generationEnabled: false,
   approvalRequired: true,
   maxDraftsPerRun: 3,
@@ -306,6 +307,7 @@ export default function AdminAiContent() {
         ...defaultSettings,
         ...(settings || {}),
         aiProvider: ["gemini", "openai", "fallback"].includes(settings?.aiProvider) ? settings.aiProvider : "gemini",
+        imageProvider: ["gemini", "modelslab", "none"].includes(settings?.imageProvider) ? settings.imageProvider : "modelslab",
         maxDraftsPerRun: Math.max(1, Math.min(20, Number(settings?.maxDraftsPerRun || 3))),
         cronIntervalMinutes: Math.max(5, Math.min(1440, Number(settings?.cronIntervalMinutes || 60))),
         blockedWords: Array.isArray(settings?.blockedWords)
@@ -870,6 +872,18 @@ export default function AdminAiContent() {
                       <option value="gemini">Gemini</option>
                       <option value="openai">OpenAI</option>
                       <option value="fallback">Local fallback</option>
+                    </select>
+                  </label>
+                  <label className="text-xs font-medium text-gray-600">
+                    Image generation API
+                    <select
+                      className="mt-1 w-full border rounded-lg px-3 py-2 text-sm bg-white"
+                      value={settings.imageProvider || "modelslab"}
+                      onChange={(e) => setSettings({ ...settings, imageProvider: e.target.value })}
+                    >
+                      <option value="modelslab">ModelsLab</option>
+                      <option value="gemini">Gemini</option>
+                      <option value="none">No images</option>
                     </select>
                   </label>
                   <label className="text-xs font-medium text-gray-600">

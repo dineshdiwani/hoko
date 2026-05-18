@@ -160,7 +160,12 @@ async function resolveOrGeneratePublicImageUrl(draft, imageUrlOverride = "") {
   const imagePrompt = normalizeText(draft?.imagePrompt);
   if (!imagePrompt) return "";
 
-  const generated = await generateImage({ imagePrompt });
+  const generated = await generateImage({
+    imagePrompt,
+    settings: {
+      imageProvider: normalizeText(draft?.imageProvider)
+    }
+  });
   return resolvePublicImageUrl({ imageUrl: generated?.imageUrl || "" });
 }
 

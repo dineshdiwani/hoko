@@ -34,6 +34,11 @@ function normalizeAiProvider(value) {
   return ["gemini", "openai", "fallback"].includes(provider) ? provider : "gemini";
 }
 
+function normalizeImageProvider(value) {
+  const provider = normalizeText(value).toLowerCase();
+  return ["gemini", "modelslab", "none"].includes(provider) ? provider : "modelslab";
+}
+
 function extractResponseText(payload) {
   const geminiText = Array.isArray(payload?.candidates)
     ? payload.candidates
@@ -389,9 +394,64 @@ async function generateOpenAiTextDraft({ category, settings, campaign = {}, fall
   };
 }
 
-async function generateImage({ imagePrompt }) {
+function extractModelsLabImageUrl(payload) {
+  const outputs = Array.isArray(payload?.output) ? payload.output : [];
+  const directUrl = outputs.find((item) => /^https?:\/\//i.test(normalizeText(item)));
+  return directUrl || normalizeText(payload?.future_links?.[0]) || "";
+}
+
+async function generateModelsLabImage({ imagePrompt }) {
+  const apiKey = normalizeText(process.env.MODELSLAB_API_KEY || process.env.MODELSLAB_KEY);
+  if (!apiKey) {
+    return {
+      provider: "none",
+      model: "",
+      imageUrl: "",
+      raw: null,
+      error: "modelslab_api_key_missing"
+    };
+  }
+
+  const model = normalizeText(process.env.MODELSLAB_IMAGE_MODEL) || "flux";
+  const response = await axios.post(
+    "https://modelslab.com/api/v6/realtime/text2img",
+    {
+      key: apiKey,
+      prompt: [
+        normalizeText(imagePrompt),
+        "square social media image, professional advertising visual, high quality"
+      ].filter(Boolean).join(", "),
+      model_id: model,
+      width: "1024",
+      height: "1024",
+      samples: "1",
+      safety_checker: true,
+      enhance_prompt: true,
+      webhook: null,
+      track_id: null
+    },
+    {
+      timeout: 90000,
+      headers: {
+        "Content-Type": "application/json"
+      }
+    }
+  );
+
+  const raw = response?.data || null;
+  const imageUrl = extractModelsLabImageUrl(raw);
+  return {
+    provider: "modelslab",
+    model,
+    imageUrl,
+    raw,
+    error: imageUrl ? "" : normalizeText(raw?.message) || "modelslab_image_not_returned"
+  };
+}
+
+async function generateGeminiImage({ imagePrompt }) {
   const apiKey = normalizeText(process.env.GEMINI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY);
-  if (!apiKey || process.env.AI_CONTENT_GENERATE_IMAGES !== "true") {
+  if (!apiKey) {
     return {
       provider: "none",
       model: "",
@@ -451,6 +511,22 @@ async function generateImage({ imagePrompt }) {
   };
 }
 
+async function generateImage({ imagePrompt, settings = {} }) {
+  const provider = normalizeImageProvider(settings?.imageProvider || process.env.AI_CONTENT_IMAGE_PROVIDER);
+  if (provider === "none" || process.env.AI_CONTENT_GENERATE_IMAGES !== "true") {
+    return {
+      provider: "none",
+      model: "",
+      imageUrl: "",
+      raw: null
+    };
+  }
+  if (provider === "gemini") {
+    return generateGeminiImage({ imagePrompt });
+  }
+  return generateModelsLabImage({ imagePrompt });
+}
+
 async function generateAiContentDraft({ category, settings, campaign = {}, generateImages = true }) {
   const textDraft = await generateTextDraft({ category, settings, campaign });
   let imageResult = {
@@ -462,11 +538,11 @@ async function generateAiContentDraft({ category, settings, campaign = {}, gener
 
   if (generateImages) {
     try {
-      imageResult = await generateImage({ imagePrompt: textDraft.imagePrompt });
+      imageResult = await generateImage({ imagePrompt: textDraft.imagePrompt, settings });
     } catch (err) {
       imageResult = {
         provider: "failed",
-        model: normalizeText(process.env.GEMINI_IMAGE_MODEL),
+        model: normalizeText(process.env.MODELSLAB_IMAGE_MODEL || process.env.GEMINI_IMAGE_MODEL),
         imageUrl: "",
         raw: err?.response?.data || err?.message || null,
         error: getProviderErrorMessage(err, "image_generation_failed")

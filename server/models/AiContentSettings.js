@@ -10,6 +10,11 @@ const aiContentSettingsSchema = new mongoose.Schema(
       enum: ["gemini", "openai", "fallback"],
       default: "gemini"
     },
+    imageProvider: {
+      type: String,
+      enum: ["gemini", "modelslab", "none"],
+      default: "modelslab"
+    },
     generationEnabled: { type: Boolean, default: false },
     approvalRequired: { type: Boolean, default: true },
     maxDraftsPerRun: { type: Number, default: 3, min: 1, max: 20 },

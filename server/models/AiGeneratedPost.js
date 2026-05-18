@@ -37,6 +37,7 @@ const aiGeneratedPostSchema = new mongoose.Schema(
     },
     generationProvider: { type: String, default: "fallback" },
     textModel: { type: String, default: "" },
+    imageProvider: { type: String, default: "" },
     imageModel: { type: String, default: "" },
     rawTextResponse: { type: mongoose.Schema.Types.Mixed, default: null },
     rawImageResponse: { type: mongoose.Schema.Types.Mixed, default: null },

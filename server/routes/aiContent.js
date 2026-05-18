@@ -31,6 +31,11 @@ function normalizeAiProvider(value) {
   return ["gemini", "openai", "fallback"].includes(provider) ? provider : "gemini";
 }
 
+function normalizeImageProvider(value) {
+  const provider = normalizeText(value).toLowerCase();
+  return ["gemini", "modelslab", "none"].includes(provider) ? provider : "modelslab";
+}
+
 function categoryPayload(body = {}, adminId = null) {
   return {
     name: normalizeText(body.name),
@@ -78,6 +83,7 @@ router.put("/settings", adminAuth, requireAdminPermission("campaigns.manage"), a
         fixedCta: normalizeText(body.fixedCta) || "Learn More",
         ctaLink: normalizeText(body.ctaLink),
         aiProvider: normalizeAiProvider(body.aiProvider),
+        imageProvider: normalizeImageProvider(body.imageProvider),
         generationEnabled: Boolean(body.generationEnabled),
         approvalRequired: body.approvalRequired !== false,
         maxDraftsPerRun,
