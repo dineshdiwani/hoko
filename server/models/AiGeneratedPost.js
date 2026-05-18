@@ -40,6 +40,17 @@ const aiGeneratedPostSchema = new mongoose.Schema(
     imageModel: { type: String, default: "" },
     rawTextResponse: { type: mongoose.Schema.Types.Mixed, default: null },
     rawImageResponse: { type: mongoose.Schema.Types.Mixed, default: null },
+    buffer: {
+      postId: { type: String, default: "" },
+      channelId: { type: String, default: "" },
+      channelName: { type: String, default: "" },
+      channelService: { type: String, default: "" },
+      mode: { type: String, default: "" },
+      dueAt: { type: Date, default: null },
+      status: { type: String, default: "" },
+      sentAt: { type: Date, default: null },
+      rawResponse: { type: mongoose.Schema.Types.Mixed, default: null }
+    },
     scheduledAt: { type: Date, default: null, index: true },
     approvedAt: { type: Date, default: null },
     approvedByAdminId: {

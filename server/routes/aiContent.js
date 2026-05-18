@@ -14,6 +14,11 @@ const {
   getSettings,
   processAiContentGeneration
 } = require("../services/aiContentScheduler");
+const {
+  composeDraftText,
+  createBufferPost,
+  getBufferChannels
+} = require("../utils/bufferPublisher");
 
 const router = express.Router();
 
@@ -131,6 +136,19 @@ router.get("/drafts", adminAuth, requireAdminPermission("campaigns.read"), async
   res.json({ items });
 });
 
+router.get("/buffer/channels", adminAuth, requireAdminPermission("campaigns.read"), async (req, res) => {
+  try {
+    const result = await getBufferChannels(req.query?.organizationId);
+    res.json({
+      configured: Boolean(process.env.BUFFER_API_KEY),
+      defaultChannelId: normalizeText(process.env.BUFFER_DEFAULT_CHANNEL_ID),
+      ...result
+    });
+  } catch (err) {
+    res.status(500).json({ message: err?.message || "Failed to load Buffer channels" });
+  }
+});
+
 router.get("/campaign-runs", adminAuth, requireAdminPermission("campaigns.read"), async (req, res) => {
   const items = await AiContentCampaignRun.find()
     .sort({ createdAt: -1 })
@@ -194,6 +212,106 @@ router.patch("/drafts/:id/status", adminAuth, requireAdminPermission("campaigns.
     return res.status(404).json({ message: "Draft not found" });
   }
   res.json({ draft });
+});
+
+router.post("/drafts/:id/buffer", adminAuth, requireAdminPermission("campaigns.manage"), async (req, res) => {
+  try {
+    const draft = await AiGeneratedPost.findById(req.params.id);
+    if (!draft) {
+      return res.status(404).json({ message: "Draft not found" });
+    }
+
+    const channelId = normalizeText(req.body?.channelId) || normalizeText(process.env.BUFFER_DEFAULT_CHANNEL_ID);
+    const channelName = normalizeText(req.body?.channelName);
+    const channelService = normalizeText(req.body?.channelService);
+    const result = await createBufferPost({
+      draft: draft.toObject(),
+      channelId,
+      mode: req.body?.mode,
+      dueAt: req.body?.dueAt,
+      text: req.body?.text,
+      imageUrl: req.body?.imageUrl
+    });
+
+    draft.status = result.post.status === "posted" ? "posted" : "queued";
+    draft.scheduledAt = result.post.dueAt ? new Date(result.post.dueAt) : null;
+    draft.buffer = {
+      postId: result.post.id,
+      channelId,
+      channelName,
+      channelService,
+      mode: result.request.mode,
+      dueAt: result.post.dueAt ? new Date(result.post.dueAt) : null,
+      status: normalizeText(result.post.status),
+      sentAt: new Date(),
+      rawResponse: result.post
+    };
+    draft.lastError = "";
+    await draft.save();
+
+    res.json({ draft, bufferPost: result.post });
+  } catch (err) {
+    await AiGeneratedPost.findByIdAndUpdate(req.params.id, {
+      status: "failed",
+      lastError: err?.message || "Failed to send draft to Buffer"
+    }).catch(() => {});
+    res.status(500).json({ message: err?.message || "Failed to send draft to Buffer" });
+  }
+});
+
+router.post("/drafts/buffer/bulk", adminAuth, requireAdminPermission("campaigns.manage"), async (req, res) => {
+  const draftIds = Array.isArray(req.body?.draftIds) ? req.body.draftIds.map(normalizeText).filter(Boolean) : [];
+  if (!draftIds.length) {
+    return res.status(400).json({ message: "Select drafts to send to Buffer" });
+  }
+
+  const results = [];
+  for (const draftId of draftIds) {
+    try {
+      const draft = await AiGeneratedPost.findById(draftId);
+      if (!draft) {
+        results.push({ draftId, success: false, message: "Draft not found" });
+        continue;
+      }
+      const channelId = normalizeText(req.body?.channelId) || normalizeText(process.env.BUFFER_DEFAULT_CHANNEL_ID);
+      const result = await createBufferPost({
+        draft: draft.toObject(),
+        channelId,
+        mode: req.body?.mode,
+        dueAt: req.body?.dueAt,
+        text: req.body?.textByDraftId?.[draftId],
+        imageUrl: req.body?.imageUrlByDraftId?.[draftId]
+      });
+      draft.status = result.post.status === "posted" ? "posted" : "queued";
+      draft.scheduledAt = result.post.dueAt ? new Date(result.post.dueAt) : null;
+      draft.buffer = {
+        postId: result.post.id,
+        channelId,
+        channelName: normalizeText(req.body?.channelName),
+        channelService: normalizeText(req.body?.channelService),
+        mode: result.request.mode,
+        dueAt: result.post.dueAt ? new Date(result.post.dueAt) : null,
+        status: normalizeText(result.post.status),
+        sentAt: new Date(),
+        rawResponse: result.post
+      };
+      draft.lastError = "";
+      await draft.save();
+      results.push({ draftId, success: true, bufferPostId: result.post.id });
+    } catch (err) {
+      await AiGeneratedPost.findByIdAndUpdate(draftId, {
+        status: "failed",
+        lastError: err?.message || "Failed to send draft to Buffer"
+      }).catch(() => {});
+      results.push({ draftId, success: false, message: err?.message || "Failed to send draft to Buffer" });
+    }
+  }
+
+  res.json({
+    results,
+    successCount: results.filter((item) => item.success).length,
+    failedCount: results.filter((item) => !item.success).length
+  });
 });
 
 router.delete("/drafts/:id", adminAuth, requireAdminPermission("campaigns.manage"), async (req, res) => {

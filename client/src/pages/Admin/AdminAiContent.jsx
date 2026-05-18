@@ -32,6 +32,14 @@ function normalizeUrl(value) {
   return `https://${text}`;
 }
 
+function composePostText(draft) {
+  return [
+    draft?.caption || draft?.hook || "",
+    Array.isArray(draft?.hashtags) ? draft.hashtags.join(" ") : "",
+    draft?.ctaLink || ""
+  ].filter(Boolean).join("\n\n");
+}
+
 export default function AdminAiContent() {
   const [settings, setSettings] = useState(null);
   const [settingsSaving, setSettingsSaving] = useState(false);
@@ -58,6 +66,18 @@ export default function AdminAiContent() {
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(null);
+  const [bufferChannels, setBufferChannels] = useState([]);
+  const [bufferConfigured, setBufferConfigured] = useState(false);
+  const [bufferForm, setBufferForm] = useState({
+    channelId: "",
+    mode: "addToQueue",
+    dueAt: ""
+  });
+  const [selectedDraftIds, setSelectedDraftIds] = useState([]);
+  const [publishingId, setPublishingId] = useState("");
+  const [bulkPublishing, setBulkPublishing] = useState(false);
+  const [editingPostId, setEditingPostId] = useState("");
+  const [postTextByDraftId, setPostTextByDraftId] = useState({});
 
   const activeCount = useMemo(
     () => categories.filter((item) => item.active !== false).length,
@@ -88,6 +108,23 @@ export default function AdminAiContent() {
     }
   }
 
+  async function loadBufferChannels() {
+    try {
+      const res = await api.get("/ai-content/buffer/channels");
+      const channels = Array.isArray(res.data?.channels) ? res.data.channels : [];
+      setBufferChannels(channels);
+      setBufferConfigured(Boolean(res.data?.configured));
+      const defaultChannelId = res.data?.defaultChannelId || channels[0]?.id || "";
+      setBufferForm((current) => ({
+        ...current,
+        channelId: current.channelId || defaultChannelId
+      }));
+    } catch (err) {
+      setBufferConfigured(false);
+      console.warn("Failed to load Buffer channels", err?.response?.data?.message || err.message);
+    }
+  }
+
   async function loadDashboardCategories() {
     try {
       const res = await api.get("/admin/options/categories");
@@ -104,6 +141,7 @@ export default function AdminAiContent() {
   useEffect(() => {
     loadAll().catch(() => {});
     loadDashboardCategories().catch(() => {});
+    loadBufferChannels().catch(() => {});
   }, []);
 
   async function saveSettings() {
@@ -297,6 +335,81 @@ export default function AdminAiContent() {
       await loadAll();
     } catch (err) {
       alert(err?.response?.data?.message || err.message || "Failed to update draft");
+    }
+  }
+
+  function selectedBufferChannel() {
+    return bufferChannels.find((channel) => channel.id === bufferForm.channelId) || null;
+  }
+
+  function toggleDraftSelection(draftId) {
+    setSelectedDraftIds((current) => (
+      current.includes(draftId)
+        ? current.filter((id) => id !== draftId)
+        : [...current, draftId]
+    ));
+  }
+
+  async function sendDraftToBuffer(draft) {
+    if (!bufferForm.channelId) {
+      alert("Select a Buffer channel first");
+      return;
+    }
+    const channel = selectedBufferChannel();
+    try {
+      setPublishingId(draft._id);
+      await api.post(`/ai-content/drafts/${draft._id}/buffer`, {
+        channelId: bufferForm.channelId,
+        channelName: channel?.name || "",
+        channelService: channel?.service || "",
+        mode: bufferForm.mode,
+        dueAt: bufferForm.mode === "customScheduled" ? bufferForm.dueAt : "",
+        text: postTextByDraftId[draft._id] || composePostText(draft)
+      });
+      await loadAll();
+      setSelectedDraftIds((current) => current.filter((id) => id !== draft._id));
+    } catch (err) {
+      alert(err?.response?.data?.message || err.message || "Failed to send draft to Buffer");
+      await loadAll();
+    } finally {
+      setPublishingId("");
+    }
+  }
+
+  async function sendSelectedToBuffer() {
+    if (!selectedDraftIds.length) {
+      alert("Select drafts first");
+      return;
+    }
+    if (!bufferForm.channelId) {
+      alert("Select a Buffer channel first");
+      return;
+    }
+    const channel = selectedBufferChannel();
+    try {
+      setBulkPublishing(true);
+      const textByDraftId = {};
+      for (const draftId of selectedDraftIds) {
+        if (postTextByDraftId[draftId]) textByDraftId[draftId] = postTextByDraftId[draftId];
+      }
+      const res = await api.post("/ai-content/drafts/buffer/bulk", {
+        draftIds: selectedDraftIds,
+        channelId: bufferForm.channelId,
+        channelName: channel?.name || "",
+        channelService: channel?.service || "",
+        mode: bufferForm.mode,
+        dueAt: bufferForm.mode === "customScheduled" ? bufferForm.dueAt : "",
+        textByDraftId
+      });
+      const failed = Number(res.data?.failedCount || 0);
+      alert(`Sent to Buffer: ${res.data?.successCount || 0}${failed ? `, failed: ${failed}` : ""}`);
+      setSelectedDraftIds([]);
+      await loadAll();
+    } catch (err) {
+      alert(err?.response?.data?.message || err.message || "Failed to send selected drafts");
+      await loadAll();
+    } finally {
+      setBulkPublishing(false);
     }
   }
 
@@ -768,14 +881,97 @@ export default function AdminAiContent() {
                 </button>
               </div>
 
+              <div className="rounded-xl border bg-gray-50 p-3 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-semibold">Buffer Publishing</p>
+                    <p className="text-[11px] text-gray-500">
+                      Queue approved drafts to connected Buffer social channels.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={loadBufferChannels}
+                    className="rounded border px-3 py-1.5 text-[11px] font-semibold"
+                  >
+                    Channels
+                  </button>
+                </div>
+                {!bufferConfigured ? (
+                  <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800">
+                    Buffer API key is not available to the server.
+                  </p>
+                ) : null}
+                <label className="block text-[11px] font-medium text-gray-600">
+                  Social channel
+                  <select
+                    className="mt-1 w-full rounded-lg border bg-white px-3 py-2 text-xs"
+                    value={bufferForm.channelId}
+                    onChange={(e) => setBufferForm({ ...bufferForm, channelId: e.target.value })}
+                  >
+                    <option value="">Select channel</option>
+                    {bufferChannels.map((channel) => (
+                      <option key={channel.id} value={channel.id}>
+                        {channel.name || channel.id} {channel.service ? `(${channel.service})` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <label className="text-[11px] font-medium text-gray-600">
+                    Publish mode
+                    <select
+                      className="mt-1 w-full rounded-lg border bg-white px-3 py-2 text-xs"
+                      value={bufferForm.mode}
+                      onChange={(e) => setBufferForm({ ...bufferForm, mode: e.target.value })}
+                    >
+                      <option value="addToQueue">Add to queue</option>
+                      <option value="customScheduled">Schedule time</option>
+                    </select>
+                  </label>
+                  <label className="text-[11px] font-medium text-gray-600">
+                    Schedule time
+                    <input
+                      type="datetime-local"
+                      className="mt-1 w-full rounded-lg border bg-white px-3 py-2 text-xs disabled:bg-gray-100"
+                      value={bufferForm.dueAt}
+                      disabled={bufferForm.mode !== "customScheduled"}
+                      onChange={(e) => setBufferForm({ ...bufferForm, dueAt: e.target.value })}
+                    />
+                  </label>
+                </div>
+                <button
+                  type="button"
+                  onClick={sendSelectedToBuffer}
+                  disabled={bulkPublishing || !selectedDraftIds.length || !bufferForm.channelId}
+                  className="w-full rounded-lg bg-black px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
+                >
+                  {bulkPublishing ? "Sending..." : `Send Selected (${selectedDraftIds.length})`}
+                </button>
+              </div>
+
               <div className="space-y-2 max-h-[44rem] overflow-auto pr-1">
                 {drafts.map((draft) => (
                   <div key={draft._id} className="border rounded-xl p-3 text-xs space-y-2">
                     <div className="flex items-center justify-between gap-2">
-                      <p className="font-semibold text-sm">{draft.topic || "Untitled draft"}</p>
-                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-semibold uppercase">
-                        {draft.status}
-                      </span>
+                      <label className="flex min-w-0 items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={selectedDraftIds.includes(draft._id)}
+                          onChange={() => toggleDraftSelection(draft._id)}
+                        />
+                        <span className="truncate font-semibold text-sm">{draft.topic || "Untitled draft"}</span>
+                      </label>
+                      <div className="flex shrink-0 items-center gap-1">
+                        {draft.buffer?.postId ? (
+                          <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold uppercase text-emerald-700">
+                            Buffer
+                          </span>
+                        ) : null}
+                        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-semibold uppercase">
+                          {draft.status}
+                        </span>
+                      </div>
                     </div>
                     <div className="overflow-hidden rounded-xl border bg-white">
                       {draft.imageUrl ? (
@@ -822,6 +1018,21 @@ export default function AdminAiContent() {
                       </div>
                     </details>
                     {draft.lastError ? <p className="text-red-600">Image note: {draft.lastError}</p> : null}
+                    {draft.buffer?.postId ? (
+                      <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-2 text-[11px] text-emerald-800">
+                        Buffer post: {draft.buffer.postId}
+                        {draft.buffer.channelName ? ` | ${draft.buffer.channelName}` : ""}
+                        {draft.buffer.dueAt ? ` | ${formatTime(draft.buffer.dueAt)}` : ""}
+                      </div>
+                    ) : null}
+                    {editingPostId === draft._id ? (
+                      <textarea
+                        className="w-full rounded-lg border bg-white px-3 py-2 text-xs"
+                        rows={5}
+                        value={postTextByDraftId[draft._id] ?? composePostText(draft)}
+                        onChange={(e) => setPostTextByDraftId({ ...postTextByDraftId, [draft._id]: e.target.value })}
+                      />
+                    ) : null}
                     <div className="flex flex-wrap gap-2">
                       <button
                         onClick={() => setDraftStatus(draft._id, "approved")}
@@ -843,6 +1054,19 @@ export default function AdminAiContent() {
                         className="px-3 py-1.5 rounded border text-[11px] font-semibold disabled:opacity-50"
                       >
                         Draft
+                      </button>
+                      <button
+                        onClick={() => setEditingPostId(editingPostId === draft._id ? "" : draft._id)}
+                        className="px-3 py-1.5 rounded border text-[11px] font-semibold"
+                      >
+                        {editingPostId === draft._id ? "Hide Text" : "Edit Post"}
+                      </button>
+                      <button
+                        onClick={() => sendDraftToBuffer(draft)}
+                        disabled={publishingId === draft._id || !bufferForm.channelId || draft.status === "rejected"}
+                        className="px-3 py-1.5 rounded border text-[11px] font-semibold disabled:opacity-50"
+                      >
+                        {publishingId === draft._id ? "Sending..." : "Send Buffer"}
                       </button>
                       <button
                         onClick={() => deleteDraft(draft._id)}

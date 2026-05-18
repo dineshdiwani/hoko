@@ -22,6 +22,13 @@ function safeJsonParse(value) {
   }
 }
 
+function getProviderErrorMessage(err, fallback = "provider_request_failed") {
+  return normalizeText(err?.response?.data?.error?.message)
+    || normalizeText(err?.response?.data?.message)
+    || normalizeText(err?.message)
+    || fallback;
+}
+
 function extractResponseText(payload) {
   const geminiText = Array.isArray(payload?.candidates)
     ? payload.candidates
@@ -250,7 +257,7 @@ async function generateTextDraft({ category, settings, campaign = {} }) {
       raw: err?.response?.data || err?.message || null,
       error: err?.response?.status === 429
         ? "gemini_rate_limited"
-        : err?.message || "gemini_text_generation_failed"
+        : getProviderErrorMessage(err, "gemini_text_generation_failed")
     };
   }
 
@@ -360,7 +367,7 @@ async function generateAiContentDraft({ category, settings, campaign = {} }) {
       model: normalizeText(process.env.GEMINI_IMAGE_MODEL),
       imageUrl: "",
       raw: err?.response?.data || err?.message || null,
-      error: err?.message || "image_generation_failed"
+      error: getProviderErrorMessage(err, "image_generation_failed")
     };
   }
 

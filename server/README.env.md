@@ -79,3 +79,11 @@ The admin AI content and social media draft helpers use Gemini when these variab
 - `GEMINI_CAMPAIGN_MODEL` (default: `GEMINI_CONTENT_MODEL`, then `gemini-2.5-flash`)
 - `GEMINI_IMAGE_MODEL` (default: `gemini-2.5-flash-image`)
 - `AI_CONTENT_GENERATE_IMAGES=true` to generate images for AI content drafts
+
+## Buffer Publishing
+
+Approved AI drafts can be sent to Buffer when these variables are configured:
+
+- `BUFFER_API_KEY`
+- `BUFFER_DEFAULT_CHANNEL_ID` optional fallback channel for publishing
+- `BUFFER_ORGANIZATION_ID` optional, used when the Buffer account has multiple organizations
