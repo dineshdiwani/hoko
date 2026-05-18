@@ -265,8 +265,8 @@ async function saveImageBufferAsPublicUrl(buffer, mimeType = "", sourceUrl = "")
       .resize(logoSize, logoSize, { fit: "contain", background: { r: 255, g: 255, b: 255, alpha: 0 } })
       .png()
       .toBuffer();
-    const left = 1024 - badgeSize - margin;
-    const top = 1024 - badgeSize - margin;
+    const left = margin;
+    const top = margin;
     normalizedBuffer = await sharp(normalizedBuffer)
       .composite([
         { input: badgeSvg, left, top },
