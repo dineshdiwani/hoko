@@ -6,6 +6,17 @@ function normalizeText(value) {
   return String(value || "").trim();
 }
 
+function normalizeUrl(value) {
+  const text = normalizeText(value);
+  if (!text) return "";
+  return /^https?:\/\//i.test(text) ? text : `https://${text}`;
+}
+
+function getFirstUrl(value = "") {
+  const match = String(value || "").match(/https?:\/\/[^\s)]+|(?:www\.)?[a-z0-9-]+\.[a-z]{2,}(?:\/[^\s)]*)?/i);
+  return match ? normalizeUrl(match[0]) : "";
+}
+
 function getBufferApiKey() {
   return normalizeText(process.env.BUFFER_API_KEY);
 }
@@ -103,14 +114,29 @@ function getPublicImageUrl(draft, imageUrlOverride = "") {
   return /^https?:\/\//i.test(value) ? value : "";
 }
 
-function getPostMetadata(service = "", postType = "post") {
+function getLinkAttachment(ctaLink = "") {
+  const url = normalizeUrl(ctaLink);
+  return url ? { linkAttachment: { url } } : null;
+}
+
+function getPostMetadata(service = "", postType = "post", ctaLink = "") {
   const cleanService = normalizeText(service).toLowerCase();
   const cleanType = ["post", "story", "reel"].includes(postType) ? postType : "post";
+  const linkAttachment = getLinkAttachment(ctaLink);
   if (cleanService === "facebook") {
-    return { facebook: { type: cleanType } };
+    return { facebook: { type: cleanType, ...(linkAttachment || {}) } };
+  }
+  if (cleanService === "linkedin") {
+    return linkAttachment ? { linkedin: linkAttachment } : null;
   }
   if (cleanService === "instagram") {
-    return { instagram: { type: cleanType, shouldShareToFeed: cleanType === "post" } };
+    return {
+      instagram: {
+        type: cleanType,
+        shouldShareToFeed: cleanType === "post",
+        ...(ctaLink ? { link: normalizeUrl(ctaLink) } : {})
+      }
+    };
   }
   return null;
 }
@@ -159,7 +185,7 @@ async function createBufferPost({
   if (publicImageUrl) {
     input.assets = [{ image: { url: publicImageUrl } }];
   }
-  const metadata = getPostMetadata(channelService, postType);
+  const metadata = getPostMetadata(channelService, postType, draft?.ctaLink || getFirstUrl(postText));
   if (metadata) {
     input.metadata = metadata;
   }
