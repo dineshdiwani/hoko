@@ -144,6 +144,7 @@ export default function AdminAiContent() {
   const [bufferConfigured, setBufferConfigured] = useState(false);
   const [bufferForm, setBufferForm] = useState(() => ({
     channelId: "",
+    channelIds: [],
     mode: "shareNow",
     postType: "post",
     dueAt: "",
@@ -251,7 +252,10 @@ export default function AdminAiContent() {
       const defaultChannelId = res.data?.defaultChannelId || channels[0]?.id || "";
       setBufferForm((current) => ({
         ...current,
-        channelId: current.channelId || defaultChannelId
+        channelId: current.channelId || current.channelIds?.[0] || defaultChannelId,
+        channelIds: Array.isArray(current.channelIds) && current.channelIds.length
+          ? current.channelIds
+          : (current.channelId ? [current.channelId] : defaultChannelId ? [defaultChannelId] : [])
       }));
     } catch (err) {
       setBufferConfigured(false);
@@ -545,8 +549,27 @@ export default function AdminAiContent() {
     }
   }
 
-  function selectedBufferChannel() {
-    return bufferChannels.find((channel) => channel.id === bufferForm.channelId) || null;
+  function selectedBufferChannels() {
+    const ids = Array.isArray(bufferForm.channelIds) && bufferForm.channelIds.length
+      ? bufferForm.channelIds
+      : bufferForm.channelId ? [bufferForm.channelId] : [];
+    return ids
+      .map((id) => bufferChannels.find((channel) => channel.id === id))
+      .filter(Boolean);
+  }
+
+  function toggleBufferChannel(channelId) {
+    setBufferForm((current) => {
+      const currentIds = Array.isArray(current.channelIds) ? current.channelIds : current.channelId ? [current.channelId] : [];
+      const nextIds = currentIds.includes(channelId)
+        ? currentIds.filter((id) => id !== channelId)
+        : [...currentIds, channelId];
+      return {
+        ...current,
+        channelId: nextIds[0] || "",
+        channelIds: nextIds
+      };
+    });
   }
 
   function toggleDraftSelection(draftId) {
@@ -558,28 +581,32 @@ export default function AdminAiContent() {
   }
 
   async function sendDraftToBuffer(draft) {
-    if (!bufferForm.channelId) {
-      alert("Select a Buffer channel first");
+    const channels = selectedBufferChannels();
+    if (!channels.length) {
+      alert("Select at least one Buffer channel first");
       return;
     }
-    const channel = selectedBufferChannel();
     try {
       setPublishingId(draft._id);
-      const res = await api.post(`/ai-content/drafts/${draft._id}/buffer`, {
-        channelId: bufferForm.channelId,
-        channelName: channel?.name || "",
-        channelService: channel?.service || "",
-        postType: bufferForm.postType,
-        mode: bufferForm.mode,
-        dueAt: bufferForm.mode === "customScheduled" ? bufferForm.dueAt : "",
-        text: postTextByDraftId[draft._id] || composePostText(draft)
-      });
-      if (res.data?.draft) {
-        setDrafts((current) => replaceDraft(current, res.data.draft));
+      const results = [];
+      for (const channel of channels) {
+        const res = await api.post(`/ai-content/drafts/${draft._id}/buffer`, {
+          channelId: channel.id,
+          channelName: channel?.name || "",
+          channelService: channel?.service || "",
+          postType: bufferForm.postType,
+          mode: bufferForm.mode,
+          dueAt: bufferForm.mode === "customScheduled" ? bufferForm.dueAt : "",
+          text: postTextByDraftId[draft._id] || composePostText(draft)
+        });
+        results.push({ channel, ok: true });
+        if (res.data?.draft) {
+          setDrafts((current) => replaceDraft(current, res.data.draft));
+        }
       }
       await refreshDraftsQuietly();
       setSelectedDraftIds((current) => current.filter((id) => id !== draft._id));
-      alert("Draft sent to Buffer successfully");
+      alert(`Draft sent to Buffer: ${results.length}`);
     } catch (err) {
       alert(err?.response?.data?.message || err.message || "Failed to send draft to Buffer");
       await refreshDraftsQuietly();
@@ -593,32 +620,38 @@ export default function AdminAiContent() {
       alert("Select drafts first");
       return;
     }
-    if (!bufferForm.channelId) {
-      alert("Select a Buffer channel first");
+    const channels = selectedBufferChannels();
+    if (!channels.length) {
+      alert("Select at least one Buffer channel first");
       return;
     }
-    const channel = selectedBufferChannel();
     try {
       setBulkPublishing(true);
       const textByDraftId = {};
       for (const draftId of selectedDraftIds) {
         if (postTextByDraftId[draftId]) textByDraftId[draftId] = postTextByDraftId[draftId];
       }
-      const res = await api.post("/ai-content/drafts/buffer/bulk", {
-        draftIds: selectedDraftIds,
-        channelId: bufferForm.channelId,
-        channelName: channel?.name || "",
-        channelService: channel?.service || "",
-        postType: bufferForm.postType,
-        mode: bufferForm.mode,
-        dueAt: bufferForm.mode === "customScheduled" ? bufferForm.dueAt : "",
-        textByDraftId
-      });
-      const failed = Number(res.data?.failedCount || 0);
-      const failedMessages = Array.isArray(res.data?.results)
-        ? res.data.results.filter((item) => !item.success).map((item) => item.message).filter(Boolean)
-        : [];
-      alert(`Sent to Buffer: ${res.data?.successCount || 0}${failed ? `, failed: ${failed}${failedMessages.length ? `\n${failedMessages.join("\n")}` : ""}` : ""}`);
+      let successCount = 0;
+      let failedCount = 0;
+      const failedMessages = [];
+      for (const channel of channels) {
+        const res = await api.post("/ai-content/drafts/buffer/bulk", {
+          draftIds: selectedDraftIds,
+          channelId: channel.id,
+          channelName: channel?.name || "",
+          channelService: channel?.service || "",
+          postType: bufferForm.postType,
+          mode: bufferForm.mode,
+          dueAt: bufferForm.mode === "customScheduled" ? bufferForm.dueAt : "",
+          textByDraftId
+        });
+        successCount += Number(res.data?.successCount || 0);
+        failedCount += Number(res.data?.failedCount || 0);
+        if (Array.isArray(res.data?.results)) {
+          failedMessages.push(...res.data.results.filter((item) => !item.success).map((item) => `${channel.name || channel.id}: ${item.message}`).filter(Boolean));
+        }
+      }
+      alert(`Sent to Buffer: ${successCount}${failedCount ? `, failed: ${failedCount}${failedMessages.length ? `\n${failedMessages.join("\n")}` : ""}` : ""}`);
       setSelectedDraftIds([]);
       await refreshDraftsQuietly();
     } catch (err) {
@@ -1184,21 +1217,31 @@ export default function AdminAiContent() {
                     Buffer API key is not available to the server.
                   </p>
                 ) : null}
-                <label className="block text-[11px] font-medium text-gray-600">
-                  Social channel
-                  <select
-                    className="mt-1 w-full rounded-lg border bg-white px-3 py-2 text-xs"
-                    value={bufferForm.channelId}
-                    onChange={(e) => setBufferForm({ ...bufferForm, channelId: e.target.value })}
-                  >
-                    <option value="">Select channel</option>
-                    {bufferChannels.map((channel) => (
-                      <option key={channel.id} value={channel.id}>
-                        {channel.name || channel.id} {channel.service ? `(${channel.service})` : ""}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <div className="space-y-2">
+                  <p className="text-[11px] font-medium text-gray-600">Social channels</p>
+                  <div className="grid grid-cols-1 gap-2">
+                    {bufferChannels.map((channel) => {
+                      const checked = Array.isArray(bufferForm.channelIds) && bufferForm.channelIds.includes(channel.id);
+                      return (
+                        <label key={channel.id} className="flex items-center gap-2 rounded-lg border bg-white px-3 py-2 text-xs">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleBufferChannel(channel.id)}
+                          />
+                          <span className="min-w-0 flex-1 truncate">
+                            {channel.name || channel.id} {channel.service ? `(${channel.service})` : ""}
+                          </span>
+                        </label>
+                      );
+                    })}
+                    {!bufferChannels.length ? (
+                      <div className="rounded-lg border bg-white px-3 py-2 text-xs text-gray-500">
+                        No Buffer channels loaded.
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <label className="text-[11px] font-medium text-gray-600">
                     Post type
@@ -1239,7 +1282,7 @@ export default function AdminAiContent() {
                 <button
                   type="button"
                   onClick={sendSelectedToBuffer}
-                  disabled={bulkPublishing || !selectedDraftIds.length || !bufferForm.channelId}
+                  disabled={bulkPublishing || !selectedDraftIds.length || !selectedBufferChannels().length}
                   className="w-full rounded-lg bg-black px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
                 >
                   {bulkPublishing ? "Sending..." : `Send Selected (${selectedDraftIds.length})`}
@@ -1360,7 +1403,7 @@ export default function AdminAiContent() {
                       </button>
                       <button
                         onClick={() => sendDraftToBuffer(draft)}
-                        disabled={publishingId === draft._id || !bufferForm.channelId || draft.status === "rejected"}
+                        disabled={publishingId === draft._id || !selectedBufferChannels().length || draft.status === "rejected"}
                         className="px-3 py-1.5 rounded border text-[11px] font-semibold disabled:opacity-50"
                       >
                         {publishingId === draft._id ? "Sending..." : "Send Buffer"}
