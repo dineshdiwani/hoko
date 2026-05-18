@@ -29,6 +29,11 @@ function getProviderErrorMessage(err, fallback = "provider_request_failed") {
     || fallback;
 }
 
+function normalizeAiProvider(value) {
+  const provider = normalizeText(value).toLowerCase();
+  return ["gemini", "openai", "fallback"].includes(provider) ? provider : "gemini";
+}
+
 function extractResponseText(payload) {
   const geminiText = Array.isArray(payload?.candidates)
     ? payload.candidates
@@ -220,6 +225,14 @@ async function generateTextDraft({ category, settings, campaign = {} }) {
     fixedCta,
     campaign
   });
+  const provider = normalizeAiProvider(settings?.aiProvider);
+  if (provider === "fallback") {
+    return fallback;
+  }
+  if (provider === "openai") {
+    return generateOpenAiTextDraft({ category, settings, campaign, fallback, fixedCta });
+  }
+
   const apiKey = normalizeText(process.env.GEMINI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY);
   if (!apiKey) return fallback;
 
@@ -288,6 +301,84 @@ async function generateTextDraft({ category, settings, campaign = {} }) {
 
   return {
     provider: "gemini",
+    model,
+    topic: normalizeText(parsed.topic) || fallback.topic,
+    hook: normalizeText(parsed.hook) || fallback.hook,
+    caption: normalizeText(parsed.caption) || fallback.caption,
+    hashtags,
+    imagePrompt: normalizeText(parsed.imagePrompt) || fallback.imagePrompt,
+    raw
+  };
+}
+
+async function generateOpenAiTextDraft({ category, settings, campaign = {}, fallback, fixedCta }) {
+  const apiKey = normalizeText(process.env.OPENAI_API_KEY);
+  if (!apiKey) {
+    return {
+      ...fallback,
+      provider: "fallback",
+      model: "",
+      error: "openai_api_key_missing"
+    };
+  }
+
+  const model = normalizeText(process.env.OPENAI_CONTENT_MODEL) || "gpt-4o-mini";
+  let response;
+  try {
+    response = await axios.post(
+      "https://api.openai.com/v1/responses",
+      {
+        model,
+        input: buildPrompt({
+          category,
+          fixedCta,
+          campaign: {
+            ...campaign,
+            brandInstructions: campaign?.brandInstructions ?? settings?.brandInstructions,
+            blockedWords: campaign?.blockedWords ?? settings?.blockedWords
+          }
+        }),
+        text: {
+          format: {
+            type: "json_object"
+          }
+        }
+      },
+      {
+        timeout: 30000,
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json"
+        }
+      }
+    );
+  } catch (err) {
+    return {
+      ...fallback,
+      provider: "fallback",
+      model: "",
+      raw: err?.response?.data || err?.message || null,
+      error: getProviderErrorMessage(err, "openai_text_generation_failed")
+    };
+  }
+
+  const raw = response?.data || null;
+  const parsed = safeJsonParse(extractResponseText(raw));
+  if (!parsed) {
+    return {
+      ...fallback,
+      provider: "openai",
+      model,
+      raw
+    };
+  }
+
+  const hashtags = Array.isArray(parsed.hashtags)
+    ? parsed.hashtags.map((item) => normalizeText(item)).filter(Boolean)
+    : fallback.hashtags;
+
+  return {
+    provider: "openai",
     model,
     topic: normalizeText(parsed.topic) || fallback.topic,
     hook: normalizeText(parsed.hook) || fallback.hook,

@@ -26,6 +26,11 @@ function normalizeText(value) {
   return String(value || "").trim();
 }
 
+function normalizeAiProvider(value) {
+  const provider = normalizeText(value).toLowerCase();
+  return ["gemini", "openai", "fallback"].includes(provider) ? provider : "gemini";
+}
+
 function categoryPayload(body = {}, adminId = null) {
   return {
     name: normalizeText(body.name),
@@ -72,6 +77,7 @@ router.put("/settings", adminAuth, requireAdminPermission("campaigns.manage"), a
       $set: {
         fixedCta: normalizeText(body.fixedCta) || "Learn More",
         ctaLink: normalizeText(body.ctaLink),
+        aiProvider: normalizeAiProvider(body.aiProvider),
         generationEnabled: Boolean(body.generationEnabled),
         approvalRequired: body.approvalRequired !== false,
         maxDraftsPerRun,

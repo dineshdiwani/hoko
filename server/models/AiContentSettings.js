@@ -5,6 +5,11 @@ const aiContentSettingsSchema = new mongoose.Schema(
     key: { type: String, default: "default", unique: true },
     fixedCta: { type: String, default: "Learn More" },
     ctaLink: { type: String, default: "" },
+    aiProvider: {
+      type: String,
+      enum: ["gemini", "openai", "fallback"],
+      default: "gemini"
+    },
     generationEnabled: { type: Boolean, default: false },
     approvalRequired: { type: Boolean, default: true },
     maxDraftsPerRun: { type: Number, default: 3, min: 1, max: 20 },

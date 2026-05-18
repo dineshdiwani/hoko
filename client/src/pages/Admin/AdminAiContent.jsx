@@ -15,6 +15,7 @@ const emptyCategory = {
 const defaultSettings = {
   fixedCta: "Learn More",
   ctaLink: "",
+  aiProvider: "gemini",
   generationEnabled: false,
   approvalRequired: true,
   maxDraftsPerRun: 3,
@@ -304,6 +305,7 @@ export default function AdminAiContent() {
       const payload = {
         ...defaultSettings,
         ...(settings || {}),
+        aiProvider: ["gemini", "openai", "fallback"].includes(settings?.aiProvider) ? settings.aiProvider : "gemini",
         maxDraftsPerRun: Math.max(1, Math.min(20, Number(settings?.maxDraftsPerRun || 3))),
         cronIntervalMinutes: Math.max(5, Math.min(1440, Number(settings?.cronIntervalMinutes || 60))),
         blockedWords: Array.isArray(settings?.blockedWords)
@@ -857,6 +859,18 @@ export default function AdminAiContent() {
                       onChange={(e) => setSettings({ ...settings, ctaLink: e.target.value })}
                       placeholder="https://hokoapp.in"
                     />
+                  </label>
+                  <label className="text-xs font-medium text-gray-600">
+                    Post generation API
+                    <select
+                      className="mt-1 w-full border rounded-lg px-3 py-2 text-sm bg-white"
+                      value={settings.aiProvider || "gemini"}
+                      onChange={(e) => setSettings({ ...settings, aiProvider: e.target.value })}
+                    >
+                      <option value="gemini">Gemini</option>
+                      <option value="openai">OpenAI</option>
+                      <option value="fallback">Local fallback</option>
+                    </select>
                   </label>
                   <label className="text-xs font-medium text-gray-600">
                     Max drafts per run
