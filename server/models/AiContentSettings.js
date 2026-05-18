@@ -35,6 +35,7 @@ const aiContentSettingsSchema = new mongoose.Schema(
         enabled: { type: Boolean, default: false },
         intervalMinutes: { type: Number, default: 1440, min: 5, max: 10080 },
         triggerTime: { type: String, default: "09:00" },
+        triggerDay: { type: Number, default: 1, min: 0, max: 6 },
         channelIds: [{ type: String }],
         mode: {
           type: String,
@@ -53,6 +54,7 @@ const aiContentSettingsSchema = new mongoose.Schema(
         enabled: { type: Boolean, default: false },
         intervalMinutes: { type: Number, default: 1440, min: 5, max: 10080 },
         triggerTime: { type: String, default: "09:00" },
+        triggerDay: { type: Number, default: 1, min: 0, max: 6 },
         channelIds: [{ type: String }],
         mode: {
           type: String,
@@ -71,6 +73,7 @@ const aiContentSettingsSchema = new mongoose.Schema(
         enabled: { type: Boolean, default: false },
         intervalMinutes: { type: Number, default: 1440, min: 5, max: 10080 },
         triggerTime: { type: String, default: "09:00" },
+        triggerDay: { type: Number, default: 1, min: 0, max: 6 },
         channelIds: [{ type: String }],
         mode: {
           type: String,

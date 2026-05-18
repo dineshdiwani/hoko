@@ -75,8 +75,9 @@ function getPlatformSettings(settings = {}) {
     result[platform] = {
       platform,
       enabled: Boolean(profile.enabled || legacyEnabled),
-      intervalMinutes: Math.max(5, Math.min(10080, Number(profile.intervalMinutes || settings.cronIntervalMinutes || 1440))),
+      intervalMinutes: [720, 1440, 10080].includes(Number(profile.intervalMinutes)) ? Number(profile.intervalMinutes) : 1440,
       triggerTime: /^([01]\d|2[0-3]):[0-5]\d$/.test(normalizeText(profile.triggerTime)) ? normalizeText(profile.triggerTime) : "09:00",
+      triggerDay: Math.max(0, Math.min(6, Number(profile.triggerDay ?? 1))),
       channelIds: Array.isArray(profile.channelIds) && profile.channelIds.length
         ? profile.channelIds.map(normalizeText).filter(Boolean)
         : legacyChannelIds,
@@ -89,20 +90,44 @@ function getPlatformSettings(settings = {}) {
   }, {});
 }
 
-function hasReachedTriggerTime(profile, nowDate = new Date()) {
+function getTriggerParts(profile) {
   const [hourText, minuteText] = normalizeText(profile.triggerTime || "09:00").split(":");
-  const triggerMinutes = Number(hourText) * 60 + Number(minuteText);
-  const currentMinutes = nowDate.getHours() * 60 + nowDate.getMinutes();
-  return currentMinutes >= triggerMinutes;
+  return {
+    hour: Number(hourText),
+    minute: Number(minuteText)
+  };
+}
+
+function buildDailyTrigger(profile, nowDate = new Date(), offsetMinutes = 0) {
+  const { hour, minute } = getTriggerParts(profile);
+  const trigger = new Date(nowDate);
+  trigger.setHours(hour, minute + offsetMinutes, 0, 0);
+  return trigger;
 }
 
 function getLastScheduledTriggerAt(profile, nowDate = new Date()) {
-  const [hourText, minuteText] = normalizeText(profile.triggerTime || "09:00").split(":");
-  const trigger = new Date(nowDate);
-  trigger.setHours(Number(hourText), Number(minuteText), 0, 0);
-  if (trigger.getTime() > nowDate.getTime()) {
-    trigger.setDate(trigger.getDate() - 1);
+  const interval = Number(profile.intervalMinutes || 1440);
+  if (interval === 720) {
+    const first = buildDailyTrigger(profile, nowDate, 0);
+    const second = buildDailyTrigger(profile, nowDate, 720);
+    const candidates = [first, second].filter((date) => date.getTime() <= nowDate.getTime());
+    if (candidates.length) return candidates[candidates.length - 1];
+    const yesterdaySecond = buildDailyTrigger(profile, nowDate, 720);
+    yesterdaySecond.setDate(yesterdaySecond.getDate() - 1);
+    return yesterdaySecond;
   }
+
+  if (interval === 10080) {
+    const trigger = buildDailyTrigger(profile, nowDate, 0);
+    const targetDay = Math.max(0, Math.min(6, Number(profile.triggerDay ?? 1)));
+    const daysBack = (trigger.getDay() - targetDay + 7) % 7;
+    trigger.setDate(trigger.getDate() - daysBack);
+    if (trigger.getTime() > nowDate.getTime()) trigger.setDate(trigger.getDate() - 7);
+    return trigger;
+  }
+
+  const trigger = buildDailyTrigger(profile, nowDate, 0);
+  if (trigger.getTime() > nowDate.getTime()) trigger.setDate(trigger.getDate() - 1);
   return trigger;
 }
 
@@ -112,11 +137,11 @@ function getDuePlatformProfiles(settings = {}) {
   const now = nowDate.getTime();
   return Object.values(profiles).filter((profile) => {
     if (!profile.enabled) return false;
-    if (!hasReachedTriggerTime(profile, nowDate)) return false;
     const lastRunAt = profile.lastRunAt ? new Date(profile.lastRunAt).getTime() : 0;
-    if (!lastRunAt || Number.isNaN(lastRunAt)) return true;
     const lastTriggerAt = getLastScheduledTriggerAt(profile, nowDate).getTime();
-    return lastRunAt < lastTriggerAt && now - lastRunAt >= profile.intervalMinutes * 60000;
+    if (lastTriggerAt > now) return false;
+    if (!lastRunAt || Number.isNaN(lastRunAt)) return true;
+    return lastRunAt < lastTriggerAt;
   });
 }
 

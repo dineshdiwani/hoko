@@ -29,6 +29,7 @@ const defaultSettings = {
       enabled: false,
       intervalMinutes: 1440,
       triggerTime: "09:00",
+      triggerDay: 1,
       channelIds: [],
       mode: "addToQueue",
       delayMinutes: 30,
@@ -38,6 +39,7 @@ const defaultSettings = {
       enabled: false,
       intervalMinutes: 1440,
       triggerTime: "09:00",
+      triggerDay: 1,
       channelIds: [],
       mode: "addToQueue",
       delayMinutes: 30,
@@ -47,6 +49,7 @@ const defaultSettings = {
       enabled: false,
       intervalMinutes: 1440,
       triggerTime: "09:00",
+      triggerDay: 1,
       channelIds: [],
       mode: "addToQueue",
       delayMinutes: 30,
@@ -75,6 +78,15 @@ const FREQUENCY_OPTIONS = [
   { value: 720, label: "Every 12 hours" },
   { value: 1440, label: "Every 24 hours" },
   { value: 10080, label: "Weekly" }
+];
+const WEEKDAY_OPTIONS = [
+  { value: 1, label: "Monday" },
+  { value: 2, label: "Tuesday" },
+  { value: 3, label: "Wednesday" },
+  { value: 4, label: "Thursday" },
+  { value: 5, label: "Friday" },
+  { value: 6, label: "Saturday" },
+  { value: 0, label: "Sunday" }
 ];
 
 function preview(value, limit = 140) {
@@ -390,6 +402,7 @@ export default function AdminAiContent() {
             ? Number(current.intervalMinutes)
             : 1440,
           triggerTime: /^([01]\d|2[0-3]):[0-5]\d$/.test(String(current.triggerTime || "")) ? current.triggerTime : "09:00",
+          triggerDay: Math.max(0, Math.min(6, Number(current.triggerDay ?? 1))),
           channelIds: Array.isArray(current.channelIds) ? current.channelIds : [],
           mode: ["shareNow", "shareNext", "customScheduled", "addToQueue"].includes(current.mode) ? current.mode : "addToQueue",
           delayMinutes: Math.max(0, Math.min(10080, Number(current.delayMinutes ?? 30))),
@@ -1143,7 +1156,7 @@ export default function AdminAiContent() {
                                 {profile.lastRunAt ? `Last: ${formatTime(profile.lastRunAt)}` : "Not run yet"}
                               </span>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                            <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
                               <label className="text-xs font-medium text-gray-600">
                                 Frequency
                                 <select
@@ -1157,13 +1170,26 @@ export default function AdminAiContent() {
                                 </select>
                               </label>
                               <label className="text-xs font-medium text-gray-600">
-                                Trigger time
+                                {Number(profile.intervalMinutes) === 720 ? "First trigger" : "Trigger time"}
                                 <input
                                   type="time"
                                   className="mt-1 w-full border rounded-lg px-3 py-2 text-sm bg-white"
                                   value={profile.triggerTime || "09:00"}
                                   onChange={(e) => updateAutoPlatform(platform.id, { triggerTime: e.target.value })}
                                 />
+                              </label>
+                              <label className="text-xs font-medium text-gray-600">
+                                Weekly day
+                                <select
+                                  className="mt-1 w-full border rounded-lg px-3 py-2 text-sm bg-white disabled:bg-gray-100"
+                                  value={profile.triggerDay ?? 1}
+                                  disabled={Number(profile.intervalMinutes) !== 10080}
+                                  onChange={(e) => updateAutoPlatform(platform.id, { triggerDay: Number(e.target.value) })}
+                                >
+                                  {WEEKDAY_OPTIONS.map((option) => (
+                                    <option key={option.value} value={option.value}>{option.label}</option>
+                                  ))}
+                                </select>
                               </label>
                               <label className="text-xs font-medium text-gray-600">
                                 Publish mode
@@ -1203,6 +1229,13 @@ export default function AdminAiContent() {
                               </label>
                             </div>
                             <div className="space-y-2">
+                              <p className="text-[11px] text-gray-500">
+                                {Number(profile.intervalMinutes) === 720
+                                  ? "Runs at the first trigger time and again 12 hours later."
+                                  : Number(profile.intervalMinutes) === 10080
+                                    ? "Runs once per week on the selected day and time."
+                                    : "Runs once per day at the selected time."}
+                              </p>
                               <p className="text-xs font-medium text-gray-600">{platform.label} Buffer channels</p>
                               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                 {platformChannels.map((channel) => {

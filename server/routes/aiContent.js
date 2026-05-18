@@ -44,8 +44,9 @@ function normalizeAutoPlatformSettings(value = {}) {
     const source = value?.[platform] || {};
     result[platform] = {
       enabled: Boolean(source.enabled),
-      intervalMinutes: Math.max(5, Math.min(10080, Number(source.intervalMinutes || 1440))),
+      intervalMinutes: [720, 1440, 10080].includes(Number(source.intervalMinutes)) ? Number(source.intervalMinutes) : 1440,
       triggerTime: /^([01]\d|2[0-3]):[0-5]\d$/.test(normalizeText(source.triggerTime)) ? normalizeText(source.triggerTime) : "09:00",
+      triggerDay: Math.max(0, Math.min(6, Number(source.triggerDay ?? 1))),
       channelIds: Array.isArray(source.channelIds)
         ? source.channelIds.map((item) => normalizeText(item)).filter(Boolean)
         : [],
