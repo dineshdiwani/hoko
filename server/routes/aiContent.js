@@ -130,7 +130,7 @@ router.delete("/categories/:id", adminAuth, requireAdminPermission("campaigns.ma
 router.get("/drafts", adminAuth, requireAdminPermission("campaigns.read"), async (req, res) => {
   const status = normalizeText(req.query?.status);
   const query = status ? { status } : {};
-  const limit = Math.max(1, Math.min(100, Number(req.query?.limit || 30)));
+  const limit = Math.max(1, Math.min(500, Number(req.query?.limit || 200)));
   const items = await AiGeneratedPost.find(query)
     .sort({ createdAt: -1 })
     .limit(limit)

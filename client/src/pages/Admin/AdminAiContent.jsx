@@ -120,7 +120,7 @@ export default function AdminAiContent() {
       const [settingsRes, categoriesRes, draftsRes, logsRes, trainingRes, runsRes] = await withTimeout(Promise.all([
         api.get("/ai-content/settings"),
         api.get("/ai-content/categories"),
-        api.get("/ai-content/drafts?limit=30"),
+        api.get("/ai-content/drafts?limit=200"),
         api.get("/ai-content/logs?limit=10"),
         api.get("/ai-content/training-notes?limit=20"),
         api.get("/ai-content/campaign-runs?limit=10")
@@ -141,7 +141,7 @@ export default function AdminAiContent() {
   async function loadDraftsOnly({ silent = false } = {}) {
     try {
       setDraftsLoading(true);
-      const draftsRes = await withTimeout(api.get("/ai-content/drafts?limit=30"), 12000);
+      const draftsRes = await withTimeout(api.get("/ai-content/drafts?limit=200"), 12000);
       setDrafts(Array.isArray(draftsRes.data?.items) ? draftsRes.data.items : []);
     } catch (err) {
       if (!silent) {
