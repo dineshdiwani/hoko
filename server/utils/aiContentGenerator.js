@@ -162,6 +162,13 @@ function buildFallbackDraft({ category, fixedCta, campaign = {} }) {
   const topic = mood || selected.topic;
   const hook = selected.hook;
   const concreteScene = inferConcreteVisualScene({ mood, categoryName: name, hook });
+  const visualOpeners = [
+    `Square social media ad scene: ${concreteScene}.`,
+    `Product-first visual for ${name}: ${concreteScene}.`,
+    `Realistic Indian procurement scene for ${name}: ${concreteScene}.`,
+    `Commercial marketplace image showing ${concreteScene}.`
+  ];
+  const visualOpener = visualOpeners[hashText(`${seed}|visual`) % visualOpeners.length];
   const caption = [
     hook
   ].filter(Boolean).join("\n\n");
@@ -174,12 +181,11 @@ function buildFallbackDraft({ category, fixedCta, campaign = {} }) {
     caption,
     hashtags: ["#HOKO", "#Business", `#${name.replace(/[^a-zA-Z0-9]/g, "")}`].filter((item) => item.length > 1),
     imagePrompt: [
-      `Create a square social media image for the HOKO online marketplace app about ${name}.`,
-      mood ? `Convert this admin direction into the concrete scene, do not render abstract wording: "${mood}".` : `Depict this hook visually: "${hook}"`,
-      `Required concrete scene: ${concreteScene}.`,
-      "Show a buyer posting a requirement, multiple sellers submitting price offers, best lower-price offer selection, and reverse auction competition.",
-      `Style: ${normalizeText(category?.imageStyle) || "clean modern Indian business app ad"}.`,
-      "Do not add small unreadable text, wall portraits, framed photos, or fake app UI details."
+      visualOpener,
+      mood ? `Admin direction to reflect: ${mood}.` : `Post hook to reflect: ${hook}.`,
+      "Include 2-3 seller offer cards or price tags only as supporting visual elements.",
+      `Visual style: ${normalizeText(category?.imageStyle) || "clean realistic commercial ad"}.`,
+      "No readable text, no HOKO word, no logos, no wall portraits, no framed photos."
     ].join(" "),
     raw: null
   };
@@ -401,7 +407,10 @@ async function generateTextDraft({ category, settings, campaign = {} }) {
   });
   const provider = normalizeAiProvider(settings?.aiProvider);
   if (provider === "fallback") {
-    return fallback;
+    return {
+      ...fallback,
+      error: "fallback_provider_selected"
+    };
   }
   if (provider === "openai") {
     return generateOpenAiTextDraft({ category, settings, campaign, fallback, fixedCta });
