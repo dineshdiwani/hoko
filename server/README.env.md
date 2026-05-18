@@ -79,6 +79,7 @@ The admin AI content and social media draft helpers use Gemini when these variab
 - `GEMINI_CAMPAIGN_MODEL` (default: `GEMINI_CONTENT_MODEL`, then `gemini-2.5-flash`)
 - `GEMINI_IMAGE_MODEL` (default: `gemini-2.5-flash-image`)
 - `AI_CONTENT_GENERATE_IMAGES=true` to generate images for AI content drafts
+- `AI_CONTENT_CAMPAIGN_GENERATE_IMAGES=false` keeps campaign preview runs fast when image quota is unavailable
 
 ## Buffer Publishing
 

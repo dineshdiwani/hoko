@@ -264,7 +264,8 @@ async function processCampaignRunById(runId) {
           audienceMode: run.audienceMode,
           imageStyle: run.imageStyle,
           useAppScreenshots: run.useAppScreenshots
-        }
+        },
+        generateImages: process.env.AI_CONTENT_CAMPAIGN_GENERATE_IMAGES === "true"
       });
 
       const draft = await AiGeneratedPost.create({

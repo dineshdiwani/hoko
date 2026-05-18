@@ -350,7 +350,7 @@ async function generateImage({ imagePrompt }) {
   };
 }
 
-async function generateAiContentDraft({ category, settings, campaign = {} }) {
+async function generateAiContentDraft({ category, settings, campaign = {}, generateImages = true }) {
   const textDraft = await generateTextDraft({ category, settings, campaign });
   let imageResult = {
     provider: "none",
@@ -359,16 +359,18 @@ async function generateAiContentDraft({ category, settings, campaign = {} }) {
     raw: null
   };
 
-  try {
-    imageResult = await generateImage({ imagePrompt: textDraft.imagePrompt });
-  } catch (err) {
-    imageResult = {
-      provider: "failed",
-      model: normalizeText(process.env.GEMINI_IMAGE_MODEL),
-      imageUrl: "",
-      raw: err?.response?.data || err?.message || null,
-      error: getProviderErrorMessage(err, "image_generation_failed")
-    };
+  if (generateImages) {
+    try {
+      imageResult = await generateImage({ imagePrompt: textDraft.imagePrompt });
+    } catch (err) {
+      imageResult = {
+        provider: "failed",
+        model: normalizeText(process.env.GEMINI_IMAGE_MODEL),
+        imageUrl: "",
+        raw: err?.response?.data || err?.message || null,
+        error: getProviderErrorMessage(err, "image_generation_failed")
+      };
+    }
   }
 
   return {

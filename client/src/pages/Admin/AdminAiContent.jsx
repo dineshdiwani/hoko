@@ -297,12 +297,13 @@ export default function AdminAiContent() {
         if (run?.status === "completed") {
           completed = true;
           await loadAll();
-          window.setTimeout(() => setGenerationProgress(null), 1400);
+          setGenerationProgress(null);
           break;
         }
         if (run?.status === "failed") {
           completed = true;
           await loadAll();
+          setGenerationProgress(null);
           break;
         }
       }
