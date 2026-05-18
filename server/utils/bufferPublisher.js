@@ -155,7 +155,6 @@ async function createBufferPost({
               id
               text
               dueAt
-              status
               channelId
             }
           }

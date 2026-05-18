@@ -469,7 +469,10 @@ export default function AdminAiContent() {
         textByDraftId
       });
       const failed = Number(res.data?.failedCount || 0);
-      alert(`Sent to Buffer: ${res.data?.successCount || 0}${failed ? `, failed: ${failed}` : ""}`);
+      const failedMessages = Array.isArray(res.data?.results)
+        ? res.data.results.filter((item) => !item.success).map((item) => item.message).filter(Boolean)
+        : [];
+      alert(`Sent to Buffer: ${res.data?.successCount || 0}${failed ? `, failed: ${failed}${failedMessages.length ? `\n${failedMessages.join("\n")}` : ""}` : ""}`);
       setSelectedDraftIds([]);
       await refreshDraftsQuietly();
     } catch (err) {

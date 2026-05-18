@@ -236,7 +236,7 @@ router.post("/drafts/:id/buffer", adminAuth, requireAdminPermission("campaigns.m
       imageUrl: req.body?.imageUrl
     });
 
-    draft.status = result.post.status === "posted" ? "posted" : "queued";
+    draft.status = result.request.mode === "shareNow" ? "posted" : "queued";
     draft.scheduledAt = result.post.dueAt ? new Date(result.post.dueAt) : null;
     draft.buffer = {
       postId: result.post.id,
@@ -245,7 +245,7 @@ router.post("/drafts/:id/buffer", adminAuth, requireAdminPermission("campaigns.m
       channelService,
       mode: result.request.mode,
       dueAt: result.post.dueAt ? new Date(result.post.dueAt) : null,
-      status: normalizeText(result.post.status),
+      status: result.request.mode === "shareNow" ? "posted" : "queued",
       sentAt: new Date(),
       rawResponse: result.post
     };
@@ -285,7 +285,7 @@ router.post("/drafts/buffer/bulk", adminAuth, requireAdminPermission("campaigns.
         text: req.body?.textByDraftId?.[draftId],
         imageUrl: req.body?.imageUrlByDraftId?.[draftId]
       });
-      draft.status = result.post.status === "posted" ? "posted" : "queued";
+      draft.status = result.request.mode === "shareNow" ? "posted" : "queued";
       draft.scheduledAt = result.post.dueAt ? new Date(result.post.dueAt) : null;
       draft.buffer = {
         postId: result.post.id,
@@ -294,7 +294,7 @@ router.post("/drafts/buffer/bulk", adminAuth, requireAdminPermission("campaigns.
         channelService: normalizeText(req.body?.channelService),
         mode: result.request.mode,
         dueAt: result.post.dueAt ? new Date(result.post.dueAt) : null,
-        status: normalizeText(result.post.status),
+        status: result.request.mode === "shareNow" ? "posted" : "queued",
         sentAt: new Date(),
         rawResponse: result.post
       };
