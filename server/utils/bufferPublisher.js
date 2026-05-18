@@ -354,10 +354,10 @@ function getLinkAttachment(ctaLink = "") {
   return url ? { linkAttachment: { url } } : null;
 }
 
-function getPostMetadata(service = "", postType = "post", ctaLink = "") {
+function getPostMetadata(service = "", postType = "post", ctaLink = "", hasImage = false) {
   const cleanService = normalizeText(service).toLowerCase();
   const cleanType = ["post", "story", "reel"].includes(postType) ? postType : "post";
-  const linkAttachment = getLinkAttachment(ctaLink);
+  const linkAttachment = hasImage ? null : getLinkAttachment(ctaLink);
   if (cleanService === "facebook") {
     return { facebook: { type: cleanType, ...(linkAttachment || {}) } };
   }
@@ -369,7 +369,7 @@ function getPostMetadata(service = "", postType = "post", ctaLink = "") {
       instagram: {
         type: cleanType,
         shouldShareToFeed: cleanType === "post",
-        ...(ctaLink ? { link: normalizeUrl(ctaLink) } : {})
+        ...(!hasImage && ctaLink ? { link: normalizeUrl(ctaLink) } : {})
       }
     };
   }
@@ -429,7 +429,7 @@ async function createBufferPost({
       images: [{ url: publicImageUrl }]
     };
   }
-  const metadata = getPostMetadata(channelService, postType, draft?.ctaLink || getFirstUrl(postText));
+  const metadata = getPostMetadata(channelService, postType, draft?.ctaLink || getFirstUrl(postText), Boolean(publicImageUrl));
   if (metadata) {
     input.metadata = metadata;
   }
