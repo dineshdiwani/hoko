@@ -25,6 +25,10 @@ const defaultSettings = {
 
 const DRAFT_CACHE_KEY = "hoko_ai_content_drafts";
 const DRAFT_SELECTION_KEY = "hoko_ai_content_selected_drafts";
+const CAMPAIGN_FORM_KEY = "hoko_ai_content_campaign_form";
+const CATEGORY_FORM_KEY = "hoko_ai_content_category_form";
+const TRAINING_TEXT_KEY = "hoko_ai_content_training_text";
+const BUFFER_FORM_KEY = "hoko_ai_content_buffer_form";
 
 function preview(value, limit = 140) {
   const text = String(value || "").trim();
@@ -105,8 +109,14 @@ export default function AdminAiContent() {
   const [logs, setLogs] = useState([]);
   const [trainingNotes, setTrainingNotes] = useState([]);
   const [campaignRuns, setCampaignRuns] = useState([]);
-  const [trainingText, setTrainingText] = useState("");
-  const [campaignForm, setCampaignForm] = useState({
+  const [trainingText, setTrainingText] = useState(() => {
+    try {
+      return window.localStorage.getItem(TRAINING_TEXT_KEY) || "";
+    } catch {
+      return "";
+    }
+  });
+  const [campaignForm, setCampaignForm] = useState(() => ({
     mood: "",
     postCount: 3,
     categoryMode: "auto",
@@ -115,9 +125,13 @@ export default function AdminAiContent() {
     imageStyle: "auto",
     useAppScreenshots: true,
     fixedCta: "",
-    ctaLink: ""
-  });
-  const [categoryForm, setCategoryForm] = useState(emptyCategory);
+    ctaLink: "",
+    ...readStoredJson(CAMPAIGN_FORM_KEY, {})
+  }));
+  const [categoryForm, setCategoryForm] = useState(() => ({
+    ...emptyCategory,
+    ...readStoredJson(CATEGORY_FORM_KEY, {})
+  }));
   const [editingId, setEditingId] = useState("");
   const [loading, setLoading] = useState(false);
   const [draftsLoading, setDraftsLoading] = useState(false);
@@ -125,12 +139,13 @@ export default function AdminAiContent() {
   const [generationProgress, setGenerationProgress] = useState(null);
   const [bufferChannels, setBufferChannels] = useState([]);
   const [bufferConfigured, setBufferConfigured] = useState(false);
-  const [bufferForm, setBufferForm] = useState({
+  const [bufferForm, setBufferForm] = useState(() => ({
     channelId: "",
     mode: "shareNow",
     postType: "post",
-    dueAt: ""
-  });
+    dueAt: "",
+    ...readStoredJson(BUFFER_FORM_KEY, {})
+  }));
   const [selectedDraftIds, setSelectedDraftIds] = useState(() => getStoredSelection());
   const [publishingId, setPublishingId] = useState("");
   const [bulkPublishing, setBulkPublishing] = useState(false);
@@ -232,6 +247,30 @@ export default function AdminAiContent() {
     } catch {}
   }, [selectedDraftIds]);
 
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(CAMPAIGN_FORM_KEY, JSON.stringify(campaignForm));
+    } catch {}
+  }, [campaignForm]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(CATEGORY_FORM_KEY, JSON.stringify(categoryForm));
+    } catch {}
+  }, [categoryForm]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(BUFFER_FORM_KEY, JSON.stringify(bufferForm));
+    } catch {}
+  }, [bufferForm]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(TRAINING_TEXT_KEY, trainingText);
+    } catch {}
+  }, [trainingText]);
+
   async function saveSettings() {
     try {
       setSettingsSaving(true);
@@ -269,6 +308,9 @@ export default function AdminAiContent() {
   function resetCategoryForm() {
     setEditingId("");
     setCategoryForm(emptyCategory);
+    try {
+      window.localStorage.removeItem(CATEGORY_FORM_KEY);
+    } catch {}
   }
 
   async function saveCategory() {
@@ -551,6 +593,9 @@ export default function AdminAiContent() {
     try {
       await api.post("/ai-content/training-notes", { text: trainingText.trim() });
       setTrainingText("");
+      try {
+        window.localStorage.removeItem(TRAINING_TEXT_KEY);
+      } catch {}
       await loadAll();
     } catch (err) {
       alert(err?.response?.data?.message || err.message || "Failed to save training note");
