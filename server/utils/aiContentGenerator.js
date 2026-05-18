@@ -300,20 +300,37 @@ function buildFinalImagePrompt({ imagePrompt = "", draft = {}, category = {}, ca
   return sceneFocus.join(" ");
 }
 
-function buildProviderImagePrompt({ imagePrompt = "", draft = {}, category = {}, campaign = {} }) {
-  const categoryName = normalizeText(category?.name || draft?.categorySnapshot?.name);
-  const hook = normalizeText(draft?.hook || draft?.caption || draft?.topic);
-  const aiPrompt = normalizeText(imagePrompt);
-  const cleanAiPrompt = aiPrompt
+function cleanSupportingImagePrompt(imagePrompt = "") {
+  const prompt = normalizeText(imagePrompt)
     .replace(/\bHOKO\b/gi, "the marketplace app")
     .replace(/logo/gi, "app")
     .replace(/brand/gi, "business")
     .trim();
+  if (!prompt) return "";
+  const weakTemplatePatterns = [
+    /create (one )?(a )?square/i,
+    /social media image/i,
+    /online marketplace app/i,
+    /convert this admin direction/i,
+    /do not render abstract/i,
+    /depict this hook visually/i
+  ];
+  const weakTemplateHits = weakTemplatePatterns.filter((pattern) => pattern.test(prompt)).length;
+  return weakTemplateHits >= 2 ? "" : prompt;
+}
+
+function buildProviderImagePrompt({ imagePrompt = "", draft = {}, category = {}, campaign = {} }) {
+  const categoryName = normalizeText(category?.name || draft?.categorySnapshot?.name);
+  const hook = normalizeText(draft?.hook || draft?.caption || draft?.topic);
+  const cleanAiPrompt = cleanSupportingImagePrompt(imagePrompt);
+  const finalPrompt = buildFinalImagePrompt({ imagePrompt: cleanAiPrompt, draft, category, campaign })
+    .replace(/\bHOKO\b/gi, "the marketplace app");
   return [
-    cleanAiPrompt || buildFinalImagePrompt({ imagePrompt, draft, category, campaign }).replace(/\bHOKO\b/gi, "the marketplace app"),
+    finalPrompt,
     hook ? `Must align with this post hook: "${hook}".` : "",
     categoryName ? `Category context: ${categoryName}.` : "",
-    "Create a square 1:1 professional social media image.",
+    cleanAiPrompt ? `Supporting visual note: ${cleanAiPrompt}.` : "",
+    "Format: square 1:1 professional social media image.",
     "Do not render the word HOKO. Do not render any logo, pavement text, wall text, signboard, typography, unrelated portraits, wall photos, random people, decorative text, fake logos, unreadable text, or watermark."
   ].filter(Boolean).join(" ");
 }
@@ -322,13 +339,16 @@ function buildImagePromptRefinementPrompt({ imagePrompt = "", draft = {}, catego
   const categoryName = normalizeText(category?.name || draft?.categorySnapshot?.name);
   const hook = normalizeText(draft?.hook || draft?.caption || draft?.topic);
   const mood = normalizeText(campaign?.mood);
+  const cleanAiPrompt = cleanSupportingImagePrompt(imagePrompt);
+  const finalPrompt = buildFinalImagePrompt({ imagePrompt: cleanAiPrompt, draft, category, campaign });
   return [
     "Write one final text-to-image prompt for ModelsLab.",
     "Goal: create a relevant square social media image aligned with the post hook and admin mood.",
     mood ? `Admin mood / visual direction: ${mood}.` : "",
     hook ? `Post hook: ${hook}.` : "",
     categoryName ? `Category: ${categoryName}.` : "",
-    imagePrompt ? `Existing weak image prompt to improve: ${normalizeText(imagePrompt)}.` : "",
+    `Base scene prompt to improve without changing the requirement: ${finalPrompt}.`,
+    cleanAiPrompt ? `Supporting visual note: ${cleanAiPrompt}.` : "",
     "Return only the final image prompt, no JSON, no markdown.",
     "Prompt requirements:",
     "- Describe a concrete scene with visible objects, people/roles, setting, and action.",
