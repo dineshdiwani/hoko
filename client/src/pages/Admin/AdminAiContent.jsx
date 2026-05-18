@@ -129,6 +129,14 @@ export default function AdminAiContent() {
     }
   }
 
+  async function refreshDraftsQuietly() {
+    try {
+      await loadDraftsOnly();
+    } catch {
+      // loadDraftsOnly already reports errors.
+    }
+  }
+
   async function loadBufferChannels() {
     try {
       const res = await api.get("/ai-content/buffer/channels");
@@ -254,7 +262,7 @@ export default function AdminAiContent() {
         title: "Generation complete",
         message: `Generated drafts: ${result.createdDrafts || 0}`
       });
-      await loadAll();
+      await refreshDraftsQuietly();
       window.setTimeout(() => setGenerationProgress(null), 1200);
     } catch (err) {
       if (timer) window.clearInterval(timer);
@@ -317,20 +325,20 @@ export default function AdminAiContent() {
 
         if (run?.status === "completed") {
           completed = true;
-          await loadAll();
+          await refreshDraftsQuietly();
           setGenerationProgress(null);
           break;
         }
         if (run?.status === "failed") {
           completed = true;
-          await loadAll();
+          await refreshDraftsQuietly();
           setGenerationProgress(null);
           break;
         }
       }
 
       if (!completed) {
-        await loadAll();
+        await refreshDraftsQuietly();
         setGenerationProgress({
           percent: 95,
           title: "Still generating",
@@ -354,7 +362,7 @@ export default function AdminAiContent() {
   async function setDraftStatus(draftId, status) {
     try {
       await api.patch(`/ai-content/drafts/${draftId}/status`, { status });
-      await loadAll();
+      await refreshDraftsQuietly();
     } catch (err) {
       alert(err?.response?.data?.message || err.message || "Failed to update draft");
     }
@@ -388,11 +396,11 @@ export default function AdminAiContent() {
         dueAt: bufferForm.mode === "customScheduled" ? bufferForm.dueAt : "",
         text: postTextByDraftId[draft._id] || composePostText(draft)
       });
-      await loadAll();
+      await refreshDraftsQuietly();
       setSelectedDraftIds((current) => current.filter((id) => id !== draft._id));
     } catch (err) {
       alert(err?.response?.data?.message || err.message || "Failed to send draft to Buffer");
-      await loadAll();
+      await refreshDraftsQuietly();
     } finally {
       setPublishingId("");
     }
@@ -426,10 +434,10 @@ export default function AdminAiContent() {
       const failed = Number(res.data?.failedCount || 0);
       alert(`Sent to Buffer: ${res.data?.successCount || 0}${failed ? `, failed: ${failed}` : ""}`);
       setSelectedDraftIds([]);
-      await loadAll();
+      await refreshDraftsQuietly();
     } catch (err) {
       alert(err?.response?.data?.message || err.message || "Failed to send selected drafts");
-      await loadAll();
+      await refreshDraftsQuietly();
     } finally {
       setBulkPublishing(false);
     }
@@ -439,7 +447,7 @@ export default function AdminAiContent() {
     if (!window.confirm("Delete this generated draft?")) return;
     try {
       await api.delete(`/ai-content/drafts/${draftId}`);
-      await loadAll();
+      await refreshDraftsQuietly();
     } catch (err) {
       alert(err?.response?.data?.message || err.message || "Failed to delete draft");
     }
