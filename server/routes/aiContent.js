@@ -244,6 +244,9 @@ router.post("/drafts/:id/buffer", adminAuth, requireAdminPermission("campaigns.m
       imageUrl: req.body?.imageUrl
     });
 
+    if (result.request.imageUrl && result.request.imageUrl !== draft.imageUrl) {
+      draft.imageUrl = result.request.imageUrl;
+    }
     draft.status = result.request.mode === "shareNow" ? "posted" : "queued";
     draft.scheduledAt = result.post.dueAt ? new Date(result.post.dueAt) : null;
     draft.buffer = {
@@ -295,6 +298,9 @@ router.post("/drafts/buffer/bulk", adminAuth, requireAdminPermission("campaigns.
         text: req.body?.textByDraftId?.[draftId],
         imageUrl: req.body?.imageUrlByDraftId?.[draftId]
       });
+      if (result.request.imageUrl && result.request.imageUrl !== draft.imageUrl) {
+        draft.imageUrl = result.request.imageUrl;
+      }
       draft.status = result.request.mode === "shareNow" ? "posted" : "queued";
       draft.scheduledAt = result.post.dueAt ? new Date(result.post.dueAt) : null;
       draft.buffer = {

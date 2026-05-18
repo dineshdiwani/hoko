@@ -1,4 +1,11 @@
+const crypto = require("crypto");
+const fs = require("fs");
+const path = require("path");
 const axios = require("axios");
+const { resolvePublicAppUrl } = require("./publicAppUrl");
+const { generateImage } = require("./aiContentGenerator");
+
+const AI_CONTENT_UPLOAD_DIR = path.join(__dirname, "..", "uploads", "social-media");
 
 const BUFFER_API_URL = "https://api.buffer.com";
 
@@ -114,6 +121,49 @@ function getPublicImageUrl(draft, imageUrlOverride = "") {
   return /^https?:\/\//i.test(value) ? value : "";
 }
 
+function extensionFromMimeType(mimeType = "") {
+  const cleanMime = normalizeText(mimeType).toLowerCase();
+  if (cleanMime === "image/jpeg" || cleanMime === "image/jpg") return "jpg";
+  if (cleanMime === "image/webp") return "webp";
+  if (cleanMime === "image/gif") return "gif";
+  return "png";
+}
+
+async function saveDataImageAsPublicUrl(value = "") {
+  const text = normalizeText(value);
+  const match = text.match(/^data:(image\/[a-z0-9.+-]+);base64,([a-z0-9+/=\s]+)$/i);
+  if (!match) return "";
+
+  const mimeType = match[1];
+  const data = match[2].replace(/\s+/g, "");
+  const buffer = Buffer.from(data, "base64");
+  if (!buffer.length) return "";
+
+  await fs.promises.mkdir(AI_CONTENT_UPLOAD_DIR, { recursive: true });
+  const fileName = `ai-content-${Date.now()}-${crypto.randomBytes(6).toString("hex")}.${extensionFromMimeType(mimeType)}`;
+  await fs.promises.writeFile(path.join(AI_CONTENT_UPLOAD_DIR, fileName), buffer);
+  return `${resolvePublicAppUrl()}/uploads/social-media/${encodeURIComponent(fileName)}`;
+}
+
+async function resolvePublicImageUrl(draft, imageUrlOverride = "") {
+  const value = normalizeText(imageUrlOverride) || normalizeText(draft?.imageUrl);
+  if (!value) return "";
+  if (/^https?:\/\//i.test(value)) return value;
+  if (value.startsWith("data:")) return saveDataImageAsPublicUrl(value);
+  return "";
+}
+
+async function resolveOrGeneratePublicImageUrl(draft, imageUrlOverride = "") {
+  const existingUrl = await resolvePublicImageUrl(draft, imageUrlOverride);
+  if (existingUrl) return existingUrl;
+
+  const imagePrompt = normalizeText(draft?.imagePrompt);
+  if (!imagePrompt) return "";
+
+  const generated = await generateImage({ imagePrompt });
+  return resolvePublicImageUrl({ imageUrl: generated?.imageUrl || "" });
+}
+
 function getLinkAttachment(ctaLink = "") {
   const url = normalizeUrl(ctaLink);
   return url ? { linkAttachment: { url } } : null;
@@ -168,7 +218,11 @@ async function createBufferPost({
     throw new Error("Post text is required");
   }
 
-  const publicImageUrl = getPublicImageUrl(draft, imageUrl);
+  const publicImageUrl = await resolveOrGeneratePublicImageUrl(draft, imageUrl);
+  const cleanChannelService = normalizeText(channelService).toLowerCase();
+  if (cleanChannelService === "instagram" && !publicImageUrl) {
+    throw new Error("Instagram publishing requires a public image. Generate an image first, or use a draft with an image.");
+  }
   const input = {
     text: postText,
     channelId: cleanChannelId,
@@ -225,7 +279,8 @@ async function createBufferPost({
       channelId: cleanChannelId,
       mode: cleanMode,
       dueAt: cleanDueAt,
-      hasImage: Boolean(publicImageUrl)
+      hasImage: Boolean(publicImageUrl),
+      imageUrl: publicImageUrl
     }
   };
 }
@@ -234,5 +289,8 @@ module.exports = {
   composeDraftText,
   createBufferPost,
   getBufferChannels,
-  getBufferOrganizations
+  getBufferOrganizations,
+  getPublicImageUrl,
+  resolvePublicImageUrl,
+  resolveOrGeneratePublicImageUrl
 };
