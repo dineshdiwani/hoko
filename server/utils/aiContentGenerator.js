@@ -39,6 +39,15 @@ function normalizeImageProvider(value) {
   return ["gemini", "modelslab", "none"].includes(provider) ? provider : "modelslab";
 }
 
+function resolveImageProvider(settings = {}) {
+  const textProvider = normalizeAiProvider(settings?.aiProvider);
+  const imageProvider = normalizeImageProvider(settings?.imageProvider || process.env.AI_CONTENT_IMAGE_PROVIDER);
+  if (textProvider === "openai" && imageProvider === "gemini") {
+    return "modelslab";
+  }
+  return imageProvider;
+}
+
 function extractResponseText(payload) {
   const geminiText = Array.isArray(payload?.candidates)
     ? payload.candidates
@@ -582,7 +591,7 @@ async function generateGeminiImage({ imagePrompt, draft = {}, category = {}, cam
 }
 
 async function generateImage({ imagePrompt, settings = {}, draft = {}, category = {}, campaign = {} }) {
-  const provider = normalizeImageProvider(settings?.imageProvider || process.env.AI_CONTENT_IMAGE_PROVIDER);
+  const provider = resolveImageProvider(settings);
   if (provider === "none" || process.env.AI_CONTENT_GENERATE_IMAGES !== "true") {
     return {
       provider: "none",
