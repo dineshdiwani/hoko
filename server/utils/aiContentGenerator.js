@@ -228,10 +228,11 @@ function buildPrompt({ category, fixedCta, campaign = {} }) {
     "Prefer hooks that create curiosity or urgency, but do not exaggerate, promise guaranteed savings, or make unverifiable guarantees.",
     "Use plain Indian business English. Avoid generic lines like grow your business, discover opportunities, or connect buyers and sellers unless tied to price offers.",
     "caption: repeat the hook only. Do not add extra copy. CTA is stored separately as button text.",
-    "imagePrompt: describe a concrete square social post image that visually depicts the exact hook, with the selected category/product as the main visual subject.",
-    campaignMood ? "imagePrompt must include the concrete scene from today's campaign mood/direction. Do not replace it with a generic marketplace workflow." : "",
-    "Image prompt must name specific visible objects, setting, and buyer/seller action for the category. Avoid generic business scenes.",
-    "Image prompt must show buyer requirement, seller price offers, price comparison, and reverse auction where relevant, but these should support the category/product visual, not replace it.",
+    "imagePrompt: write the final image-generation prompt for ModelsLab. It must be aligned with the hook and campaign mood.",
+    campaignMood ? "imagePrompt must use today's campaign mood/direction as visual guidance and connect it directly to the generated hook." : "",
+    "imagePrompt must include: exact main subject, concrete setting, people/roles, visible product/category objects, and how seller offers/price comparison are shown.",
+    "imagePrompt must not be generic. Do not say only 'HOKO marketplace workflow'. Make it a literal scene a designer can draw.",
+    "imagePrompt must show buyer requirement, seller price offers, price comparison, and reverse auction only where relevant, as part of the scene.",
     "Avoid unreadable text, fake screenshots, platform logos, or celebrity/brand references.",
     "Hashtags must be an array of 3 to 6 strings. Do not include markdown fences."
   ].filter(Boolean).join(" ");
@@ -294,18 +295,16 @@ function buildFinalImagePrompt({ imagePrompt = "", draft = {}, category = {}, ca
 }
 
 function buildProviderImagePrompt({ imagePrompt = "", draft = {}, category = {}, campaign = {} }) {
-  const mood = normalizeText(campaign?.mood);
   const categoryName = normalizeText(category?.name || draft?.categorySnapshot?.name);
-  if (mood) {
-    return [
-      mood,
-      categoryName ? `Category context: ${categoryName}.` : "",
-      "Create a square 1:1 professional social media image.",
-      "Keep the visual faithful to the user's exact scene. Do not add unrelated portraits, wall photos, random people, or decorative text.",
-      "No fake logos, no unreadable text, no watermark."
-    ].filter(Boolean).join(" ");
-  }
-  return buildFinalImagePrompt({ imagePrompt, draft, category, campaign });
+  const hook = normalizeText(draft?.hook || draft?.caption || draft?.topic);
+  const aiPrompt = normalizeText(imagePrompt);
+  return [
+    aiPrompt || buildFinalImagePrompt({ imagePrompt, draft, category, campaign }),
+    hook ? `Must align with this post hook: "${hook}".` : "",
+    categoryName ? `Category context: ${categoryName}.` : "",
+    "Create a square 1:1 professional social media image.",
+    "No unrelated portraits, no wall photos, no random people, no decorative text, no fake logos, no unreadable text, no watermark."
+  ].filter(Boolean).join(" ");
 }
 
 async function generateTextDraft({ category, settings, campaign = {} }) {
@@ -683,12 +682,6 @@ async function generateAiContentDraft({ category, settings, campaign = {}, gener
 
   return {
     ...textDraft,
-    imagePrompt: buildProviderImagePrompt({
-      imagePrompt: textDraft.imagePrompt,
-      draft: textDraft,
-      category,
-      campaign
-    }),
     imageUrl: imageResult.imageUrl,
     imageProvider: imageResult.provider,
     imageModel: imageResult.model,
