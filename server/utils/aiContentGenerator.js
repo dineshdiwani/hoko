@@ -293,6 +293,21 @@ function buildFinalImagePrompt({ imagePrompt = "", draft = {}, category = {}, ca
   return sceneFocus.join(" ");
 }
 
+function buildProviderImagePrompt({ imagePrompt = "", draft = {}, category = {}, campaign = {} }) {
+  const mood = normalizeText(campaign?.mood);
+  const categoryName = normalizeText(category?.name || draft?.categorySnapshot?.name);
+  if (mood) {
+    return [
+      mood,
+      categoryName ? `Category context: ${categoryName}.` : "",
+      "Create a square 1:1 professional social media image.",
+      "Keep the visual faithful to the user's exact scene. Do not add unrelated portraits, wall photos, random people, or decorative text.",
+      "No fake logos, no unreadable text, no watermark."
+    ].filter(Boolean).join(" ");
+  }
+  return buildFinalImagePrompt({ imagePrompt, draft, category, campaign });
+}
+
 async function generateTextDraft({ category, settings, campaign = {} }) {
   const fixedCta = normalizeText(settings?.fixedCta) || "Learn More";
   const fallback = buildFallbackDraft({
@@ -524,7 +539,7 @@ async function generateModelsLabImage({ imagePrompt, draft = {}, category = {}, 
     "https://modelslab.com/api/v6/images/text2img",
     {
       key: apiKey,
-      prompt: buildFinalImagePrompt({ imagePrompt, draft, category, campaign }),
+      prompt: buildProviderImagePrompt({ imagePrompt, draft, category, campaign }),
       model_id: model,
       width: "1024",
       height: "1024",
@@ -582,7 +597,7 @@ async function generateGeminiImage({ imagePrompt, draft = {}, category = {}, cam
               text: [
                 "Generate one square social media image for this prompt.",
                 "Return an image output.",
-                buildFinalImagePrompt({ imagePrompt, draft, category, campaign })
+                buildProviderImagePrompt({ imagePrompt, draft, category, campaign })
               ].filter(Boolean).join(" ")
             }
           ]
@@ -668,6 +683,12 @@ async function generateAiContentDraft({ category, settings, campaign = {}, gener
 
   return {
     ...textDraft,
+    imagePrompt: buildProviderImagePrompt({
+      imagePrompt: textDraft.imagePrompt,
+      draft: textDraft,
+      category,
+      campaign
+    }),
     imageUrl: imageResult.imageUrl,
     imageProvider: imageResult.provider,
     imageModel: imageResult.model,
