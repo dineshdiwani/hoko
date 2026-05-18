@@ -26,7 +26,7 @@ function isPlaceholderHost(value) {
 
 function resolvePublicAppUrl() {
   const candidate = normalizeToHttpsUrl(
-    firstEnvUrl(process.env.APP_PUBLIC_URL || process.env.CLIENT_URL)
+    firstEnvUrl(process.env.APP_PUBLIC_URL || process.env.PUBLIC_APP_URL || process.env.APP_URL || process.env.CLIENT_URL)
   );
   if (!candidate || isPlaceholderHost(candidate)) {
     return FALLBACK_APP_URL;
@@ -37,4 +37,3 @@ function resolvePublicAppUrl() {
 module.exports = {
   resolvePublicAppUrl
 };
-

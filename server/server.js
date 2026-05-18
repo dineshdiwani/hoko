@@ -892,6 +892,19 @@ const diskFilename =
     return res.status(404).json({ message: "File not found" });
   }
 
+  const extension = path.extname(safeName).toLowerCase();
+  const contentTypes = {
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+    ".webp": "image/webp",
+    ".gif": "image/gif"
+  };
+  if (contentTypes[extension]) {
+    res.setHeader("Content-Type", contentTypes[extension]);
+  }
+  res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+  res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
   return res.sendFile(filePath);
 });
 
@@ -950,6 +963,19 @@ app.get("/uploads/social-media/:filename", async (req, res) => {
     return res.status(404).json({ message: "File not found" });
   }
 
+  const extension = path.extname(safeName).toLowerCase();
+  const contentTypes = {
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+    ".webp": "image/webp",
+    ".gif": "image/gif"
+  };
+  if (contentTypes[extension]) {
+    res.setHeader("Content-Type", contentTypes[extension]);
+  }
+  res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+  res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
   return res.sendFile(filePath);
 });
 

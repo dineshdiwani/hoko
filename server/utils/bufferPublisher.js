@@ -301,6 +301,32 @@ async function resolvePublicImageUrl(draft, imageUrlOverride = "") {
   return "";
 }
 
+async function verifyPublicImageUrl(value = "") {
+  const url = normalizeText(value);
+  if (!url) return;
+  const response = await axios.get(url, {
+    timeout: 30000,
+    responseType: "arraybuffer",
+    maxRedirects: 5,
+    headers: {
+      Accept: "image/jpeg,image/png,image/*;q=0.8,*/*;q=0.5",
+      "User-Agent": "BufferImageCheck/1.0"
+    }
+  });
+  const mimeType = normalizeText(response.headers?.["content-type"]).split(";")[0].toLowerCase();
+  const buffer = Buffer.from(response.data);
+  const info = detectImageInfo(buffer);
+  if (response.status >= 400) {
+    throw new Error(`Public image URL returned HTTP ${response.status}`);
+  }
+  if (!mimeType.startsWith("image/")) {
+    throw new Error(`Public image URL returned ${mimeType || "unknown content type"} instead of image`);
+  }
+  if (!info.width || !info.height) {
+    throw new Error("Public image URL is reachable but image dimensions could not be read");
+  }
+}
+
 async function resolveOrGeneratePublicImageUrl(draft, imageUrlOverride = "") {
   const existingUrl = await resolvePublicImageUrl(draft, imageUrlOverride);
   if (existingUrl) return existingUrl;
@@ -375,6 +401,9 @@ async function createBufferPost({
   const cleanChannelService = normalizeText(channelService).toLowerCase();
   if (cleanChannelService === "instagram" && !publicImageUrl) {
     throw new Error("Instagram publishing requires a public image. Generate an image first, or use a draft with an image.");
+  }
+  if (publicImageUrl) {
+    await verifyPublicImageUrl(publicImageUrl);
   }
   const input = {
     text: postText,
