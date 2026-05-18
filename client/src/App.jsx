@@ -52,7 +52,6 @@ const AdminLogin = lazy(() => import("./pages/Admin/Login"));
 const AdminDashboard = lazy(() => import("./pages/Admin/AdminDashboard"));
 const AdminAnalytics = lazy(() => import("./pages/Admin/AdminAnalytics"));
 const AdminWhatsApp = lazy(() => import("./pages/Admin/AdminWhatsApp"));
-const AdminSocialMedia = lazy(() => import("./pages/Admin/AdminSocialMedia"));
 const AdminAiContent = lazy(() => import("./pages/Admin/AdminAiContent"));
 const AdminOperations = lazy(() => import("./pages/Admin/AdminOperations"));
 const AdminBulkSms = lazy(() => import("./pages/Admin/AdminBulkSms"));
@@ -521,14 +520,8 @@ function AppShell() {
           element={requireAdmin() ? <AdminWhatsApp /> : <Navigate to="/admin/login" replace />}
         />
 
-        <Route
-          path="/admin/instagram"
-          element={requireAdmin() ? <AdminSocialMedia /> : <Navigate to="/admin/login" replace />}
-        />
-        <Route
-          path="/admin/social-media"
-          element={<Navigate to="/admin/instagram" replace />}
-        />
+        <Route path="/admin/instagram" element={<Navigate to="/admin/dashboard" replace />} />
+        <Route path="/admin/social-media" element={<Navigate to="/admin/dashboard" replace />} />
         <Route
           path="/admin/ai-content"
           element={requireAdmin() ? <AdminAiContent /> : <Navigate to="/admin/login" replace />}

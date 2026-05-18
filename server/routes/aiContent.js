@@ -36,6 +36,27 @@ function normalizeImageProvider(value) {
   return ["gemini", "modelslab", "none"].includes(provider) ? provider : "modelslab";
 }
 
+function normalizeAutoPlatformSettings(value = {}) {
+  const allowedPlatforms = ["facebook", "instagram", "linkedin"];
+  const allowedModes = ["shareNow", "shareNext", "customScheduled", "addToQueue"];
+  const allowedPostTypes = ["post", "story", "reel"];
+  return allowedPlatforms.reduce((result, platform) => {
+    const source = value?.[platform] || {};
+    result[platform] = {
+      enabled: Boolean(source.enabled),
+      intervalMinutes: Math.max(5, Math.min(10080, Number(source.intervalMinutes || 1440))),
+      channelIds: Array.isArray(source.channelIds)
+        ? source.channelIds.map((item) => normalizeText(item)).filter(Boolean)
+        : [],
+      mode: allowedModes.includes(source.mode) ? source.mode : "addToQueue",
+      delayMinutes: Math.max(0, Math.min(10080, Number(source.delayMinutes || 30))),
+      postType: allowedPostTypes.includes(source.postType) ? source.postType : "post",
+      lastRunAt: source.lastRunAt || null
+    };
+    return result;
+  }, {});
+}
+
 function categoryPayload(body = {}, adminId = null) {
   return {
     name: normalizeText(body.name),
@@ -86,6 +107,7 @@ router.put("/settings", adminAuth, requireAdminPermission("campaigns.manage"), a
   const blockedWords = Array.isArray(body.blockedWords)
     ? body.blockedWords.map((item) => normalizeText(item)).filter(Boolean)
     : String(body.blockedWords || "").split(",").map((item) => normalizeText(item)).filter(Boolean);
+  const autoPlatformSettings = normalizeAutoPlatformSettings(body.autoPlatformSettings);
   const settings = await AiContentSettings.findOneAndUpdate(
     { key: "default" },
     {
@@ -101,6 +123,7 @@ router.put("/settings", adminAuth, requireAdminPermission("campaigns.manage"), a
         autoBufferMode,
         autoBufferDelayMinutes,
         autoBufferPostType,
+        autoPlatformSettings,
         maxDraftsPerRun,
         cronIntervalMinutes,
         brandInstructions: normalizeText(body.brandInstructions),

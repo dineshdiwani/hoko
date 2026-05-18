@@ -30,6 +30,59 @@ const aiContentSettingsSchema = new mongoose.Schema(
       enum: ["post", "story", "reel"],
       default: "post"
     },
+    autoPlatformSettings: {
+      facebook: {
+        enabled: { type: Boolean, default: false },
+        intervalMinutes: { type: Number, default: 1440, min: 5, max: 10080 },
+        channelIds: [{ type: String }],
+        mode: {
+          type: String,
+          enum: ["shareNow", "shareNext", "customScheduled", "addToQueue"],
+          default: "addToQueue"
+        },
+        delayMinutes: { type: Number, default: 30, min: 0, max: 10080 },
+        postType: {
+          type: String,
+          enum: ["post", "story", "reel"],
+          default: "post"
+        },
+        lastRunAt: { type: Date, default: null }
+      },
+      instagram: {
+        enabled: { type: Boolean, default: false },
+        intervalMinutes: { type: Number, default: 1440, min: 5, max: 10080 },
+        channelIds: [{ type: String }],
+        mode: {
+          type: String,
+          enum: ["shareNow", "shareNext", "customScheduled", "addToQueue"],
+          default: "addToQueue"
+        },
+        delayMinutes: { type: Number, default: 30, min: 0, max: 10080 },
+        postType: {
+          type: String,
+          enum: ["post", "story", "reel"],
+          default: "post"
+        },
+        lastRunAt: { type: Date, default: null }
+      },
+      linkedin: {
+        enabled: { type: Boolean, default: false },
+        intervalMinutes: { type: Number, default: 1440, min: 5, max: 10080 },
+        channelIds: [{ type: String }],
+        mode: {
+          type: String,
+          enum: ["shareNow", "shareNext", "customScheduled", "addToQueue"],
+          default: "addToQueue"
+        },
+        delayMinutes: { type: Number, default: 30, min: 0, max: 10080 },
+        postType: {
+          type: String,
+          enum: ["post", "story", "reel"],
+          default: "post"
+        },
+        lastRunAt: { type: Date, default: null }
+      }
+    },
     maxDraftsPerRun: { type: Number, default: 3, min: 1, max: 20 },
     cronIntervalMinutes: { type: Number, default: 60, min: 5, max: 1440 },
     brandInstructions: { type: String, default: "" },

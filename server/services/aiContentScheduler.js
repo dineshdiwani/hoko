@@ -12,6 +12,11 @@ let schedulerStarted = false;
 let schedulerIntervalId = null;
 let running = false;
 
+function getSchedulerIntervalMs(settings = null) {
+  const minutes = Number(settings?.cronIntervalMinutes || process.env.AI_CONTENT_INTERVAL_MINUTES || 60);
+  return Math.max(5, Math.min(1440, minutes)) * 60000;
+}
+
 async function getSettings() {
   return AiContentSettings.findOneAndUpdate(
     { key: "default" },
@@ -59,6 +64,53 @@ function getTargetPlatforms(draft) {
   return Array.from(new Set(platforms));
 }
 
+function getPlatformSettings(settings = {}) {
+  const legacyEnabled = Boolean(settings.autoBufferEnabled);
+  const legacyChannelIds = Array.isArray(settings.autoBufferChannelIds)
+    ? settings.autoBufferChannelIds.map(normalizeText).filter(Boolean)
+    : [];
+  const source = settings.autoPlatformSettings || {};
+  return ["facebook", "instagram", "linkedin"].reduce((result, platform) => {
+    const profile = source?.[platform] || {};
+    result[platform] = {
+      platform,
+      enabled: Boolean(profile.enabled || legacyEnabled),
+      intervalMinutes: Math.max(5, Math.min(10080, Number(profile.intervalMinutes || settings.cronIntervalMinutes || 1440))),
+      channelIds: Array.isArray(profile.channelIds) && profile.channelIds.length
+        ? profile.channelIds.map(normalizeText).filter(Boolean)
+        : legacyChannelIds,
+      mode: normalizeText(profile.mode || settings.autoBufferMode) || "addToQueue",
+      delayMinutes: Math.max(0, Math.min(10080, Number(profile.delayMinutes ?? settings.autoBufferDelayMinutes ?? 30))),
+      postType: normalizeText(profile.postType || settings.autoBufferPostType) || "post",
+      lastRunAt: profile.lastRunAt || null
+    };
+    return result;
+  }, {});
+}
+
+function getDuePlatformProfiles(settings = {}) {
+  const profiles = getPlatformSettings(settings);
+  const now = Date.now();
+  return Object.values(profiles).filter((profile) => {
+    if (!profile.enabled) return false;
+    const lastRunAt = profile.lastRunAt ? new Date(profile.lastRunAt).getTime() : 0;
+    if (!lastRunAt || Number.isNaN(lastRunAt)) return true;
+    return now - lastRunAt >= profile.intervalMinutes * 60000;
+  });
+}
+
+async function markPlatformProfilesRun(settings = {}, profiles = []) {
+  const updates = {};
+  const now = new Date();
+  for (const profile of profiles) {
+    if (!profile?.platform) continue;
+    updates[`autoPlatformSettings.${profile.platform}.lastRunAt`] = now;
+  }
+  if (Object.keys(updates).length) {
+    await AiContentSettings.updateOne({ key: settings.key || "default" }, { $set: updates });
+  }
+}
+
 async function resolveAutoBufferChannels(settings = {}) {
   const selectedIds = Array.isArray(settings.autoBufferChannelIds)
     ? settings.autoBufferChannelIds.map(normalizeText).filter(Boolean)
@@ -70,31 +122,39 @@ async function resolveAutoBufferChannels(settings = {}) {
   return channels.filter((channel) => selected.has(normalizeText(channel.id)));
 }
 
-async function autoSendDraftToBuffer({ draft, settings }) {
-  if (!settings?.autoBufferEnabled) return { skipped: true, reason: "auto_buffer_disabled" };
+async function autoSendDraftToBuffer({ draft, settings, platformProfiles = null }) {
+  const profiles = Array.isArray(platformProfiles) ? platformProfiles : getDuePlatformProfiles(settings);
+  if (!profiles.length) return { skipped: true, reason: "no_due_auto_platforms" };
   const channels = await resolveAutoBufferChannels(settings);
   if (!channels.length) return { skipped: true, reason: "no_auto_buffer_channels" };
   const targetPlatforms = getTargetPlatforms(draft);
-  const publishChannels = targetPlatforms.length
-    ? channels.filter((channel) => targetPlatforms.includes(normalizeChannelService(channel.service)))
-    : channels;
+  const dueByPlatform = new Map(profiles.map((profile) => [profile.platform, profile]));
+  const publishChannels = channels.filter((channel) => {
+    const platform = normalizeChannelService(channel.service);
+    const profile = dueByPlatform.get(platform);
+    if (!profile) return false;
+    if (targetPlatforms.length && !targetPlatforms.includes(platform)) return false;
+    if (profile.channelIds.length && !profile.channelIds.includes(normalizeText(channel.id))) return false;
+    return true;
+  });
   if (!publishChannels.length) {
-    return { skipped: true, reason: "no_matching_target_platform_channels", targetPlatforms };
+    return { skipped: true, reason: "no_matching_target_platform_channels", targetPlatforms, platforms: profiles.map((item) => item.platform) };
   }
 
   const results = [];
   for (const channel of publishChannels) {
     try {
-      const mode = normalizeText(settings.autoBufferMode) || "addToQueue";
+      const profile = dueByPlatform.get(normalizeChannelService(channel.service)) || {};
+      const mode = normalizeText(profile.mode) || "addToQueue";
       const dueAt = mode === "customScheduled"
-        ? new Date(Date.now() + Math.max(0, Number(settings.autoBufferDelayMinutes || 30)) * 60000).toISOString()
+        ? new Date(Date.now() + Math.max(0, Number(profile.delayMinutes || 30)) * 60000).toISOString()
         : "";
       const result = await createBufferPost({
         draft: draft.toObject ? draft.toObject() : draft,
         channelId: channel.id,
         channelName: channel.name,
         channelService: channel.service,
-        postType: settings.autoBufferPostType || "post",
+        postType: profile.postType || "post",
         mode,
         dueAt,
         text: getChannelCaption(draft, channel.service)
@@ -104,6 +164,7 @@ async function autoSendDraftToBuffer({ draft, settings }) {
         channelId: channel.id,
         channelName: channel.name,
         channelService: channel.service,
+        mode,
         postId: result.post.id,
         imageAttached: Boolean(result.post.assets?.length)
       });
@@ -120,16 +181,16 @@ async function autoSendDraftToBuffer({ draft, settings }) {
 
   const success = results.find((item) => item.success);
   if (success) {
-    draft.status = settings.autoBufferMode === "shareNow" ? "posted" : "queued";
+    draft.status = success.mode === "shareNow" ? "posted" : "queued";
     draft.scheduledAt = new Date();
     draft.buffer = {
       postId: success.postId,
       channelId: success.channelId,
       channelName: success.channelName,
       channelService: success.channelService,
-      mode: settings.autoBufferMode || "addToQueue",
+      mode: success.mode || "addToQueue",
       dueAt: null,
-      status: settings.autoBufferMode === "shareNow" ? "posted" : "queued",
+      status: success.mode === "shareNow" ? "posted" : "queued",
       sentAt: new Date(),
       rawResponse: { automationResults: results }
     };
@@ -147,7 +208,9 @@ async function autoSendDraftToBuffer({ draft, settings }) {
 }
 
 async function processAutoBufferQueue(settings = {}, limit = 10) {
-  if (!settings?.autoBufferEnabled) return { skipped: true, reason: "auto_buffer_disabled" };
+  const platformProfiles = getDuePlatformProfiles(settings);
+  if (!platformProfiles.length) return { skipped: true, reason: "no_due_auto_platforms" };
+  const duePlatforms = platformProfiles.map((item) => item.platform);
   const drafts = await AiGeneratedPost.find({
     status: "approved",
     $or: [
@@ -160,12 +223,18 @@ async function processAutoBufferQueue(settings = {}, limit = 10) {
   let sent = 0;
   const failures = [];
   for (const draft of drafts) {
-    const result = await autoSendDraftToBuffer({ draft, settings });
+    const draftTargets = getTargetPlatforms(draft);
+    const matchingProfiles = draftTargets.length
+      ? platformProfiles.filter((profile) => draftTargets.includes(profile.platform))
+      : platformProfiles;
+    if (!matchingProfiles.length) continue;
+    const result = await autoSendDraftToBuffer({ draft, settings, platformProfiles: matchingProfiles });
     const results = Array.isArray(result?.results) ? result.results : [];
     if (results.some((item) => item.success)) sent += 1;
     if (results.some((item) => !item.success)) failures.push(String(draft._id));
   }
-  return { picked: drafts.length, sent, failures };
+  await markPlatformProfilesRun(settings, platformProfiles);
+  return { picked: drafts.length, sent, failures, duePlatforms };
 }
 
 async function getDashboardCategories() {
@@ -475,16 +544,29 @@ function startAiContentScheduler() {
   if (schedulerStarted) return;
   schedulerStarted = true;
 
-  const intervalMs = Math.max(5, Number(process.env.AI_CONTENT_INTERVAL_MINUTES || 60)) * 60000;
-  const sweep = () => {
-    processAiContentGeneration().catch((err) => {
-      console.warn("[AiContentScheduler] generation failed:", err?.message || err);
-    });
+  const scheduleNext = async (intervalMs = getSchedulerIntervalMs()) => {
+    if (schedulerIntervalId) clearTimeout(schedulerIntervalId);
+    schedulerIntervalId = setTimeout(async () => {
+      await sweep();
+    }, intervalMs);
+    if (schedulerIntervalId?.unref) schedulerIntervalId.unref();
   };
 
-  schedulerIntervalId = setInterval(sweep, intervalMs);
-  if (schedulerIntervalId?.unref) schedulerIntervalId.unref();
-  console.log(`[AiContentScheduler] started every ${Math.round(intervalMs / 60000)}m`);
+  const sweep = async () => {
+    let nextIntervalMs = getSchedulerIntervalMs();
+    try {
+      const settings = await getSettings();
+      nextIntervalMs = getSchedulerIntervalMs(settings);
+      await processAiContentGeneration();
+    } catch (err) {
+      console.warn("[AiContentScheduler] generation failed:", err?.message || err);
+    } finally {
+      scheduleNext(nextIntervalMs);
+    }
+  };
+
+  scheduleNext(getSchedulerIntervalMs());
+  console.log("[AiContentScheduler] started");
 }
 
 module.exports = {

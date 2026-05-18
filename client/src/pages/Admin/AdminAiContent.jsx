@@ -24,6 +24,32 @@ const defaultSettings = {
   autoBufferMode: "addToQueue",
   autoBufferDelayMinutes: 30,
   autoBufferPostType: "post",
+  autoPlatformSettings: {
+    facebook: {
+      enabled: false,
+      intervalMinutes: 1440,
+      channelIds: [],
+      mode: "addToQueue",
+      delayMinutes: 30,
+      postType: "post"
+    },
+    instagram: {
+      enabled: false,
+      intervalMinutes: 1440,
+      channelIds: [],
+      mode: "addToQueue",
+      delayMinutes: 30,
+      postType: "post"
+    },
+    linkedin: {
+      enabled: false,
+      intervalMinutes: 1440,
+      channelIds: [],
+      mode: "addToQueue",
+      delayMinutes: 30,
+      postType: "post"
+    }
+  },
   maxDraftsPerRun: 3,
   cronIntervalMinutes: 60,
   brandInstructions: "",
@@ -37,6 +63,11 @@ const CATEGORY_FORM_KEY = "hoko_ai_content_category_form";
 const TRAINING_TEXT_KEY = "hoko_ai_content_training_text";
 const BUFFER_FORM_KEY = "hoko_ai_content_buffer_form";
 const DRAFT_HISTORY_LIMIT = 1000;
+const PLATFORM_OPTIONS = [
+  { id: "facebook", label: "Facebook" },
+  { id: "instagram", label: "Instagram" },
+  { id: "linkedin", label: "LinkedIn" }
+];
 
 function preview(value, limit = 140) {
   const text = String(value || "").trim();
@@ -98,6 +129,21 @@ function getStoredSelection() {
 function replaceDraft(drafts, updatedDraft) {
   if (!updatedDraft?._id) return drafts;
   return drafts.map((draft) => draft._id === updatedDraft._id ? updatedDraft : draft);
+}
+
+function mergeSettings(value = {}) {
+  const platformSettings = PLATFORM_OPTIONS.reduce((result, platform) => {
+    result[platform.id] = {
+      ...defaultSettings.autoPlatformSettings[platform.id],
+      ...(value?.autoPlatformSettings?.[platform.id] || {})
+    };
+    return result;
+  }, {});
+  return {
+    ...defaultSettings,
+    ...value,
+    autoPlatformSettings: platformSettings
+  };
 }
 
 function withTimeout(promise, ms = 20000, message = "Request timed out") {
@@ -179,7 +225,7 @@ export default function AdminAiContent() {
         withTimeout(api.get("/ai-content/campaign-runs?limit=10"), 10000)
       ]);
 
-      if (settingsRes.status === "fulfilled") setSettings(settingsRes.value.data?.settings ? { ...defaultSettings, ...settingsRes.value.data.settings } : defaultSettings);
+      if (settingsRes.status === "fulfilled") setSettings(settingsRes.value.data?.settings ? mergeSettings(settingsRes.value.data.settings) : mergeSettings());
       if (categoriesRes.status === "fulfilled") setCategories(Array.isArray(categoriesRes.value.data?.items) ? categoriesRes.value.data.items : []);
       if (draftsRes.status === "fulfilled") {
         setDrafts((existing) => mergeDrafts(existing, Array.isArray(draftsRes.value.data?.items) ? draftsRes.value.data.items : []));
@@ -229,7 +275,7 @@ export default function AdminAiContent() {
   async function loadSettingsOnly({ silent = false } = {}) {
     try {
       const res = await withTimeout(api.get("/ai-content/settings"), 15000);
-      setSettings(res.data?.settings ? { ...defaultSettings, ...res.data.settings } : defaultSettings);
+      setSettings(res.data?.settings ? mergeSettings(res.data.settings) : mergeSettings());
     } catch (err) {
       if (!silent) {
         alert(err?.response?.data?.message || err.message || "Failed to load automation settings");
@@ -328,9 +374,23 @@ export default function AdminAiContent() {
   async function saveSettings() {
     try {
       setSettingsSaving(true);
+      const autoPlatformSettings = PLATFORM_OPTIONS.reduce((result, platform) => {
+        const current = settings?.autoPlatformSettings?.[platform.id] || {};
+        result[platform.id] = {
+          enabled: Boolean(current.enabled),
+          intervalMinutes: Math.max(5, Math.min(10080, Number(current.intervalMinutes || 1440))),
+          channelIds: Array.isArray(current.channelIds) ? current.channelIds : [],
+          mode: ["shareNow", "shareNext", "customScheduled", "addToQueue"].includes(current.mode) ? current.mode : "addToQueue",
+          delayMinutes: Math.max(0, Math.min(10080, Number(current.delayMinutes ?? 30))),
+          postType: ["post", "story", "reel"].includes(current.postType) ? current.postType : "post",
+          lastRunAt: current.lastRunAt || null
+        };
+        return result;
+      }, {});
       const payload = {
         ...defaultSettings,
         ...(settings || {}),
+        autoPlatformSettings,
         aiProvider: ["gemini", "openai", "fallback"].includes(settings?.aiProvider) ? settings.aiProvider : "gemini",
         imageProvider: ["gemini", "modelslab", "none"].includes(settings?.imageProvider) ? settings.imageProvider : "modelslab",
         maxDraftsPerRun: Math.max(1, Math.min(20, Number(settings?.maxDraftsPerRun || 3))),
@@ -578,6 +638,32 @@ export default function AdminAiContent() {
         channelId: nextIds[0] || "",
         channelIds: nextIds
       };
+    });
+  }
+
+  function updateAutoPlatform(platform, patch) {
+    setSettings((current) => {
+      const merged = mergeSettings(current || {});
+      return {
+        ...merged,
+        autoPlatformSettings: {
+          ...merged.autoPlatformSettings,
+          [platform]: {
+            ...merged.autoPlatformSettings[platform],
+            ...patch
+          }
+        }
+      };
+    });
+  }
+
+  function toggleAutoPlatformChannel(platform, channelId) {
+    const current = settings?.autoPlatformSettings?.[platform] || {};
+    const ids = Array.isArray(current.channelIds) ? current.channelIds : [];
+    updateAutoPlatform(platform, {
+      channelIds: ids.includes(channelId)
+        ? ids.filter((id) => id !== channelId)
+        : [...ids, channelId]
     });
   }
 
@@ -1003,19 +1089,11 @@ export default function AdminAiContent() {
                     />
                     Require approval
                   </label>
-                  <label className="flex items-center gap-2 text-sm text-gray-700">
-                    <input
-                      type="checkbox"
-                      checked={Boolean(settings.autoBufferEnabled)}
-                      onChange={(e) => setSettings({ ...settings, autoBufferEnabled: e.target.checked })}
-                    />
-                    Auto-send approved drafts to Buffer
-                  </label>
                   <div className="md:col-span-2 rounded-xl border bg-gray-50 p-3 space-y-3">
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <p className="text-sm font-semibold text-gray-800">Auto Buffer Channels</p>
-                        <p className="text-xs text-gray-500">Cron uses these channels when auto-send is enabled.</p>
+                        <p className="text-sm font-semibold text-gray-800">Platform Auto Mode</p>
+                        <p className="text-xs text-gray-500">Each platform can run on its own frequency and Buffer channels. AI target platforms still decide which drafts are eligible.</p>
                       </div>
                       <button
                         type="button"
@@ -1025,66 +1103,110 @@ export default function AdminAiContent() {
                         Load
                       </button>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                      {bufferChannels.map((channel) => {
-                        const checked = Array.isArray(settings.autoBufferChannelIds) && settings.autoBufferChannelIds.includes(channel.id);
+                    {!bufferConfigured ? (
+                      <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                        Buffer API key is not available to the server.
+                      </p>
+                    ) : null}
+                    <div className="grid grid-cols-1 gap-3">
+                      {PLATFORM_OPTIONS.map((platform) => {
+                        const profile = settings.autoPlatformSettings?.[platform.id] || defaultSettings.autoPlatformSettings[platform.id];
+                        const platformChannels = bufferChannels.filter((channel) => {
+                          const service = String(channel.service || "").toLowerCase();
+                          return platform.id === "facebook"
+                            ? service === "facebook" || service === "facebook_page"
+                            : service === platform.id;
+                        });
                         return (
-                          <label key={channel.id} className="flex items-center gap-2 rounded-lg border bg-white p-2 text-xs">
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              onChange={() => {
-                                const current = Array.isArray(settings.autoBufferChannelIds) ? settings.autoBufferChannelIds : [];
-                                setSettings({
-                                  ...settings,
-                                  autoBufferChannelIds: checked
-                                    ? current.filter((id) => id !== channel.id)
-                                    : [...current, channel.id]
-                                });
-                              }}
-                            />
-                            <span>{channel.name || channel.service} <span className="text-gray-400">({channel.service})</span></span>
-                          </label>
+                          <div key={platform.id} className="rounded-xl border bg-white p-3 space-y-3">
+                            <div className="flex items-center justify-between gap-3">
+                              <label className="flex items-center gap-2 text-sm font-semibold text-gray-800">
+                                <input
+                                  type="checkbox"
+                                  checked={Boolean(profile.enabled)}
+                                  onChange={(e) => updateAutoPlatform(platform.id, { enabled: e.target.checked })}
+                                />
+                                {platform.label}
+                              </label>
+                              <span className="text-[11px] text-gray-500">
+                                {profile.lastRunAt ? `Last: ${formatTime(profile.lastRunAt)}` : "Not run yet"}
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                              <label className="text-xs font-medium text-gray-600">
+                                Frequency minutes
+                                <input
+                                  type="number"
+                                  min="5"
+                                  max="10080"
+                                  className="mt-1 w-full border rounded-lg px-3 py-2 text-sm bg-white"
+                                  value={profile.intervalMinutes ?? 1440}
+                                  onChange={(e) => updateAutoPlatform(platform.id, { intervalMinutes: Number(e.target.value) })}
+                                />
+                              </label>
+                              <label className="text-xs font-medium text-gray-600">
+                                Publish mode
+                                <select
+                                  className="mt-1 w-full border rounded-lg px-3 py-2 text-sm bg-white"
+                                  value={profile.mode || "addToQueue"}
+                                  onChange={(e) => updateAutoPlatform(platform.id, { mode: e.target.value })}
+                                >
+                                  <option value="addToQueue">Add to queue</option>
+                                  <option value="shareNext">Share next</option>
+                                  <option value="customScheduled">Schedule after delay</option>
+                                  <option value="shareNow">Publish now</option>
+                                </select>
+                              </label>
+                              <label className="text-xs font-medium text-gray-600">
+                                Delay minutes
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="10080"
+                                  className="mt-1 w-full border rounded-lg px-3 py-2 text-sm bg-white"
+                                  value={profile.delayMinutes ?? 30}
+                                  onChange={(e) => updateAutoPlatform(platform.id, { delayMinutes: Number(e.target.value) })}
+                                />
+                              </label>
+                              <label className="text-xs font-medium text-gray-600">
+                                Post type
+                                <select
+                                  className="mt-1 w-full border rounded-lg px-3 py-2 text-sm bg-white"
+                                  value={profile.postType || "post"}
+                                  onChange={(e) => updateAutoPlatform(platform.id, { postType: e.target.value })}
+                                >
+                                  <option value="post">Post</option>
+                                  <option value="story">Story</option>
+                                  <option value="reel">Reel</option>
+                                </select>
+                              </label>
+                            </div>
+                            <div className="space-y-2">
+                              <p className="text-xs font-medium text-gray-600">{platform.label} Buffer channels</p>
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                {platformChannels.map((channel) => {
+                                  const checked = Array.isArray(profile.channelIds) && profile.channelIds.includes(channel.id);
+                                  return (
+                                    <label key={channel.id} className="flex items-center gap-2 rounded-lg border bg-gray-50 p-2 text-xs">
+                                      <input
+                                        type="checkbox"
+                                        checked={checked}
+                                        onChange={() => toggleAutoPlatformChannel(platform.id, channel.id)}
+                                      />
+                                      <span>{channel.name || channel.service} <span className="text-gray-400">({channel.service})</span></span>
+                                    </label>
+                                  );
+                                })}
+                                {!platformChannels.length ? (
+                                  <div className="rounded-lg border bg-gray-50 p-2 text-xs text-gray-500">
+                                    No {platform.label} Buffer channels loaded.
+                                  </div>
+                                ) : null}
+                              </div>
+                            </div>
+                          </div>
                         );
                       })}
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                      <label className="text-xs font-medium text-gray-600">
-                        Auto mode
-                        <select
-                          className="mt-1 w-full border rounded-lg px-3 py-2 text-sm bg-white"
-                          value={settings.autoBufferMode || "addToQueue"}
-                          onChange={(e) => setSettings({ ...settings, autoBufferMode: e.target.value })}
-                        >
-                          <option value="addToQueue">Add to Buffer queue</option>
-                          <option value="shareNext">Share next</option>
-                          <option value="customScheduled">Schedule after delay</option>
-                          <option value="shareNow">Publish now</option>
-                        </select>
-                      </label>
-                      <label className="text-xs font-medium text-gray-600">
-                        Delay minutes
-                        <input
-                          type="number"
-                          min="0"
-                          max="10080"
-                          className="mt-1 w-full border rounded-lg px-3 py-2 text-sm bg-white"
-                          value={settings.autoBufferDelayMinutes ?? 30}
-                          onChange={(e) => setSettings({ ...settings, autoBufferDelayMinutes: Number(e.target.value) })}
-                        />
-                      </label>
-                      <label className="text-xs font-medium text-gray-600">
-                        Post type
-                        <select
-                          className="mt-1 w-full border rounded-lg px-3 py-2 text-sm bg-white"
-                          value={settings.autoBufferPostType || "post"}
-                          onChange={(e) => setSettings({ ...settings, autoBufferPostType: e.target.value })}
-                        >
-                          <option value="post">Post</option>
-                          <option value="story">Story</option>
-                          <option value="reel">Reel</option>
-                        </select>
-                      </label>
                     </div>
                   </div>
                 </div>
