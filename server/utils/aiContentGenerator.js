@@ -397,7 +397,44 @@ async function generateOpenAiTextDraft({ category, settings, campaign = {}, fall
 function extractModelsLabImageUrl(payload) {
   const outputs = Array.isArray(payload?.output) ? payload.output : [];
   const directUrl = outputs.find((item) => /^https?:\/\//i.test(normalizeText(item)));
-  return directUrl || normalizeText(payload?.future_links?.[0]) || "";
+  const proxyLinks = Array.isArray(payload?.proxy_links) ? payload.proxy_links : [];
+  const proxyUrl = proxyLinks.find((item) => /^https?:\/\//i.test(normalizeText(item)));
+  return directUrl || proxyUrl || normalizeText(payload?.future_links?.[0]) || "";
+}
+
+async function fetchModelsLabImage({ apiKey, requestId }) {
+  const id = normalizeText(requestId);
+  if (!id) return null;
+
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+    const response = await axios.post(
+      `https://modelslab.com/api/v6/images/fetch/${encodeURIComponent(id)}`,
+      { key: apiKey },
+      {
+        timeout: 30000,
+        headers: {
+          "Content-Type": "application/json"
+        }
+      }
+    );
+    const raw = response?.data || null;
+    const imageUrl = extractModelsLabImageUrl(raw);
+    if (imageUrl) {
+      return {
+        raw,
+        imageUrl
+      };
+    }
+    if (!["processing", "pending", "queued"].includes(normalizeText(raw?.status).toLowerCase())) {
+      return {
+        raw,
+        imageUrl: ""
+      };
+    }
+  }
+
+  return null;
 }
 
 async function generateModelsLabImage({ imagePrompt }) {
@@ -414,7 +451,7 @@ async function generateModelsLabImage({ imagePrompt }) {
 
   const model = normalizeText(process.env.MODELSLAB_IMAGE_MODEL) || "flux";
   const response = await axios.post(
-    "https://modelslab.com/api/v6/realtime/text2img",
+    "https://modelslab.com/api/v6/images/text2img",
     {
       key: apiKey,
       prompt: [
@@ -425,7 +462,7 @@ async function generateModelsLabImage({ imagePrompt }) {
       width: "1024",
       height: "1024",
       samples: "1",
-      safety_checker: true,
+      safety_checker: false,
       enhance_prompt: true,
       webhook: null,
       track_id: null
@@ -439,13 +476,19 @@ async function generateModelsLabImage({ imagePrompt }) {
   );
 
   const raw = response?.data || null;
-  const imageUrl = extractModelsLabImageUrl(raw);
+  let imageUrl = extractModelsLabImageUrl(raw);
+  let finalRaw = raw;
+  if (!imageUrl && ["processing", "pending", "queued"].includes(normalizeText(raw?.status).toLowerCase())) {
+    const fetched = await fetchModelsLabImage({ apiKey, requestId: raw?.id });
+    imageUrl = fetched?.imageUrl || "";
+    finalRaw = fetched?.raw || raw;
+  }
   return {
     provider: "modelslab",
     model,
     imageUrl,
-    raw,
-    error: imageUrl ? "" : normalizeText(raw?.message) || "modelslab_image_not_returned"
+    raw: finalRaw,
+    error: imageUrl ? "" : normalizeText(finalRaw?.message || raw?.message) || "modelslab_image_not_returned"
   };
 }
 

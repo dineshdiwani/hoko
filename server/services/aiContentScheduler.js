@@ -268,7 +268,7 @@ async function processCampaignRunById(runId) {
           brandInstructions: settings.brandInstructions,
           blockedWords: settings.blockedWords
         },
-        generateImages: process.env.AI_CONTENT_CAMPAIGN_GENERATE_IMAGES === "true"
+        generateImages: settings.imageProvider !== "none"
       });
 
       const draft = await AiGeneratedPost.create({
