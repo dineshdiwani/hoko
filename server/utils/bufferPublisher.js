@@ -103,9 +103,23 @@ function getPublicImageUrl(draft, imageUrlOverride = "") {
   return /^https?:\/\//i.test(value) ? value : "";
 }
 
+function getPostMetadata(service = "", postType = "post") {
+  const cleanService = normalizeText(service).toLowerCase();
+  const cleanType = ["post", "story", "reel"].includes(postType) ? postType : "post";
+  if (cleanService === "facebook") {
+    return { facebook: { type: cleanType } };
+  }
+  if (cleanService === "instagram") {
+    return { instagram: { type: cleanType, shouldShareToFeed: cleanType === "post" } };
+  }
+  return null;
+}
+
 async function createBufferPost({
   draft,
   channelId,
+  channelService = "",
+  postType = "post",
   mode = "addToQueue",
   dueAt = "",
   text = "",
@@ -144,6 +158,10 @@ async function createBufferPost({
   }
   if (publicImageUrl) {
     input.assets = [{ image: { url: publicImageUrl } }];
+  }
+  const metadata = getPostMetadata(channelService, postType);
+  if (metadata) {
+    input.metadata = metadata;
   }
 
   const data = await bufferGraphql({

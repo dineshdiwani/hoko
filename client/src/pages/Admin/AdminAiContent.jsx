@@ -101,6 +101,7 @@ export default function AdminAiContent() {
   const [bufferForm, setBufferForm] = useState({
     channelId: "",
     mode: "shareNow",
+    postType: "post",
     dueAt: ""
   });
   const [selectedDraftIds, setSelectedDraftIds] = useState([]);
@@ -429,6 +430,7 @@ export default function AdminAiContent() {
         channelId: bufferForm.channelId,
         channelName: channel?.name || "",
         channelService: channel?.service || "",
+        postType: bufferForm.postType,
         mode: bufferForm.mode,
         dueAt: bufferForm.mode === "customScheduled" ? bufferForm.dueAt : "",
         text: postTextByDraftId[draft._id] || composePostText(draft)
@@ -464,6 +466,7 @@ export default function AdminAiContent() {
         channelId: bufferForm.channelId,
         channelName: channel?.name || "",
         channelService: channel?.service || "",
+        postType: bufferForm.postType,
         mode: bufferForm.mode,
         dueAt: bufferForm.mode === "customScheduled" ? bufferForm.dueAt : "",
         textByDraftId
@@ -1021,6 +1024,18 @@ export default function AdminAiContent() {
                   </select>
                 </label>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <label className="text-[11px] font-medium text-gray-600">
+                    Post type
+                    <select
+                      className="mt-1 w-full rounded-lg border bg-white px-3 py-2 text-xs"
+                      value={bufferForm.postType}
+                      onChange={(e) => setBufferForm({ ...bufferForm, postType: e.target.value })}
+                    >
+                      <option value="post">Post</option>
+                      <option value="story">Story</option>
+                      <option value="reel">Reel</option>
+                    </select>
+                  </label>
                   <label className="text-[11px] font-medium text-gray-600">
                     Publish mode
                     <select

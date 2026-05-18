@@ -230,6 +230,8 @@ router.post("/drafts/:id/buffer", adminAuth, requireAdminPermission("campaigns.m
     const result = await createBufferPost({
       draft: draft.toObject(),
       channelId,
+      channelService,
+      postType: req.body?.postType,
       mode: req.body?.mode,
       dueAt: req.body?.dueAt,
       text: req.body?.text,
@@ -280,6 +282,8 @@ router.post("/drafts/buffer/bulk", adminAuth, requireAdminPermission("campaigns.
       const result = await createBufferPost({
         draft: draft.toObject(),
         channelId,
+        channelService: normalizeText(req.body?.channelService),
+        postType: req.body?.postType,
         mode: req.body?.mode,
         dueAt: req.body?.dueAt,
         text: req.body?.textByDraftId?.[draftId],
