@@ -1443,6 +1443,7 @@ export default function AdminAiContent() {
                       <div className="mt-2 space-y-1 text-[11px] text-gray-600">
                         <p><span className="font-medium">Topic:</span> {preview(draft.topic, 120)}</p>
                         <p><span className="font-medium">Category:</span> {draft.categorySnapshot?.name || draft.categoryId?.name || "-"}</p>
+                        <p><span className="font-medium">Auto platforms:</span> {Array.isArray(draft.targetPlatforms) && draft.targetPlatforms.length ? draft.targetPlatforms.join(", ") : "all selected channels"}</p>
                         {draft.imageTextOverlay ? (
                           <p><span className="font-medium">Image overlay:</span> {draft.imageTextOverlay}</p>
                         ) : null}

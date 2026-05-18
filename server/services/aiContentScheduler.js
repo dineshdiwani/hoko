@@ -43,6 +43,22 @@ function getChannelCaption(draft, service = "") {
   return normalizeText(captions[cleanService]) || "";
 }
 
+function normalizeChannelService(service = "") {
+  const cleanService = normalizeText(service).toLowerCase();
+  if (cleanService === "facebook" || cleanService === "facebook_page") return "facebook";
+  if (cleanService === "instagram") return "instagram";
+  if (cleanService === "linkedin") return "linkedin";
+  return cleanService;
+}
+
+function getTargetPlatforms(draft) {
+  const allowed = new Set(["facebook", "instagram", "linkedin"]);
+  const platforms = Array.isArray(draft?.targetPlatforms)
+    ? draft.targetPlatforms.map((item) => normalizeText(item).toLowerCase()).filter((item) => allowed.has(item))
+    : [];
+  return Array.from(new Set(platforms));
+}
+
 async function resolveAutoBufferChannels(settings = {}) {
   const selectedIds = Array.isArray(settings.autoBufferChannelIds)
     ? settings.autoBufferChannelIds.map(normalizeText).filter(Boolean)
@@ -58,9 +74,16 @@ async function autoSendDraftToBuffer({ draft, settings }) {
   if (!settings?.autoBufferEnabled) return { skipped: true, reason: "auto_buffer_disabled" };
   const channels = await resolveAutoBufferChannels(settings);
   if (!channels.length) return { skipped: true, reason: "no_auto_buffer_channels" };
+  const targetPlatforms = getTargetPlatforms(draft);
+  const publishChannels = targetPlatforms.length
+    ? channels.filter((channel) => targetPlatforms.includes(normalizeChannelService(channel.service)))
+    : channels;
+  if (!publishChannels.length) {
+    return { skipped: true, reason: "no_matching_target_platform_channels", targetPlatforms };
+  }
 
   const results = [];
-  for (const channel of channels) {
+  for (const channel of publishChannels) {
     try {
       const mode = normalizeText(settings.autoBufferMode) || "addToQueue";
       const dueAt = mode === "customScheduled"
@@ -245,6 +268,7 @@ async function processAiContentGeneration({ force = false, limit } = {}) {
         imagePrompt: generated.imagePrompt,
         imageTextOverlay: generated.imageTextOverlay,
         imageUrl: generated.imageUrl,
+        targetPlatforms: generated.targetPlatforms,
         cta: settings.fixedCta || "Learn More",
         ctaLink: settings.ctaLink || "",
         status: settings.approvalRequired === false ? "approved" : "draft",
@@ -408,6 +432,7 @@ async function processCampaignRunById(runId) {
         imagePrompt: generated.imagePrompt,
         imageTextOverlay: generated.imageTextOverlay,
         imageUrl: generated.imageUrl,
+        targetPlatforms: generated.targetPlatforms,
         cta: campaignSettings.fixedCta || "Learn More",
         ctaLink: campaignSettings.ctaLink || "",
         status: settings.approvalRequired === false ? "approved" : "draft",

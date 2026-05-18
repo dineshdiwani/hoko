@@ -186,6 +186,89 @@ function buildChannelCaptions({ hook = "", hashtags = [], ctaLink = "" }) {
   };
 }
 
+function normalizeTargetPlatforms(value) {
+  const source = Array.isArray(value) ? value : String(value || "").split(",");
+  const allowed = new Set(["facebook", "instagram", "linkedin"]);
+  const normalized = source
+    .map((item) => normalizeText(item).toLowerCase().replace(/[_\s-]+/g, ""))
+    .map((item) => {
+      if (item === "fb" || item === "facebookpage") return "facebook";
+      if (item === "ig" || item === "insta") return "instagram";
+      if (item === "linkedln") return "linkedin";
+      return item;
+    })
+    .filter((item) => allowed.has(item));
+  return Array.from(new Set(normalized));
+}
+
+function inferTargetPlatforms({ category = {}, topic = "", hook = "" } = {}) {
+  const text = [
+    category?.name,
+    category?.description,
+    category?.targetAudience,
+    topic,
+    hook
+  ].map(normalizeText).join(" ").toLowerCase();
+
+  const linkedinSignals = [
+    /\bb2b\b/,
+    /\bcorporate\b/,
+    /\bindustrial\b/,
+    /\bmanufactur/,
+    /\benterprise\b/,
+    /\bprocurement\b/,
+    /\bwholesale\b/,
+    /\bbulk\b/,
+    /\btender\b/,
+    /\bdealer\b/,
+    /\bdistributor\b/,
+    /\bsupplier\b/,
+    /\bfactory\b/,
+    /\bwarehouse\b/,
+    /\bconstruction\b/,
+    /\bmachinery\b/,
+    /\bequipment\b/,
+    /\belectrical\b/,
+    /\bcommercial\b/,
+    /\boffice\b/,
+    /\bcontractor\b/,
+    /\bconsulting\b/,
+    /\blegal\b/,
+    /\bfinance\b/,
+    /\binsurance\b/
+  ];
+  const consumerSignals = [
+    /\bb2c\b/,
+    /\bdomestic\b/,
+    /\bhome\b/,
+    /\bhousehold\b/,
+    /\bfamily\b/,
+    /\bpersonal\b/,
+    /\blocal\b/,
+    /\bretail\b/,
+    /\bfashion\b/,
+    /\bgrocery\b/,
+    /\bfurniture\b/,
+    /\bkitchen\b/,
+    /\bappliance\b/,
+    /\bmobile\b/,
+    /\bphone\b/,
+    /\bvehicle\b/,
+    /\bbike\b/,
+    /\bcar\b/,
+    /\bevent\b/,
+    /\btravel\b/,
+    /\bbeauty\b/,
+    /\bfitness\b/
+  ];
+
+  const isLinkedin = linkedinSignals.some((pattern) => pattern.test(text));
+  const isConsumer = consumerSignals.some((pattern) => pattern.test(text));
+  if (isLinkedin && !isConsumer) return ["linkedin"];
+  if (isLinkedin && isConsumer) return ["linkedin", "facebook", "instagram"];
+  return ["facebook", "instagram"];
+}
+
 function buildFallbackDraft({ category, fixedCta, campaign = {} }) {
   const name = normalizeText(category?.name) || "Business";
   const mood = normalizeText(campaign?.mood);
@@ -309,6 +392,7 @@ function buildFallbackDraft({ category, fixedCta, campaign = {} }) {
   ].filter(Boolean).join("\n\n");
   const hashtags = buildHashtags({ categoryName: name, angle: selected.angle, seed });
   const ctaLink = normalizeText(campaign?.ctaLink);
+  const targetPlatforms = inferTargetPlatforms({ category, topic, hook });
 
   return {
     provider: "fallback",
@@ -317,6 +401,7 @@ function buildFallbackDraft({ category, fixedCta, campaign = {} }) {
     hook,
     caption,
     channelCaptions: buildChannelCaptions({ hook, hashtags, ctaLink }),
+    targetPlatforms,
     hashtags,
     imageTextOverlay,
     imagePrompt: [
@@ -369,7 +454,7 @@ function buildPrompt({ category, fixedCta, campaign = {} }) {
     `Choose one primary creative angle from this list and make it obvious in the copy: ${CONTENT_ANGLES.join(", ")}.`,
     "Content rules: never generate generic content; avoid robotic wording; content must feel fresh every time; use urgency where relevant; use curiosity hooks; use emotional triggers; mention local area naturally if available; adapt tone according to audience; mention trends/festivals if relevant; keep content mobile-friendly; use natural human language; do not overuse emojis; make captions readable with spacing.",
     "Avoid repeated hashtags. Hashtags must be fresh, relevant, and not the same set every time.",
-    "Return only valid JSON with keys: topic, hook, caption, channelCaptions, hashtags, imagePrompt, imageTextOverlay.",
+    "Return only valid JSON with keys: topic, hook, caption, channelCaptions, targetPlatforms, hashtags, imagePrompt, imageTextOverlay.",
     "topic: a fresh category-specific buyer pain point, buying scenario, urgency, comparison benefit, negotiation angle, or seller-response angle. Do not copy the category name alone.",
     "hook: one or two short lines only. Make it attractive, direct, and conversion-oriented, but vary the sentence structure.",
     "Every hook must mention HOKO and at least one core value: posting a requirement, comparing seller offers, choosing a lower/better price, or getting seller responses.",
@@ -382,6 +467,7 @@ function buildPrompt({ category, fixedCta, campaign = {} }) {
     "Use plain Indian business English. Avoid generic lines like grow your business, discover opportunities, or connect buyers and sellers unless tied to price offers.",
     "caption: short mobile-friendly caption. It may repeat the hook, but add spacing only if it improves readability. Do not write long paragraphs. CTA is stored separately as button text.",
     "channelCaptions: object with facebook, instagram, linkedin strings. Facebook should feel local/community-oriented, Instagram should be short and visual, LinkedIn should sound professional and B2B. Keep each mobile-friendly.",
+    "targetPlatforms: array choosing where this post should be auto-published. Use only facebook, instagram, linkedin. Choose linkedin for B2B, corporate, industrial, procurement, wholesale, machinery, commercial services, high-value or bulk demand. Choose facebook and instagram for domestic, household, retail, personal, local consumer, lifestyle, and B2C demand. If the category fits both business and consumer buyers, include all suitable platforms. Do not include a platform only because a caption exists.",
     "imageTextOverlay: 2 to 5 words only, strong ad-style overlay text for the image, such as 'Compare Before You Buy' or 'Limited Time Deal'. Do not include hashtags.",
     "imagePrompt: write an ultra-detailed final image-generation prompt for ModelsLab. It must be aligned with the hook, imageTextOverlay, and campaign mood.",
     campaignMood ? "imagePrompt must use today's campaign mood/direction as visual guidance and connect it directly to the generated hook." : "",
@@ -670,6 +756,7 @@ async function generateTextDraft({ category, settings, campaign = {} }) {
   const parsedChannelCaptions = parsed.channelCaptions && typeof parsed.channelCaptions === "object"
     ? parsed.channelCaptions
     : {};
+  const targetPlatforms = normalizeTargetPlatforms(parsed.targetPlatforms);
 
   return {
     provider: "gemini",
@@ -682,6 +769,7 @@ async function generateTextDraft({ category, settings, campaign = {} }) {
       instagram: normalizeText(parsedChannelCaptions.instagram) || fallback.channelCaptions?.instagram || "",
       linkedin: normalizeText(parsedChannelCaptions.linkedin) || fallback.channelCaptions?.linkedin || ""
     },
+    targetPlatforms: targetPlatforms.length ? targetPlatforms : inferTargetPlatforms({ category, topic: parsed.topic || fallback.topic, hook: parsed.hook || fallback.hook }),
     hashtags,
     imageTextOverlay: normalizeText(parsed.imageTextOverlay) || fallback.imageTextOverlay,
     imagePrompt: normalizeText(parsed.imagePrompt) || fallback.imagePrompt,
@@ -757,6 +845,7 @@ async function generateOpenAiTextDraft({ category, settings, campaign = {}, fall
   const parsedChannelCaptions = parsed.channelCaptions && typeof parsed.channelCaptions === "object"
     ? parsed.channelCaptions
     : {};
+  const targetPlatforms = normalizeTargetPlatforms(parsed.targetPlatforms);
 
   return {
     provider: "openai",
@@ -769,6 +858,7 @@ async function generateOpenAiTextDraft({ category, settings, campaign = {}, fall
       instagram: normalizeText(parsedChannelCaptions.instagram) || fallback.channelCaptions?.instagram || "",
       linkedin: normalizeText(parsedChannelCaptions.linkedin) || fallback.channelCaptions?.linkedin || ""
     },
+    targetPlatforms: targetPlatforms.length ? targetPlatforms : inferTargetPlatforms({ category, topic: parsed.topic || fallback.topic, hook: parsed.hook || fallback.hook }),
     hashtags,
     imageTextOverlay: normalizeText(parsed.imageTextOverlay) || fallback.imageTextOverlay,
     imagePrompt: normalizeText(parsed.imagePrompt) || fallback.imagePrompt,
