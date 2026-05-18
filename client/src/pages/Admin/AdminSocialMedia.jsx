@@ -475,7 +475,7 @@ export default function AdminSocialMedia() {
               <div>
                 <h3 className="font-semibold">AI draft helper</h3>
                 <p className="text-xs text-gray-500">
-                  Use OpenAI if `OPENAI_API_KEY` is set. Otherwise a local fallback draft is generated.
+                  Use Gemini if `GEMINI_API_KEY` is set. Otherwise a local fallback draft is generated.
                 </p>
               </div>
 

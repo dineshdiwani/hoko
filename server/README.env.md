@@ -69,3 +69,13 @@ Automated SMS in the app now uses Fast2SMS DLT routes only.
 - `FAST2SMS_DLT_BULK_TEMPLATE_ID` is also accepted as a backward-compatible alias.
 
 Keep the approved template text in the registry in sync with the variables passed from the server.
+
+## AI Content
+
+The admin AI content and social media draft helpers use Gemini when these variables are set:
+
+- `GEMINI_API_KEY`
+- `GEMINI_CONTENT_MODEL` (default: `gemini-2.5-flash`)
+- `GEMINI_CAMPAIGN_MODEL` (default: `GEMINI_CONTENT_MODEL`, then `gemini-2.5-flash`)
+- `GEMINI_IMAGE_MODEL` (default: `gemini-2.5-flash-image`)
+- `AI_CONTENT_GENERATE_IMAGES=true` to generate images for AI content drafts

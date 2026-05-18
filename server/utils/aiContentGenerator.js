@@ -23,6 +23,18 @@ function safeJsonParse(value) {
 }
 
 function extractResponseText(payload) {
+  const geminiText = Array.isArray(payload?.candidates)
+    ? payload.candidates
+        .flatMap((candidate) => Array.isArray(candidate?.content?.parts) ? candidate.content.parts : [])
+        .map((part) => normalizeText(part?.text))
+        .filter(Boolean)
+        .join("\n")
+        .trim()
+    : "";
+  if (geminiText) {
+    return geminiText;
+  }
+
   if (typeof payload?.output_text === "string") {
     return payload.output_text.trim();
   }
@@ -36,6 +48,25 @@ function extractResponseText(payload) {
     }
   }
   return chunks.join("\n").trim();
+}
+
+function extractGeminiInlineImage(payload) {
+  const parts = Array.isArray(payload?.candidates)
+    ? payload.candidates.flatMap((candidate) => Array.isArray(candidate?.content?.parts) ? candidate.content.parts : [])
+    : [];
+
+  for (const part of parts) {
+    const inlineData = part?.inlineData || part?.inline_data;
+    const data = normalizeText(inlineData?.data);
+    if (data) {
+      return {
+        mimeType: normalizeText(inlineData?.mimeType || inlineData?.mime_type) || "image/png",
+        data
+      };
+    }
+  }
+
+  return null;
 }
 
 function buildFallbackDraft({ category, fixedCta, campaign = {} }) {
@@ -112,26 +143,37 @@ async function generateTextDraft({ category, settings, campaign = {} }) {
     fixedCta,
     campaign
   });
-  const apiKey = normalizeText(process.env.OPENAI_API_KEY);
+  const apiKey = normalizeText(process.env.GEMINI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY);
   if (!apiKey) return fallback;
 
-  const model = normalizeText(process.env.OPENAI_CONTENT_MODEL) || "gpt-5.4-mini";
+  const model = normalizeText(process.env.GEMINI_CONTENT_MODEL) || "gemini-2.5-flash";
   let response;
   try {
     response = await axios.post(
-      "https://api.openai.com/v1/responses",
+      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
       {
-        model,
-        input: buildPrompt({
-          category,
-          fixedCta,
-          campaign
-        })
+        contents: [
+          {
+            role: "user",
+            parts: [
+              {
+                text: buildPrompt({
+                  category,
+                  fixedCta,
+                  campaign
+                })
+              }
+            ]
+          }
+        ],
+        generationConfig: {
+          responseMimeType: "application/json"
+        }
       },
       {
         timeout: 30000,
+        params: { key: apiKey },
         headers: {
-          Authorization: `Bearer ${apiKey}`,
           "Content-Type": "application/json"
         }
       }
@@ -143,8 +185,8 @@ async function generateTextDraft({ category, settings, campaign = {} }) {
       model: "",
       raw: err?.response?.data || err?.message || null,
       error: err?.response?.status === 429
-        ? "openai_rate_limited"
-        : err?.message || "openai_text_generation_failed"
+        ? "gemini_rate_limited"
+        : err?.message || "gemini_text_generation_failed"
     };
   }
 
@@ -153,7 +195,7 @@ async function generateTextDraft({ category, settings, campaign = {} }) {
   if (!parsed) {
     return {
       ...fallback,
-      provider: "openai",
+      provider: "gemini",
       model,
       raw
     };
@@ -164,7 +206,7 @@ async function generateTextDraft({ category, settings, campaign = {} }) {
     : fallback.hashtags;
 
   return {
-    provider: "openai",
+    provider: "gemini",
     model,
     topic: normalizeText(parsed.topic) || fallback.topic,
     hook: normalizeText(parsed.hook) || fallback.hook,
@@ -176,8 +218,8 @@ async function generateTextDraft({ category, settings, campaign = {} }) {
 }
 
 async function generateImage({ imagePrompt }) {
-  const apiKey = normalizeText(process.env.OPENAI_API_KEY);
-  if (!apiKey || process.env.AI_CONTENT_GENERATE_IMAGES === "false") {
+  const apiKey = normalizeText(process.env.GEMINI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY);
+  if (!apiKey || process.env.AI_CONTENT_GENERATE_IMAGES !== "true") {
     return {
       provider: "none",
       model: "",
@@ -186,31 +228,54 @@ async function generateImage({ imagePrompt }) {
     };
   }
 
-  const model = normalizeText(process.env.OPENAI_IMAGE_MODEL) || "gpt-image-1";
+  const model = normalizeText(process.env.GEMINI_IMAGE_MODEL) || "gemini-2.5-flash-image";
   const response = await axios.post(
-    "https://api.openai.com/v1/images/generations",
+    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
     {
-      model,
-      prompt: normalizeText(imagePrompt),
-      size: normalizeText(process.env.OPENAI_IMAGE_SIZE) || "1024x1024"
+      contents: [
+        {
+          role: "user",
+          parts: [
+            {
+              text: [
+                "Generate one square social media image for this prompt.",
+                "Return an image output.",
+                normalizeText(imagePrompt)
+              ].filter(Boolean).join(" ")
+            }
+          ]
+        }
+      ],
+      generationConfig: {
+        responseModalities: ["TEXT", "IMAGE"]
+      }
     },
     {
-      timeout: 60000,
+      timeout: 90000,
+      params: { key: apiKey },
       headers: {
-        Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json"
       }
     }
   );
 
   const raw = response?.data || null;
-  const first = Array.isArray(raw?.data) ? raw.data[0] : null;
-  const b64 = normalizeText(first?.b64_json);
+  const image = extractGeminiInlineImage(raw);
+  if (image?.data) {
+    return {
+      provider: "gemini",
+      model,
+      imageUrl: `data:${image.mimeType};base64,${image.data}`,
+      raw
+    };
+  }
+
   return {
-    provider: "openai",
+    provider: "gemini",
     model,
-    imageUrl: normalizeText(first?.url) || (b64 ? `data:image/png;base64,${b64}` : ""),
-    raw
+    imageUrl: "",
+    raw,
+    error: "gemini_image_not_returned"
   };
 }
 
@@ -228,7 +293,7 @@ async function generateAiContentDraft({ category, settings, campaign = {} }) {
   } catch (err) {
     imageResult = {
       provider: "failed",
-      model: normalizeText(process.env.OPENAI_IMAGE_MODEL) || "gpt-image-1",
+      model: normalizeText(process.env.GEMINI_IMAGE_MODEL),
       imageUrl: "",
       raw: err?.response?.data || err?.message || null,
       error: err?.message || "image_generation_failed"
@@ -248,5 +313,6 @@ async function generateAiContentDraft({ category, settings, campaign = {} }) {
 module.exports = {
   generateAiContentDraft,
   generateImage,
-  generateTextDraft
+  generateTextDraft,
+  extractGeminiInlineImage
 };

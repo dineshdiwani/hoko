@@ -27,6 +27,18 @@ function extractResponseText(payload) {
   if (!payload || typeof payload !== "object") {
     return "";
   }
+  const geminiText = Array.isArray(payload.candidates)
+    ? payload.candidates
+        .flatMap((candidate) => Array.isArray(candidate?.content?.parts) ? candidate.content.parts : [])
+        .map((part) => normalizeText(part?.text))
+        .filter(Boolean)
+        .join("\n")
+        .trim()
+    : "";
+  if (geminiText) {
+    return geminiText;
+  }
+
   if (typeof payload.output_text === "string" && payload.output_text.trim()) {
     return payload.output_text.trim();
   }
@@ -75,7 +87,7 @@ function buildFallbackDraft({
   };
 }
 
-function buildOpenAiPrompt({
+function buildGeminiPrompt({
   brief = "",
   audience = "",
   tone = "professional",
@@ -105,28 +117,39 @@ async function generateSocialMediaDraft({
   includeHashtags = true,
   platform = "instagram"
 } = {}) {
-  const apiKey = String(process.env.OPENAI_API_KEY || "").trim();
+  const apiKey = String(process.env.GEMINI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY || "").trim();
   if (!apiKey) {
     return buildFallbackDraft({ brief, audience, tone, mediaStyle, includeHashtags });
   }
 
-  const model = String(process.env.OPENAI_CAMPAIGN_MODEL || "gpt-5.4-mini").trim();
+  const model = String(process.env.GEMINI_CAMPAIGN_MODEL || process.env.GEMINI_CONTENT_MODEL || "gemini-2.5-flash").trim();
   const payload = {
-    model,
-    input: buildOpenAiPrompt({
-      brief,
-      audience,
-      tone,
-      mediaStyle,
-      includeHashtags,
-      platform
-    })
+    contents: [
+      {
+        role: "user",
+        parts: [
+          {
+            text: buildGeminiPrompt({
+              brief,
+              audience,
+              tone,
+              mediaStyle,
+              includeHashtags,
+              platform
+            })
+          }
+        ]
+      }
+    ],
+    generationConfig: {
+      responseMimeType: "application/json"
+    }
   };
 
-  const response = await axios.post("https://api.openai.com/v1/responses", payload, {
+  const response = await axios.post(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, payload, {
     timeout: 30000,
+    params: { key: apiKey },
     headers: {
-      Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json"
     }
   });
@@ -137,7 +160,7 @@ async function generateSocialMediaDraft({
 
   if (!parsed) {
     return {
-      provider: "openai",
+      provider: "gemini",
       model,
       caption: extractedText || buildFallbackDraft({ brief, audience, tone, mediaStyle, includeHashtags }).caption,
       mediaPrompt: buildFallbackDraft({ brief, audience, tone, mediaStyle, includeHashtags }).mediaPrompt,
@@ -151,7 +174,7 @@ async function generateSocialMediaDraft({
     : [];
 
   return {
-    provider: "openai",
+    provider: "gemini",
     model,
     caption: normalizeText(parsed.caption) || buildFallbackDraft({ brief, audience, tone, mediaStyle, includeHashtags }).caption,
     mediaPrompt: normalizeText(parsed.mediaPrompt) || buildFallbackDraft({ brief, audience, tone, mediaStyle, includeHashtags }).mediaPrompt,
