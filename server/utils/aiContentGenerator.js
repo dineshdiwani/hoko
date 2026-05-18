@@ -161,6 +161,7 @@ function buildFallbackDraft({ category, fixedCta, campaign = {} }) {
   const selected = angles[hashText(seed) % angles.length];
   const topic = mood || selected.topic;
   const hook = selected.hook;
+  const concreteScene = inferConcreteVisualScene({ mood, categoryName: name, hook });
   const caption = [
     hook
   ].filter(Boolean).join("\n\n");
@@ -174,10 +175,11 @@ function buildFallbackDraft({ category, fixedCta, campaign = {} }) {
     hashtags: ["#HOKO", "#Business", `#${name.replace(/[^a-zA-Z0-9]/g, "")}`].filter((item) => item.length > 1),
     imagePrompt: [
       `Create a square social media image for the HOKO online marketplace app about ${name}.`,
-      mood ? `Follow this admin visual direction exactly: "${mood}".` : `Depict this hook visually: "${hook}"`,
+      mood ? `Convert this admin direction into the concrete scene, do not render abstract wording: "${mood}".` : `Depict this hook visually: "${hook}"`,
+      `Required concrete scene: ${concreteScene}.`,
       "Show a buyer posting a requirement, multiple sellers submitting price offers, best lower-price offer selection, and reverse auction competition.",
       `Style: ${normalizeText(category?.imageStyle) || "clean modern Indian business app ad"}.`,
-      "Do not add small unreadable text. Avoid fake app UI details."
+      "Do not add small unreadable text, wall portraits, framed photos, or fake app UI details."
     ].join(" "),
     raw: null
   };
@@ -235,6 +237,28 @@ function buildPrompt({ category, fixedCta, campaign = {} }) {
   ].filter(Boolean).join(" ");
 }
 
+function inferConcreteVisualScene({ mood = "", categoryName = "", hook = "" }) {
+  const text = `${mood} ${categoryName} ${hook}`.toLowerCase();
+  const parts = [];
+  if (/motor|industrial motor|electrical/i.test(text)) {
+    parts.push("large industrial electric motor on a workshop or factory floor");
+    parts.push("2-3 electrical engineers or technicians inspecting the motor with tools and safety helmets");
+    parts.push("electrical parts such as cables, switchgear, control panel parts, bearings, connectors, and terminal blocks nearby");
+  } else if (/construction|cement|steel|building/i.test(text)) {
+    parts.push("construction site material procurement scene with visible building materials");
+    parts.push("site engineer or contractor comparing supplier offers");
+  } else if (/machinery|machine|equipment/i.test(text)) {
+    parts.push("industrial machinery procurement scene with engineers around the equipment");
+    parts.push("supplier offer cards beside the machine");
+  } else {
+    parts.push(`${categoryName} procurement scene with real category-specific items visible`);
+    parts.push("buyer or professional inspecting the requirement");
+  }
+  parts.push("2-3 floating seller offer cards with simple price tags near the product");
+  parts.push("clear price comparison visual, no portraits on walls, no unrelated people, no decorative framed photos");
+  return parts.join(", ");
+}
+
 function buildFinalImagePrompt({ imagePrompt = "", draft = {}, category = {}, campaign = {} }) {
   const categoryName = normalizeText(category?.name || draft?.categorySnapshot?.name) || "business requirement";
   const hook = normalizeText(draft?.hook || draft?.caption || draft?.topic);
@@ -243,9 +267,11 @@ function buildFinalImagePrompt({ imagePrompt = "", draft = {}, category = {}, ca
   const imageStyle = normalizeText(campaign?.imageStyle);
   const categoryStyle = normalizeText(category?.imageStyle);
   const concreteSubject = normalizeText(draft?.topic) || categoryName;
+  const concreteScene = inferConcreteVisualScene({ mood, categoryName, hook });
   const sceneFocus = [
     `Create one square 1:1 social media advertising image for this exact post topic: ${concreteSubject}.`,
-    mood ? `Hard admin visual instruction: ${mood}. This instruction has priority over generic marketplace visuals.` : "",
+    mood ? `Admin intent to convert into a visual scene: ${mood}. Do not render abstract words like "wish"; render the concrete product, people, and offer-comparison scene.` : "",
+    `Required concrete scene: ${concreteScene}.`,
     `Primary visual subject: ${categoryName}. The image must clearly show real items, tools, shop/warehouse context, or service context from this category.`,
     hook ? `Match this exact post message visually: "${hook}".` : "",
     "Do not make a generic office, handshake, abstract app promotion, or random business meeting.",
@@ -260,7 +286,7 @@ function buildFinalImagePrompt({ imagePrompt = "", draft = {}, category = {}, ca
     categoryStyle ? `Category style hint: ${categoryStyle}.` : "",
     normalizeText(imagePrompt) ? `Additional visual direction: ${normalizeText(imagePrompt)}.` : "",
     "Use Indian marketplace/business context. Make the scene practical and product-specific.",
-    "Do not include readable small text, fake social media UI, platform logos, brand logos, celebrity faces, watermarks, or distorted hands.",
+    "Do not include readable small text, fake social media UI, platform logos, brand logos, celebrity faces, wall portraits, framed photos, watermarks, or distorted hands.",
     "If showing an app/phone, keep UI symbolic and simple; do not invent detailed unreadable screens.",
     "High quality, clean composition, realistic commercial illustration or polished ad visual."
   ].filter(Boolean);
