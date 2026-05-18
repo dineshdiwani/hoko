@@ -116,7 +116,8 @@ async function createBufferPost({
     throw new Error("Buffer channel is required");
   }
 
-  const cleanMode = mode === "customScheduled" ? "customScheduled" : "addToQueue";
+  const allowedModes = new Set(["shareNow", "shareNext", "customScheduled", "addToQueue"]);
+  const cleanMode = allowedModes.has(mode) ? mode : "shareNow";
   const cleanDueAt = normalizeText(dueAt);
   if (cleanMode === "customScheduled" && !cleanDueAt) {
     throw new Error("Schedule time is required for custom scheduling");

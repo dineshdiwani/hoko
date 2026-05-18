@@ -89,7 +89,7 @@ export default function AdminAiContent() {
   const [bufferConfigured, setBufferConfigured] = useState(false);
   const [bufferForm, setBufferForm] = useState({
     channelId: "",
-    mode: "addToQueue",
+    mode: "shareNow",
     dueAt: ""
   });
   const [selectedDraftIds, setSelectedDraftIds] = useState([]);
@@ -972,7 +972,9 @@ export default function AdminAiContent() {
                       value={bufferForm.mode}
                       onChange={(e) => setBufferForm({ ...bufferForm, mode: e.target.value })}
                     >
+                      <option value="shareNow">Publish now</option>
                       <option value="addToQueue">Add to queue</option>
+                      <option value="shareNext">Share next</option>
                       <option value="customScheduled">Schedule time</option>
                     </select>
                   </label>
