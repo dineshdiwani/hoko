@@ -76,6 +76,7 @@ function getPlatformSettings(settings = {}) {
       platform,
       enabled: Boolean(profile.enabled || legacyEnabled),
       intervalMinutes: Math.max(5, Math.min(10080, Number(profile.intervalMinutes || settings.cronIntervalMinutes || 1440))),
+      triggerTime: /^([01]\d|2[0-3]):[0-5]\d$/.test(normalizeText(profile.triggerTime)) ? normalizeText(profile.triggerTime) : "09:00",
       channelIds: Array.isArray(profile.channelIds) && profile.channelIds.length
         ? profile.channelIds.map(normalizeText).filter(Boolean)
         : legacyChannelIds,
@@ -88,14 +89,34 @@ function getPlatformSettings(settings = {}) {
   }, {});
 }
 
+function hasReachedTriggerTime(profile, nowDate = new Date()) {
+  const [hourText, minuteText] = normalizeText(profile.triggerTime || "09:00").split(":");
+  const triggerMinutes = Number(hourText) * 60 + Number(minuteText);
+  const currentMinutes = nowDate.getHours() * 60 + nowDate.getMinutes();
+  return currentMinutes >= triggerMinutes;
+}
+
+function getLastScheduledTriggerAt(profile, nowDate = new Date()) {
+  const [hourText, minuteText] = normalizeText(profile.triggerTime || "09:00").split(":");
+  const trigger = new Date(nowDate);
+  trigger.setHours(Number(hourText), Number(minuteText), 0, 0);
+  if (trigger.getTime() > nowDate.getTime()) {
+    trigger.setDate(trigger.getDate() - 1);
+  }
+  return trigger;
+}
+
 function getDuePlatformProfiles(settings = {}) {
   const profiles = getPlatformSettings(settings);
-  const now = Date.now();
+  const nowDate = new Date();
+  const now = nowDate.getTime();
   return Object.values(profiles).filter((profile) => {
     if (!profile.enabled) return false;
+    if (!hasReachedTriggerTime(profile, nowDate)) return false;
     const lastRunAt = profile.lastRunAt ? new Date(profile.lastRunAt).getTime() : 0;
     if (!lastRunAt || Number.isNaN(lastRunAt)) return true;
-    return now - lastRunAt >= profile.intervalMinutes * 60000;
+    const lastTriggerAt = getLastScheduledTriggerAt(profile, nowDate).getTime();
+    return lastRunAt < lastTriggerAt && now - lastRunAt >= profile.intervalMinutes * 60000;
   });
 }
 

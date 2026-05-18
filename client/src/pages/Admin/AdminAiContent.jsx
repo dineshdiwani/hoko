@@ -28,6 +28,7 @@ const defaultSettings = {
     facebook: {
       enabled: false,
       intervalMinutes: 1440,
+      triggerTime: "09:00",
       channelIds: [],
       mode: "addToQueue",
       delayMinutes: 30,
@@ -36,6 +37,7 @@ const defaultSettings = {
     instagram: {
       enabled: false,
       intervalMinutes: 1440,
+      triggerTime: "09:00",
       channelIds: [],
       mode: "addToQueue",
       delayMinutes: 30,
@@ -44,6 +46,7 @@ const defaultSettings = {
     linkedin: {
       enabled: false,
       intervalMinutes: 1440,
+      triggerTime: "09:00",
       channelIds: [],
       mode: "addToQueue",
       delayMinutes: 30,
@@ -67,6 +70,11 @@ const PLATFORM_OPTIONS = [
   { id: "facebook", label: "Facebook" },
   { id: "instagram", label: "Instagram" },
   { id: "linkedin", label: "LinkedIn" }
+];
+const FREQUENCY_OPTIONS = [
+  { value: 720, label: "Every 12 hours" },
+  { value: 1440, label: "Every 24 hours" },
+  { value: 10080, label: "Weekly" }
 ];
 
 function preview(value, limit = 140) {
@@ -378,7 +386,10 @@ export default function AdminAiContent() {
         const current = settings?.autoPlatformSettings?.[platform.id] || {};
         result[platform.id] = {
           enabled: Boolean(current.enabled),
-          intervalMinutes: Math.max(5, Math.min(10080, Number(current.intervalMinutes || 1440))),
+          intervalMinutes: FREQUENCY_OPTIONS.some((item) => item.value === Number(current.intervalMinutes))
+            ? Number(current.intervalMinutes)
+            : 1440,
+          triggerTime: /^([01]\d|2[0-3]):[0-5]\d$/.test(String(current.triggerTime || "")) ? current.triggerTime : "09:00",
           channelIds: Array.isArray(current.channelIds) ? current.channelIds : [],
           mode: ["shareNow", "shareNext", "customScheduled", "addToQueue"].includes(current.mode) ? current.mode : "addToQueue",
           delayMinutes: Math.max(0, Math.min(10080, Number(current.delayMinutes ?? 30))),
@@ -1132,16 +1143,26 @@ export default function AdminAiContent() {
                                 {profile.lastRunAt ? `Last: ${formatTime(profile.lastRunAt)}` : "Not run yet"}
                               </span>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                            <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
                               <label className="text-xs font-medium text-gray-600">
-                                Frequency minutes
-                                <input
-                                  type="number"
-                                  min="5"
-                                  max="10080"
+                                Frequency
+                                <select
                                   className="mt-1 w-full border rounded-lg px-3 py-2 text-sm bg-white"
                                   value={profile.intervalMinutes ?? 1440}
                                   onChange={(e) => updateAutoPlatform(platform.id, { intervalMinutes: Number(e.target.value) })}
+                                >
+                                  {FREQUENCY_OPTIONS.map((option) => (
+                                    <option key={option.value} value={option.value}>{option.label}</option>
+                                  ))}
+                                </select>
+                              </label>
+                              <label className="text-xs font-medium text-gray-600">
+                                Trigger time
+                                <input
+                                  type="time"
+                                  className="mt-1 w-full border rounded-lg px-3 py-2 text-sm bg-white"
+                                  value={profile.triggerTime || "09:00"}
+                                  onChange={(e) => updateAutoPlatform(platform.id, { triggerTime: e.target.value })}
                                 />
                               </label>
                               <label className="text-xs font-medium text-gray-600">

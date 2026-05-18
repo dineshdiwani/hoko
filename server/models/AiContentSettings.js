@@ -34,6 +34,7 @@ const aiContentSettingsSchema = new mongoose.Schema(
       facebook: {
         enabled: { type: Boolean, default: false },
         intervalMinutes: { type: Number, default: 1440, min: 5, max: 10080 },
+        triggerTime: { type: String, default: "09:00" },
         channelIds: [{ type: String }],
         mode: {
           type: String,
@@ -51,6 +52,7 @@ const aiContentSettingsSchema = new mongoose.Schema(
       instagram: {
         enabled: { type: Boolean, default: false },
         intervalMinutes: { type: Number, default: 1440, min: 5, max: 10080 },
+        triggerTime: { type: String, default: "09:00" },
         channelIds: [{ type: String }],
         mode: {
           type: String,
@@ -68,6 +70,7 @@ const aiContentSettingsSchema = new mongoose.Schema(
       linkedin: {
         enabled: { type: Boolean, default: false },
         intervalMinutes: { type: Number, default: 1440, min: 5, max: 10080 },
+        triggerTime: { type: String, default: "09:00" },
         channelIds: [{ type: String }],
         mode: {
           type: String,
