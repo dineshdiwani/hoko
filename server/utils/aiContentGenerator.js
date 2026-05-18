@@ -312,6 +312,86 @@ function buildProviderImagePrompt({ imagePrompt = "", draft = {}, category = {},
   ].filter(Boolean).join(" ");
 }
 
+function buildImagePromptRefinementPrompt({ imagePrompt = "", draft = {}, category = {}, campaign = {} }) {
+  const categoryName = normalizeText(category?.name || draft?.categorySnapshot?.name);
+  const hook = normalizeText(draft?.hook || draft?.caption || draft?.topic);
+  const mood = normalizeText(campaign?.mood);
+  return [
+    "Write one final text-to-image prompt for ModelsLab.",
+    "Goal: create a relevant square social media image aligned with the post hook and admin mood.",
+    mood ? `Admin mood / visual direction: ${mood}.` : "",
+    hook ? `Post hook: ${hook}.` : "",
+    categoryName ? `Category: ${categoryName}.` : "",
+    imagePrompt ? `Existing weak image prompt to improve: ${normalizeText(imagePrompt)}.` : "",
+    "Return only the final image prompt, no JSON, no markdown.",
+    "Prompt requirements:",
+    "- Describe a concrete scene with visible objects, people/roles, setting, and action.",
+    "- Make the product/category visually central.",
+    "- Include buyer requirement and 2-3 seller offer/price comparison cards only if it fits naturally.",
+    "- Avoid generic marketplace/app UI visuals.",
+    "- Do not ask for readable text, logos, HOKO word, signboards, wall photos, or random portraits.",
+    "- Keep it concise but specific enough for an image model."
+  ].filter(Boolean).join("\n");
+}
+
+async function refineImagePrompt({ imagePrompt = "", draft = {}, category = {}, campaign = {}, settings = {} }) {
+  const fallbackPrompt = buildProviderImagePrompt({ imagePrompt, draft, category, campaign });
+  const provider = normalizeAiProvider(settings?.aiProvider);
+  const prompt = buildImagePromptRefinementPrompt({ imagePrompt, draft, category, campaign });
+
+  if (provider === "openai") {
+    const apiKey = normalizeText(process.env.OPENAI_API_KEY);
+    if (!apiKey) return fallbackPrompt;
+    try {
+      const model = normalizeText(process.env.OPENAI_CONTENT_MODEL) || "gpt-4o-mini";
+      const response = await axios.post(
+        "https://api.openai.com/v1/responses",
+        {
+          model,
+          input: prompt
+        },
+        {
+          timeout: 20000,
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json"
+          }
+        }
+      );
+      return normalizeText(extractResponseText(response?.data)) || fallbackPrompt;
+    } catch {
+      return fallbackPrompt;
+    }
+  }
+
+  const apiKey = normalizeText(process.env.GEMINI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY);
+  if (!apiKey) return fallbackPrompt;
+  try {
+    const model = normalizeText(process.env.GEMINI_CONTENT_MODEL) || "gemini-2.5-flash";
+    const response = await axios.post(
+      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
+      {
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: prompt }]
+          }
+        ]
+      },
+      {
+        timeout: 20000,
+        params: { key: apiKey },
+        headers: {
+          "Content-Type": "application/json"
+        }
+      }
+    );
+    return normalizeText(extractResponseText(response?.data)) || fallbackPrompt;
+  } catch {
+    return fallbackPrompt;
+  }
+}
+
 async function generateTextDraft({ category, settings, campaign = {} }) {
   const fixedCta = normalizeText(settings?.fixedCta) || "Learn More";
   const fallback = buildFallbackDraft({
@@ -526,7 +606,7 @@ async function fetchModelsLabImage({ apiKey, requestId }) {
   return null;
 }
 
-async function generateModelsLabImage({ imagePrompt, draft = {}, category = {}, campaign = {} }) {
+async function generateModelsLabImage({ imagePrompt, draft = {}, category = {}, campaign = {}, settings = {} }) {
   const apiKey = normalizeText(process.env.MODELSLAB_API_KEY || process.env.MODELSLAB_KEY);
   if (!apiKey) {
     return {
@@ -543,7 +623,7 @@ async function generateModelsLabImage({ imagePrompt, draft = {}, category = {}, 
     "https://modelslab.com/api/v6/images/text2img",
     {
       key: apiKey,
-      prompt: buildProviderImagePrompt({ imagePrompt, draft, category, campaign }),
+      prompt: await refineImagePrompt({ imagePrompt, draft, category, campaign, settings }),
       model_id: model,
       width: "1024",
       height: "1024",
@@ -578,7 +658,7 @@ async function generateModelsLabImage({ imagePrompt, draft = {}, category = {}, 
   };
 }
 
-async function generateGeminiImage({ imagePrompt, draft = {}, category = {}, campaign = {} }) {
+async function generateGeminiImage({ imagePrompt, draft = {}, category = {}, campaign = {}, settings = {} }) {
   const apiKey = normalizeText(process.env.GEMINI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY);
   if (!apiKey) {
     return {
@@ -601,7 +681,7 @@ async function generateGeminiImage({ imagePrompt, draft = {}, category = {}, cam
               text: [
                 "Generate one square social media image for this prompt.",
                 "Return an image output.",
-                buildProviderImagePrompt({ imagePrompt, draft, category, campaign })
+                await refineImagePrompt({ imagePrompt, draft, category, campaign, settings })
               ].filter(Boolean).join(" ")
             }
           ]
@@ -651,9 +731,9 @@ async function generateImage({ imagePrompt, settings = {}, draft = {}, category 
     };
   }
   if (provider === "gemini") {
-    return generateGeminiImage({ imagePrompt, draft, category, campaign });
+    return generateGeminiImage({ imagePrompt, draft, category, campaign, settings });
   }
-  return generateModelsLabImage({ imagePrompt, draft, category, campaign });
+  return generateModelsLabImage({ imagePrompt, draft, category, campaign, settings });
 }
 
 async function generateAiContentDraft({ category, settings, campaign = {}, generateImages = true }) {
