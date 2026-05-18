@@ -174,7 +174,7 @@ function buildFallbackDraft({ category, fixedCta, campaign = {} }) {
     hashtags: ["#HOKO", "#Business", `#${name.replace(/[^a-zA-Z0-9]/g, "")}`].filter((item) => item.length > 1),
     imagePrompt: [
       `Create a square social media image for the HOKO online marketplace app about ${name}.`,
-      `Depict this hook visually: "${hook}"`,
+      mood ? `Follow this admin visual direction exactly: "${mood}".` : `Depict this hook visually: "${hook}"`,
       "Show a buyer posting a requirement, multiple sellers submitting price offers, best lower-price offer selection, and reverse auction competition.",
       `Style: ${normalizeText(category?.imageStyle) || "clean modern Indian business app ad"}.`,
       "Do not add small unreadable text. Avoid fake app UI details."
@@ -204,6 +204,7 @@ function buildPrompt({ category, fixedCta, campaign = {} }) {
     "The admin selects only a category; you must choose the topic yourself based on that category.",
     "The system only generates drafts and images; it does not publish.",
     campaignMood ? `Today's campaign mood/direction: ${campaignMood}.` : "",
+    campaignMood ? "If the mood/direction includes a concrete visual scene, objects, people, product, or setting, the imagePrompt must preserve those exact visual requirements." : "",
     audienceMode && audienceMode !== "auto" ? `Audience focus: ${audienceMode}.` : "Audience focus: choose the strongest audience automatically.",
     imageStyle && imageStyle !== "auto" ? `Preferred image style/background: ${imageStyle}.` : "Choose image environment/background automatically.",
     useAppScreenshots ? "If helpful, ask for a clean app screenshot/mockup placement in the image prompt without inventing unreadable UI text." : "Do not require app screenshots unless the hook clearly benefits from a phone mockup.",
@@ -226,6 +227,7 @@ function buildPrompt({ category, fixedCta, campaign = {} }) {
     "Use plain Indian business English. Avoid generic lines like grow your business, discover opportunities, or connect buyers and sellers unless tied to price offers.",
     "caption: repeat the hook only. Do not add extra copy. CTA is stored separately as button text.",
     "imagePrompt: describe a concrete square social post image that visually depicts the exact hook, with the selected category/product as the main visual subject.",
+    campaignMood ? "imagePrompt must include the concrete scene from today's campaign mood/direction. Do not replace it with a generic marketplace workflow." : "",
     "Image prompt must name specific visible objects, setting, and buyer/seller action for the category. Avoid generic business scenes.",
     "Image prompt must show buyer requirement, seller price offers, price comparison, and reverse auction where relevant, but these should support the category/product visual, not replace it.",
     "Avoid unreadable text, fake screenshots, platform logos, or celebrity/brand references.",
@@ -236,17 +238,20 @@ function buildPrompt({ category, fixedCta, campaign = {} }) {
 function buildFinalImagePrompt({ imagePrompt = "", draft = {}, category = {}, campaign = {} }) {
   const categoryName = normalizeText(category?.name || draft?.categorySnapshot?.name) || "business requirement";
   const hook = normalizeText(draft?.hook || draft?.caption || draft?.topic);
+  const mood = normalizeText(campaign?.mood);
   const audienceMode = normalizeText(campaign?.audienceMode);
   const imageStyle = normalizeText(campaign?.imageStyle);
   const categoryStyle = normalizeText(category?.imageStyle);
   const concreteSubject = normalizeText(draft?.topic) || categoryName;
   const sceneFocus = [
     `Create one square 1:1 social media advertising image for this exact post topic: ${concreteSubject}.`,
+    mood ? `Hard admin visual instruction: ${mood}. This instruction has priority over generic marketplace visuals.` : "",
     `Primary visual subject: ${categoryName}. The image must clearly show real items, tools, shop/warehouse context, or service context from this category.`,
     hook ? `Match this exact post message visually: "${hook}".` : "",
     "Do not make a generic office, handshake, abstract app promotion, or random business meeting.",
     "The first thing visible should be the category/product need, then the HOKO buying workflow.",
-    "Show a buyer with the relevant product/category requirement, and 2-3 seller price offers as simple large visual cards or price tags.",
+    mood ? "When admin visual instruction names a specific product or people, show those exact objects and people prominently." : "",
+    "Show a buyer with the relevant product/category requirement, and 2-3 seller price offers as simple large visual cards or price tags only if they fit naturally.",
     "Show comparison of prices/offers visually, but avoid small unreadable text. Use simple symbolic numbers or price tags only if readable.",
     "If the post says 'needed soon', show urgency with practical buying context such as a shop counter, warehouse shelf, contractor site, or procurement desk.",
     "If reverse auction is relevant, show sellers competing with downward price arrows or offer cards.",
