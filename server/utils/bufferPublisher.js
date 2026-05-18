@@ -7,6 +7,12 @@ const { resolvePublicAppUrl } = require("./publicAppUrl");
 const { generateImage } = require("./aiContentGenerator");
 
 const AI_CONTENT_UPLOAD_DIR = path.join(__dirname, "..", "uploads", "social-media");
+const LOGO_CANDIDATES = [
+  path.join(__dirname, "..", "..", "client", "public", "logo.png"),
+  path.join(__dirname, "..", "..", "client", "public", "logo.jpg"),
+  path.join(__dirname, "..", "public", "logo.png"),
+  path.join(__dirname, "..", "public", "logo.jpg")
+];
 
 const BUFFER_API_URL = "https://api.buffer.com";
 
@@ -233,7 +239,7 @@ async function saveImageBufferAsPublicUrl(buffer, mimeType = "", sourceUrl = "")
   }
 
   await fs.promises.mkdir(AI_CONTENT_UPLOAD_DIR, { recursive: true });
-  const normalizedBuffer = await sharp(buffer)
+  let normalizedBuffer = await sharp(buffer)
     .rotate()
     .resize(1024, 1024, {
       fit: "cover",
@@ -244,6 +250,34 @@ async function saveImageBufferAsPublicUrl(buffer, mimeType = "", sourceUrl = "")
       mozjpeg: true
     })
     .toBuffer();
+
+  const logoPath = LOGO_CANDIDATES.find((candidate) => fs.existsSync(candidate));
+  if (logoPath) {
+    const badgeSize = 142;
+    const margin = 32;
+    const logoSize = 104;
+    const badgeSvg = Buffer.from(`
+      <svg width="${badgeSize}" height="${badgeSize}" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="${badgeSize}" height="${badgeSize}" rx="28" ry="28" fill="white" fill-opacity="0.88"/>
+      </svg>
+    `);
+    const logoBuffer = await sharp(logoPath)
+      .resize(logoSize, logoSize, { fit: "contain", background: { r: 255, g: 255, b: 255, alpha: 0 } })
+      .png()
+      .toBuffer();
+    const left = 1024 - badgeSize - margin;
+    const top = 1024 - badgeSize - margin;
+    normalizedBuffer = await sharp(normalizedBuffer)
+      .composite([
+        { input: badgeSvg, left, top },
+        { input: logoBuffer, left: left + Math.round((badgeSize - logoSize) / 2), top: top + Math.round((badgeSize - logoSize) / 2) }
+      ])
+      .jpeg({
+        quality: 90,
+        mozjpeg: true
+      })
+      .toBuffer();
+  }
   const normalizedInfo = detectImageInfo(normalizedBuffer);
   if (!normalizedInfo.width || !normalizedInfo.height) {
     throw new Error("Normalized image dimensions could not be read before Buffer publishing");
