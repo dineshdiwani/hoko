@@ -31,6 +31,7 @@ const CAMPAIGN_FORM_KEY = "hoko_ai_content_campaign_form";
 const CATEGORY_FORM_KEY = "hoko_ai_content_category_form";
 const TRAINING_TEXT_KEY = "hoko_ai_content_training_text";
 const BUFFER_FORM_KEY = "hoko_ai_content_buffer_form";
+const DRAFT_HISTORY_LIMIT = 1000;
 
 function preview(value, limit = 140) {
   const text = String(value || "").trim();
@@ -162,10 +163,11 @@ export default function AdminAiContent() {
   async function loadAll() {
     try {
       setLoading(true);
-      const [settingsRes, categoriesRes, draftsRes, logsRes, trainingRes, runsRes] = await Promise.allSettled([
+      const [settingsRes, categoriesRes, draftsRes, postedDraftsRes, logsRes, trainingRes, runsRes] = await Promise.allSettled([
         withTimeout(api.get("/ai-content/settings"), 15000),
         withTimeout(api.get("/ai-content/categories"), 15000),
-        withTimeout(api.get("/ai-content/drafts?limit=500"), 30000),
+        withTimeout(api.get(`/ai-content/drafts?limit=${DRAFT_HISTORY_LIMIT}`), 30000),
+        withTimeout(api.get(`/ai-content/drafts?hasBuffer=1&limit=${DRAFT_HISTORY_LIMIT}`), 30000),
         withTimeout(api.get("/ai-content/logs?limit=10"), 10000),
         withTimeout(api.get("/ai-content/training-notes?limit=20"), 10000),
         withTimeout(api.get("/ai-content/campaign-runs?limit=10"), 10000)
@@ -175,6 +177,9 @@ export default function AdminAiContent() {
       if (categoriesRes.status === "fulfilled") setCategories(Array.isArray(categoriesRes.value.data?.items) ? categoriesRes.value.data.items : []);
       if (draftsRes.status === "fulfilled") {
         setDrafts((existing) => mergeDrafts(existing, Array.isArray(draftsRes.value.data?.items) ? draftsRes.value.data.items : []));
+      }
+      if (postedDraftsRes.status === "fulfilled") {
+        setDrafts((existing) => mergeDrafts(existing, Array.isArray(postedDraftsRes.value.data?.items) ? postedDraftsRes.value.data.items : []));
       }
       if (logsRes.status === "fulfilled") setLogs(Array.isArray(logsRes.value.data?.items) ? logsRes.value.data.items : []);
       if (trainingRes.status === "fulfilled") setTrainingNotes(Array.isArray(trainingRes.value.data?.items) ? trainingRes.value.data.items : []);
@@ -189,8 +194,19 @@ export default function AdminAiContent() {
   async function loadDraftsOnly({ silent = false } = {}) {
     try {
       setDraftsLoading(true);
-      const draftsRes = await withTimeout(api.get("/ai-content/drafts?limit=500"), 30000, "Drafts are still loading. Please try again.");
-      setDrafts((existing) => mergeDrafts(existing, Array.isArray(draftsRes.data?.items) ? draftsRes.data.items : []));
+      const [draftsRes, postedDraftsRes] = await Promise.allSettled([
+        withTimeout(api.get(`/ai-content/drafts?limit=${DRAFT_HISTORY_LIMIT}`), 30000, "Drafts are still loading. Please try again."),
+        withTimeout(api.get(`/ai-content/drafts?hasBuffer=1&limit=${DRAFT_HISTORY_LIMIT}`), 30000, "Posted drafts are still loading. Please try again.")
+      ]);
+      if (draftsRes.status === "fulfilled") {
+        setDrafts((existing) => mergeDrafts(existing, Array.isArray(draftsRes.value.data?.items) ? draftsRes.value.data.items : []));
+      }
+      if (postedDraftsRes.status === "fulfilled") {
+        setDrafts((existing) => mergeDrafts(existing, Array.isArray(postedDraftsRes.value.data?.items) ? postedDraftsRes.value.data.items : []));
+      }
+      if (draftsRes.status === "rejected" && postedDraftsRes.status === "rejected") {
+        throw draftsRes.reason || postedDraftsRes.reason;
+      }
     } catch (err) {
       if (!silent) {
         alert(err?.response?.data?.message || err.message || "Failed to load generated drafts");
@@ -266,7 +282,7 @@ export default function AdminAiContent() {
 
   useEffect(() => {
     try {
-      window.localStorage.setItem(DRAFT_CACHE_KEY, JSON.stringify(drafts.slice(0, 300)));
+      window.localStorage.setItem(DRAFT_CACHE_KEY, JSON.stringify(drafts.slice(0, DRAFT_HISTORY_LIMIT)));
     } catch {}
   }, [drafts]);
 

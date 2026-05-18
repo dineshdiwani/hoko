@@ -142,7 +142,10 @@ router.delete("/categories/:id", adminAuth, requireAdminPermission("campaigns.ma
 router.get("/drafts", adminAuth, requireAdminPermission("campaigns.read"), async (req, res) => {
   const status = normalizeText(req.query?.status);
   const query = status ? { status } : {};
-  const limit = Math.max(1, Math.min(500, Number(req.query?.limit || 200)));
+  if (["1", "true", "yes"].includes(normalizeText(req.query?.hasBuffer).toLowerCase())) {
+    query["buffer.postId"] = { $ne: "" };
+  }
+  const limit = Math.max(1, Math.min(1000, Number(req.query?.limit || 200)));
   const items = await AiGeneratedPost.find(query)
     .sort({ createdAt: -1 })
     .limit(limit)
