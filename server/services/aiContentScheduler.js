@@ -43,16 +43,16 @@ function normalizeText(value) {
 }
 
 function getChannelCaption(draft, service = "") {
-  const cleanService = normalizeText(service).toLowerCase();
+  const cleanService = normalizeChannelService(service);
   const captions = draft?.channelCaptions || {};
   return normalizeText(captions[cleanService]) || "";
 }
 
 function normalizeChannelService(service = "") {
   const cleanService = normalizeText(service).toLowerCase();
-  if (cleanService === "facebook" || cleanService === "facebook_page") return "facebook";
-  if (cleanService === "instagram") return "instagram";
-  if (cleanService === "linkedin") return "linkedin";
+  if (cleanService === "facebook" || cleanService.startsWith("facebook_")) return "facebook";
+  if (cleanService === "instagram" || cleanService.startsWith("instagram_")) return "instagram";
+  if (cleanService === "linkedin" || cleanService.startsWith("linkedin_")) return "linkedin";
   return cleanService;
 }
 

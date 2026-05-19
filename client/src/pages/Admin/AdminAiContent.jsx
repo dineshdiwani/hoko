@@ -1138,8 +1138,10 @@ export default function AdminAiContent() {
                         const platformChannels = bufferChannels.filter((channel) => {
                           const service = String(channel.service || "").toLowerCase();
                           return platform.id === "facebook"
-                            ? service === "facebook" || service === "facebook_page"
-                            : service === platform.id;
+                            ? service === "facebook" || service.startsWith("facebook_")
+                            : platform.id === "linkedin"
+                              ? service === "linkedin" || service.startsWith("linkedin_")
+                              : service === "instagram" || service.startsWith("instagram_");
                         });
                         return (
                           <div key={platform.id} className="rounded-xl border bg-white p-3 space-y-3">

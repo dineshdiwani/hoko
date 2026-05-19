@@ -445,13 +445,13 @@ function getPostMetadata(service = "", postType = "post", ctaLink = "", hasImage
   const cleanService = normalizeText(service).toLowerCase();
   const cleanType = ["post", "story", "reel"].includes(postType) ? postType : "post";
   const linkAttachment = hasImage ? null : getLinkAttachment(ctaLink);
-  if (cleanService === "facebook") {
+  if (cleanService === "facebook" || cleanService.startsWith("facebook_")) {
     return { facebook: { type: cleanType, ...(linkAttachment || {}) } };
   }
-  if (cleanService === "linkedin") {
+  if (cleanService === "linkedin" || cleanService.startsWith("linkedin_")) {
     return linkAttachment ? { linkedin: linkAttachment } : null;
   }
-  if (cleanService === "instagram") {
+  if (cleanService === "instagram" || cleanService.startsWith("instagram_")) {
     return {
       instagram: {
         type: cleanType,
@@ -492,7 +492,7 @@ async function createBufferPost({
 
   const publicImageUrl = await resolveOrGeneratePublicImageUrl(draft, imageUrl);
   const cleanChannelService = normalizeText(channelService).toLowerCase();
-  if (cleanChannelService === "instagram" && !publicImageUrl) {
+  if ((cleanChannelService === "instagram" || cleanChannelService.startsWith("instagram_")) && !publicImageUrl) {
     throw new Error("Instagram publishing requires a public image. Generate an image first, or use a draft with an image.");
   }
   if (publicImageUrl) {
