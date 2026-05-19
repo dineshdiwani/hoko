@@ -51,7 +51,7 @@ function normalizeAutoPlatformSettings(value = {}) {
         ? source.channelIds.map((item) => normalizeText(item)).filter(Boolean)
         : [],
       mode: allowedModes.includes(source.mode) ? source.mode : "addToQueue",
-      delayMinutes: Math.max(0, Math.min(10080, Number(source.delayMinutes || 30))),
+      delayMinutes: Math.max(0, Math.min(10080, Number(source.delayMinutes ?? 30))),
       postType: allowedPostTypes.includes(source.postType) ? source.postType : "post",
       lastRunAt: source.lastRunAt || null
     };
@@ -96,7 +96,7 @@ router.put("/settings", adminAuth, requireAdminPermission("campaigns.manage"), a
   const body = req.body || {};
   const maxDraftsPerRun = Math.max(1, Math.min(20, Number(body.maxDraftsPerRun || 3)));
   const cronIntervalMinutes = Math.max(5, Math.min(1440, Number(body.cronIntervalMinutes || 60)));
-  const autoBufferDelayMinutes = Math.max(0, Math.min(10080, Number(body.autoBufferDelayMinutes || 30)));
+  const autoBufferDelayMinutes = Math.max(0, Math.min(10080, Number(body.autoBufferDelayMinutes ?? 30)));
   const autoBufferChannelIds = Array.isArray(body.autoBufferChannelIds)
     ? body.autoBufferChannelIds.map((item) => normalizeText(item)).filter(Boolean)
     : [];

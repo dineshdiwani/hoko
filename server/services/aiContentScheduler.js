@@ -198,7 +198,7 @@ async function autoSendDraftToBuffer({ draft, settings, platformProfiles = null 
       const profile = dueByPlatform.get(normalizeChannelService(channel.service)) || {};
       const mode = normalizeText(profile.mode) || "addToQueue";
       const dueAt = mode === "customScheduled"
-        ? new Date(Date.now() + Math.max(0, Number(profile.delayMinutes || 30)) * 60000).toISOString()
+        ? new Date(Date.now() + Math.max(0, Number(profile.delayMinutes ?? 30)) * 60000).toISOString()
         : "";
       const result = await createBufferPost({
         draft: draft.toObject ? draft.toObject() : draft,

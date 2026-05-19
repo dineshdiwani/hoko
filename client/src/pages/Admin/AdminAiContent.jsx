@@ -422,7 +422,7 @@ export default function AdminAiContent() {
         autoBufferChannelIds: Array.isArray(settings?.autoBufferChannelIds) ? settings.autoBufferChannelIds : [],
         autoBufferMode: ["shareNow", "shareNext", "customScheduled", "addToQueue"].includes(settings?.autoBufferMode) ? settings.autoBufferMode : "addToQueue",
         autoBufferPostType: ["post", "story", "reel"].includes(settings?.autoBufferPostType) ? settings.autoBufferPostType : "post",
-        autoBufferDelayMinutes: Math.max(0, Math.min(10080, Number(settings?.autoBufferDelayMinutes || 30))),
+        autoBufferDelayMinutes: Math.max(0, Math.min(10080, Number(settings?.autoBufferDelayMinutes ?? 30))),
         blockedWords: Array.isArray(settings?.blockedWords)
           ? settings.blockedWords
           : String(settings?.blockedWords || "").split(",").map((item) => item.trim()).filter(Boolean)
