@@ -12,6 +12,7 @@ let schedulerStarted = false;
 let schedulerIntervalId = null;
 let running = false;
 let schedulerWakeRequested = false;
+const AI_CONTENT_TIME_ZONE = process.env.AI_CONTENT_TIME_ZONE || "Asia/Kolkata";
 
 function scheduleAiContentSweep(intervalMs = getSchedulerIntervalMs()) {
   if (schedulerIntervalId) clearTimeout(schedulerIntervalId);
@@ -140,11 +141,66 @@ function getTriggerParts(profile) {
   };
 }
 
+function getTimeZoneParts(date = new Date(), timeZone = AI_CONTENT_TIME_ZONE) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hourCycle: "h23",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit"
+  }).formatToParts(date).reduce((result, part) => {
+    if (part.type !== "literal") result[part.type] = part.value;
+    return result;
+  }, {});
+  const weekdayIndex = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  return {
+    year: Number(parts.year),
+    month: Number(parts.month),
+    day: Number(parts.day),
+    weekday: weekdayIndex[parts.weekday] ?? date.getUTCDay(),
+    hour: Number(parts.hour),
+    minute: Number(parts.minute),
+    second: Number(parts.second)
+  };
+}
+
+function getTimeZoneOffsetMs(date = new Date(), timeZone = AI_CONTENT_TIME_ZONE) {
+  const parts = getTimeZoneParts(date, timeZone);
+  const zonedAsUtc = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second);
+  return zonedAsUtc - date.getTime();
+}
+
+function buildZonedDate({ year, month, day, hour, minute }, timeZone = AI_CONTENT_TIME_ZONE) {
+  const utcGuess = Date.UTC(year, month - 1, day, hour, minute, 0, 0);
+  const firstPass = new Date(utcGuess - getTimeZoneOffsetMs(new Date(utcGuess), timeZone));
+  return new Date(utcGuess - getTimeZoneOffsetMs(firstPass, timeZone));
+}
+
+function addZonedDays(parts, days) {
+  const date = new Date(Date.UTC(parts.year, parts.month - 1, parts.day + days, 12, 0, 0, 0));
+  return {
+    year: date.getUTCFullYear(),
+    month: date.getUTCMonth() + 1,
+    day: date.getUTCDate()
+  };
+}
+
 function buildDailyTrigger(profile, nowDate = new Date(), offsetMinutes = 0) {
   const { hour, minute } = getTriggerParts(profile);
-  const trigger = new Date(nowDate);
-  trigger.setHours(hour, minute + offsetMinutes, 0, 0);
-  return trigger;
+  const nowParts = getTimeZoneParts(nowDate);
+  const totalMinutes = hour * 60 + minute + offsetMinutes;
+  const dayOffset = Math.floor(totalMinutes / 1440);
+  const normalizedMinutes = ((totalMinutes % 1440) + 1440) % 1440;
+  const triggerDay = addZonedDays(nowParts, dayOffset);
+  return buildZonedDate({
+    ...triggerDay,
+    hour: Math.floor(normalizedMinutes / 60),
+    minute: normalizedMinutes % 60
+  });
 }
 
 function getLastScheduledTriggerAt(profile, nowDate = new Date()) {
@@ -162,14 +218,35 @@ function getLastScheduledTriggerAt(profile, nowDate = new Date()) {
   if (interval === 10080) {
     const trigger = buildDailyTrigger(profile, nowDate, 0);
     const targetDay = Math.max(0, Math.min(6, Number(profile.triggerDay ?? 1)));
-    const daysBack = (trigger.getDay() - targetDay + 7) % 7;
-    trigger.setDate(trigger.getDate() - daysBack);
-    if (trigger.getTime() > nowDate.getTime()) trigger.setDate(trigger.getDate() - 7);
-    return trigger;
+    const triggerParts = getTimeZoneParts(trigger);
+    const daysBack = (triggerParts.weekday - targetDay + 7) % 7;
+    const targetDate = addZonedDays(triggerParts, -daysBack);
+    let weeklyTrigger = buildZonedDate({
+      ...targetDate,
+      hour: triggerParts.hour,
+      minute: triggerParts.minute
+    });
+    if (weeklyTrigger.getTime() > nowDate.getTime()) {
+      const previousWeek = addZonedDays(getTimeZoneParts(weeklyTrigger), -7);
+      weeklyTrigger = buildZonedDate({
+        ...previousWeek,
+        hour: triggerParts.hour,
+        minute: triggerParts.minute
+      });
+    }
+    return weeklyTrigger;
   }
 
   const trigger = buildDailyTrigger(profile, nowDate, 0);
-  if (trigger.getTime() > nowDate.getTime()) trigger.setDate(trigger.getDate() - 1);
+  if (trigger.getTime() > nowDate.getTime()) {
+    const triggerParts = getTimeZoneParts(trigger);
+    const previousDay = addZonedDays(triggerParts, -1);
+    return buildZonedDate({
+      ...previousDay,
+      hour: triggerParts.hour,
+      minute: triggerParts.minute
+    });
+  }
   return trigger;
 }
 
@@ -738,6 +815,7 @@ module.exports = {
     getPlatformSettings,
     getSchedulerIntervalMs,
     getSuccessfulPlatformsFromResults,
+    getTimeZoneParts,
     getTargetPlatforms,
     getWakeDelayMs,
     normalizeChannelService

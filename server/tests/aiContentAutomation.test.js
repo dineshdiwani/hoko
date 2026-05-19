@@ -11,6 +11,7 @@ const {
     getPlatformSettings,
     getSchedulerIntervalMs,
     getSuccessfulPlatformsFromResults,
+    getTimeZoneParts,
     getTargetPlatforms,
     getWakeDelayMs,
     normalizeChannelService
@@ -145,6 +146,26 @@ test("daily trigger at 11:35 PM becomes due after trigger and not before", () =>
     );
   });
 });
+
+test("daily trigger uses India time instead of server UTC time", () => {
+  const settings = settingsWithProfiles({
+    facebook: { triggerTime: "13:21", lastRunAt: "2026-05-19T13:20:00+05:30" },
+    instagram: { enabled: false },
+    linkedin: { enabled: false }
+  });
+
+  withMockedDate("2026-05-19T07:50:59.000Z", () => {
+    assert.equal(getTimeZoneParts(new Date()).hour, 13);
+    assert.deepEqual(getDuePlatformProfiles(settings).map((item) => item.platform), []);
+  });
+
+  withMockedDate("2026-05-19T07:51:00.000Z", () => {
+    assert.equal(getTimeZoneParts(new Date()).hour, 13);
+    assert.equal(getTimeZoneParts(new Date()).minute, 21);
+    assert.deepEqual(getDuePlatformProfiles(settings).map((item) => item.platform), ["facebook"]);
+  });
+});
+
 
 test("lastRunAt prevents duplicate posts for the same scheduled trigger", () => {
   withMockedDate("2026-05-19T23:40:00+05:30", () => {
