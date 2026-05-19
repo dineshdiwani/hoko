@@ -117,6 +117,35 @@ function composePostText(draft) {
   ].filter(Boolean).join("\n\n");
 }
 
+function formatAutoPostResult(autoBuffer = {}, force = false) {
+  const sent = Number(autoBuffer.sent || 0);
+  const picked = Number(autoBuffer.picked || 0);
+  const duePlatforms = Array.isArray(autoBuffer.duePlatforms) ? autoBuffer.duePlatforms : [];
+  const markedPlatforms = Array.isArray(autoBuffer.markedPlatforms) ? autoBuffer.markedPlatforms : [];
+  const failures = Array.isArray(autoBuffer.failures) ? autoBuffer.failures : [];
+  const reason = autoBuffer.reason || (sent > 0 ? "posted" : "checked");
+  const nextStep = (() => {
+    if (sent > 0) return "Posted successfully. Check Buffer/social channel queue for the created post.";
+    if (reason === "no_due_auto_platforms") return "No platform is due now. Check trigger time, timezone, enabled platforms, and last run time.";
+    if (reason === "no_ready_unsent_posts") return "No ready unsent AI posts found. Generate a new AI post or delete/skip already sent Buffer posts.";
+    if (!duePlatforms.length) return "No enabled/due social platform was found.";
+    if (!picked) return "No eligible AI post was picked for publishing.";
+    if (failures.length) return "Buffer rejected the selected post(s). Open the latest failed draft for the error details.";
+    return "Check selected Buffer channels and AI target platforms.";
+  })();
+
+  return [
+    `${force ? "Forced auto-post run" : "Auto-post check"} completed`,
+    `Sent: ${sent}`,
+    `Picked posts: ${picked}`,
+    `Due platforms: ${duePlatforms.join(", ") || "-"}`,
+    `Posted platforms: ${markedPlatforms.join(", ") || "-"}`,
+    `Reason: ${reason}`,
+    failures.length ? `Failed draft IDs: ${failures.join(", ")}` : "",
+    `Next: ${nextStep}`
+  ].filter(Boolean).join("\n");
+}
+
 function mergeDrafts(currentDrafts, incomingDrafts) {
   const incoming = Array.isArray(incomingDrafts) ? incomingDrafts.filter((item) => item?._id) : [];
   if (!incoming.length) return currentDrafts;
@@ -552,7 +581,7 @@ export default function AdminAiContent() {
       });
       await loadAll();
       const autoBuffer = res.data?.result?.autoBuffer || {};
-      alert(`${force ? "Forced auto-post run" : "Auto-post check"} completed: ${autoBuffer.sent || 0} sent. Reason: ${autoBuffer.reason || "checked"}`);
+      alert(formatAutoPostResult(autoBuffer, force));
     } catch (err) {
       alert(err?.response?.data?.message || err.message || "Failed to run auto-post check");
     } finally {
