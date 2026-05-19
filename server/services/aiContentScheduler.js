@@ -329,6 +329,17 @@ async function processAutoBufferQueue(settings = {}, limit = 10, options = {}) {
   })
     .sort({ approvedAt: 1, createdAt: 1 })
     .limit(Math.max(1, Math.min(25, Number(limit || 10))));
+  if (!drafts.length) {
+    return {
+      picked: 0,
+      sent: 0,
+      failures: [],
+      duePlatforms,
+      markedPlatforms: [],
+      forced: Boolean(options.force),
+      reason: "no_approved_unsent_drafts"
+    };
+  }
   let sent = 0;
   const failures = [];
   const sentPlatforms = new Set();
