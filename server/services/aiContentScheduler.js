@@ -37,10 +37,15 @@ async function sweepAiContentScheduler() {
   }
 }
 
-function wakeAiContentScheduler(settings = null) {
+function wakeAiContentScheduler(settings = null, delayMs = 0) {
   if (!schedulerStarted) return;
   schedulerWakeRequested = true;
-  scheduleAiContentSweep(getSchedulerIntervalMs(settings));
+  scheduleAiContentSweep(getWakeDelayMs(settings, delayMs));
+}
+
+function getWakeDelayMs(settings = null, delayMs = 0) {
+  const requestedDelay = Math.max(0, Number(delayMs || 0));
+  return Math.min(getSchedulerIntervalMs(settings), requestedDelay);
 }
 
 function getSchedulerIntervalMs(settings = null) {
@@ -485,6 +490,43 @@ async function processAiContentGeneration({ force = false, limit } = {}) {
   }
 }
 
+async function processAiContentAutoPost({ limit } = {}) {
+  if (running) {
+    return { skipped: true, reason: "generation_already_running" };
+  }
+  if (!AiContentCategory?.db || AiContentCategory.db.readyState !== 1) {
+    return { skipped: true, reason: "database_not_ready" };
+  }
+
+  running = true;
+  const log = await AiContentJobLog.create({
+    type: "generate_drafts",
+    status: "started",
+    message: "Manual auto-post check started",
+    startedAt: new Date()
+  });
+
+  try {
+    const settings = await getSettings();
+    const autoBuffer = await processAutoBufferQueue(settings, limit || settings?.maxDraftsPerRun || 3);
+    log.status = "completed";
+    log.message = "Manual auto-post check completed";
+    log.details = { autoBuffer };
+    log.finishedAt = new Date();
+    await log.save();
+    return { autoBuffer };
+  } catch (err) {
+    log.status = "failed";
+    log.message = err?.message || "ai_content_auto_post_failed";
+    log.details = err?.response?.data || null;
+    log.finishedAt = new Date();
+    await log.save();
+    throw err;
+  } finally {
+    running = false;
+  }
+}
+
 async function createCampaignRunDrafts({
   mood,
   postCount = 3,
@@ -656,6 +698,7 @@ function startAiContentScheduler() {
 module.exports = {
   getSettings,
   createCampaignRunDrafts,
+  processAiContentAutoPost,
   processCampaignRunById,
   processAiContentGeneration,
   startAiContentScheduler,
@@ -669,6 +712,7 @@ module.exports = {
     getSchedulerIntervalMs,
     getSuccessfulPlatformsFromResults,
     getTargetPlatforms,
+    getWakeDelayMs,
     normalizeChannelService
   }
 };

@@ -11,6 +11,7 @@ const {
     getSchedulerIntervalMs,
     getSuccessfulPlatformsFromResults,
     getTargetPlatforms,
+    getWakeDelayMs,
     normalizeChannelService
   }
 } = require("../services/aiContentScheduler");
@@ -103,6 +104,9 @@ test("scheduler polls every five minutes when any platform auto mode is enabled"
 
 test("scheduler wake function is safe before the background scheduler starts", () => {
   assert.doesNotThrow(() => wakeAiContentScheduler(settingsWithProfiles()));
+  assert.equal(getWakeDelayMs(settingsWithProfiles(), 0), 0);
+  assert.equal(getWakeDelayMs(settingsWithProfiles(), 120000), 120000);
+  assert.equal(getWakeDelayMs(settingsWithProfiles(), 600000), 5 * 60000);
 });
 
 test("daily trigger at 11:35 PM becomes due after trigger and not before", () => {

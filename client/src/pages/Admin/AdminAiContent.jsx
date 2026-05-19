@@ -211,6 +211,7 @@ export default function AdminAiContent() {
   const [loading, setLoading] = useState(false);
   const [draftsLoading, setDraftsLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [autoPosting, setAutoPosting] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(null);
   const [bufferChannels, setBufferChannels] = useState([]);
   const [bufferConfigured, setBufferConfigured] = useState(false);
@@ -539,6 +540,22 @@ export default function AdminAiContent() {
       alert(err?.response?.data?.message || err.message || "Failed to generate drafts");
     } finally {
       setGenerating(false);
+    }
+  }
+
+  async function runAutoPostCheck() {
+    try {
+      setAutoPosting(true);
+      const res = await api.post("/ai-content/auto-post/run", {
+        limit: settings?.maxDraftsPerRun || 3
+      });
+      await loadAll();
+      const autoBuffer = res.data?.result?.autoBuffer || {};
+      alert(`Auto-post check completed: ${autoBuffer.sent || 0} sent. Reason: ${autoBuffer.reason || "checked"}`);
+    } catch (err) {
+      alert(err?.response?.data?.message || err.message || "Failed to run auto-post check");
+    } finally {
+      setAutoPosting(false);
     }
   }
 
@@ -1715,7 +1732,17 @@ export default function AdminAiContent() {
             </section>
 
             <section className="bg-white border rounded-2xl p-4 space-y-2">
-              <h2 className="font-semibold">Job Logs</h2>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h2 className="font-semibold">Job Logs</h2>
+                <button
+                  type="button"
+                  onClick={runAutoPostCheck}
+                  disabled={autoPosting}
+                  className="rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
+                >
+                  {autoPosting ? "Checking..." : "Run Auto-Post Check"}
+                </button>
+              </div>
               {logs.map((log) => (
                 <div key={log._id} className="border rounded-lg p-3 text-xs">
                   <div className="flex items-center justify-between gap-2">
@@ -1724,6 +1751,11 @@ export default function AdminAiContent() {
                   </div>
                   <p>Picked: {log.picked || 0} | Drafts: {log.createdDrafts || 0}</p>
                   {log.message ? <p className="text-red-600">{log.message}</p> : null}
+                  {log.details?.autoBuffer ? (
+                    <p className="text-gray-600">
+                      Auto-post: {log.details.autoBuffer.sent || 0} sent | due: {(log.details.autoBuffer.duePlatforms || []).join(", ") || "-"} | marked: {(log.details.autoBuffer.markedPlatforms || []).join(", ") || "-"} | {log.details.autoBuffer.reason || "checked"}
+                    </p>
+                  ) : null}
                 </div>
               ))}
               {!logs.length ? <p className="text-sm text-gray-500">No logs yet.</p> : null}

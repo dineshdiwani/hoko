@@ -12,6 +12,7 @@ const { buildOptionsResponse } = require("../config/platformDefaults");
 const {
   createCampaignRunDrafts,
   getSettings,
+  processAiContentAutoPost,
   processAiContentGeneration,
   wakeAiContentScheduler
 } = require("../services/aiContentScheduler");
@@ -172,7 +173,7 @@ router.put("/settings", adminAuth, requireAdminPermission("campaigns.manage"), a
     { upsert: true, new: true }
   ).lean();
 
-  wakeAiContentScheduler(settings);
+  wakeAiContentScheduler(settings, 0);
   res.json({ settings });
 });
 
@@ -500,6 +501,17 @@ router.post("/generate/run", adminAuth, requireAdminPermission("campaigns.manage
     res.json({ success: true, result });
   } catch (err) {
     res.status(500).json({ message: err?.message || "Failed to generate AI content drafts" });
+  }
+});
+
+router.post("/auto-post/run", adminAuth, requireAdminPermission("campaigns.manage"), async (req, res) => {
+  try {
+    const result = await processAiContentAutoPost({
+      limit: req.body?.limit
+    });
+    res.json({ success: true, result });
+  } catch (err) {
+    res.status(500).json({ message: err?.message || "Failed to run AI content auto-post check" });
   }
 });
 
