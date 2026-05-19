@@ -18,7 +18,7 @@ const defaultSettings = {
   aiProvider: "gemini",
   imageProvider: "modelslab",
   generationEnabled: false,
-  approvalRequired: true,
+  approvalRequired: false,
   autoBufferEnabled: false,
   autoBufferChannelIds: [],
   autoBufferMode: "addToQueue",
@@ -652,19 +652,6 @@ export default function AdminAiContent() {
     }
   }
 
-  async function setDraftStatus(draftId, status) {
-    try {
-      const res = await api.patch(`/ai-content/drafts/${draftId}/status`, { status });
-      if (res.data?.draft) {
-        setDrafts((current) => replaceDraft(current, res.data.draft));
-      }
-      await refreshDraftsQuietly();
-      alert("Draft updated successfully");
-    } catch (err) {
-      alert(err?.response?.data?.message || err.message || "Failed to update draft");
-    }
-  }
-
   function selectedBufferChannels() {
     const ids = Array.isArray(bufferForm.channelIds) && bufferForm.channelIds.length
       ? bufferForm.channelIds
@@ -1139,14 +1126,6 @@ export default function AdminAiContent() {
                     />
                     Enable cron generation
                   </label>
-                  <label className="flex items-center gap-2 text-sm text-gray-700">
-                    <input
-                      type="checkbox"
-                      checked={settings.approvalRequired !== false}
-                      onChange={(e) => setSettings({ ...settings, approvalRequired: e.target.checked })}
-                    />
-                    Require approval
-                  </label>
                   <div className="md:col-span-2 rounded-xl border bg-gray-50 p-3 space-y-3">
                     <div className="flex items-center justify-between gap-3">
                       <div>
@@ -1506,7 +1485,7 @@ export default function AdminAiContent() {
                   <div>
                     <p className="text-sm font-semibold">Buffer Publishing</p>
                     <p className="text-[11px] text-gray-500">
-                      Queue approved drafts to connected Buffer social channels.
+                      Queue AI-created posts to connected Buffer social channels.
                     </p>
                   </div>
                   <button
@@ -1684,27 +1663,6 @@ export default function AdminAiContent() {
                     ) : null}
                     <div className="flex flex-wrap gap-2">
                       <button
-                        onClick={() => setDraftStatus(draft._id, "approved")}
-                        disabled={draft.status === "approved"}
-                        className="px-3 py-1.5 rounded border text-[11px] font-semibold disabled:opacity-50"
-                      >
-                        Approve
-                      </button>
-                      <button
-                        onClick={() => setDraftStatus(draft._id, "rejected")}
-                        disabled={draft.status === "rejected"}
-                        className="px-3 py-1.5 rounded border text-[11px] font-semibold disabled:opacity-50"
-                      >
-                        Reject
-                      </button>
-                      <button
-                        onClick={() => setDraftStatus(draft._id, "draft")}
-                        disabled={draft.status === "draft"}
-                        className="px-3 py-1.5 rounded border text-[11px] font-semibold disabled:opacity-50"
-                      >
-                        Draft
-                      </button>
-                      <button
                         onClick={() => setEditingPostId(editingPostId === draft._id ? "" : draft._id)}
                         className="px-3 py-1.5 rounded border text-[11px] font-semibold"
                       >
@@ -1712,7 +1670,7 @@ export default function AdminAiContent() {
                       </button>
                       <button
                         onClick={() => sendDraftToBuffer(draft)}
-                        disabled={publishingId === draft._id || !selectedBufferChannels().length || draft.status === "rejected"}
+                        disabled={publishingId === draft._id || !selectedBufferChannels().length}
                         className="px-3 py-1.5 rounded border text-[11px] font-semibold disabled:opacity-50"
                       >
                         {publishingId === draft._id ? "Sending..." : "Send Buffer"}

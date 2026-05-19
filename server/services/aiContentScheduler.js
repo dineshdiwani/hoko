@@ -337,7 +337,7 @@ async function processAutoBufferQueue(settings = {}, limit = 10, options = {}) {
       duePlatforms,
       markedPlatforms: [],
       forced: Boolean(options.force),
-      reason: "no_approved_unsent_drafts"
+      reason: "no_ready_unsent_posts"
     };
   }
   let sent = 0;
@@ -472,7 +472,9 @@ async function processAiContentGeneration({ force = false, limit } = {}) {
         targetPlatforms: generated.targetPlatforms,
         cta: settings.fixedCta || "Learn More",
         ctaLink: settings.ctaLink || "",
-        status: settings.approvalRequired === false ? "approved" : "draft",
+        status: "approved",
+        approvedAt: new Date(),
+        approvedByAdminId: null,
         generationProvider: generated.provider,
         textModel: generated.model,
         imageProvider: generated.imageProvider,
@@ -486,7 +488,7 @@ async function processAiContentGeneration({ force = false, limit } = {}) {
       await category.save();
       draftIds.push(String(draft._id));
       createdDrafts += 1;
-      if (draft.status === "approved" && settings.autoBufferEnabled) {
+      if (settings.autoBufferEnabled) {
         await autoSendDraftToBuffer({ draft, settings });
       }
     }
@@ -673,7 +675,9 @@ async function processCampaignRunById(runId) {
         targetPlatforms: generated.targetPlatforms,
         cta: campaignSettings.fixedCta || "Learn More",
         ctaLink: campaignSettings.ctaLink || "",
-        status: settings.approvalRequired === false ? "approved" : "draft",
+        status: "approved",
+        approvedAt: new Date(),
+        approvedByAdminId: null,
         generationProvider: generated.provider,
         textModel: generated.model,
         imageProvider: generated.imageProvider,
@@ -682,7 +686,7 @@ async function processCampaignRunById(runId) {
         rawImageResponse: generated.rawImageResponse,
         lastError: generated.error || generated.imageError || ""
       });
-      if (draft.status === "approved" && settings.autoBufferEnabled) {
+      if (settings.autoBufferEnabled) {
         await autoSendDraftToBuffer({ draft, settings });
       }
       draftIds.push(draft._id);

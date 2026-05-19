@@ -157,7 +157,7 @@ router.put("/settings", adminAuth, requireAdminPermission("campaigns.manage"), a
         aiProvider: normalizeAiProvider(body.aiProvider),
         imageProvider: normalizeImageProvider(body.imageProvider),
         generationEnabled: Boolean(body.generationEnabled),
-        approvalRequired: body.approvalRequired !== false,
+        approvalRequired: false,
         autoBufferEnabled: Boolean(body.autoBufferEnabled),
         autoBufferChannelIds,
         autoBufferMode,
@@ -285,31 +285,6 @@ router.post("/campaign-runs", adminAuth, requireAdminPermission("campaigns.manag
   } catch (err) {
     res.status(500).json({ message: err?.message || "Failed to create campaign run drafts" });
   }
-});
-
-router.patch("/drafts/:id/status", adminAuth, requireAdminPermission("campaigns.manage"), async (req, res) => {
-  const nextStatus = normalizeText(req.body?.status);
-  if (!["draft", "approved", "rejected"].includes(nextStatus)) {
-    return res.status(400).json({ message: "Unsupported draft status" });
-  }
-
-  const update = { status: nextStatus };
-  if (nextStatus === "approved") {
-    update.approvedAt = new Date();
-    update.approvedByAdminId = req.admin?._id || null;
-    update.rejectedAt = null;
-    update.rejectedByAdminId = null;
-  }
-  if (nextStatus === "rejected") {
-    update.rejectedAt = new Date();
-    update.rejectedByAdminId = req.admin?._id || null;
-  }
-
-  const draft = await AiGeneratedPost.findByIdAndUpdate(req.params.id, update, { new: true }).lean();
-  if (!draft) {
-    return res.status(404).json({ message: "Draft not found" });
-  }
-  res.json({ draft });
 });
 
 router.post("/drafts/:id/buffer", adminAuth, requireAdminPermission("campaigns.manage"), async (req, res) => {

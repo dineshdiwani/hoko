@@ -240,14 +240,14 @@ test("auto-post run markers advance only platforms with successful Buffer posts"
   );
 });
 
-test("zero picked auto-post result should report no approved drafts", () => {
+test("zero picked auto-post result should report no ready posts", () => {
   const result = {
     picked: 0,
     sent: 0,
     duePlatforms: ["facebook", "instagram", "linkedin"],
     markedPlatforms: [],
-    reason: "no_approved_unsent_drafts"
+    reason: "no_ready_unsent_posts"
   };
 
-  assert.equal(result.reason, "no_approved_unsent_drafts");
+  assert.equal(result.reason, "no_ready_unsent_posts");
 });
