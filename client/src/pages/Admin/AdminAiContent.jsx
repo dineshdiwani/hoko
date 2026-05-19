@@ -177,6 +177,7 @@ function withTimeout(promise, ms = 20000, message = "Request timed out") {
 export default function AdminAiContent() {
   const [settings, setSettings] = useState(defaultSettings);
   const [settingsSaving, setSettingsSaving] = useState(false);
+  const [settingsNotice, setSettingsNotice] = useState(null);
   const [dashboardCategories, setDashboardCategories] = useState([]);
   const [categories, setCategories] = useState([]);
   const [drafts, setDrafts] = useState(() => getStoredDrafts());
@@ -394,6 +395,7 @@ export default function AdminAiContent() {
   async function saveSettings() {
     try {
       setSettingsSaving(true);
+      setSettingsNotice(null);
       const autoPlatformSettings = PLATFORM_OPTIONS.reduce((result, platform) => {
         const current = settings?.autoPlatformSettings?.[platform.id] || {};
         result[platform.id] = {
@@ -429,9 +431,12 @@ export default function AdminAiContent() {
       };
       const res = await api.put("/ai-content/settings", payload);
       setSettings(res.data?.settings ? { ...defaultSettings, ...res.data.settings } : defaultSettings);
+      setSettingsNotice({ type: "success", message: "Automation settings saved successfully" });
       alert("Automation settings saved successfully");
     } catch (err) {
-      alert(err?.response?.data?.message || err.message || "Failed to save settings");
+      const message = err?.response?.data?.message || err.message || "Failed to save settings";
+      setSettingsNotice({ type: "error", message });
+      alert(message);
     } finally {
       setSettingsSaving(false);
     }
@@ -1009,6 +1014,17 @@ export default function AdminAiContent() {
                   {settingsSaving ? "Saving..." : "Save Settings"}
                 </button>
               </div>
+              {settingsNotice ? (
+                <div
+                  className={`rounded-lg border px-3 py-2 text-sm ${
+                    settingsNotice.type === "success"
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                      : "border-red-200 bg-red-50 text-red-700"
+                  }`}
+                >
+                  {settingsNotice.message}
+                </div>
+              ) : null}
 
               {settings ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
