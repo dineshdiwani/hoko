@@ -82,5 +82,6 @@ const aiGeneratedPostSchema = new mongoose.Schema(
 );
 
 aiGeneratedPostSchema.index({ status: 1, createdAt: -1 });
+aiGeneratedPostSchema.index({ "buffer.postId": 1, createdAt: -1 });
 
 module.exports = mongoose.model("AiGeneratedPost", aiGeneratedPostSchema);
