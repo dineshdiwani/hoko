@@ -12,7 +12,8 @@ const { buildOptionsResponse } = require("../config/platformDefaults");
 const {
   createCampaignRunDrafts,
   getSettings,
-  processAiContentGeneration
+  processAiContentGeneration,
+  wakeAiContentScheduler
 } = require("../services/aiContentScheduler");
 const {
   composeDraftText,
@@ -171,6 +172,7 @@ router.put("/settings", adminAuth, requireAdminPermission("campaigns.manage"), a
     { upsert: true, new: true }
   ).lean();
 
+  wakeAiContentScheduler(settings);
   res.json({ settings });
 });
 

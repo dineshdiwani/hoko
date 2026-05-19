@@ -11,6 +11,37 @@ const { createBufferPost, getBufferChannels } = require("../utils/bufferPublishe
 let schedulerStarted = false;
 let schedulerIntervalId = null;
 let running = false;
+let schedulerWakeRequested = false;
+
+function scheduleAiContentSweep(intervalMs = getSchedulerIntervalMs()) {
+  if (schedulerIntervalId) clearTimeout(schedulerIntervalId);
+  schedulerIntervalId = setTimeout(async () => {
+    await sweepAiContentScheduler();
+  }, intervalMs);
+  if (schedulerIntervalId?.unref) schedulerIntervalId.unref();
+}
+
+async function sweepAiContentScheduler() {
+  schedulerWakeRequested = false;
+  let nextIntervalMs = getSchedulerIntervalMs();
+  try {
+    const settings = await getSettings();
+    nextIntervalMs = getSchedulerIntervalMs(settings);
+    await processAiContentGeneration();
+  } catch (err) {
+    console.warn("[AiContentScheduler] generation failed:", err?.message || err);
+  } finally {
+    if (!schedulerWakeRequested) {
+      scheduleAiContentSweep(nextIntervalMs);
+    }
+  }
+}
+
+function wakeAiContentScheduler(settings = null) {
+  if (!schedulerStarted) return;
+  schedulerWakeRequested = true;
+  scheduleAiContentSweep(getSchedulerIntervalMs(settings));
+}
 
 function getSchedulerIntervalMs(settings = null) {
   const minutes = Number(settings?.cronIntervalMinutes || process.env.AI_CONTENT_INTERVAL_MINUTES || 60);
@@ -163,6 +194,16 @@ async function markPlatformProfilesRun(settings = {}, profiles = []) {
   }
 }
 
+function getSuccessfulPlatformsFromResults(results = []) {
+  const platforms = new Set();
+  for (const item of Array.isArray(results) ? results : []) {
+    if (!item?.success) continue;
+    const platform = normalizeChannelService(item.channelService);
+    if (platform) platforms.add(platform);
+  }
+  return Array.from(platforms);
+}
+
 async function resolveAutoBufferChannels(settings = {}) {
   const legacySelectedIds = Array.isArray(settings.autoBufferChannelIds)
     ? settings.autoBufferChannelIds.map(normalizeText).filter(Boolean)
@@ -281,6 +322,7 @@ async function processAutoBufferQueue(settings = {}, limit = 10) {
     .limit(Math.max(1, Math.min(25, Number(limit || 10))));
   let sent = 0;
   const failures = [];
+  const sentPlatforms = new Set();
   for (const draft of drafts) {
     const draftTargets = getTargetPlatforms(draft);
     const matchingProfiles = draftTargets.length
@@ -289,11 +331,15 @@ async function processAutoBufferQueue(settings = {}, limit = 10) {
     if (!matchingProfiles.length) continue;
     const result = await autoSendDraftToBuffer({ draft, settings, platformProfiles: matchingProfiles });
     const results = Array.isArray(result?.results) ? result.results : [];
-    if (results.some((item) => item.success)) sent += 1;
+    if (results.some((item) => item.success)) {
+      sent += 1;
+      getSuccessfulPlatformsFromResults(results).forEach((platform) => sentPlatforms.add(platform));
+    }
     if (results.some((item) => !item.success)) failures.push(String(draft._id));
   }
-  await markPlatformProfilesRun(settings, platformProfiles);
-  return { picked: drafts.length, sent, failures, duePlatforms };
+  const sentPlatformProfiles = platformProfiles.filter((profile) => sentPlatforms.has(profile.platform));
+  await markPlatformProfilesRun(settings, sentPlatformProfiles);
+  return { picked: drafts.length, sent, failures, duePlatforms, markedPlatforms: sentPlatformProfiles.map((item) => item.platform) };
 }
 
 async function getDashboardCategories() {
@@ -603,28 +649,7 @@ function startAiContentScheduler() {
   if (schedulerStarted) return;
   schedulerStarted = true;
 
-  const scheduleNext = async (intervalMs = getSchedulerIntervalMs()) => {
-    if (schedulerIntervalId) clearTimeout(schedulerIntervalId);
-    schedulerIntervalId = setTimeout(async () => {
-      await sweep();
-    }, intervalMs);
-    if (schedulerIntervalId?.unref) schedulerIntervalId.unref();
-  };
-
-  const sweep = async () => {
-    let nextIntervalMs = getSchedulerIntervalMs();
-    try {
-      const settings = await getSettings();
-      nextIntervalMs = getSchedulerIntervalMs(settings);
-      await processAiContentGeneration();
-    } catch (err) {
-      console.warn("[AiContentScheduler] generation failed:", err?.message || err);
-    } finally {
-      scheduleNext(nextIntervalMs);
-    }
-  };
-
-  scheduleNext(getSchedulerIntervalMs());
+  scheduleAiContentSweep(Math.min(getSchedulerIntervalMs(), 5 * 60000));
   console.log("[AiContentScheduler] started");
 }
 
@@ -634,6 +659,7 @@ module.exports = {
   processCampaignRunById,
   processAiContentGeneration,
   startAiContentScheduler,
+  wakeAiContentScheduler,
   _private: {
     buildDailyTrigger,
     getChannelCaption,
@@ -641,6 +667,7 @@ module.exports = {
     getLastScheduledTriggerAt,
     getPlatformSettings,
     getSchedulerIntervalMs,
+    getSuccessfulPlatformsFromResults,
     getTargetPlatforms,
     normalizeChannelService
   }

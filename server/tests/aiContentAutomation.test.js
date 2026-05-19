@@ -2,12 +2,14 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 
 const {
+  wakeAiContentScheduler,
   _private: {
     getChannelCaption,
     getDuePlatformProfiles,
     getLastScheduledTriggerAt,
     getPlatformSettings,
     getSchedulerIntervalMs,
+    getSuccessfulPlatformsFromResults,
     getTargetPlatforms,
     normalizeChannelService
   }
@@ -97,6 +99,10 @@ test("scheduler polls every five minutes when any platform auto mode is enabled"
   assert.equal(getSchedulerIntervalMs({ cronIntervalMinutes: 60, autoPlatformSettings: {} }), 60 * 60000);
   assert.equal(getSchedulerIntervalMs(settingsWithProfiles()), 5 * 60000);
   assert.equal(getSchedulerIntervalMs({ cronIntervalMinutes: 2, autoBufferEnabled: true }), 5 * 60000);
+});
+
+test("scheduler wake function is safe before the background scheduler starts", () => {
+  assert.doesNotThrow(() => wakeAiContentScheduler(settingsWithProfiles()));
 });
 
 test("daily trigger at 11:35 PM becomes due after trigger and not before", () => {
@@ -202,4 +208,16 @@ test("target platform and caption helpers route drafts to matching social channe
   assert.equal(getChannelCaption(draft, "facebook_page"), "Facebook caption");
   assert.equal(getChannelCaption(draft, "instagram_business"), "Instagram caption");
   assert.equal(getChannelCaption(draft, "linkedin_profile"), "LinkedIn caption");
+});
+
+test("auto-post run markers advance only platforms with successful Buffer posts", () => {
+  assert.deepEqual(
+    getSuccessfulPlatformsFromResults([
+      { success: true, channelService: "facebook_page" },
+      { success: false, channelService: "instagram_business", message: "image missing" },
+      { success: true, channelService: "linkedin_profile" },
+      { success: true, channelService: "facebook_group" }
+    ]),
+    ["facebook", "linkedin"]
+  );
 });
