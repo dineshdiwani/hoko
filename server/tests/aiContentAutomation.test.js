@@ -6,6 +6,7 @@ const {
   _private: {
     getChannelCaption,
     getDuePlatformProfiles,
+    getEnabledPlatformProfiles,
     getLastScheduledTriggerAt,
     getPlatformSettings,
     getSchedulerIntervalMs,
@@ -100,6 +101,19 @@ test("scheduler polls every five minutes when any platform auto mode is enabled"
   assert.equal(getSchedulerIntervalMs({ cronIntervalMinutes: 60, autoPlatformSettings: {} }), 60 * 60000);
   assert.equal(getSchedulerIntervalMs(settingsWithProfiles()), 5 * 60000);
   assert.equal(getSchedulerIntervalMs({ cronIntervalMinutes: 2, autoBufferEnabled: true }), 5 * 60000);
+});
+
+test("forced auto-post can use enabled platforms even when none are due", () => {
+  const settings = settingsWithProfiles({
+    facebook: { lastRunAt: "2026-05-19T23:36:00+05:30" },
+    instagram: { lastRunAt: "2026-05-19T23:36:00+05:30" },
+    linkedin: { enabled: false }
+  });
+
+  withMockedDate("2026-05-19T23:40:00+05:30", () => {
+    assert.deepEqual(getDuePlatformProfiles(settings).map((item) => item.platform), []);
+    assert.deepEqual(getEnabledPlatformProfiles(settings).map((item) => item.platform), ["facebook", "instagram"]);
+  });
 });
 
 test("scheduler wake function is safe before the background scheduler starts", () => {

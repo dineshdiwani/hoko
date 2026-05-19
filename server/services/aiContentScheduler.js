@@ -312,8 +312,12 @@ async function autoSendDraftToBuffer({ draft, settings, platformProfiles = null 
   return { results };
 }
 
-async function processAutoBufferQueue(settings = {}, limit = 10) {
-  const platformProfiles = getDuePlatformProfiles(settings);
+function getEnabledPlatformProfiles(settings = {}) {
+  return Object.values(getPlatformSettings(settings)).filter((profile) => profile.enabled);
+}
+
+async function processAutoBufferQueue(settings = {}, limit = 10, options = {}) {
+  const platformProfiles = options.force ? getEnabledPlatformProfiles(settings) : getDuePlatformProfiles(settings);
   if (!platformProfiles.length) return { skipped: true, reason: "no_due_auto_platforms" };
   const duePlatforms = platformProfiles.map((item) => item.platform);
   const drafts = await AiGeneratedPost.find({
@@ -344,7 +348,14 @@ async function processAutoBufferQueue(settings = {}, limit = 10) {
   }
   const sentPlatformProfiles = platformProfiles.filter((profile) => sentPlatforms.has(profile.platform));
   await markPlatformProfilesRun(settings, sentPlatformProfiles);
-  return { picked: drafts.length, sent, failures, duePlatforms, markedPlatforms: sentPlatformProfiles.map((item) => item.platform) };
+  return {
+    picked: drafts.length,
+    sent,
+    failures,
+    duePlatforms,
+    markedPlatforms: sentPlatformProfiles.map((item) => item.platform),
+    forced: Boolean(options.force)
+  };
 }
 
 async function getDashboardCategories() {
@@ -490,7 +501,7 @@ async function processAiContentGeneration({ force = false, limit } = {}) {
   }
 }
 
-async function processAiContentAutoPost({ limit } = {}) {
+async function processAiContentAutoPost({ limit, force = false } = {}) {
   if (running) {
     return { skipped: true, reason: "generation_already_running" };
   }
@@ -508,9 +519,9 @@ async function processAiContentAutoPost({ limit } = {}) {
 
   try {
     const settings = await getSettings();
-    const autoBuffer = await processAutoBufferQueue(settings, limit || settings?.maxDraftsPerRun || 3);
+    const autoBuffer = await processAutoBufferQueue(settings, limit || settings?.maxDraftsPerRun || 3, { force });
     log.status = "completed";
-    log.message = "Manual auto-post check completed";
+    log.message = force ? "Manual forced auto-post run completed" : "Manual auto-post check completed";
     log.details = { autoBuffer };
     log.finishedAt = new Date();
     await log.save();
@@ -707,6 +718,7 @@ module.exports = {
     buildDailyTrigger,
     getChannelCaption,
     getDuePlatformProfiles,
+    getEnabledPlatformProfiles,
     getLastScheduledTriggerAt,
     getPlatformSettings,
     getSchedulerIntervalMs,

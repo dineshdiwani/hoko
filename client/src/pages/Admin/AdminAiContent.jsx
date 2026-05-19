@@ -543,15 +543,16 @@ export default function AdminAiContent() {
     }
   }
 
-  async function runAutoPostCheck() {
+  async function runAutoPostCheck({ force = false } = {}) {
     try {
       setAutoPosting(true);
       const res = await api.post("/ai-content/auto-post/run", {
-        limit: settings?.maxDraftsPerRun || 3
+        limit: settings?.maxDraftsPerRun || 3,
+        force
       });
       await loadAll();
       const autoBuffer = res.data?.result?.autoBuffer || {};
-      alert(`Auto-post check completed: ${autoBuffer.sent || 0} sent. Reason: ${autoBuffer.reason || "checked"}`);
+      alert(`${force ? "Forced auto-post run" : "Auto-post check"} completed: ${autoBuffer.sent || 0} sent. Reason: ${autoBuffer.reason || "checked"}`);
     } catch (err) {
       alert(err?.response?.data?.message || err.message || "Failed to run auto-post check");
     } finally {
@@ -1736,11 +1737,19 @@ export default function AdminAiContent() {
                 <h2 className="font-semibold">Job Logs</h2>
                 <button
                   type="button"
-                  onClick={runAutoPostCheck}
+                  onClick={() => runAutoPostCheck()}
                   disabled={autoPosting}
                   className="rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
                 >
                   {autoPosting ? "Checking..." : "Run Auto-Post Check"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => runAutoPostCheck({ force: true })}
+                  disabled={autoPosting}
+                  className="rounded-lg bg-black px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+                >
+                  {autoPosting ? "Running..." : "Force Auto-Post Now"}
                 </button>
               </div>
               {logs.map((log) => (

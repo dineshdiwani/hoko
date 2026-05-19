@@ -507,7 +507,8 @@ router.post("/generate/run", adminAuth, requireAdminPermission("campaigns.manage
 router.post("/auto-post/run", adminAuth, requireAdminPermission("campaigns.manage"), async (req, res) => {
   try {
     const result = await processAiContentAutoPost({
-      limit: req.body?.limit
+      limit: req.body?.limit,
+      force: Boolean(req.body?.force)
     });
     res.json({ success: true, result });
   } catch (err) {
