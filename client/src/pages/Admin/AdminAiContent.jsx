@@ -323,6 +323,35 @@ export default function AdminAiContent() {
     await loadDraftsOnly({ silent: true });
   }
 
+  async function loadLogsOnly({ silent = false } = {}) {
+    try {
+      const [logsRes, runsRes] = await Promise.allSettled([
+        withTimeout(api.get("/ai-content/logs?limit=10"), 10000),
+        withTimeout(api.get("/ai-content/campaign-runs?limit=10"), 10000)
+      ]);
+      if (logsRes.status === "fulfilled") {
+        setLogs(Array.isArray(logsRes.value.data?.items) ? logsRes.value.data.items : []);
+      }
+      if (runsRes.status === "fulfilled") {
+        setCampaignRuns(Array.isArray(runsRes.value.data?.items) ? runsRes.value.data.items : []);
+      }
+      if (logsRes.status === "rejected" && runsRes.status === "rejected") {
+        throw logsRes.reason || runsRes.reason;
+      }
+    } catch (err) {
+      if (!silent) {
+        alert(err?.response?.data?.message || err.message || "Failed to load job logs");
+      }
+    }
+  }
+
+  async function refreshActivityQuietly() {
+    await Promise.allSettled([
+      loadLogsOnly({ silent: true }),
+      loadDraftsOnly({ silent: true })
+    ]);
+  }
+
   async function loadSettingsOnly({ silent = false } = {}) {
     try {
       const res = await withTimeout(api.get("/ai-content/settings"), 15000);
@@ -385,6 +414,14 @@ export default function AdminAiContent() {
     loadDashboardCategories().catch(() => {});
     loadBufferChannels().catch(() => {});
   }, []);
+
+  useEffect(() => {
+    const intervalMs = generating || autoPosting || bulkPublishing || publishingId ? 2500 : 15000;
+    const timer = window.setInterval(() => {
+      refreshActivityQuietly().catch(() => {});
+    }, intervalMs);
+    return () => window.clearInterval(timer);
+  }, [generating, autoPosting, bulkPublishing, publishingId]);
 
   useEffect(() => {
     try {
@@ -555,7 +592,7 @@ export default function AdminAiContent() {
         title: "Generation complete",
         message: `Generated drafts: ${result.createdDrafts || 0}`
       });
-      await refreshDraftsQuietly();
+      await refreshActivityQuietly();
       alert(`Generated drafts: ${result.createdDrafts || 0}`);
       window.setTimeout(() => setGenerationProgress(null), 1200);
     } catch (err) {
@@ -579,7 +616,7 @@ export default function AdminAiContent() {
         limit: settings?.maxDraftsPerRun || 3,
         force
       });
-      await loadAll();
+      await refreshActivityQuietly();
       const autoBuffer = res.data?.result?.autoBuffer || {};
       alert(formatAutoPostResult(autoBuffer, force));
     } catch (err) {
@@ -642,7 +679,7 @@ export default function AdminAiContent() {
           if (currentDrafts.length) {
             setDrafts((existing) => mergeDrafts(existing, currentDrafts));
           }
-          refreshDraftsQuietly();
+          refreshActivityQuietly();
           setGenerationProgress(null);
           alert(`Campaign previews ready: ${currentDrafts.length || run?.draftIds?.length || 0}`);
           break;
@@ -652,14 +689,14 @@ export default function AdminAiContent() {
           if (currentDrafts.length) {
             setDrafts((existing) => mergeDrafts(existing, currentDrafts));
           }
-          refreshDraftsQuietly();
+          refreshActivityQuietly();
           setGenerationProgress(null);
           break;
         }
       }
 
       if (!completed) {
-        refreshDraftsQuietly();
+        refreshActivityQuietly();
         setGenerationProgress({
           percent: 95,
           title: "Still generating",
@@ -762,12 +799,12 @@ export default function AdminAiContent() {
           setDrafts((current) => replaceDraft(current, res.data.draft));
         }
       }
-      await refreshDraftsQuietly();
+      await refreshActivityQuietly();
       setSelectedDraftIds((current) => current.filter((id) => id !== draft._id));
       alert(`Draft sent to Buffer: ${results.length}`);
     } catch (err) {
       alert(err?.response?.data?.message || err.message || "Failed to send draft to Buffer");
-      await refreshDraftsQuietly();
+      await refreshActivityQuietly();
     } finally {
       setPublishingId("");
     }
@@ -811,10 +848,10 @@ export default function AdminAiContent() {
       }
       alert(`Sent to Buffer: ${successCount}${failedCount ? `, failed: ${failedCount}${failedMessages.length ? `\n${failedMessages.join("\n")}` : ""}` : ""}`);
       setSelectedDraftIds([]);
-      await refreshDraftsQuietly();
+      await refreshActivityQuietly();
     } catch (err) {
       alert(err?.response?.data?.message || err.message || "Failed to send selected drafts");
-      await refreshDraftsQuietly();
+      await refreshActivityQuietly();
     } finally {
       setBulkPublishing(false);
     }
@@ -826,7 +863,7 @@ export default function AdminAiContent() {
       await api.delete(`/ai-content/drafts/${draftId}`);
       setDrafts((current) => current.filter((draft) => draft._id !== draftId));
       setSelectedDraftIds((current) => current.filter((id) => id !== draftId));
-      await refreshDraftsQuietly();
+      await refreshActivityQuietly();
       alert("Draft deleted successfully");
     } catch (err) {
       alert(err?.response?.data?.message || err.message || "Failed to delete draft");
