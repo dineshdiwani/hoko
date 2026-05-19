@@ -5,28 +5,41 @@ const { withRetry } = require("../utils/retry");
 const pendingNotifications = [];
 let batchIntervalId = null;
 
+const DEFAULT_ADMIN_NOTIFICATION_EVENTS = {
+  newBuyer: true,
+  newSeller: true,
+  newRequirement: true,
+  newOffer: true,
+  highValueOffer: true,
+  reverseAuction: true,
+  whatsappInteraction: true,
+  userReport: true,
+  sellerApproved: false,
+  moderationAlert: true,
+  autoPost: true
+};
+
 async function getAdminSettings() {
   try {
     const settings = await PlatformSettings.findOne().lean();
-    return settings?.adminNotifications || {
+    const adminNotifications = settings?.adminNotifications;
+    if (adminNotifications) {
+      return {
+        ...adminNotifications,
+        events: {
+          ...DEFAULT_ADMIN_NOTIFICATION_EVENTS,
+          ...(adminNotifications.events || {})
+        }
+      };
+    }
+    return {
       enabled: false,
       mobileNumbers: [],
       instantEnabled: true,
       batchEnabled: true,
       batchIntervalMinutes: 60,
       minOfferValue: 10000,
-      events: {
-        newBuyer: true,
-        newSeller: true,
-        newRequirement: true,
-        newOffer: true,
-        highValueOffer: true,
-        reverseAuction: true,
-        whatsappInteraction: true,
-        userReport: true,
-        sellerApproved: false,
-        moderationAlert: true
-      }
+      events: DEFAULT_ADMIN_NOTIFICATION_EVENTS
     };
   } catch (err) {
     console.log("[AdminNotify] Error loading settings:", err.message);
@@ -205,6 +218,14 @@ async function flushBatch() {
       lines.push("");
     }
 
+    if (grouped.autoPost?.length) {
+      lines.push(`AI AUTO POSTS: ${grouped.autoPost.length}`);
+      grouped.autoPost.slice(0, 3).forEach((n) => {
+        lines.push(`  ${n.sent || 0} sent | ${n.channels || "-"} | ${n.result || "checked"}`);
+      });
+      lines.push("");
+    }
+
     lines.push("--------------------");
     lines.push("View Dashboard: hoko.app/admin");
 
@@ -296,6 +317,40 @@ async function notifyNewSeller(mobile, city, registeredBusinessName, email) {
   }
 }
 
+async function notifyAiContentAutoPost(summary = {}) {
+  const settings = await getAdminSettings();
+  if (!shouldNotify("autoPost", settings)) return;
+
+  const duePlatforms = Array.isArray(summary.duePlatforms) ? summary.duePlatforms : [];
+  const postedPlatforms = Array.isArray(summary.markedPlatforms) ? summary.markedPlatforms : [];
+  const failures = Array.isArray(summary.failures) ? summary.failures : [];
+  const sent = Number(summary.sent || 0);
+  const picked = Number(summary.picked || 0);
+  const channels = postedPlatforms.length ? postedPlatforms : duePlatforms;
+  const result = sent > 0 ? "posted" : (summary.reason || "checked");
+  const description = [
+    `Time: ${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}`,
+    `Posts: ${sent} sent${picked ? ` from ${picked} picked` : ""}`,
+    `Channels: ${channels.join(", ") || "-"}`,
+    `Result: ${result}`,
+    failures.length ? `Failed drafts: ${failures.length}` : ""
+  ].filter(Boolean).join("\n");
+
+  if (settings.instantEnabled) {
+    await sendToAdmin(description);
+  }
+
+  if (settings.batchEnabled) {
+    addToBatch({
+      type: "autoPost",
+      sent,
+      picked,
+      channels: channels.join(", ") || "-",
+      result
+    });
+  }
+}
+
 module.exports = {
   getAdminSettings,
   normalizeMobile,
@@ -306,5 +361,6 @@ module.exports = {
   startBatchProcessor,
   stopBatchProcessor,
   notifyNewBuyer,
-  notifyNewSeller
+  notifyNewSeller,
+  notifyAiContentAutoPost
 };

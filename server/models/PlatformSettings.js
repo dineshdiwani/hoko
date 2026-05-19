@@ -101,7 +101,8 @@ const platformSettingsSchema = new mongoose.Schema(
         whatsappInteraction: { type: Boolean, default: true },
         userReport: { type: Boolean, default: true },
         sellerApproved: { type: Boolean, default: false },
-        moderationAlert: { type: Boolean, default: true }
+        moderationAlert: { type: Boolean, default: true },
+        autoPost: { type: Boolean, default: true }
       }
     }
   },

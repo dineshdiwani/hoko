@@ -87,7 +87,8 @@ export default function AdminDashboard() {
         reverseAuction: true,
         whatsappInteraction: true,
         userReport: true,
-        moderationAlert: true
+        moderationAlert: true,
+        autoPost: true
       }
     }
   });
@@ -1504,7 +1505,8 @@ export default function AdminDashboard() {
                       { key: "reverseAuction", label: "Reverse Auction" },
                       { key: "whatsappInteraction", label: "WA Interaction" },
                       { key: "userReport", label: "User Report" },
-                      { key: "moderationAlert", label: "Moderation Alert" }
+                      { key: "moderationAlert", label: "Moderation Alert" },
+                      { key: "autoPost", label: "AI Auto Post" }
                     ].map((item) => (
                       <label key={item.key} className="flex items-center gap-2 ui-body text-gray-700">
                         <input

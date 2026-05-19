@@ -1285,7 +1285,8 @@ const next = {
         whatsappInteraction: true,
         userReport: true,
         sellerApproved: false,
-        moderationAlert: true
+        moderationAlert: true,
+        autoPost: true
       }
     }
   };

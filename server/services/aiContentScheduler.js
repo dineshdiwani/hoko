@@ -7,6 +7,7 @@ const PlatformSettings = require("../models/PlatformSettings");
 const { buildOptionsResponse } = require("../config/platformDefaults");
 const { generateAiContentDraft } = require("../utils/aiContentGenerator");
 const { createBufferPost, getBufferChannels } = require("../utils/bufferPublisher");
+const { notifyAiContentAutoPost } = require("./adminNotifications");
 
 let schedulerStarted = false;
 let schedulerIntervalId = null;
@@ -286,6 +287,15 @@ function getSuccessfulPlatformsFromResults(results = []) {
   return Array.from(platforms);
 }
 
+async function notifyAutoPostTrigger(autoBuffer = {}) {
+  const duePlatforms = Array.isArray(autoBuffer?.duePlatforms) ? autoBuffer.duePlatforms : [];
+  if (!duePlatforms.length && !autoBuffer?.forced) return;
+  if (Number(autoBuffer?.sent || 0) <= 0) return;
+  await notifyAiContentAutoPost(autoBuffer).catch((err) => {
+    console.warn("[AiContentScheduler] admin WhatsApp auto-post notification failed:", err?.message || err);
+  });
+}
+
 async function resolveAutoBufferChannels(settings = {}) {
   const legacySelectedIds = Array.isArray(settings.autoBufferChannelIds)
     ? settings.autoBufferChannelIds.map(normalizeText).filter(Boolean)
@@ -500,6 +510,7 @@ async function processAiContentGeneration({ force = false, limit } = {}) {
     const settings = await getSettings();
     if (!force && !settings?.generationEnabled) {
       const autoBuffer = await processAutoBufferQueue(settings, settings?.maxDraftsPerRun || 3);
+      await notifyAutoPostTrigger(autoBuffer);
       log.status = "skipped";
       log.message = settings?.autoBufferEnabled
         ? "AI content generation is paused; auto Buffer queue checked"
@@ -570,6 +581,7 @@ async function processAiContentGeneration({ force = false, limit } = {}) {
       }
     }
     const autoBuffer = await processAutoBufferQueue(settings, maxDrafts);
+    await notifyAutoPostTrigger(autoBuffer);
 
     log.status = "completed";
     log.picked = picked;
@@ -610,6 +622,7 @@ async function processAiContentAutoPost({ limit, force = false } = {}) {
   try {
     const settings = await getSettings();
     const autoBuffer = await processAutoBufferQueue(settings, limit || settings?.maxDraftsPerRun || 3, { force });
+    await notifyAutoPostTrigger(autoBuffer);
     log.status = "completed";
     log.message = force ? "Manual forced auto-post run completed" : "Manual auto-post check completed";
     log.details = { autoBuffer };
