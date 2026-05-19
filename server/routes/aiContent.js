@@ -59,6 +59,38 @@ function normalizeAutoPlatformSettings(value = {}) {
   }, {});
 }
 
+function normalizeComparableProfile(profile = {}) {
+  return {
+    enabled: Boolean(profile.enabled),
+    intervalMinutes: [720, 1440, 10080].includes(Number(profile.intervalMinutes)) ? Number(profile.intervalMinutes) : 1440,
+    triggerTime: /^([01]\d|2[0-3]):[0-5]\d$/.test(normalizeText(profile.triggerTime)) ? normalizeText(profile.triggerTime) : "09:00",
+    triggerDay: Math.max(0, Math.min(6, Number(profile.triggerDay ?? 1))),
+    channelIds: Array.isArray(profile.channelIds)
+      ? profile.channelIds.map((item) => normalizeText(item)).filter(Boolean).sort()
+      : [],
+    mode: ["shareNow", "shareNext", "customScheduled", "addToQueue"].includes(profile.mode) ? profile.mode : "addToQueue",
+    delayMinutes: Math.max(0, Math.min(10080, Number(profile.delayMinutes ?? 30))),
+    postType: ["post", "story", "reel"].includes(profile.postType) ? profile.postType : "post"
+  };
+}
+
+function profilesMatch(left = {}, right = {}) {
+  return JSON.stringify(normalizeComparableProfile(left)) === JSON.stringify(normalizeComparableProfile(right));
+}
+
+function mergeAutoPlatformLastRunAt(nextProfiles = {}, existingProfiles = {}, changedAt = new Date()) {
+  return ["facebook", "instagram", "linkedin"].reduce((result, platform) => {
+    const nextProfile = nextProfiles?.[platform] || {};
+    const existingProfile = existingProfiles?.[platform] || {};
+    const unchanged = profilesMatch(nextProfile, existingProfile);
+    result[platform] = {
+      ...nextProfile,
+      lastRunAt: unchanged ? (existingProfile.lastRunAt || null) : changedAt
+    };
+    return result;
+  }, {});
+}
+
 function categoryPayload(body = {}, adminId = null) {
   return {
     name: normalizeText(body.name),
@@ -109,7 +141,11 @@ router.put("/settings", adminAuth, requireAdminPermission("campaigns.manage"), a
   const blockedWords = Array.isArray(body.blockedWords)
     ? body.blockedWords.map((item) => normalizeText(item)).filter(Boolean)
     : String(body.blockedWords || "").split(",").map((item) => normalizeText(item)).filter(Boolean);
-  const autoPlatformSettings = normalizeAutoPlatformSettings(body.autoPlatformSettings);
+  const existingSettings = await AiContentSettings.findOne({ key: "default" }).lean();
+  const autoPlatformSettings = mergeAutoPlatformLastRunAt(
+    normalizeAutoPlatformSettings(body.autoPlatformSettings),
+    existingSettings?.autoPlatformSettings || {}
+  );
   const settings = await AiContentSettings.findOneAndUpdate(
     { key: "default" },
     {
@@ -474,3 +510,9 @@ router.get("/logs", adminAuth, requireAdminPermission("campaigns.read"), async (
 });
 
 module.exports = router;
+module.exports._private = {
+  mergeAutoPlatformLastRunAt,
+  normalizeAutoPlatformSettings,
+  normalizeComparableProfile,
+  profilesMatch
+};

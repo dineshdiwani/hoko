@@ -14,7 +14,9 @@ let running = false;
 
 function getSchedulerIntervalMs(settings = null) {
   const minutes = Number(settings?.cronIntervalMinutes || process.env.AI_CONTENT_INTERVAL_MINUTES || 60);
-  return Math.max(5, Math.min(1440, minutes)) * 60000;
+  const autoPlatformEnabled = settings?.autoBufferEnabled || Object.values(settings?.autoPlatformSettings || {}).some((profile) => profile?.enabled);
+  const effectiveMinutes = autoPlatformEnabled ? Math.min(minutes, 5) : minutes;
+  return Math.max(5, Math.min(1440, effectiveMinutes)) * 60000;
 }
 
 async function getSettings() {
@@ -81,9 +83,13 @@ function getPlatformSettings(settings = {}) {
       channelIds: Array.isArray(profile.channelIds) && profile.channelIds.length
         ? profile.channelIds.map(normalizeText).filter(Boolean)
         : legacyChannelIds,
-      mode: normalizeText(profile.mode || settings.autoBufferMode) || "addToQueue",
+      mode: ["shareNow", "shareNext", "customScheduled", "addToQueue"].includes(normalizeText(profile.mode || settings.autoBufferMode))
+        ? normalizeText(profile.mode || settings.autoBufferMode)
+        : "addToQueue",
       delayMinutes: Math.max(0, Math.min(10080, Number(profile.delayMinutes ?? settings.autoBufferDelayMinutes ?? 30))),
-      postType: normalizeText(profile.postType || settings.autoBufferPostType) || "post",
+      postType: ["post", "story", "reel"].includes(normalizeText(profile.postType || settings.autoBufferPostType))
+        ? normalizeText(profile.postType || settings.autoBufferPostType)
+        : "post",
       lastRunAt: profile.lastRunAt || null
     };
     return result;
@@ -627,5 +633,15 @@ module.exports = {
   createCampaignRunDrafts,
   processCampaignRunById,
   processAiContentGeneration,
-  startAiContentScheduler
+  startAiContentScheduler,
+  _private: {
+    buildDailyTrigger,
+    getChannelCaption,
+    getDuePlatformProfiles,
+    getLastScheduledTriggerAt,
+    getPlatformSettings,
+    getSchedulerIntervalMs,
+    getTargetPlatforms,
+    normalizeChannelService
+  }
 };

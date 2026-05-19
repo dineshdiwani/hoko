@@ -5,7 +5,8 @@
   "type": "commonjs",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon -r dotenv/config server.js dotenv_config_path=.env.development"
+    "dev": "nodemon -r dotenv/config server.js dotenv_config_path=.env.development",
+    "test": "node --test tests/*.test.js"
   },
   "dependencies": {
     "@sentry/node": "^10.50.0",

@@ -574,5 +574,9 @@ module.exports = {
   getBufferOrganizations,
   getPublicImageUrl,
   resolvePublicImageUrl,
-  resolveOrGeneratePublicImageUrl
+  resolveOrGeneratePublicImageUrl,
+  _private: {
+    getPostMetadata,
+    normalizeUrl
+  }
 };
