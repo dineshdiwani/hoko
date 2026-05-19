@@ -510,6 +510,10 @@ async function processAiContentGeneration({ force = false, limit } = {}) {
     const settings = await getSettings();
     if (!force && !settings?.generationEnabled) {
       const autoBuffer = await processAutoBufferQueue(settings, settings?.maxDraftsPerRun || 3);
+      if (autoBuffer?.reason === "no_due_auto_platforms") {
+        await AiContentJobLog.deleteOne({ _id: log._id }).catch(() => {});
+        return { skipped: true, reason: "generation_paused", autoBuffer };
+      }
       await notifyAutoPostTrigger(autoBuffer);
       log.status = "skipped";
       log.message = settings?.autoBufferEnabled
@@ -581,6 +585,10 @@ async function processAiContentGeneration({ force = false, limit } = {}) {
       }
     }
     const autoBuffer = await processAutoBufferQueue(settings, maxDrafts);
+    if (!force && picked === 0 && createdDrafts === 0 && autoBuffer?.reason === "no_due_auto_platforms") {
+      await AiContentJobLog.deleteOne({ _id: log._id }).catch(() => {});
+      return { picked, createdDrafts, draftIds, autoBuffer };
+    }
     await notifyAutoPostTrigger(autoBuffer);
 
     log.status = "completed";
