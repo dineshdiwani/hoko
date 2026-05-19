@@ -158,9 +158,14 @@ async function markPlatformProfilesRun(settings = {}, profiles = []) {
 }
 
 async function resolveAutoBufferChannels(settings = {}) {
-  const selectedIds = Array.isArray(settings.autoBufferChannelIds)
+  const legacySelectedIds = Array.isArray(settings.autoBufferChannelIds)
     ? settings.autoBufferChannelIds.map(normalizeText).filter(Boolean)
     : [];
+  const platformSelectedIds = Object.values(getPlatformSettings(settings))
+    .flatMap((profile) => Array.isArray(profile.channelIds) ? profile.channelIds : [])
+    .map(normalizeText)
+    .filter(Boolean);
+  const selectedIds = Array.from(new Set([...legacySelectedIds, ...platformSelectedIds]));
   const result = await getBufferChannels();
   const channels = Array.isArray(result.channels) ? result.channels : [];
   if (!selectedIds.length) return channels;
@@ -211,6 +216,7 @@ async function autoSendDraftToBuffer({ draft, settings, platformProfiles = null 
         channelName: channel.name,
         channelService: channel.service,
         mode,
+        dueAt: result.post.dueAt || dueAt || null,
         postId: result.post.id,
         imageAttached: Boolean(result.post.assets?.length)
       });
@@ -227,15 +233,16 @@ async function autoSendDraftToBuffer({ draft, settings, platformProfiles = null 
 
   const success = results.find((item) => item.success);
   if (success) {
+    const scheduledDueAt = success.dueAt ? new Date(success.dueAt) : null;
     draft.status = success.mode === "shareNow" ? "posted" : "queued";
-    draft.scheduledAt = new Date();
+    draft.scheduledAt = scheduledDueAt && !Number.isNaN(scheduledDueAt.getTime()) ? scheduledDueAt : new Date();
     draft.buffer = {
       postId: success.postId,
       channelId: success.channelId,
       channelName: success.channelName,
       channelService: success.channelService,
       mode: success.mode || "addToQueue",
-      dueAt: null,
+      dueAt: scheduledDueAt && !Number.isNaN(scheduledDueAt.getTime()) ? scheduledDueAt : null,
       status: success.mode === "shareNow" ? "posted" : "queued",
       sentAt: new Date(),
       rawResponse: { automationResults: results }
