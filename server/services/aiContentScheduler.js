@@ -321,18 +321,16 @@ async function autoSendDraftToBuffer({ draft, settings, platformProfiles = null 
   if (!profiles.length) return { skipped: true, reason: "no_due_auto_platforms" };
   const channels = await resolveAutoBufferChannels(settings);
   if (!channels.length) return { skipped: true, reason: "no_auto_buffer_channels" };
-  const targetPlatforms = getTargetPlatforms(draft);
   const dueByPlatform = new Map(profiles.map((profile) => [profile.platform, profile]));
   const publishChannels = channels.filter((channel) => {
     const platform = normalizeChannelService(channel.service);
     const profile = dueByPlatform.get(platform);
     if (!profile) return false;
-    if (targetPlatforms.length && !targetPlatforms.includes(platform)) return false;
     if (profile.channelIds.length && !profile.channelIds.includes(normalizeText(channel.id))) return false;
     return true;
   });
   if (!publishChannels.length) {
-    return { skipped: true, reason: "no_matching_target_platform_channels", targetPlatforms, platforms: profiles.map((item) => item.platform) };
+    return { skipped: true, reason: "no_matching_auto_platform_channels", platforms: profiles.map((item) => item.platform) };
   }
 
   const results = [];
@@ -438,12 +436,7 @@ async function processAutoBufferQueue(settings = {}, limit = 10, options = {}) {
   const failures = [];
   const sentPlatforms = new Set();
   for (const draft of drafts) {
-    const draftTargets = getTargetPlatforms(draft);
-    const matchingProfiles = draftTargets.length
-      ? platformProfiles.filter((profile) => draftTargets.includes(profile.platform))
-      : platformProfiles;
-    if (!matchingProfiles.length) continue;
-    const result = await autoSendDraftToBuffer({ draft, settings, platformProfiles: matchingProfiles });
+    const result = await autoSendDraftToBuffer({ draft, settings, platformProfiles });
     const results = Array.isArray(result?.results) ? result.results : [];
     if (results.some((item) => item.success)) {
       sent += 1;

@@ -230,7 +230,7 @@ test("saving changed automation settings marks lastRunAt at save time so future 
   assert.equal(new Date(merged.linkedin.lastRunAt).toISOString(), new Date("2026-05-18T23:35:00+05:30").toISOString());
 });
 
-test("target platform and caption helpers route drafts to matching social channels", () => {
+test("caption helpers normalize social channels and append the default link", () => {
   const draft = {
     targetPlatforms: ["facebook", "instagram", "linkedin", "twitter", "facebook"],
     channelCaptions: {
