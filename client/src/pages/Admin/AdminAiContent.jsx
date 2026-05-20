@@ -102,6 +102,28 @@ function formatTime(value) {
   return date.toLocaleString();
 }
 
+function platformLabel(platform) {
+  return PLATFORM_OPTIONS.find((item) => item.id === platform)?.label || platform;
+}
+
+function frequencyLabel(value) {
+  return FREQUENCY_OPTIONS.find((item) => Number(item.value) === Number(value))?.label || "Every 24 hours";
+}
+
+function weekdayLabel(value) {
+  return WEEKDAY_OPTIONS.find((item) => Number(item.value) === Number(value))?.label || "Monday";
+}
+
+function scheduleText(profile = {}) {
+  if (Number(profile.intervalMinutes) === 720) {
+    return `${frequencyLabel(profile.intervalMinutes)} from ${profile.triggerTime || "09:00"}`;
+  }
+  if (Number(profile.intervalMinutes) === 10080) {
+    return `${frequencyLabel(profile.intervalMinutes)} on ${weekdayLabel(profile.triggerDay)} at ${profile.triggerTime || "09:00"}`;
+  }
+  return `${frequencyLabel(profile.intervalMinutes)} at ${profile.triggerTime || "09:00"}`;
+}
+
 function normalizeUrl(value) {
   const text = String(value || "").trim();
   if (!text) return "";
@@ -125,22 +147,22 @@ function formatAutoPostResult(autoBuffer = {}, force = false) {
   const failures = Array.isArray(autoBuffer.failures) ? autoBuffer.failures : [];
   const reason = autoBuffer.reason || (sent > 0 ? "posted" : "checked");
   const nextStep = (() => {
-    if (sent > 0) return "Posted successfully. Check Buffer/social channel queue for the created post.";
-    if (reason === "no_due_auto_platforms") return "No platform is due now. Check trigger time, timezone, enabled platforms, and last run time.";
-    if (reason === "no_ready_unsent_posts") return "No ready unsent AI posts found. Generate a new AI post or delete/skip already sent Buffer posts.";
-    if (!duePlatforms.length) return "No enabled/due social platform was found.";
-    if (!picked) return "No eligible AI post was picked for publishing.";
+    if (sent > 0) return "Posted successfully. Check the social channel queue for the created post.";
+    if (reason === "no_due_auto_platforms") return "No channel is due now. Check posting time, enabled channels, and last checked time.";
+    if (reason === "no_ready_unsent_posts") return "No ready unsent preview was found. Generate a preview first.";
+    if (!duePlatforms.length) return "No enabled scheduled social channel was found.";
+    if (!picked) return "No eligible preview was picked for posting.";
     if (failures.length) return "Buffer rejected the selected post(s). Open the latest failed draft for the error details.";
-    return "Check selected Buffer channels and AI target platforms.";
+    return "Check selected social channels and preview target platforms.";
   })();
 
   return [
-    `${force ? "Forced auto-post run" : "Auto-post check"} completed`,
+    `${force ? "Manual trigger" : "Schedule check"} completed`,
     `Sent: ${sent}`,
-    `Picked posts: ${picked}`,
-    `Due platforms: ${duePlatforms.join(", ") || "-"}`,
-    `Posted platforms: ${markedPlatforms.join(", ") || "-"}`,
-    `Reason: ${reason}`,
+    `Posts checked: ${picked}`,
+    `Scheduled channels: ${duePlatforms.map(platformLabel).join(", ") || "-"}`,
+    `Posted to: ${markedPlatforms.map(platformLabel).join(", ") || "-"}`,
+    `Result: ${reason}`,
     failures.length ? `Failed draft IDs: ${failures.join(", ")}` : "",
     `Next: ${nextStep}`
   ].filter(Boolean).join("\n");
@@ -910,6 +932,24 @@ export default function AdminAiContent() {
     }
   }
 
+  const activeAutoPlatforms = PLATFORM_OPTIONS
+    .map((platform) => {
+      const profile = settings?.autoPlatformSettings?.[platform.id] || defaultSettings.autoPlatformSettings[platform.id];
+      const channels = bufferChannels.filter((channel) => {
+        const service = String(channel.service || "").toLowerCase();
+        return platform.id === "facebook"
+          ? service === "facebook" || service.startsWith("facebook_")
+          : platform.id === "linkedin"
+            ? service === "linkedin" || service.startsWith("linkedin_")
+            : service === "instagram" || service.startsWith("instagram_");
+      });
+      const selectedChannels = channels.filter((channel) => Array.isArray(profile.channelIds) && profile.channelIds.includes(channel.id));
+      return { platform, profile, channels, selectedChannels };
+    })
+    .filter((item) => Boolean(item.profile.enabled));
+
+  const nextManualChannels = selectedBufferChannels();
+
   return (
     <div className="page">
       <div className="page-shell pt-20 md:pt-10">
@@ -1056,7 +1096,7 @@ export default function AdminAiContent() {
                       <div key={run._id} className="space-y-0.5">
                         <div className="flex items-center justify-between gap-3">
                           <span className="truncate">{preview(run.mood, 80)}</span>
-                          <span className="shrink-0 uppercase">{run.status} · {run.draftIds?.length || 0}</span>
+                          <span className="shrink-0 uppercase">{run.status} | {run.draftIds?.length || 0}</span>
                         </div>
                         {run.lastError ? (
                           <p className="text-red-600">{run.lastError}</p>
@@ -1071,9 +1111,9 @@ export default function AdminAiContent() {
             <section className="bg-white border rounded-2xl p-4 space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <h2 className="font-semibold">Automation Settings</h2>
+                  <h2 className="font-semibold">Auto Schedule</h2>
                   <p className="text-xs text-gray-500">
-                    Cron reads these settings; the app remains usable if generation fails.
+                    Choose the social channels and time. At that time, HOKO checks ready AI posts and sends them.
                   </p>
                 </div>
                 <button
@@ -1082,7 +1122,7 @@ export default function AdminAiContent() {
                   disabled={settingsSaving || !settings}
                   className="px-4 py-2 rounded-lg text-sm font-semibold bg-black text-white disabled:opacity-60"
                 >
-                  {settingsSaving ? "Saving..." : "Save Settings"}
+                  {settingsSaving ? "Saving..." : "Save Schedule"}
                 </button>
               </div>
               {settingsNotice ? (
@@ -1153,7 +1193,7 @@ export default function AdminAiContent() {
                     />
                   </label>
                   <label className="text-xs font-medium text-gray-600">
-                    Cron interval minutes
+                    Background check gap
                     <input
                       type="number"
                       min="5"
@@ -1162,6 +1202,7 @@ export default function AdminAiContent() {
                       value={settings.cronIntervalMinutes ?? 60}
                       onChange={(e) => setSettings({ ...settings, cronIntervalMinutes: Number(e.target.value) })}
                     />
+                    <span className="mt-1 block text-[11px] font-normal text-gray-500">The app wakes up this often to see if a saved schedule is due.</span>
                   </label>
                   <label className="md:col-span-2 text-xs font-medium text-gray-600">
                     Brand instructions
@@ -1190,13 +1231,31 @@ export default function AdminAiContent() {
                       checked={Boolean(settings.generationEnabled)}
                       onChange={(e) => setSettings({ ...settings, generationEnabled: e.target.checked })}
                     />
-                    Enable cron generation
+                    Create new drafts automatically
                   </label>
+                  <div className="md:col-span-2 rounded-xl border bg-white p-3">
+                    <p className="text-sm font-semibold text-gray-800">Current auto plan</p>
+                    {activeAutoPlatforms.length ? (
+                      <div className="mt-2 space-y-2">
+                        {activeAutoPlatforms.map(({ platform, profile, selectedChannels }) => (
+                          <div key={platform.id} className="rounded-lg border bg-gray-50 p-2 text-xs text-gray-700">
+                            <p className="font-semibold text-gray-900">{platform.label}: {scheduleText(profile)}</p>
+                            <p>
+                              Channels: {selectedChannels.map((channel) => channel.name || channel.id).join(", ") || "all matching loaded channels"}
+                            </p>
+                            <p>Last checked: {profile.lastRunAt ? formatTime(profile.lastRunAt) : "not yet"}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="mt-1 text-xs text-gray-500">No automatic social channel is enabled.</p>
+                    )}
+                  </div>
                   <div className="md:col-span-2 rounded-xl border bg-gray-50 p-3 space-y-3">
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <p className="text-sm font-semibold text-gray-800">Platform Auto Mode</p>
-                        <p className="text-xs text-gray-500">Each platform can run on its own frequency and Buffer channels. AI target platforms still decide which drafts are eligible.</p>
+                        <p className="text-sm font-semibold text-gray-800">Social Channels</p>
+                        <p className="text-xs text-gray-500">Turn on a channel, choose its time, then pick where it should post.</p>
                       </div>
                       <button
                         type="button"
@@ -1251,7 +1310,7 @@ export default function AdminAiContent() {
                                 </select>
                               </label>
                               <label className="text-xs font-medium text-gray-600">
-                                {Number(profile.intervalMinutes) === 720 ? "First trigger" : "Trigger time"}
+                                {Number(profile.intervalMinutes) === 720 ? "First posting time" : "Posting time"}
                                 <input
                                   type="time"
                                   className="mt-1 w-full border rounded-lg px-3 py-2 text-sm bg-white"
@@ -1260,7 +1319,7 @@ export default function AdminAiContent() {
                                 />
                               </label>
                               <label className="text-xs font-medium text-gray-600">
-                                Weekly day
+                                Weekly posting day
                                 <select
                                   className="mt-1 w-full border rounded-lg px-3 py-2 text-sm bg-white disabled:bg-gray-100"
                                   value={profile.triggerDay ?? 1}
@@ -1273,20 +1332,20 @@ export default function AdminAiContent() {
                                 </select>
                               </label>
                               <label className="text-xs font-medium text-gray-600">
-                                Publish mode
+                                Send style
                                 <select
                                   className="mt-1 w-full border rounded-lg px-3 py-2 text-sm bg-white"
                                   value={profile.mode || "addToQueue"}
                                   onChange={(e) => updateAutoPlatform(platform.id, { mode: e.target.value })}
                                 >
-                                  <option value="addToQueue">Add to queue</option>
-                                  <option value="shareNext">Share next</option>
-                                  <option value="customScheduled">Schedule after delay</option>
-                                  <option value="shareNow">Publish now</option>
+                                  <option value="addToQueue">Add to normal queue</option>
+                                  <option value="shareNext">Next in queue</option>
+                                  <option value="customScheduled">Send after delay</option>
+                                  <option value="shareNow">Send immediately</option>
                                 </select>
                               </label>
                               <label className="text-xs font-medium text-gray-600">
-                                Delay minutes
+                                Delay after trigger
                                 <input
                                   type="number"
                                   min="0"
@@ -1312,10 +1371,10 @@ export default function AdminAiContent() {
                             <div className="space-y-2">
                               <p className="text-[11px] text-gray-500">
                                 {Number(profile.intervalMinutes) === 720
-                                  ? "Runs at the first trigger time and again 12 hours later."
+                                  ? "Posts at this time and again 12 hours later."
                                   : Number(profile.intervalMinutes) === 10080
-                                    ? "Runs once per week on the selected day and time."
-                                    : "Runs once per day at the selected time."}
+                                    ? "Posts once per week on this day and time."
+                                    : "Posts once per day at this time."}
                               </p>
                               <p className="text-xs font-medium text-gray-600">{platform.label} Buffer channels</p>
                               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -1549,9 +1608,9 @@ export default function AdminAiContent() {
               <div className="rounded-xl border bg-gray-50 p-3 space-y-3">
                 <div className="flex items-center justify-between gap-2">
                   <div>
-                    <p className="text-sm font-semibold">Buffer Publishing</p>
+                    <p className="text-sm font-semibold">Manual Post</p>
                     <p className="text-[11px] text-gray-500">
-                      Queue AI-created posts to connected Buffer social channels.
+                      Select draft previews and social channels, then send them now or add them to the queue.
                     </p>
                   </div>
                   <button
@@ -1568,7 +1627,7 @@ export default function AdminAiContent() {
                   </p>
                 ) : null}
                 <div className="space-y-2">
-                  <p className="text-[11px] font-medium text-gray-600">Social channels</p>
+                  <p className="text-[11px] font-medium text-gray-600">Where to post</p>
                   <div className="grid grid-cols-1 gap-2">
                     {bufferChannels.map((channel) => {
                       const checked = Array.isArray(bufferForm.channelIds) && bufferForm.channelIds.includes(channel.id);
@@ -1606,20 +1665,20 @@ export default function AdminAiContent() {
                     </select>
                   </label>
                   <label className="text-[11px] font-medium text-gray-600">
-                    Publish mode
+                    Send style
                     <select
                       className="mt-1 w-full rounded-lg border bg-white px-3 py-2 text-xs"
                       value={bufferForm.mode}
                       onChange={(e) => setBufferForm({ ...bufferForm, mode: e.target.value })}
                     >
-                      <option value="shareNow">Publish now</option>
-                      <option value="addToQueue">Add to queue</option>
-                      <option value="shareNext">Share next</option>
-                      <option value="customScheduled">Schedule time</option>
+                      <option value="shareNow">Send immediately</option>
+                      <option value="addToQueue">Add to normal queue</option>
+                      <option value="shareNext">Next in queue</option>
+                      <option value="customScheduled">Send at selected time</option>
                     </select>
                   </label>
                   <label className="text-[11px] font-medium text-gray-600">
-                    Schedule time
+                    Manual send time
                     <input
                       type="datetime-local"
                       className="mt-1 w-full rounded-lg border bg-white px-3 py-2 text-xs disabled:bg-gray-100"
@@ -1635,8 +1694,11 @@ export default function AdminAiContent() {
                   disabled={bulkPublishing || !selectedDraftIds.length || !selectedBufferChannels().length}
                   className="w-full rounded-lg bg-black px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
                 >
-                  {bulkPublishing ? "Sending..." : `Send Selected (${selectedDraftIds.length})`}
+                  {bulkPublishing ? "Sending..." : `Send Selected Previews (${selectedDraftIds.length})`}
                 </button>
+                <p className="text-[11px] text-gray-500">
+                  Selected channels: {nextManualChannels.map((channel) => channel.name || channel.id).join(", ") || "none"}
+                </p>
               </div>
 
               <div className="space-y-2 max-h-[44rem] overflow-auto pr-1">
@@ -1758,14 +1820,17 @@ export default function AdminAiContent() {
 
             <section className="bg-white border rounded-2xl p-4 space-y-2">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <h2 className="font-semibold">Job Logs</h2>
+                <div>
+                  <h2 className="font-semibold">Job Logs</h2>
+                  <p className="text-xs text-gray-500">Shows only real actions: started, completed, or failed posting/generation work.</p>
+                </div>
                 <button
                   type="button"
                   onClick={() => runAutoPostCheck()}
                   disabled={autoPosting}
                   className="rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
                 >
-                  {autoPosting ? "Checking..." : "Run Auto-Post Check"}
+                  {autoPosting ? "Checking..." : "Check Schedule Now"}
                 </button>
                 <button
                   type="button"
@@ -1773,7 +1838,7 @@ export default function AdminAiContent() {
                   disabled={autoPosting}
                   className="rounded-lg bg-black px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
                 >
-                  {autoPosting ? "Running..." : "Force Auto-Post Now"}
+                  {autoPosting ? "Running..." : "Manual Trigger Now"}
                 </button>
               </div>
               {logs.map((log) => (
@@ -1782,11 +1847,11 @@ export default function AdminAiContent() {
                     <span className="font-semibold uppercase">{log.status}</span>
                     <span className="text-gray-500">{formatTime(log.createdAt)}</span>
                   </div>
-                  <p>Picked: {log.picked || 0} | Drafts: {log.createdDrafts || 0}</p>
+                  <p>Posts checked: {log.picked || 0} | New previews: {log.createdDrafts || 0}</p>
                   {log.message ? <p className="text-red-600">{log.message}</p> : null}
                   {log.details?.autoBuffer ? (
                     <p className="text-gray-600">
-                      Auto-post: {log.details.autoBuffer.sent || 0} sent | due: {(log.details.autoBuffer.duePlatforms || []).join(", ") || "-"} | marked: {(log.details.autoBuffer.markedPlatforms || []).join(", ") || "-"} | {log.details.autoBuffer.reason || "checked"}
+                      Auto posting: {log.details.autoBuffer.sent || 0} sent | scheduled channels: {(log.details.autoBuffer.duePlatforms || []).map(platformLabel).join(", ") || "-"} | posted to: {(log.details.autoBuffer.markedPlatforms || []).map(platformLabel).join(", ") || "-"} | {log.details.autoBuffer.reason || "checked"}
                     </p>
                   ) : null}
                 </div>

@@ -407,6 +407,9 @@ async function processAutoBufferQueue(settings = {}, limit = 10, options = {}) {
   const platformProfiles = options.force ? getEnabledPlatformProfiles(settings) : getDuePlatformProfiles(settings);
   if (!platformProfiles.length) return { skipped: true, reason: "no_due_auto_platforms" };
   const duePlatforms = platformProfiles.map((item) => item.platform);
+  if (!options.force) {
+    await markPlatformProfilesRun(settings, platformProfiles);
+  }
   const drafts = await AiGeneratedPost.find({
     status: "approved",
     $or: [
@@ -445,7 +448,9 @@ async function processAutoBufferQueue(settings = {}, limit = 10, options = {}) {
     if (results.some((item) => !item.success)) failures.push(String(draft._id));
   }
   const sentPlatformProfiles = platformProfiles.filter((profile) => sentPlatforms.has(profile.platform));
-  await markPlatformProfilesRun(settings, sentPlatformProfiles);
+  if (options.force) {
+    await markPlatformProfilesRun(settings, sentPlatformProfiles);
+  }
   return {
     picked: drafts.length,
     sent,
@@ -510,12 +515,12 @@ async function processAiContentGeneration({ force = false, limit } = {}) {
     const settings = await getSettings();
     if (!force && !settings?.generationEnabled) {
       const autoBuffer = await processAutoBufferQueue(settings, settings?.maxDraftsPerRun || 3);
-      if (autoBuffer?.reason === "no_due_auto_platforms") {
+      if (autoBuffer?.reason === "no_due_auto_platforms" || Number(autoBuffer?.sent || 0) <= 0) {
         await AiContentJobLog.deleteOne({ _id: log._id }).catch(() => {});
         return { skipped: true, reason: "generation_paused", autoBuffer };
       }
       await notifyAutoPostTrigger(autoBuffer);
-      log.status = "skipped";
+      log.status = "completed";
       log.message = settings?.autoBufferEnabled
         ? "AI content generation is paused; auto Buffer queue checked"
         : "AI content generation is paused";
@@ -585,7 +590,7 @@ async function processAiContentGeneration({ force = false, limit } = {}) {
       }
     }
     const autoBuffer = await processAutoBufferQueue(settings, maxDrafts);
-    if (!force && picked === 0 && createdDrafts === 0 && autoBuffer?.reason === "no_due_auto_platforms") {
+    if (!force && picked === 0 && createdDrafts === 0 && Number(autoBuffer?.sent || 0) <= 0) {
       await AiContentJobLog.deleteOne({ _id: log._id }).catch(() => {});
       return { picked, createdDrafts, draftIds, autoBuffer };
     }
