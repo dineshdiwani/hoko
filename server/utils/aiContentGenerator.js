@@ -978,10 +978,17 @@ async function fetchModelsLabVideo({ apiKey, requestId }) {
 }
 
 function buildVideoPrompt({ prompt = "", draft = {} }) {
+  const basePrompt = normalizeText(prompt) || normalizeText(draft?.imagePrompt) || normalizeText(draft?.hook || draft?.caption);
+  const cleanedPrompt = basePrompt
+    .replace(/\bShort\s+(?:9:16\s+)?vertical\s+(?:mobile\s+)?social media reel[^.]*\./gi, "")
+    .replace(/\bBuying should feel clear, not chaotic\.?\s+HOKO keeps your food & agriculture requirement and seller offers in one place\.?/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
   return [
-    normalizeText(prompt),
-    normalizeText(draft?.hook || draft?.caption),
-    "Short 9:16 vertical mobile social media reel, portrait composition, smooth motion, clean commercial style, Indian marketplace app promotion, no readable text, no watermark."
+    cleanedPrompt,
+    "Create one 5-second 9:16 vertical mobile reel.",
+    "Use smooth realistic motion, clean commercial style, and Indian marketplace procurement context.",
+    "No readable text, no logos, no watermark."
   ].filter(Boolean).join(" ");
 }
 

@@ -894,7 +894,7 @@ export default function AdminAiContent() {
   async function generateDraftVideo(draft) {
     if (!draft?._id) return;
     const form = videoFormByDraftId[draft._id] || {};
-    const prompt = String(form.prompt || draft.videoPrompt || draft.imagePrompt || draft.hook || draft.caption || "").trim();
+    const prompt = String(form.prompt || draft.imagePrompt || draft.hook || draft.caption || "").trim();
     if (!prompt) {
       alert("Add a video prompt first");
       return;
@@ -1843,7 +1843,7 @@ export default function AdminAiContent() {
                       <textarea
                         className="w-full rounded-lg border bg-white px-3 py-2 text-xs"
                         rows={3}
-                        value={videoFormByDraftId[draft._id]?.prompt ?? draft.videoPrompt ?? draft.imagePrompt ?? draft.hook ?? ""}
+                        value={videoFormByDraftId[draft._id]?.prompt ?? draft.imagePrompt ?? draft.hook ?? ""}
                         onChange={(e) => setVideoFormByDraftId({
                           ...videoFormByDraftId,
                           [draft._id]: {
