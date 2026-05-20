@@ -878,6 +878,35 @@ function extractModelsLabVideoUrl(payload) {
   return extractModelsLabImageUrl(payload);
 }
 
+async function verifyModelsLabVideoUrl(value = "") {
+  const url = normalizeText(value);
+  if (!/^https?:\/\//i.test(url)) return false;
+  try {
+    const response = await axios.get(url, {
+      timeout: 30000,
+      responseType: "arraybuffer",
+      maxRedirects: 5,
+      headers: {
+        Range: "bytes=0-1048575",
+        Accept: "video/mp4,video/*,*/*;q=0.5",
+        "User-Agent": "HOKO-AI-VideoCheck/1.0"
+      },
+      validateStatus: (status) => status >= 200 && status < 400
+    });
+    const buffer = Buffer.from(response.data || []);
+    const contentType = normalizeText(response.headers?.["content-type"]).toLowerCase();
+    const contentLength = Number(response.headers?.["content-length"] || 0);
+    const contentRange = normalizeText(response.headers?.["content-range"]);
+    const totalFromRange = Number(contentRange.match(/\/(\d+)$/)?.[1] || 0);
+    const expectedSize = Math.max(contentLength, totalFromRange, buffer.length);
+    const hasMp4Marker = buffer.includes(Buffer.from("ftyp"));
+    const looksLikeVideo = contentType.includes("video") || contentType.includes("mp4") || hasMp4Marker;
+    return Boolean(looksLikeVideo && expectedSize > 1024 * 100);
+  } catch {
+    return false;
+  }
+}
+
 async function fetchModelsLabImage({ apiKey, requestId }) {
   const id = normalizeText(requestId);
   if (!id) return null;
@@ -931,7 +960,7 @@ async function fetchModelsLabVideo({ apiKey, requestId }) {
     );
     const raw = response?.data || null;
     const videoUrl = extractModelsLabVideoUrl(raw);
-    if (videoUrl) {
+    if (videoUrl && await verifyModelsLabVideoUrl(videoUrl)) {
       return {
         raw,
         videoUrl
@@ -1020,7 +1049,10 @@ async function generateModelsLabVideo({ prompt = "", initImage = "", draft = {},
   const raw = response?.data || null;
   let videoUrl = extractModelsLabVideoUrl(raw);
   let finalRaw = raw;
-  if (!videoUrl && ["processing", "pending", "queued"].includes(normalizeText(raw?.status).toLowerCase())) {
+  if (videoUrl && !(await verifyModelsLabVideoUrl(videoUrl))) {
+    videoUrl = "";
+  }
+  if (!videoUrl && ["processing", "pending", "queued", "success"].includes(normalizeText(raw?.status).toLowerCase())) {
     const fetched = await fetchModelsLabVideo({ apiKey, requestId: raw?.id });
     videoUrl = fetched?.videoUrl || "";
     finalRaw = fetched?.raw || raw;
