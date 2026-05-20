@@ -987,7 +987,9 @@ function buildVideoPrompt({ prompt = "", draft = {} }) {
   return [
     cleanedPrompt,
     "Create one 5-second 9:16 vertical mobile reel.",
-    "Use smooth realistic motion, clean commercial style, and Indian marketplace procurement context.",
+    "Set the scene clearly in India: Indian shop, mandi, warehouse, factory, construction site, office desk, or procurement counter as relevant to the category.",
+    "Show realistic Indian buyers or business professionals reviewing products, INR price/offer cards, and a local B2B marketplace procurement environment.",
+    "Use smooth realistic motion and clean commercial ad style for an India-only HOKO marketplace context.",
     "No readable text, no logos, no watermark."
   ].filter(Boolean).join(" ");
 }
