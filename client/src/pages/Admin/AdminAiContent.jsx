@@ -283,7 +283,6 @@ export default function AdminAiContent() {
   const [postTextByDraftId, setPostTextByDraftId] = useState({});
   const [videoGeneratingId, setVideoGeneratingId] = useState("");
   const [videoFormByDraftId, setVideoFormByDraftId] = useState({});
-  const [openVideoMenuId, setOpenVideoMenuId] = useState("");
 
   const activeCount = useMemo(
     () => categories.filter((item) => item.active !== false).length,
@@ -930,7 +929,6 @@ export default function AdminAiContent() {
       if (res.data?.draft) {
         setDrafts((current) => replaceDraft(current, res.data.draft));
       }
-      setOpenVideoMenuId("");
       await refreshActivityQuietly();
       alert("Reel video deleted");
     } catch (err) {
@@ -1837,7 +1835,7 @@ export default function AdminAiContent() {
                           <p className="text-[11px] font-semibold text-gray-700">Facebook / Instagram Reel Video</p>
                           <p className="text-[11px] text-gray-500">ModelsLab creates an MP4 from text, or animates this draft image.</p>
                         </div>
-                        <div className="relative flex items-center gap-2">
+                        <div className="flex items-center gap-2">
                           <select
                             className="rounded border bg-white px-2 py-1 text-[11px]"
                             value={videoFormByDraftId[draft._id]?.mode || (draft.imageUrl ? "image" : "text")}
@@ -1852,27 +1850,6 @@ export default function AdminAiContent() {
                             <option value="image">Animate image</option>
                             <option value="text">Text to video</option>
                           </select>
-                          {draft.videoUrl ? (
-                            <button
-                              type="button"
-                              onClick={() => setOpenVideoMenuId(openVideoMenuId === draft._id ? "" : draft._id)}
-                              className="rounded border bg-white px-2 py-1 text-[13px] font-semibold"
-                              aria-label="Video options"
-                            >
-                              ...
-                            </button>
-                          ) : null}
-                          {openVideoMenuId === draft._id ? (
-                            <div className="absolute right-0 top-8 z-10 w-32 rounded-lg border bg-white py-1 text-xs shadow-lg">
-                              <button
-                                type="button"
-                                onClick={() => deleteDraftVideo(draft)}
-                                className="block w-full px-3 py-2 text-left text-red-600 hover:bg-red-50"
-                              >
-                                Delete video
-                              </button>
-                            </div>
-                          ) : null}
                         </div>
                       </div>
                       {draft.videoUrl ? (
@@ -1895,14 +1872,25 @@ export default function AdminAiContent() {
                         })}
                         placeholder="Example: Smooth vertical reel, app screen comes alive, sellers sending lower offers, energetic marketplace motion."
                       />
-                      <button
-                        type="button"
-                        onClick={() => generateDraftVideo(draft)}
-                        disabled={videoGeneratingId === draft._id || ((videoFormByDraftId[draft._id]?.mode || (draft.imageUrl ? "image" : "text")) === "image" && !draft.imageUrl)}
-                        className="w-full rounded-lg border bg-white px-3 py-2 text-[11px] font-semibold disabled:opacity-50"
-                      >
-                        {videoGeneratingId === draft._id ? "Generating video..." : draft.videoUrl ? "Regenerate Reel Video" : "Generate Reel Video"}
-                      </button>
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        <button
+                          type="button"
+                          onClick={() => generateDraftVideo(draft)}
+                          disabled={videoGeneratingId === draft._id || ((videoFormByDraftId[draft._id]?.mode || (draft.imageUrl ? "image" : "text")) === "image" && !draft.imageUrl)}
+                          className="rounded-lg border bg-white px-3 py-2 text-[11px] font-semibold disabled:opacity-50"
+                        >
+                          {videoGeneratingId === draft._id ? "Generating video..." : draft.videoUrl ? "Regenerate Reel Video" : "Generate Reel Video"}
+                        </button>
+                        {draft.videoUrl ? (
+                          <button
+                            type="button"
+                            onClick={() => deleteDraftVideo(draft)}
+                            className="rounded-lg border bg-white px-3 py-2 text-[11px] font-semibold text-red-600"
+                          >
+                            Delete Video
+                          </button>
+                        ) : null}
+                      </div>
                       {((videoFormByDraftId[draft._id]?.mode || (draft.imageUrl ? "image" : "text")) === "image" && !draft.imageUrl) ? (
                         <p className="text-[11px] text-amber-700">Generate an image first, or switch to Text to video.</p>
                       ) : null}
