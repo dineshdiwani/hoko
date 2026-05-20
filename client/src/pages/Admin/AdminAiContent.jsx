@@ -283,6 +283,7 @@ export default function AdminAiContent() {
   const [postTextByDraftId, setPostTextByDraftId] = useState({});
   const [videoGeneratingId, setVideoGeneratingId] = useState("");
   const [videoFormByDraftId, setVideoFormByDraftId] = useState({});
+  const [openVideoMenuId, setOpenVideoMenuId] = useState("");
 
   const activeCount = useMemo(
     () => categories.filter((item) => item.active !== false).length,
@@ -918,6 +919,22 @@ export default function AdminAiContent() {
       alert(err?.response?.data?.message || err.message || "Failed to generate reel video");
     } finally {
       setVideoGeneratingId("");
+    }
+  }
+
+  async function deleteDraftVideo(draft) {
+    if (!draft?._id) return;
+    if (!window.confirm("Delete this reel video? The draft and image will remain.")) return;
+    try {
+      const res = await api.delete(`/ai-content/drafts/${draft._id}/video`);
+      if (res.data?.draft) {
+        setDrafts((current) => replaceDraft(current, res.data.draft));
+      }
+      setOpenVideoMenuId("");
+      await refreshActivityQuietly();
+      alert("Reel video deleted");
+    } catch (err) {
+      alert(err?.response?.data?.message || err.message || "Failed to delete reel video");
     }
   }
 
@@ -1820,20 +1837,43 @@ export default function AdminAiContent() {
                           <p className="text-[11px] font-semibold text-gray-700">Facebook / Instagram Reel Video</p>
                           <p className="text-[11px] text-gray-500">ModelsLab creates an MP4 from text, or animates this draft image.</p>
                         </div>
-                        <select
-                          className="rounded border bg-white px-2 py-1 text-[11px]"
-                          value={videoFormByDraftId[draft._id]?.mode || (draft.imageUrl ? "image" : "text")}
-                          onChange={(e) => setVideoFormByDraftId({
-                            ...videoFormByDraftId,
-                            [draft._id]: {
-                              ...(videoFormByDraftId[draft._id] || {}),
-                              mode: e.target.value
-                            }
-                          })}
-                        >
-                          <option value="image">Animate image</option>
-                          <option value="text">Text to video</option>
-                        </select>
+                        <div className="relative flex items-center gap-2">
+                          <select
+                            className="rounded border bg-white px-2 py-1 text-[11px]"
+                            value={videoFormByDraftId[draft._id]?.mode || (draft.imageUrl ? "image" : "text")}
+                            onChange={(e) => setVideoFormByDraftId({
+                              ...videoFormByDraftId,
+                              [draft._id]: {
+                                ...(videoFormByDraftId[draft._id] || {}),
+                                mode: e.target.value
+                              }
+                            })}
+                          >
+                            <option value="image">Animate image</option>
+                            <option value="text">Text to video</option>
+                          </select>
+                          {draft.videoUrl ? (
+                            <button
+                              type="button"
+                              onClick={() => setOpenVideoMenuId(openVideoMenuId === draft._id ? "" : draft._id)}
+                              className="rounded border bg-white px-2 py-1 text-[13px] font-semibold"
+                              aria-label="Video options"
+                            >
+                              ...
+                            </button>
+                          ) : null}
+                          {openVideoMenuId === draft._id ? (
+                            <div className="absolute right-0 top-8 z-10 w-32 rounded-lg border bg-white py-1 text-xs shadow-lg">
+                              <button
+                                type="button"
+                                onClick={() => deleteDraftVideo(draft)}
+                                className="block w-full px-3 py-2 text-left text-red-600 hover:bg-red-50"
+                              >
+                                Delete video
+                              </button>
+                            </div>
+                          ) : null}
+                        </div>
                       </div>
                       {draft.videoUrl ? (
                         <video

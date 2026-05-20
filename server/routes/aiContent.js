@@ -386,6 +386,26 @@ router.post("/drafts/:id/video", adminAuth, requireAdminPermission("campaigns.ma
   }
 });
 
+router.delete("/drafts/:id/video", adminAuth, requireAdminPermission("campaigns.manage"), async (req, res) => {
+  const draft = await AiGeneratedPost.findByIdAndUpdate(
+    req.params.id,
+    {
+      $set: {
+        videoUrl: "",
+        videoPrompt: "",
+        videoProvider: "",
+        videoModel: "",
+        rawVideoResponse: null
+      }
+    },
+    { new: true }
+  ).lean();
+  if (!draft) {
+    return res.status(404).json({ message: "Draft not found" });
+  }
+  res.json({ draft });
+});
+
 router.post("/drafts/buffer/bulk", adminAuth, requireAdminPermission("campaigns.manage"), async (req, res) => {
   const draftIds = Array.isArray(req.body?.draftIds) ? req.body.draftIds.map(normalizeText).filter(Boolean) : [];
   if (!draftIds.length) {
