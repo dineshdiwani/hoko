@@ -15,6 +15,7 @@ let running = false;
 let schedulerWakeRequested = false;
 const AI_CONTENT_TIME_ZONE = process.env.AI_CONTENT_TIME_ZONE || "Asia/Kolkata";
 const DEFAULT_CTA_LINK = "https://hokoapp.in/";
+const ALLOWED_AUTO_INTERVAL_MINUTES = [180, 360, 720, 1440, 10080];
 
 function scheduleAiContentSweep(intervalMs = getSchedulerIntervalMs()) {
   if (schedulerIntervalId) clearTimeout(schedulerIntervalId);
@@ -119,7 +120,7 @@ function getPlatformSettings(settings = {}) {
     result[platform] = {
       platform,
       enabled: Boolean(profile.enabled || legacyEnabled),
-      intervalMinutes: [720, 1440, 10080].includes(Number(profile.intervalMinutes)) ? Number(profile.intervalMinutes) : 1440,
+      intervalMinutes: ALLOWED_AUTO_INTERVAL_MINUTES.includes(Number(profile.intervalMinutes)) ? Number(profile.intervalMinutes) : 1440,
       triggerTime: /^([01]\d|2[0-3]):[0-5]\d$/.test(normalizeText(profile.triggerTime)) ? normalizeText(profile.triggerTime) : "09:00",
       triggerDay: Math.max(0, Math.min(6, Number(profile.triggerDay ?? 1))),
       channelIds: Array.isArray(profile.channelIds) && profile.channelIds.length
@@ -210,14 +211,16 @@ function buildDailyTrigger(profile, nowDate = new Date(), offsetMinutes = 0) {
 
 function getLastScheduledTriggerAt(profile, nowDate = new Date()) {
   const interval = Number(profile.intervalMinutes || 1440);
-  if (interval === 720) {
-    const first = buildDailyTrigger(profile, nowDate, 0);
-    const second = buildDailyTrigger(profile, nowDate, 720);
-    const candidates = [first, second].filter((date) => date.getTime() <= nowDate.getTime());
+  if (interval > 0 && interval < 1440 && 1440 % interval === 0) {
+    const slots = [];
+    for (let offset = 0; offset < 1440; offset += interval) {
+      slots.push(buildDailyTrigger(profile, nowDate, offset));
+    }
+    const candidates = slots.filter((date) => date.getTime() <= nowDate.getTime());
     if (candidates.length) return candidates[candidates.length - 1];
-    const yesterdaySecond = buildDailyTrigger(profile, nowDate, 720);
-    yesterdaySecond.setDate(yesterdaySecond.getDate() - 1);
-    return yesterdaySecond;
+    const previousDayLast = buildDailyTrigger(profile, nowDate, 1440 - interval);
+    previousDayLast.setDate(previousDayLast.getDate() - 1);
+    return previousDayLast;
   }
 
   if (interval === 10080) {

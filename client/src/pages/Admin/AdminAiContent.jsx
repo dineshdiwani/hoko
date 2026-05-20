@@ -75,6 +75,8 @@ const PLATFORM_OPTIONS = [
   { id: "linkedin", label: "LinkedIn" }
 ];
 const FREQUENCY_OPTIONS = [
+  { value: 180, label: "Every 3 hours" },
+  { value: 360, label: "Every 6 hours" },
   { value: 720, label: "Every 12 hours" },
   { value: 1440, label: "Every 24 hours" },
   { value: 10080, label: "Weekly" }
@@ -115,7 +117,7 @@ function weekdayLabel(value) {
 }
 
 function scheduleText(profile = {}) {
-  if (Number(profile.intervalMinutes) === 720) {
+  if ([180, 360, 720].includes(Number(profile.intervalMinutes))) {
     return `${frequencyLabel(profile.intervalMinutes)} from ${profile.triggerTime || "09:00"}`;
   }
   if (Number(profile.intervalMinutes) === 10080) {
@@ -1350,7 +1352,7 @@ export default function AdminAiContent() {
                                 </select>
                               </label>
                               <label className="text-xs font-medium text-gray-600">
-                                {Number(profile.intervalMinutes) === 720 ? "First posting time" : "Posting time"}
+                                {[180, 360, 720].includes(Number(profile.intervalMinutes)) ? "First posting time" : "Posting time"}
                                 <input
                                   type="time"
                                   className="mt-1 w-full border rounded-lg px-3 py-2 text-sm bg-white"
@@ -1410,8 +1412,8 @@ export default function AdminAiContent() {
                             </div>
                             <div className="space-y-2">
                               <p className="text-[11px] text-gray-500">
-                                {Number(profile.intervalMinutes) === 720
-                                  ? "Posts at this time and again 12 hours later."
+                                {[180, 360, 720].includes(Number(profile.intervalMinutes))
+                                  ? `Posts from this time, then every ${Number(profile.intervalMinutes) / 60} hours.`
                                   : Number(profile.intervalMinutes) === 10080
                                     ? "Posts once per week on this day and time."
                                     : "Posts once per day at this time."}

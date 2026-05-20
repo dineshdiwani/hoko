@@ -203,6 +203,26 @@ test("twelve-hour frequency uses first trigger and second trigger correctly", ()
   });
 });
 
+test("three-hour and six-hour frequencies use repeating daily slots", () => {
+  withMockedDate("2026-05-19T15:36:00+05:30", () => {
+    const settings = settingsWithProfiles({
+      facebook: { intervalMinutes: 180, triggerTime: "09:35", lastRunAt: "2026-05-19T12:35:01+05:30" },
+      instagram: { intervalMinutes: 360, triggerTime: "09:35", lastRunAt: "2026-05-19T09:35:01+05:30" },
+      linkedin: { enabled: false }
+    });
+    assert.deepEqual(getDuePlatformProfiles(settings).map((item) => item.platform), ["facebook", "instagram"]);
+  });
+
+  withMockedDate("2026-05-19T14:00:00+05:30", () => {
+    const settings = settingsWithProfiles({
+      facebook: { intervalMinutes: 180, triggerTime: "09:35", lastRunAt: "2026-05-19T12:35:01+05:30" },
+      instagram: { intervalMinutes: 360, triggerTime: "09:35", lastRunAt: "2026-05-19T09:35:01+05:30" },
+      linkedin: { enabled: false }
+    });
+    assert.deepEqual(getDuePlatformProfiles(settings).map((item) => item.platform), []);
+  });
+});
+
 test("weekly frequency only fires on or after the configured weekday trigger", () => {
   withMockedDate("2026-05-19T23:36:00+05:30", () => {
     const settings = settingsWithProfiles({
