@@ -438,12 +438,22 @@ export default function AdminAiContent() {
   }, []);
 
   useEffect(() => {
-    const intervalMs = generating || autoPosting || bulkPublishing || publishingId ? 2500 : 15000;
+    const intervalMs = generating || autoPosting || bulkPublishing || publishingId ? 2500 : 5000;
     const timer = window.setInterval(() => {
-      refreshActivityQuietly().catch(() => {});
+      Promise.allSettled([
+        loadLogsOnly({ silent: true }),
+        loadSettingsOnly({ silent: true })
+      ]).catch(() => {});
     }, intervalMs);
     return () => window.clearInterval(timer);
   }, [generating, autoPosting, bulkPublishing, publishingId]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      refreshDraftsQuietly().catch(() => {});
+    }, 15000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     try {
