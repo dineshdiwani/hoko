@@ -244,9 +244,18 @@ test("target platform and caption helpers route drafts to matching social channe
   assert.equal(normalizeChannelService("facebook_page"), "facebook");
   assert.equal(normalizeChannelService("instagram_business"), "instagram");
   assert.equal(normalizeChannelService("linkedin_profile"), "linkedin");
-  assert.equal(getChannelCaption(draft, "facebook_page"), "Facebook caption");
-  assert.equal(getChannelCaption(draft, "instagram_business"), "Instagram caption");
-  assert.equal(getChannelCaption(draft, "linkedin_profile"), "LinkedIn caption");
+  assert.equal(getChannelCaption(draft, "facebook_page"), "Facebook caption\n\nhttps://hokoapp.in/");
+  assert.equal(getChannelCaption(draft, "instagram_business"), "Instagram caption\n\nhttps://hokoapp.in/");
+  assert.equal(getChannelCaption(draft, "linkedin_profile"), "LinkedIn caption\n\nhttps://hokoapp.in/");
+});
+
+test("auto-post caption uses draft link when available", () => {
+  const draft = {
+    caption: "Default caption",
+    ctaLink: "https://example.com/post"
+  };
+
+  assert.equal(getChannelCaption(draft, "linkedin_profile"), "Default caption\n\nhttps://example.com/post");
 });
 
 test("auto-post run markers advance only platforms with successful Buffer posts", () => {

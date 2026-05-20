@@ -14,6 +14,7 @@ let schedulerIntervalId = null;
 let running = false;
 let schedulerWakeRequested = false;
 const AI_CONTENT_TIME_ZONE = process.env.AI_CONTENT_TIME_ZONE || "Asia/Kolkata";
+const DEFAULT_CTA_LINK = "https://hokoapp.in/";
 
 function scheduleAiContentSweep(intervalMs = getSchedulerIntervalMs()) {
   if (schedulerIntervalId) clearTimeout(schedulerIntervalId);
@@ -85,7 +86,10 @@ function normalizeText(value) {
 function getChannelCaption(draft, service = "") {
   const cleanService = normalizeChannelService(service);
   const captions = draft?.channelCaptions || {};
-  return normalizeText(captions[cleanService]) || "";
+  const caption = normalizeText(captions[cleanService]) || normalizeText(draft?.caption || draft?.hook);
+  const link = normalizeText(draft?.ctaLink) || DEFAULT_CTA_LINK;
+  if (!caption) return link;
+  return caption.includes(link) ? caption : `${caption}\n\n${link}`;
 }
 
 function normalizeChannelService(service = "") {
@@ -568,7 +572,7 @@ async function processAiContentGeneration({ force = false, limit } = {}) {
         imageUrl: generated.imageUrl,
         targetPlatforms: generated.targetPlatforms,
         cta: settings.fixedCta || "Learn More",
-        ctaLink: settings.ctaLink || "",
+        ctaLink: settings.ctaLink || DEFAULT_CTA_LINK,
         status: "approved",
         approvedAt: new Date(),
         approvedByAdminId: null,
@@ -692,7 +696,7 @@ async function createCampaignRunDrafts({
     imageStyle,
     useAppScreenshots: Boolean(useAppScreenshots),
     fixedCta: normalizeText(fixedCta) || settings.fixedCta || "Learn More",
-    ctaLink: normalizeText(ctaLink) || settings.ctaLink || "",
+    ctaLink: normalizeText(ctaLink) || settings.ctaLink || DEFAULT_CTA_LINK,
     createdByAdminId: adminId
   });
 
@@ -741,7 +745,7 @@ async function processCampaignRunById(runId) {
       const campaignSettings = {
         ...settings,
         fixedCta: run.fixedCta || settings.fixedCta,
-        ctaLink: run.ctaLink || settings.ctaLink
+        ctaLink: run.ctaLink || settings.ctaLink || DEFAULT_CTA_LINK
       };
       const generated = await generateAiContentDraft({
         category: category.toObject(),
@@ -777,7 +781,7 @@ async function processCampaignRunById(runId) {
         imageUrl: generated.imageUrl,
         targetPlatforms: generated.targetPlatforms,
         cta: campaignSettings.fixedCta || "Learn More",
-        ctaLink: campaignSettings.ctaLink || "",
+        ctaLink: campaignSettings.ctaLink || DEFAULT_CTA_LINK,
         status: "approved",
         approvedAt: new Date(),
         approvedByAdminId: null,
