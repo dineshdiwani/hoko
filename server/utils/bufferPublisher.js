@@ -463,6 +463,37 @@ function getPostMetadata(service = "", postType = "post", ctaLink = "", hasImage
   return null;
 }
 
+function isVideoPostType(postType = "") {
+  return normalizeText(postType).toLowerCase() === "reel";
+}
+
+function getPublicVideoUrl(draft, videoUrlOverride = "") {
+  const value = normalizeText(videoUrlOverride) || normalizeText(draft?.videoUrl);
+  if (!value) return "";
+  return /^https?:\/\//i.test(value) ? value : "";
+}
+
+function buildBufferAssets({ imageUrl = "", videoUrl = "" } = {}) {
+  const publicVideoUrl = normalizeText(videoUrl);
+  if (publicVideoUrl) {
+    return [{
+      video: {
+        url: publicVideoUrl,
+        ...(normalizeText(imageUrl) ? { thumbnailUrl: normalizeText(imageUrl) } : {})
+      }
+    }];
+  }
+  const publicImageUrl = normalizeText(imageUrl);
+  if (publicImageUrl) {
+    return [{
+      image: {
+        url: publicImageUrl
+      }
+    }];
+  }
+  return [];
+}
+
 async function createBufferPost({
   draft,
   channelId,
@@ -471,7 +502,8 @@ async function createBufferPost({
   mode = "addToQueue",
   dueAt = "",
   text = "",
-  imageUrl = ""
+  imageUrl = "",
+  videoUrl = ""
 }) {
   const cleanChannelId = normalizeText(channelId);
   if (!cleanChannelId) {
@@ -490,10 +522,16 @@ async function createBufferPost({
     throw new Error("Post text is required");
   }
 
-  const publicImageUrl = await resolveOrGeneratePublicImageUrl(draft, imageUrl);
+  const publicVideoUrl = isVideoPostType(postType) ? getPublicVideoUrl(draft, videoUrl) : "";
+  const publicImageUrl = publicVideoUrl
+    ? await resolvePublicImageUrl(draft, imageUrl).catch(() => "")
+    : await resolveOrGeneratePublicImageUrl(draft, imageUrl);
   const cleanChannelService = normalizeText(channelService).toLowerCase();
-  if ((cleanChannelService === "instagram" || cleanChannelService.startsWith("instagram_")) && !publicImageUrl) {
-    throw new Error("Instagram publishing requires a public image. Generate an image first, or use a draft with an image.");
+  if ((cleanChannelService === "instagram" || cleanChannelService.startsWith("instagram_")) && !publicImageUrl && !publicVideoUrl) {
+    throw new Error("Instagram publishing requires a public image or video. Generate media first, or use a draft with media.");
+  }
+  if (isVideoPostType(postType) && !publicVideoUrl) {
+    throw new Error("Reel publishing requires a generated video. Generate a reel video first.");
   }
   if (publicImageUrl) {
     await verifyPublicImageUrl(publicImageUrl);
@@ -511,12 +549,13 @@ async function createBufferPost({
     }
     input.dueAt = parsedDueAt.toISOString();
   }
-  if (publicImageUrl) {
-    input.assets = {
-      images: [{ url: publicImageUrl }]
-    };
+  const assets = buildBufferAssets({ imageUrl: publicImageUrl, videoUrl: publicVideoUrl });
+  if (assets.length) {
+    input.assets = assets;
   }
-  const metadata = getPostMetadata(channelService, postType, draft?.ctaLink || getFirstUrl(postText), Boolean(publicImageUrl));
+  const metadata = publicVideoUrl
+    ? null
+    : getPostMetadata(channelService, postType, draft?.ctaLink || getFirstUrl(postText), Boolean(publicImageUrl));
   if (metadata) {
     input.metadata = metadata;
   }
@@ -562,7 +601,9 @@ async function createBufferPost({
       mode: cleanMode,
       dueAt: cleanDueAt,
       hasImage: Boolean(publicImageUrl),
-      imageUrl: publicImageUrl
+      hasVideo: Boolean(publicVideoUrl),
+      imageUrl: publicImageUrl,
+      videoUrl: publicVideoUrl
     }
   };
 }
@@ -577,6 +618,7 @@ module.exports = {
   resolveOrGeneratePublicImageUrl,
   _private: {
     getPostMetadata,
+    buildBufferAssets,
     normalizeUrl
   }
 };

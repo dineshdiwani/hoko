@@ -349,7 +349,8 @@ async function autoSendDraftToBuffer({ draft, settings, platformProfiles = null 
         postType: profile.postType || "post",
         mode,
         dueAt,
-        text: getChannelCaption(draft, channel.service)
+        text: getChannelCaption(draft, channel.service),
+        videoUrl: draft.videoUrl || ""
       });
       results.push({
         success: true,
@@ -359,7 +360,8 @@ async function autoSendDraftToBuffer({ draft, settings, platformProfiles = null 
         mode,
         dueAt: result.post.dueAt || dueAt || null,
         postId: result.post.id,
-        imageAttached: Boolean(result.post.assets?.length)
+        imageAttached: Boolean(result.post.assets?.length),
+        videoAttached: Boolean(result.request?.hasVideo && result.post.assets?.length)
       });
     } catch (err) {
       results.push({

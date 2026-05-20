@@ -21,6 +21,7 @@ const {
   createBufferPost,
   getBufferChannels
 } = require("../utils/bufferPublisher");
+const { generateModelsLabVideo } = require("../utils/aiContentGenerator");
 
 const router = express.Router();
 
@@ -305,15 +306,19 @@ router.post("/drafts/:id/buffer", adminAuth, requireAdminPermission("campaigns.m
       mode: req.body?.mode,
       dueAt: req.body?.dueAt,
       text: req.body?.text,
-      imageUrl: req.body?.imageUrl
+      imageUrl: req.body?.imageUrl,
+      videoUrl: req.body?.videoUrl
     });
 
     if (result.request.imageUrl && result.request.imageUrl !== draft.imageUrl) {
       draft.imageUrl = result.request.imageUrl;
     }
-    const bufferImageAttached = Boolean(result.post.assets?.length);
-    if (result.request.hasImage && !bufferImageAttached) {
-      throw new Error("Buffer accepted the post text but did not attach the image. The post was not marked as sent.");
+    const bufferMediaAttached = Boolean(result.post.assets?.length);
+    if ((result.request.hasImage || result.request.hasVideo) && !bufferMediaAttached) {
+      throw new Error("Buffer accepted the post text but did not attach the media. The post was not marked as sent.");
+    }
+    if (result.request.videoUrl && result.request.videoUrl !== draft.videoUrl) {
+      draft.videoUrl = result.request.videoUrl;
     }
     draft.status = result.request.mode === "shareNow" ? "posted" : "queued";
     draft.scheduledAt = result.post.dueAt ? new Date(result.post.dueAt) : null;
@@ -328,7 +333,7 @@ router.post("/drafts/:id/buffer", adminAuth, requireAdminPermission("campaigns.m
       sentAt: new Date(),
       rawResponse: result.post
     };
-    draft.bufferImageAttached = bufferImageAttached;
+    draft.bufferImageAttached = bufferMediaAttached;
     draft.lastError = "";
     if (result.request.hasImage && !result.post.assets?.length) {
       draft.lastError = "Buffer accepted the post but did not confirm an attached image";
@@ -342,6 +347,41 @@ router.post("/drafts/:id/buffer", adminAuth, requireAdminPermission("campaigns.m
       lastError: err?.message || "Failed to send draft to Buffer"
     }).catch(() => {});
     res.status(500).json({ message: err?.message || "Failed to send draft to Buffer" });
+  }
+});
+
+router.post("/drafts/:id/video", adminAuth, requireAdminPermission("campaigns.manage"), async (req, res) => {
+  try {
+    const draft = await AiGeneratedPost.findById(req.params.id);
+    if (!draft) {
+      return res.status(404).json({ message: "Draft not found" });
+    }
+
+    const result = await generateModelsLabVideo({
+      prompt: req.body?.prompt,
+      initImage: req.body?.initImage,
+      mode: req.body?.mode,
+      draft: draft.toObject()
+    });
+
+    draft.videoUrl = result.videoUrl || "";
+    draft.videoPrompt = result.prompt || normalizeText(req.body?.prompt);
+    draft.videoProvider = result.provider || "modelslab";
+    draft.videoModel = result.model || "";
+    draft.rawVideoResponse = result.raw || null;
+    draft.lastError = result.error || "";
+    await draft.save();
+
+    if (!result.videoUrl) {
+      return res.status(502).json({ message: result.error || "ModelsLab did not return a video URL", draft });
+    }
+
+    res.json({ draft, video: result });
+  } catch (err) {
+    await AiGeneratedPost.findByIdAndUpdate(req.params.id, {
+      lastError: err?.message || "Failed to generate video"
+    }).catch(() => {});
+    res.status(500).json({ message: err?.message || "Failed to generate video" });
   }
 });
 
@@ -368,14 +408,18 @@ router.post("/drafts/buffer/bulk", adminAuth, requireAdminPermission("campaigns.
         mode: req.body?.mode,
         dueAt: req.body?.dueAt,
         text: req.body?.textByDraftId?.[draftId],
-        imageUrl: req.body?.imageUrlByDraftId?.[draftId]
+        imageUrl: req.body?.imageUrlByDraftId?.[draftId],
+        videoUrl: req.body?.videoUrlByDraftId?.[draftId]
       });
       if (result.request.imageUrl && result.request.imageUrl !== draft.imageUrl) {
         draft.imageUrl = result.request.imageUrl;
       }
-      const bufferImageAttached = Boolean(result.post.assets?.length);
-      if (result.request.hasImage && !bufferImageAttached) {
-        throw new Error("Buffer accepted the post text but did not attach the image. The post was not marked as sent.");
+      const bufferMediaAttached = Boolean(result.post.assets?.length);
+      if ((result.request.hasImage || result.request.hasVideo) && !bufferMediaAttached) {
+        throw new Error("Buffer accepted the post text but did not attach the media. The post was not marked as sent.");
+      }
+      if (result.request.videoUrl && result.request.videoUrl !== draft.videoUrl) {
+        draft.videoUrl = result.request.videoUrl;
       }
       draft.status = result.request.mode === "shareNow" ? "posted" : "queued";
       draft.scheduledAt = result.post.dueAt ? new Date(result.post.dueAt) : null;
@@ -390,7 +434,7 @@ router.post("/drafts/buffer/bulk", adminAuth, requireAdminPermission("campaigns.
         sentAt: new Date(),
         rawResponse: result.post
       };
-      draft.bufferImageAttached = bufferImageAttached;
+      draft.bufferImageAttached = bufferMediaAttached;
       draft.lastError = "";
       if (result.request.hasImage && !result.post.assets?.length) {
         draft.lastError = "Buffer accepted the post but did not confirm an attached image";

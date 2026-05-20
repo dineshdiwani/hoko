@@ -49,6 +49,11 @@ const aiGeneratedPostSchema = new mongoose.Schema(
     textModel: { type: String, default: "" },
     imageProvider: { type: String, default: "" },
     imageModel: { type: String, default: "" },
+    videoUrl: { type: String, default: "" },
+    videoPrompt: { type: String, default: "" },
+    videoProvider: { type: String, default: "" },
+    videoModel: { type: String, default: "" },
+    rawVideoResponse: { type: mongoose.Schema.Types.Mixed, default: null },
     rawTextResponse: { type: mongoose.Schema.Types.Mixed, default: null },
     rawImageResponse: { type: mongoose.Schema.Types.Mixed, default: null },
     buffer: {

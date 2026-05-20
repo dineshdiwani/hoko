@@ -874,6 +874,10 @@ function extractModelsLabImageUrl(payload) {
   return directUrl || proxyUrl || normalizeText(payload?.future_links?.[0]) || "";
 }
 
+function extractModelsLabVideoUrl(payload) {
+  return extractModelsLabImageUrl(payload);
+}
+
 async function fetchModelsLabImage({ apiKey, requestId }) {
   const id = normalizeText(requestId);
   if (!id) return null;
@@ -907,6 +911,134 @@ async function fetchModelsLabImage({ apiKey, requestId }) {
   }
 
   return null;
+}
+
+async function fetchModelsLabVideo({ apiKey, requestId }) {
+  const id = normalizeText(requestId);
+  if (!id) return null;
+
+  for (let attempt = 0; attempt < 24; attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+    const response = await axios.post(
+      `https://modelslab.com/api/v6/video/fetch/${encodeURIComponent(id)}`,
+      { key: apiKey },
+      {
+        timeout: 30000,
+        headers: {
+          "Content-Type": "application/json"
+        }
+      }
+    );
+    const raw = response?.data || null;
+    const videoUrl = extractModelsLabVideoUrl(raw);
+    if (videoUrl) {
+      return {
+        raw,
+        videoUrl
+      };
+    }
+    if (!["processing", "pending", "queued"].includes(normalizeText(raw?.status).toLowerCase())) {
+      return {
+        raw,
+        videoUrl: ""
+      };
+    }
+  }
+
+  return null;
+}
+
+function buildVideoPrompt({ prompt = "", draft = {} }) {
+  return [
+    normalizeText(prompt),
+    normalizeText(draft?.hook || draft?.caption),
+    "Short vertical social media reel, smooth motion, clean commercial style, Indian marketplace app promotion, no readable text, no watermark."
+  ].filter(Boolean).join(" ");
+}
+
+async function generateModelsLabVideo({ prompt = "", initImage = "", draft = {}, mode = "image" } = {}) {
+  const apiKey = normalizeText(process.env.MODELSLAB_API_KEY || process.env.MODELSLAB_KEY);
+  if (!apiKey) {
+    return {
+      provider: "none",
+      model: "",
+      videoUrl: "",
+      raw: null,
+      error: "modelslab_api_key_missing"
+    };
+  }
+
+  const useImage = normalizeText(mode) !== "text" && normalizeText(initImage || draft?.imageUrl);
+  const model = normalizeText(process.env.MODELSLAB_VIDEO_MODEL) || (useImage ? "wan2.2" : "wan2.2");
+  const finalPrompt = buildVideoPrompt({ prompt, draft });
+  const endpoint = useImage
+    ? "https://modelslab.com/api/v6/video/img2video"
+    : "https://modelslab.com/api/v6/video/text2video";
+  const payload = useImage
+    ? {
+        key: apiKey,
+        model_id: model,
+        init_image: normalizeText(initImage || draft?.imageUrl),
+        prompt: finalPrompt,
+        negative_prompt: "low quality, blurry, distorted, flicker, watermark, readable text",
+        height: 512,
+        width: 512,
+        num_frames: 25,
+        num_inference_steps: 20,
+        min_guidance_scale: 1,
+        max_guidance_scale: 3,
+        motion_bucket_id: 127,
+        noise_aug_strength: 0.05,
+        fps: 15,
+        output_type: "mp4",
+        temp: false,
+        webhook: null,
+        track_id: null
+      }
+    : {
+        key: apiKey,
+        model_id: model,
+        prompt: finalPrompt,
+        negative_prompt: "low quality, blurry, distorted, static, watermark, readable text",
+        height: 512,
+        width: 512,
+        num_frames: 25,
+        num_inference_steps: 20,
+        guidance_scale: 7,
+        fps: 15,
+        output_type: "mp4",
+        webhook: null,
+        track_id: null
+      };
+
+  const response = await axios.post(endpoint, payload, {
+    timeout: 90000,
+    headers: {
+      "Content-Type": "application/json"
+    }
+  });
+  const raw = response?.data || null;
+  let videoUrl = extractModelsLabVideoUrl(raw);
+  let finalRaw = raw;
+  if (!videoUrl && ["processing", "pending", "queued"].includes(normalizeText(raw?.status).toLowerCase())) {
+    const fetched = await fetchModelsLabVideo({ apiKey, requestId: raw?.id });
+    videoUrl = fetched?.videoUrl || "";
+    finalRaw = fetched?.raw || raw;
+  }
+
+  return {
+    provider: "modelslab",
+    model,
+    videoUrl,
+    prompt: finalPrompt,
+    mode: useImage ? "image" : "text",
+    raw: {
+      ...(finalRaw && typeof finalRaw === "object" ? finalRaw : { response: finalRaw }),
+      prompt: finalPrompt,
+      mode: useImage ? "image" : "text"
+    },
+    error: videoUrl ? "" : normalizeText(finalRaw?.message || raw?.message) || "modelslab_video_not_returned"
+  };
 }
 
 async function generateModelsLabImage({ imagePrompt, draft = {}, category = {}, campaign = {}, settings = {} }) {
@@ -1101,6 +1233,7 @@ async function generateAiContentDraft({ category, settings, campaign = {}, gener
 module.exports = {
   generateAiContentDraft,
   generateImage,
+  generateModelsLabVideo,
   generateTextDraft,
   extractGeminiInlineImage
 };

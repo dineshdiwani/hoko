@@ -4,6 +4,7 @@ const test = require("node:test");
 const {
   composeDraftText,
   _private: {
+    buildBufferAssets,
     getPostMetadata,
     normalizeUrl
   }
@@ -95,3 +96,26 @@ test("metadata rejects unknown social services and normalizes URLs", () => {
   assert.equal(normalizeUrl("https://hokoapp.in/path"), "https://hokoapp.in/path");
 });
 
+test("buffer assets prefer video with optional thumbnail", () => {
+  assert.deepEqual(
+    buildBufferAssets({
+      videoUrl: "https://cdn.example.com/reel.mp4",
+      imageUrl: "https://cdn.example.com/thumb.jpg"
+    }),
+    [{
+      video: {
+        url: "https://cdn.example.com/reel.mp4",
+        thumbnailUrl: "https://cdn.example.com/thumb.jpg"
+      }
+    }]
+  );
+
+  assert.deepEqual(
+    buildBufferAssets({ imageUrl: "https://cdn.example.com/image.jpg" }),
+    [{
+      image: {
+        url: "https://cdn.example.com/image.jpg"
+      }
+    }]
+  );
+});

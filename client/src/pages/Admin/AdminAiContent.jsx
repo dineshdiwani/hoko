@@ -279,6 +279,8 @@ export default function AdminAiContent() {
   const [bulkPublishing, setBulkPublishing] = useState(false);
   const [editingPostId, setEditingPostId] = useState("");
   const [postTextByDraftId, setPostTextByDraftId] = useState({});
+  const [videoGeneratingId, setVideoGeneratingId] = useState("");
+  const [videoFormByDraftId, setVideoFormByDraftId] = useState({});
 
   const activeCount = useMemo(
     () => categories.filter((item) => item.active !== false).length,
@@ -886,6 +888,34 @@ export default function AdminAiContent() {
       await refreshActivityQuietly();
     } finally {
       setBulkPublishing(false);
+    }
+  }
+
+  async function generateDraftVideo(draft) {
+    if (!draft?._id) return;
+    const form = videoFormByDraftId[draft._id] || {};
+    const prompt = String(form.prompt || draft.videoPrompt || draft.imagePrompt || draft.hook || draft.caption || "").trim();
+    if (!prompt) {
+      alert("Add a video prompt first");
+      return;
+    }
+
+    try {
+      setVideoGeneratingId(draft._id);
+      const res = await api.post(`/ai-content/drafts/${draft._id}/video`, {
+        prompt,
+        mode: form.mode || (draft.imageUrl ? "image" : "text"),
+        initImage: form.initImage || draft.imageUrl || ""
+      });
+      if (res.data?.draft) {
+        setDrafts((current) => replaceDraft(current, res.data.draft));
+      }
+      await refreshActivityQuietly();
+      alert("Reel video generated");
+    } catch (err) {
+      alert(err?.response?.data?.message || err.message || "Failed to generate reel video");
+    } finally {
+      setVideoGeneratingId("");
     }
   }
 
@@ -1782,6 +1812,59 @@ export default function AdminAiContent() {
                         ) : null}
                       </div>
                     </details>
+                    <div className="rounded-lg border bg-gray-50 p-2 space-y-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <p className="text-[11px] font-semibold text-gray-700">Facebook / Instagram Reel Video</p>
+                          <p className="text-[11px] text-gray-500">ModelsLab creates an MP4 from text, or animates this draft image.</p>
+                        </div>
+                        <select
+                          className="rounded border bg-white px-2 py-1 text-[11px]"
+                          value={videoFormByDraftId[draft._id]?.mode || (draft.imageUrl ? "image" : "text")}
+                          onChange={(e) => setVideoFormByDraftId({
+                            ...videoFormByDraftId,
+                            [draft._id]: {
+                              ...(videoFormByDraftId[draft._id] || {}),
+                              mode: e.target.value
+                            }
+                          })}
+                        >
+                          <option value="image">Animate image</option>
+                          <option value="text">Text to video</option>
+                        </select>
+                      </div>
+                      {draft.videoUrl ? (
+                        <video
+                          src={draft.videoUrl}
+                          controls
+                          className="w-full rounded-lg border bg-black"
+                        />
+                      ) : null}
+                      <textarea
+                        className="w-full rounded-lg border bg-white px-3 py-2 text-xs"
+                        rows={3}
+                        value={videoFormByDraftId[draft._id]?.prompt ?? draft.videoPrompt ?? draft.imagePrompt ?? draft.hook ?? ""}
+                        onChange={(e) => setVideoFormByDraftId({
+                          ...videoFormByDraftId,
+                          [draft._id]: {
+                            ...(videoFormByDraftId[draft._id] || {}),
+                            prompt: e.target.value
+                          }
+                        })}
+                        placeholder="Example: Smooth vertical reel, app screen comes alive, sellers sending lower offers, energetic marketplace motion."
+                      />
+                      <button
+                        type="button"
+                        onClick={() => generateDraftVideo(draft)}
+                        disabled={videoGeneratingId === draft._id || ((videoFormByDraftId[draft._id]?.mode || (draft.imageUrl ? "image" : "text")) === "image" && !draft.imageUrl)}
+                        className="w-full rounded-lg border bg-white px-3 py-2 text-[11px] font-semibold disabled:opacity-50"
+                      >
+                        {videoGeneratingId === draft._id ? "Generating video..." : draft.videoUrl ? "Regenerate Reel Video" : "Generate Reel Video"}
+                      </button>
+                      {((videoFormByDraftId[draft._id]?.mode || (draft.imageUrl ? "image" : "text")) === "image" && !draft.imageUrl) ? (
+                        <p className="text-[11px] text-amber-700">Generate an image first, or switch to Text to video.</p>
+                      ) : null}
+                    </div>
                     {draft.lastError ? <p className="text-red-600">Image note: {draft.lastError}</p> : null}
                     {draft.buffer?.postId ? (
                       <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-2 text-[11px] text-emerald-800">
