@@ -981,7 +981,7 @@ function buildVideoPrompt({ prompt = "", draft = {} }) {
   return [
     normalizeText(prompt),
     normalizeText(draft?.hook || draft?.caption),
-    "Short vertical social media reel, smooth motion, clean commercial style, Indian marketplace app promotion, no readable text, no watermark."
+    "Short 9:16 vertical mobile social media reel, portrait composition, smooth motion, clean commercial style, Indian marketplace app promotion, no readable text, no watermark."
   ].filter(Boolean).join(" ");
 }
 
@@ -1011,7 +1011,7 @@ async function generateModelsLabVideo({ prompt = "", initImage = "", draft = {},
         prompt: finalPrompt,
         negative_prompt: "low quality, blurry, distorted, flicker, watermark, readable text",
         height: 512,
-        width: 512,
+        width: 288,
         num_frames: 25,
         num_inference_steps: 20,
         min_guidance_scale: 1,
@@ -1030,7 +1030,7 @@ async function generateModelsLabVideo({ prompt = "", initImage = "", draft = {},
         prompt: finalPrompt,
         negative_prompt: "low quality, blurry, distorted, static, watermark, readable text",
         height: 512,
-        width: 512,
+        width: 288,
         num_frames: 25,
         num_inference_steps: 20,
         guidance_scale: 7,
