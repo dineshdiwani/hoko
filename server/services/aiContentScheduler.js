@@ -303,6 +303,20 @@ async function notifyAutoPostTrigger(autoBuffer = {}) {
   });
 }
 
+async function notifyDirectAutoPostResult(result = {}) {
+  const results = Array.isArray(result?.results) ? result.results : [];
+  const successfulPlatforms = getSuccessfulPlatformsFromResults(results);
+  if (!successfulPlatforms.length) return;
+  await notifyAutoPostTrigger({
+    picked: 1,
+    sent: 1,
+    duePlatforms: successfulPlatforms,
+    markedPlatforms: successfulPlatforms,
+    failures: results.some((item) => !item.success) ? ["direct_auto_post"] : [],
+    forced: true
+  });
+}
+
 async function resolveAutoBufferChannels(settings = {}) {
   const legacySelectedIds = Array.isArray(settings.autoBufferChannelIds)
     ? settings.autoBufferChannelIds.map(normalizeText).filter(Boolean)
@@ -588,7 +602,8 @@ async function processAiContentGeneration({ force = false, limit } = {}) {
       draftIds.push(String(draft._id));
       createdDrafts += 1;
       if (settings.autoBufferEnabled) {
-        await autoSendDraftToBuffer({ draft, settings });
+        const directAutoPost = await autoSendDraftToBuffer({ draft, settings });
+        await notifyDirectAutoPostResult(directAutoPost);
       }
     }
     const autoBuffer = await processAutoBufferQueue(settings, maxDrafts);
@@ -792,7 +807,8 @@ async function processCampaignRunById(runId) {
         lastError: generated.error || generated.imageError || ""
       });
       if (settings.autoBufferEnabled) {
-        await autoSendDraftToBuffer({ draft, settings });
+        const directAutoPost = await autoSendDraftToBuffer({ draft, settings });
+        await notifyDirectAutoPostResult(directAutoPost);
       }
       draftIds.push(draft._id);
       run.draftIds = draftIds;
