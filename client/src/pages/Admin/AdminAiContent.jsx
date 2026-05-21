@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import api from "../../utils/adminApi";
 import AdminNav from "../../components/AdminNav";
 
@@ -229,6 +229,7 @@ function withTimeout(promise, ms = 20000, message = "Request timed out") {
 
 export default function AdminAiContent() {
   const [settings, setSettings] = useState(defaultSettings);
+  const settingsDirtyRef = useRef(false);
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [settingsNotice, setSettingsNotice] = useState(null);
   const [dashboardCategories, setDashboardCategories] = useState([]);
@@ -379,6 +380,7 @@ export default function AdminAiContent() {
   }
 
   async function loadSettingsOnly({ silent = false } = {}) {
+    if (silent && settingsDirtyRef.current) return;
     try {
       const res = await withTimeout(api.get("/ai-content/settings"), 15000);
       setSettings(res.data?.settings ? mergeSettings(res.data.settings) : mergeSettings());
@@ -387,6 +389,14 @@ export default function AdminAiContent() {
         alert(err?.response?.data?.message || err.message || "Failed to load automation settings");
       }
     }
+  }
+
+  function updateSettings(patch) {
+    settingsDirtyRef.current = true;
+    setSettings((current) => ({
+      ...mergeSettings(current || {}),
+      ...patch
+    }));
   }
 
   async function loadTrainingNotesOnly({ silent = false } = {}) {
@@ -533,7 +543,8 @@ export default function AdminAiContent() {
           : String(settings?.blockedWords || "").split(",").map((item) => item.trim()).filter(Boolean)
       };
       const res = await api.put("/ai-content/settings", payload);
-      setSettings(res.data?.settings ? { ...defaultSettings, ...res.data.settings } : defaultSettings);
+      settingsDirtyRef.current = false;
+      setSettings(res.data?.settings ? mergeSettings(res.data.settings) : mergeSettings());
       setSettingsNotice({ type: "success", message: "Automation settings saved successfully" });
       alert("Automation settings saved successfully");
     } catch (err) {
@@ -778,6 +789,7 @@ export default function AdminAiContent() {
   }
 
   function updateAutoPlatform(platform, patch) {
+    settingsDirtyRef.current = true;
     setSettings((current) => {
       const merged = mergeSettings(current || {});
       return {
@@ -1201,7 +1213,7 @@ export default function AdminAiContent() {
                     <input
                       className="mt-1 w-full border rounded-lg px-3 py-2 text-sm bg-white"
                       value={settings.fixedCta || ""}
-                      onChange={(e) => setSettings({ ...settings, fixedCta: e.target.value })}
+                      onChange={(e) => updateSettings({ fixedCta: e.target.value })}
                       placeholder="Learn More"
                     />
                   </label>
@@ -1210,7 +1222,7 @@ export default function AdminAiContent() {
                     <input
                       className="mt-1 w-full border rounded-lg px-3 py-2 text-sm bg-white"
                       value={settings.ctaLink || ""}
-                      onChange={(e) => setSettings({ ...settings, ctaLink: e.target.value })}
+                      onChange={(e) => updateSettings({ ctaLink: e.target.value })}
                       placeholder="https://hokoapp.in"
                     />
                   </label>
@@ -1219,7 +1231,7 @@ export default function AdminAiContent() {
                     <select
                       className="mt-1 w-full border rounded-lg px-3 py-2 text-sm bg-white"
                       value={settings.aiProvider || "gemini"}
-                      onChange={(e) => setSettings({ ...settings, aiProvider: e.target.value })}
+                      onChange={(e) => updateSettings({ aiProvider: e.target.value })}
                     >
                       <option value="gemini">Gemini</option>
                       <option value="openai">OpenAI</option>
@@ -1231,7 +1243,7 @@ export default function AdminAiContent() {
                     <select
                       className="mt-1 w-full border rounded-lg px-3 py-2 text-sm bg-white"
                       value={settings.imageProvider || "modelslab"}
-                      onChange={(e) => setSettings({ ...settings, imageProvider: e.target.value })}
+                      onChange={(e) => updateSettings({ imageProvider: e.target.value })}
                     >
                       <option value="modelslab">ModelsLab</option>
                       <option value="gemini">Gemini</option>
@@ -1246,7 +1258,7 @@ export default function AdminAiContent() {
                       max="20"
                       className="mt-1 w-full border rounded-lg px-3 py-2 text-sm bg-white"
                       value={settings.maxDraftsPerRun || 3}
-                      onChange={(e) => setSettings({ ...settings, maxDraftsPerRun: Number(e.target.value) })}
+                      onChange={(e) => updateSettings({ maxDraftsPerRun: Number(e.target.value) })}
                     />
                   </label>
                   <label className="text-xs font-medium text-gray-600">
@@ -1257,7 +1269,7 @@ export default function AdminAiContent() {
                       max="1440"
                       className="mt-1 w-full border rounded-lg px-3 py-2 text-sm bg-white"
                       value={settings.cronIntervalMinutes ?? 60}
-                      onChange={(e) => setSettings({ ...settings, cronIntervalMinutes: Number(e.target.value) })}
+                      onChange={(e) => updateSettings({ cronIntervalMinutes: Number(e.target.value) })}
                     />
                     <span className="mt-1 block text-[11px] font-normal text-gray-500">The app wakes up this often to see if a saved schedule is due.</span>
                   </label>
@@ -1266,7 +1278,7 @@ export default function AdminAiContent() {
                     <textarea
                       className="mt-1 w-full border rounded-lg px-3 py-2 text-sm min-h-20 bg-white"
                       value={settings.brandInstructions || ""}
-                      onChange={(e) => setSettings({ ...settings, brandInstructions: e.target.value })}
+                      onChange={(e) => updateSettings({ brandInstructions: e.target.value })}
                       placeholder="Example: Keep copy direct, practical, and focused on HOKO reverse auction value."
                     />
                   </label>
@@ -1275,8 +1287,7 @@ export default function AdminAiContent() {
                     <input
                       className="mt-1 w-full border rounded-lg px-3 py-2 text-sm bg-white"
                       value={Array.isArray(settings.blockedWords) ? settings.blockedWords.join(", ") : settings.blockedWords || ""}
-                      onChange={(e) => setSettings({
-                        ...settings,
+                      onChange={(e) => updateSettings({
                         blockedWords: e.target.value.split(",").map((item) => item.trim()).filter(Boolean)
                       })}
                       placeholder="Comma-separated words to avoid"
@@ -1286,7 +1297,7 @@ export default function AdminAiContent() {
                     <input
                       type="checkbox"
                       checked={Boolean(settings.generationEnabled)}
-                      onChange={(e) => setSettings({ ...settings, generationEnabled: e.target.checked })}
+                      onChange={(e) => updateSettings({ generationEnabled: e.target.checked })}
                     />
                     Create new drafts automatically
                   </label>
