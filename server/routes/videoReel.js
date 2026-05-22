@@ -15,6 +15,16 @@ const upload = multer({
   limits: { fileSize: 200 * 1024 * 1024 }
 });
 
+function multerErrorHandler(err, req, res, next) {
+  if (err instanceof multer.MulterError) {
+    if (err.code === "LIMIT_FILE_SIZE") {
+      return res.status(413).json({ message: "Video file is too large. Maximum size is 200MB." });
+    }
+    return res.status(400).json({ message: err.message || "File upload error" });
+  }
+  next(err);
+}
+
 const UPLOAD_DIR = path.join(__dirname, "..", "uploads", "social-media");
 
 function normalizeText(value) {
@@ -77,7 +87,7 @@ router.post(
   "/posts",
   adminAuth,
   requireAdminPermission("campaigns.manage"),
-  upload.single("mediaFile"),
+  (req, res, next) => upload.single("mediaFile")(req, res, (err) => multerErrorHandler(err, req, res, next)),
   async (req, res) => {
     try {
       const hook = normalizeText(req.body?.hook || "");
