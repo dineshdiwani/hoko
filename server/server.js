@@ -805,6 +805,7 @@ app.use("/api/sitemap", require("./routes/sitemap"));
 app.use("/api/whatsapp", require("./routes/whatsapp"));
 app.use("/api/social-media", require("./routes/socialMedia"));
 app.use("/api/ai-content", require("./routes/aiContent"));
+app.use("/api/video-reel", require("./routes/videoReel"));
 app.use("/api/bulk-sms", require("./routes/bulkSms"));
 app.use("/api/dummy-requirements", require("./routes/dummyRequirementApi"));
 app.use("/api/bulk-whatsapp", require("./routes/bulkWhatsApp"));
@@ -1225,4 +1226,7 @@ server.listen(PORT, () => {
   console.log("Social media scheduler started");
   startAiContentScheduler();
   console.log("AI content scheduler started");
+  const { startVideoReelScheduler } = require("./services/videoReelScheduler");
+  startVideoReelScheduler();
+  console.log("Video reel scheduler started");
 });

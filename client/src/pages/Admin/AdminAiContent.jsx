@@ -284,6 +284,15 @@ export default function AdminAiContent() {
   const [postTextByDraftId, setPostTextByDraftId] = useState({});
   const [videoGeneratingId, setVideoGeneratingId] = useState("");
   const [videoFormByDraftId, setVideoFormByDraftId] = useState({});
+  const [reelHook, setReelHook] = useState("");
+  const [reelMediaFile, setReelMediaFile] = useState(null);
+  const [reelMediaUrl, setReelMediaUrl] = useState("");
+  const [reelChannelIds, setReelChannelIds] = useState([]);
+  const [reelScheduleAt, setReelScheduleAt] = useState("");
+  const [reelPublishing, setReelPublishing] = useState(false);
+  const [reelPosts, setReelPosts] = useState([]);
+  const [reelPostsLoading, setReelPostsLoading] = useState(false);
+  const reelFileInputRef = useRef(null);
 
   const activeCount = useMemo(
     () => categories.filter((item) => item.active !== false).length,
@@ -449,6 +458,7 @@ export default function AdminAiContent() {
     loadTrainingNotesOnly({ silent: true }).catch(() => {});
     loadDashboardCategories().catch(() => {});
     loadBufferChannels().catch(() => {});
+    loadReelPosts().catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -958,6 +968,107 @@ export default function AdminAiContent() {
       alert("Draft deleted successfully");
     } catch (err) {
       alert(err?.response?.data?.message || err.message || "Failed to delete draft");
+    }
+  }
+
+  async function loadReelPosts() {
+    try {
+      setReelPostsLoading(true);
+      const res = await api.get("/video-reel/posts?limit=20");
+      setReelPosts(Array.isArray(res.data?.items) ? res.data.items : []);
+    } catch (err) {
+      console.warn("Failed to load reel posts", err.message);
+    } finally {
+      setReelPostsLoading(false);
+    }
+  }
+
+  async function submitReelPost({ publishNow = false } = {}) {
+    if (!reelHook.trim()) {
+      alert("Enter a hook/caption for the reel");
+      return;
+    }
+    if (!reelMediaFile && !reelMediaUrl.trim()) {
+      alert("Select a video file or enter a video URL");
+      return;
+    }
+    if (!reelChannelIds.length) {
+      alert("Select at least one social channel");
+      return;
+    }
+    if (!publishNow && !reelScheduleAt.trim()) {
+      alert("Select a schedule time or publish now");
+      return;
+    }
+
+    try {
+      setReelPublishing(true);
+      const formData = new FormData();
+      formData.append("hook", reelHook.trim());
+      formData.append("mediaMode", reelMediaFile ? "file" : "url");
+      if (reelMediaFile) {
+        formData.append("mediaFile", reelMediaFile);
+      } else {
+        formData.append("mediaUrl", reelMediaUrl.trim());
+      }
+      reelChannelIds.forEach((id) => formData.append("channelIds", id));
+      if (!publishNow && reelScheduleAt.trim()) {
+        formData.append("scheduleAt", new Date(reelScheduleAt).toISOString());
+      }
+      if (publishNow) {
+        formData.append("publishNow", "true");
+      }
+
+      const res = await api.post("/video-reel/posts", formData);
+      resetReelForm();
+      await loadReelPosts();
+      alert(res.data?.mode === "published" ? "Reel published successfully" : "Reel scheduled successfully");
+    } catch (err) {
+      alert(err?.response?.data?.message || err.message || "Failed to create reel post");
+    } finally {
+      setReelPublishing(false);
+    }
+  }
+
+  function resetReelForm() {
+    setReelHook("");
+    setReelMediaFile(null);
+    setReelMediaUrl("");
+    setReelScheduleAt("");
+    setReelChannelIds([]);
+    if (reelFileInputRef.current) {
+      reelFileInputRef.current.value = "";
+    }
+  }
+
+  async function publishReelPost(postId) {
+    if (!postId) return;
+    try {
+      await api.post(`/video-reel/posts/${postId}/publish`);
+      await loadReelPosts();
+    } catch (err) {
+      alert(err?.response?.data?.message || err.message || "Failed to publish reel");
+    }
+  }
+
+  async function cancelReelPost(postId) {
+    if (!postId) return;
+    try {
+      await api.post(`/video-reel/posts/${postId}/cancel`);
+      await loadReelPosts();
+    } catch (err) {
+      alert(err?.response?.data?.message || err.message || "Failed to cancel reel");
+    }
+  }
+
+  async function deleteReelPost(postId) {
+    if (!postId) return;
+    if (!window.confirm("Delete this reel post?")) return;
+    try {
+      await api.delete(`/video-reel/posts/${postId}`);
+      await loadReelPosts();
+    } catch (err) {
+      alert(err?.response?.data?.message || err.message || "Failed to delete reel");
     }
   }
 
@@ -1948,6 +2059,209 @@ export default function AdminAiContent() {
                 ))}
                 {!drafts.length ? (
                   <div className="border rounded-xl p-3 text-sm text-gray-500">No generated drafts yet.</div>
+                ) : null}
+              </div>
+            </section>
+
+            <section className="bg-white border rounded-2xl p-4 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="font-semibold">Video Reel Publisher</h2>
+                  <p className="text-xs text-gray-500">
+                    Upload a video, write a hook, select social channels, and publish or schedule.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={loadReelPosts}
+                  disabled={reelPostsLoading}
+                  className="px-3 py-2 rounded-lg text-sm font-semibold border border-gray-300 disabled:opacity-60"
+                >
+                  {reelPostsLoading ? "Loading..." : "Refresh"}
+                </button>
+              </div>
+
+              <div className="border rounded-xl p-4 space-y-4">
+                <div>
+                  <h3 className="font-semibold text-sm">New Reel</h3>
+                  <p className="text-xs text-gray-500">Compose and publish or schedule a video reel.</p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Hook / Caption</label>
+                  <textarea
+                    className="w-full border rounded-lg px-3 py-2 text-sm min-h-20 bg-white"
+                    placeholder="Write the reel caption here..."
+                    value={reelHook}
+                    onChange={(e) => setReelHook(e.target.value)}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Upload video</label>
+                    <input
+                      ref={reelFileInputRef}
+                      type="file"
+                      accept="video/*"
+                      onChange={(e) => {
+                        setReelMediaFile(e.target.files?.[0] || null);
+                        setReelMediaUrl("");
+                      }}
+                      className="block w-full text-sm"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      {reelMediaFile ? `Selected: ${reelMediaFile.name}` : "Max 200MB"}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Or video URL</label>
+                    <input
+                      className="w-full border rounded-lg px-3 py-2 text-sm bg-white"
+                      placeholder="https://example.com/video.mp4"
+                      value={reelMediaUrl}
+                      onChange={(e) => {
+                        setReelMediaUrl(e.target.value);
+                        if (e.target.value) setReelMediaFile(null);
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-2">Social channels</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {bufferChannels.map((channel) => {
+                      const checked = reelChannelIds.includes(channel.id);
+                      return (
+                        <label key={channel.id} className="flex items-center gap-2 rounded-lg border bg-gray-50 p-2 text-xs cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => {
+                              setReelChannelIds((prev) =>
+                                checked ? prev.filter((id) => id !== channel.id) : [...prev, channel.id]
+                              );
+                            }}
+                          />
+                          <span>{channel.name || channel.service} <span className="text-gray-400">({channel.service})</span></span>
+                        </label>
+                      );
+                    })}
+                    {!bufferChannels.length ? (
+                      <div className="rounded-lg border bg-gray-50 p-2 text-xs text-gray-500 col-span-full">
+                        No Buffer channels loaded. Click Load in the Settings section first.
+                      </div>
+                    ) : null}
+                  </div>
+                  {reelChannelIds.length > 0 ? (
+                    <p className="text-xs text-gray-500 mt-1">{reelChannelIds.length} channel(s) selected</p>
+                  ) : null}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Schedule at (optional)</label>
+                  <input
+                    type="datetime-local"
+                    className="w-full border rounded-lg px-3 py-2 text-sm bg-white"
+                    value={reelScheduleAt}
+                    onChange={(e) => setReelScheduleAt(e.target.value)}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Leave blank or click Publish Now to post immediately.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => submitReelPost({ publishNow: true })}
+                    disabled={reelPublishing}
+                    className="px-4 py-2 rounded-lg text-sm font-semibold bg-black text-white disabled:opacity-60"
+                  >
+                    {reelPublishing ? "Publishing..." : "Publish Now"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => submitReelPost({ publishNow: false })}
+                    disabled={reelPublishing}
+                    className="px-4 py-2 rounded-lg text-sm font-semibold border border-gray-300 disabled:opacity-60"
+                  >
+                    {reelPublishing ? "Scheduling..." : "Schedule Post"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={resetReelForm}
+                    className="px-4 py-2 rounded-lg text-sm font-semibold border border-gray-300"
+                  >
+                    Reset
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-2 max-h-80 overflow-auto pr-1">
+                {reelPosts.map((post) => {
+                  const channelNames = post.channelIds
+                    .map((id) => bufferChannels.find((c) => c.id === id)?.name || id)
+                    .filter(Boolean)
+                    .join(", ") || post.channelIds.join(", ");
+                  return (
+                    <div key={post._id} className="border rounded-xl p-3 text-xs space-y-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="font-semibold text-sm">{post.hook ? (post.hook.length > 60 ? post.hook.slice(0, 60) + "..." : post.hook) : "(no hook)"}</p>
+                        <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase ${
+                          post.status === "published" ? "bg-emerald-100 text-emerald-800" :
+                          post.status === "failed" ? "bg-red-100 text-red-800" :
+                          post.status === "queued" ? "bg-amber-100 text-amber-800" :
+                          "bg-gray-100 text-gray-800"
+                        }`}>
+                          {post.status}
+                        </span>
+                      </div>
+                      <p>Channels: {channelNames || "-"}</p>
+                      <p>Media: {post.media?.mode === "file" ? "Uploaded video" : post.media?.url ? "Video URL" : "None"}</p>
+                      {post.scheduleAt ? <p>Schedule: {formatTime(post.scheduleAt)}</p> : null}
+                      {post.publishedAt ? <p>Published: {formatTime(post.publishedAt)}</p> : null}
+                      {post.lastError ? <p className="text-red-600">Error: {post.lastError}</p> : null}
+                      {Array.isArray(post.bufferResults) && post.bufferResults.length > 0 ? (
+                        <div className="rounded-lg border bg-gray-50 p-2 mt-1 space-y-1">
+                          <p className="font-medium text-[11px]">Buffer results:</p>
+                          {post.bufferResults.map((r, i) => (
+                            <p key={i} className="text-[11px]">
+                              {r.channelId}: {r.success ? `Posted (ID: ${r.postId || "-"})` : `Failed: ${r.error || "unknown"}`}
+                            </p>
+                          ))}
+                        </div>
+                      ) : null}
+                      {post.status !== "published" && post.status !== "cancelled" ? (
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          <button
+                            onClick={() => publishReelPost(post._id)}
+                            className="px-3 py-1.5 rounded border text-[11px] font-semibold"
+                          >
+                            Publish Now
+                          </button>
+                          {post.status === "queued" ? (
+                            <button
+                              onClick={() => cancelReelPost(post._id)}
+                              className="px-3 py-1.5 rounded border text-[11px] font-semibold"
+                            >
+                              Cancel
+                            </button>
+                          ) : null}
+                          <button
+                            onClick={() => deleteReelPost(post._id)}
+                            className="px-3 py-1.5 rounded border text-[11px] font-semibold text-red-600"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
+                {!reelPosts.length ? (
+                  <div className="border rounded-xl p-3 text-sm text-gray-500">No reel posts yet.</div>
                 ) : null}
               </div>
             </section>
