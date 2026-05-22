@@ -140,17 +140,22 @@ function buildImageTextOverlay({ angle = "", categoryName = "", hook = "" }) {
     "Compare Before You Buy",
     "Better Offers Start Here",
     "Need It Soon?",
-    "One Requirement. Many Offers.",
     "Stop Chasing Quotes",
     "Choose Smarter",
-    "Offers Worth Comparing",
-    "Local Sellers. Clear Prices."
+    "Local Sellers. Clear Prices.",
+    "Sellers Compete. You Win.",
+    "Post Once. Get Offers.",
+    "Your City. Your Deal.",
+    "Don't Overpay."
   ];
   if (/insurance|policy|premium/i.test(`${label} ${hook}`)) {
-    options.push("Compare Policy Offers", "Premiums Made Clear", "Cover That Fits");
+    options.push("Compare Policy Offers", "Don't Overpay");
   }
   if (angle === "FOMO" || /soon|urgent|limited/i.test(hook)) {
-    options.push("Do Not Miss Better Offers", "Needed Soon?");
+    options.push("Don't Miss Better Offers", "Needed Soon?");
+  }
+  if (/stop|chase|call|running/i.test(hook)) {
+    options.push("Stop Running", "Stop Calling", "One Post. Done.");
   }
   return options[hashText(`${angle}|${categoryName}|${hook}|overlay`) % options.length];
 }
@@ -158,21 +163,22 @@ function buildImageTextOverlay({ angle = "", categoryName = "", hook = "" }) {
 function buildHashtags({ categoryName = "", angle = "", seed = "" }) {
   const categoryTag = `#${normalizeText(categoryName).replace(/[^a-zA-Z0-9]/g, "")}`;
   const angleTags = {
-    Curiosity: ["#CompareFirst", "#SmartBuying"],
-    FOMO: ["#DontMissBetterOffers", "#NeededSoon"],
-    Relatability: ["#BusinessBuying", "#NoMoreFollowUps"],
-    "Social proof": ["#SellerOffers", "#MarketPrices"],
-    Transformation: ["#BuySmarter", "#ClearComparison"],
-    "Humor where relevant": ["#BuyingMadeSimple", "#QuoteChasing"],
-    "Local pride": ["#LocalBusiness", "#LocalSellers"],
-    "Emotional connection": ["#LessStress", "#ClearChoices"],
-    "Problem-solving": ["#PriceComparison", "#RequirementToOffers"],
-    "Trend adaptation": ["#SmartBuyers", "#DigitalProcurement"],
-    Urgency: ["#ActFast", "#QuickQuotes"]
+    Curiosity: ["#CompareFirst", "#SmartBuying", "#DealFinder"],
+    FOMO: ["#DontMissOut", "#NeededSoon", "#ActFast"],
+    Relatability: ["#ShopLocal", "#NoMoreFollowUps", "#LocalFirst"],
+    "Social proof": ["#SellerOffers", "#MarketPrices", "#SmartChoice"],
+    Transformation: ["#BuySmarter", "#ClearComparison", "#DigitalIndia"],
+    "Humor where relevant": ["#BuyingMadeSimple", "#GameChanger"],
+    "Local pride": ["#LocalBusiness", "#VocalForLocal", "#MyCity"],
+    "Emotional connection": ["#LessStress", "#ClearChoices", "#EasyBuying"],
+    "Problem-solving": ["#PriceComparison", "#NoMoreCalls", "#InstaQuote"],
+    "Trend adaptation": ["#SmartBuyers", "#DigitalIndia", "#FutureOfShopping"],
+    Urgency: ["#ActFast", "#QuickQuotes", "#NeededSoon"]
   };
-  const options = angleTags[angle] || ["#SmartBuying", "#SellerOffers"];
+  const options = angleTags[angle] || ["#SmartBuying", "#SellerOffers", "#LocalDeals"];
   const picked = options[hashText(`${seed}|hashtag`) % options.length];
-  return ["#HOKO", categoryTag, picked].filter((item) => item.length > 1);
+  const extra = ["#HOKOApp", "#Hyperlocal"][hashText(`${seed}|extra`) % 2];
+  return [extra, categoryTag, picked].filter((item) => item.length > 1);
 }
 
 function buildChannelCaptions({ hook = "", hashtags = [], ctaLink = "" }) {
@@ -182,13 +188,14 @@ function buildChannelCaptions({ hook = "", hashtags = [], ctaLink = "" }) {
   return {
     facebook: [cleanHook, "Compare seller offers on HOKO.", tagText, link].filter(Boolean).join("\n\n"),
     instagram: [cleanHook, tagText].filter(Boolean).join("\n\n"),
-    linkedin: [cleanHook, "A practical way for buyers to post requirements and compare seller responses before deciding.", link].filter(Boolean).join("\n\n")
+    linkedin: [cleanHook, "A practical way for buyers to post requirements and compare seller responses before deciding.", link].filter(Boolean).join("\n\n"),
+    whatsapp: [cleanHook, "Zaroorat hai? Hoko pe daalo. Sellers quote karengay."].filter(Boolean).join("\n\n")
   };
 }
 
 function normalizeTargetPlatforms(value) {
   const source = Array.isArray(value) ? value : String(value || "").split(",");
-  const allowed = new Set(["facebook", "instagram", "linkedin"]);
+  const allowed = new Set(["facebook", "instagram", "linkedin", "whatsapp"]);
   const normalized = source
     .map((item) => normalizeText(item).toLowerCase().replace(/[_\s-]+/g, ""))
     .map((item) => {
@@ -265,8 +272,8 @@ function inferTargetPlatforms({ category = {}, topic = "", hook = "" } = {}) {
   const isLinkedin = linkedinSignals.some((pattern) => pattern.test(text));
   const isConsumer = consumerSignals.some((pattern) => pattern.test(text));
   if (isLinkedin && !isConsumer) return ["linkedin"];
-  if (isLinkedin && isConsumer) return ["linkedin", "facebook", "instagram"];
-  return ["facebook", "instagram"];
+  if (isLinkedin && isConsumer) return ["linkedin", "facebook", "instagram", "whatsapp"];
+  return ["facebook", "instagram", "whatsapp"];
 }
 
 function buildFallbackDraft({ category, fixedCta, campaign = {} }) {
@@ -285,85 +292,85 @@ function buildFallbackDraft({ category, fixedCta, campaign = {} }) {
   const genericAngles = [
     {
       angle: "Problem-solving",
-      topic: `Compare seller quotes for ${lowerName}`,
-      hook: `Need ${lowerName} without chasing every supplier? Share it on HOKO, compare seller offers, and move ahead with the price that fits.`
+      topic: `Stop chasing suppliers for ${lowerName}`,
+      hook: `Stop calling 10 suppliers for ${lowerName}. Post once on HOKO. Let them come to you.`
     },
     {
       angle: "Curiosity",
-      topic: `What changes when sellers quote in one place`,
-      hook: `What happens when your ${lowerName} requirement reaches multiple sellers on HOKO? You get prices you can compare before deciding.`
+      topic: `What happens when sellers compete for your ${lowerName} order`,
+      hook: `What if your ${lowerName} requirement reached every seller in your city at once? That's HOKO.`
     },
     {
       angle: "FOMO",
-      topic: `Use reverse auction for ${lowerName} buying`,
-      hook: `Buying ${lowerName} soon? Do not decide on the first quote. Put it on HOKO and let more sellers respond.`
+      topic: `Others are already comparing ${lowerName} prices on HOKO`,
+      hook: `Your competitor just found a cheaper ${lowerName} supplier. You're still making calls.`
     },
     {
       angle: "Relatability",
-      topic: `Reduce quote follow-ups for ${lowerName}`,
-      hook: `Stop collecting ${lowerName} prices one by one. HOKO brings seller offers to your requirement so comparison is faster.`
+      topic: `The old way of buying ${lowerName} is broken`,
+      hook: `Running shops to find ${lowerName}? That's so 2019. Do it from your phone now.`
     },
     {
       angle: "Transformation",
-      topic: `Find the practical offer for ${lowerName}`,
-      hook: `Turn your next ${lowerName} purchase from scattered calls into one clear HOKO comparison.`
+      topic: `From phone calls to one tap for ${lowerName}`,
+      hook: `No more juggling 5 WhatsApp chats for ${lowerName}. One post. Multiple offers. You choose.`
     },
     {
       angle: "Urgency",
-      topic: `Turn a buying need into seller responses`,
-      hook: `${name} needed soon? Add the requirement on HOKO and let interested sellers respond with prices you can compare.`
+      topic: `${lowerName} needed urgently? This is faster`,
+      hook: `${lowerName} chahiye kal tak? HOKO pe daalo. Sellers will line up with prices.`
     },
     {
       angle: "Emotional connection",
-      topic: `Make ${lowerName} buying less scattered`,
-      hook: `Buying should feel clear, not chaotic. HOKO keeps your ${lowerName} requirement and seller offers in one place.`
+      topic: `Buying ${lowerName} should feel easy, not exhausting`,
+      hook: `Buying ${lowerName} should not feel like a second job. Let HOKO do the hard part.`
     },
     {
       angle: "Social proof",
-      topic: `Give sellers a reason to compete`,
-      hook: `More sellers seeing the same ${lowerName} requirement means better comparison for the buyer on HOKO.`
+      topic: `Smart buyers already use this for ${lowerName}`,
+      hook: `Smart buyers don't chase sellers. They let sellers chase them. HOKO.`
     },
     {
       angle: "Local pride",
-      topic: `Move from enquiry to comparison`,
-      hook: `Local buyers deserve clear seller offers. Put your ${lowerName} requirement on HOKO and compare before you commit.`
+      topic: `Your city has hidden ${lowerName} deals waiting for you`,
+      hook: `Your city has sellers ready to quote ${lowerName}. They just don't know you're looking. HOKO connects.`
     },
     {
       angle: "Trend adaptation",
-      topic: `Choose with clearer price visibility`,
-      hook: `Smart buyers compare before they commit. HOKO brings ${lowerName} seller offers into one clearer view.`
+      topic: `This is how people buy ${lowerName} in 2026`,
+      hook: `Calling random suppliers? That's old news. Post your ${lowerName} need on HOKO and compare in minutes.`
     }
   ];
   const insuranceAngles = [
     {
       angle: "Curiosity",
-      topic: `Compare insurance quotes before deciding`,
-      hook: `Looking for ${lowerName}? Put one requirement on HOKO and compare policy offers before you choose.`
+      topic: `Most people overpay for insurance. Here's why.`,
+      hook: `Still taking the first insurance quote? You're probably overpaying. HOKO lets sellers compete on your policy.`
     },
     {
       angle: "Relatability",
-      topic: `Bring insurance sellers to one enquiry`,
-      hook: `Life, health, or motor cover should not need scattered calls. HOKO helps sellers respond to one clear requirement.`
+      topic: `Insurance comparison without the headache`,
+      hook: `Insurance paperwork is a headache. HOKO makes sellers bring their best offer to you.`
     },
     {
       angle: "Problem-solving",
-      topic: `See policy offers side by side`,
-      hook: `Use HOKO to collect ${lowerName} offers in one place, then compare premium, cover fit, and seller response clearly.`
+      topic: `One click, multiple insurance quotes`,
+      hook: `One requirement. Multiple policy offers. You compare. That's HOKO for insurance.`
     },
     {
       angle: "Social proof",
-      topic: `Make insurance buying easier to compare`,
-      hook: `One insurance requirement on HOKO can bring multiple seller responses, so the buyer can compare before moving ahead.`
+      topic: `Others saved on insurance using this trick`,
+      hook: `People are switching to HOKO for insurance. Why settle for one quote when you can have five?`
     },
     {
       angle: "Urgency",
-      topic: `Get practical insurance offers faster`,
-      hook: `Need ${lowerName} for business or family needs? Add the requirement on HOKO and review seller offers without repeat follow-ups.`
+      topic: `Policy about to expire? Don't renew blindly`,
+      hook: `Insurance renewal coming up? Don't auto-renew. See what other sellers offer on HOKO first.`
     },
     {
       angle: "Transformation",
-      topic: `Turn policy enquiry into seller responses`,
-      hook: `HOKO turns one ${lowerName} enquiry into comparable seller offers, helping buyers choose with better visibility.`
+      topic: `The smart way to buy insurance in 2026`,
+      hook: `Stop buying insurance blind. Post your need on HOKO and make sellers compete for your business.`
     }
   ];
   const angles = hasInsuranceContext(`${name} ${category?.description || ""}`) ? insuranceAngles : genericAngles;
@@ -426,60 +433,197 @@ function buildPrompt({ category, fixedCta, campaign = {} }) {
   const blockedWords = Array.isArray(campaign?.blockedWords)
     ? campaign.blockedWords.map(normalizeText).filter(Boolean)
     : [];
+
+  const hookPatterns = [
+    "Nobody talks about this...",
+    "This is why sellers fail online...",
+    "Most people are doing this wrong",
+    "Imagine earning while sleeping",
+    "Your shop is losing customers because of this",
+    "The future of local business is changing",
+    "This small trick changes everything",
+    "What if your business worked 24/7?",
+    "The biggest mistake sellers make",
+    "People don't realize this yet...",
+    "I wish I knew this sooner",
+    "This is not a drill for shop owners",
+    "Stop doing this if you run a business",
+    "99% of sellers ignore this",
+    "This one thing can change your business",
+    "Here's why your shop is empty",
+    "The truth about online selling",
+    "Your customers are looking for you elsewhere"
+  ];
+
+  const contentTypes = [
+    "Curiosity post — make people think 'wait, what?'",
+    "Problem-solution post — show a real pain and how Hoko fixes it",
+    "Seller pain post — trigger every shopkeeper who struggles",
+    "Buyer convenience post — show how easy buying can be",
+    "Local business empowerment — make local pride the hero",
+    "AI future post — show how tech helps small business",
+    "Relatable meme-style — funny but smart",
+    "Did you know? — reveal a hidden truth about local shopping",
+    "Myth busting — bust 'online selling is expensive' myth",
+    "Comparison post — old way vs new way",
+    "Short storytelling — 3 lines that hit emotionally",
+    "Hyperlocal business content — your city, your shop",
+    "Side hustle psychology — make extra money",
+    "WhatsApp business culture — meet them where they are"
+  ];
+
+  const emotionalTriggers = [
+    "Curiosity gap — make them need to know more",
+    "Fear of missing out — others are already doing it",
+    "Local pride — your city deserves better shopping",
+    "Financial growth — save money, make money",
+    "Convenience — why run around when you can do it from phone",
+    "Social proof — others are already using Hoko",
+    "Smartness — feel smart for using Hoko",
+    "Future trends — this is where shopping is going",
+    "Seller pain — chasing customers, low visibility, no digital presence",
+    "Buyer frustration — calling 10 shops, no response, no comparison"
+  ];
+
+  const hookInstruction = [
+    "HOOK RULES (MOST IMPORTANT RULE):",
+    "The first line MUST stop scrolling instantly.",
+    "It must trigger curiosity, create emotional tension, or surprise the reader.",
+    "Keep hooks short, punchy, conversational, emotionally charged.",
+    "Never start with: 'Welcome to', 'Introducing', 'We are excited', or corporate language.",
+    "Vary the hook structure every time — do NOT repeat the same pattern.",
+    "Use one of these patterns as inspiration (not exact copy):",
+    hookPatterns.map((p) => `  - "${p}"`).join("\n"),
+    "",
+    "Sometimes the hook should NOT mention Hoko directly. Let curiosity pull them in first.",
+    "The word Hoko should feel natural, not forced."
+  ].join("\n");
+
+  const contentStyleInstruction = [
+    "CONTENT STYLE:",
+    "Write like a modern creator, smart marketer, viral Instagram page, startup founder.",
+    "Use short lines. Line breaks every 2-4 words on mobile.",
+    "Sound conversational, not corporate.",
+    "Use emotional storytelling and internet-style rhythm.",
+    "No paragraph blocks. No technical explanations.",
+    "No generic motivational content. No repetitive structure.",
+    "Use plain Indian English. Sound like a real person, not a brand page.",
+    "Never sound like ChatGPT. Never use 'unlock potential', 'revolutionary', 'empowering businesses'."
+  ].join("\n");
+
+  const emotionalInstruction = [
+    "EMOTIONAL TRIGGERS TO USE (pick 2-3 per post):",
+    emotionalTriggers.map((t) => `  - ${t}`).join("\n"),
+    "Combine triggers for maximum impact. Example: curiosity + FOMO + local pride."
+  ].join("\n");
+
+  const platformInstruction = [
+    "PLATFORM-SPECIFIC CAPTIONS:",
+    "Instagram: highly emotional, short punchy lines, trendy, visual-first, Reels-compatible.",
+    "Facebook: relatable, community-driven, slightly more descriptive, local business friendly.",
+    "LinkedIn: founder tone, startup growth style, business insights, digital transformation angle, professional but emotional.",
+    "WhatsApp: extremely short, forward-friendly, curiosity-heavy, human casual tone. Use Hinglish naturally."
+  ].join("\n");
+
+  const ctaInstruction = [
+    "CTA RULES:",
+    "CTA should feel natural, not forced. Examples:",
+    '  - "Would you try this?"',
+    '  - "Tag a seller who needs this"',
+    '  - "This is just the beginning"',
+    '  - "Imagine this in your city"',
+    '  - "Would your business use this?"',
+    '  - "Comment YES if you agree"',
+    '  - "Save this for later"',
+    '  - "Send this to a shop owner"',
+    "Default CTA button text is: " + (normalizeText(fixedCta) || "Learn More")
+  ].join("\n");
+
+  const antiAiInstruction = [
+    "ANTI-AI RULES:",
+    "Never sound repetitive or use same sentence structures.",
+    "Never use same hook formula twice in a row.",
+    "No excessive emojis (max 1-2 if any).",
+    "Do not explain too much. Leave gaps for curiosity.",
+    "Do not use: 'unlock potential', 'revolutionary', 'empowering businesses', 'game-changer', 'disrupt'.",
+    "Sound like a human wrote this in 30 seconds, not an AI that optimized for 5 minutes.",
+    "Imperfect is better than perfect. Real is better than polished."
+  ].join("\n");
+
+  const finalGoal = [
+    "GOAL: Every post should make the reader feel: 'I should try HokoApp before others do.'",
+    "The content should make sellers and buyers want to join immediately.",
+    "Maximize: hook strength, curiosity, emotional impact, share potential, comment potential.",
+    "If the output feels generic, robotic, or boring — rewrite it internally before outputting."
+  ].join("\n");
+
+  const contentTypeChoice = `CONTENT TYPE THIS ROUND (choose ONE and make it obvious in style): ${contentTypes.join(" | ")}`;
+
   return [
-    "Create one automated social media draft to market the HOKO app.",
-    "Core HOKO positioning:",
-    "HOKO is an online marketplace for buyers and sellers.",
-    "Buyers post their requirements in a category.",
-    "Sellers post price offers on those buyer requirements.",
-    "Buyers compare offers and choose the best or lower-price offer.",
-    "Buyers can also invoke reverse auction so sellers compete further and improve their prices.",
-    "The content must make this marketplace value instantly clear to the audience.",
-    "Quality bar: every output must feel like it was created by a top-tier social media agency specializing in viral local business marketing.",
-    "The admin selects only a category; you must choose the topic yourself based on that category.",
-    "The system only generates drafts and images; it does not publish.",
-    campaignMood ? `Today's campaign mood/direction: ${campaignMood}.` : "",
-    campaignMood ? "If the mood/direction includes a concrete visual scene, objects, people, product, or setting, the imagePrompt must preserve those exact visual requirements." : "",
-    audienceMode && audienceMode !== "auto" ? `Audience focus: ${audienceMode}.` : "Audience focus: choose the strongest audience automatically.",
-    imageStyle && imageStyle !== "auto" ? `Preferred image style/background: ${imageStyle}.` : "Choose image environment/background automatically.",
-    useAppScreenshots ? "If helpful, ask for a clean app screenshot/mockup placement in the image prompt without inventing unreadable UI text." : "Do not require app screenshots unless the hook clearly benefits from a phone mockup.",
-    brandInstructions ? `Brand instructions: ${brandInstructions}.` : "",
-    blockedWords.length ? `Do not use these blocked words or phrases: ${blockedWords.join(", ")}.` : "",
+    "You are a viral content creator for HOKO — a hyperlocal marketplace connecting Indian buyers and sellers.",
+    "",
+    "ABOUT HOKO:",
+    "Buyers post what they need. Sellers see it and compete with offers. Buyers compare and choose. Reverse auction available for best prices.",
+    "Think of it as: buyer posts requirement → multiple sellers quote → buyer picks the best deal.",
+    "No ads. No commission. Just direct business.",
+    "Target audience: Indian local shopkeepers, small business owners, young entrepreneurs, side hustlers, WhatsApp sellers, Tier 2/3 city users.",
+    "",
+    "CATEGORY TO POST ABOUT:",
     `Category: ${normalizeText(category?.name)}.`,
-    `Optional category context: ${normalizeText(category?.description) || "not provided"}.`,
-    `Optional target audience: ${normalizeText(category?.targetAudience) || "buyers and sellers in this category"}.`,
-    `Tone: ${normalizeText(category?.tone) || "professional"}.`,
-    `Image style: ${normalizeText(category?.imageStyle) || "clean business social image"}.`,
-    `Fixed CTA: ${normalizeText(fixedCta) || "Learn More"}.`,
-    `Choose one primary creative angle from this list and make it obvious in the copy: ${CONTENT_ANGLES.join(", ")}.`,
-    "Content rules: never generate generic content; avoid robotic wording; content must feel fresh every time; use urgency where relevant; use curiosity hooks; use emotional triggers; mention local area naturally if available; adapt tone according to audience; mention trends/festivals if relevant; keep content mobile-friendly; use natural human language; do not overuse emojis; make captions readable with spacing.",
-    "Avoid repeated hashtags. Hashtags must be fresh, relevant, and not the same set every time.",
-    "Return only valid JSON with keys: topic, hook, caption, channelCaptions, targetPlatforms, hashtags, imagePrompt, imageTextOverlay.",
-    "topic: a fresh category-specific buyer pain point, buying scenario, urgency, comparison benefit, negotiation angle, or seller-response angle. Do not copy the category name alone.",
-    "hook: one or two short lines only. Make it attractive, direct, and conversion-oriented, but vary the sentence structure.",
-    "Every hook must mention HOKO and at least one core value: posting a requirement, comparing seller offers, choosing a lower/better price, or getting seller responses.",
-    "Mention reverse auction only when it naturally fits the category and hook. Do not force reverse auction into every post.",
-    "For service categories such as insurance, finance, legal, consulting, or health services, focus on enquiry, seller responses, offer comparison, policy/plan fit, coverage, premium, or service terms instead of industrial procurement visuals.",
-    "Do not use this repeated pattern or close variants: 'Post your [category] requirement on HOKO and let sellers compete with price offers. Pick the best deal, or start a reverse auction for sharper prices.'",
-    "Avoid starting every hook with 'Post your'. Use varied openings such as a buyer problem, a question, a contrast, a time-saving angle, a price-comparison angle, or a category-specific buying situation.",
-    "Write the hook as fresh advertising copy, not a feature explanation. Make it feel different from previous generic HOKO drafts.",
-    "Prefer hooks that create curiosity or urgency, but do not exaggerate, promise guaranteed savings, or make unverifiable guarantees.",
-    "Use plain Indian business English. Avoid generic lines like grow your business, discover opportunities, or connect buyers and sellers unless tied to price offers.",
-    "caption: short mobile-friendly caption. It may repeat the hook, but add spacing only if it improves readability. Do not write long paragraphs. CTA is stored separately as button text.",
-    "channelCaptions: object with facebook, instagram, linkedin strings. Facebook should feel local/community-oriented, Instagram should be short and visual, LinkedIn should sound professional and B2B. Keep each mobile-friendly.",
-    "targetPlatforms: array choosing where this post should be auto-published. Use only facebook, instagram, linkedin. Choose linkedin for B2B, corporate, industrial, procurement, wholesale, machinery, commercial services, high-value or bulk demand. Choose facebook and instagram for domestic, household, retail, personal, local consumer, lifestyle, and B2C demand. If the category fits both business and consumer buyers, include all suitable platforms. Do not include a platform only because a caption exists.",
-    "imageTextOverlay: 2 to 5 words only, strong ad-style overlay text for the image, such as 'Compare Before You Buy' or 'Limited Time Deal'. Do not include hashtags.",
-    "imagePrompt: write an ultra-detailed final image-generation prompt for ModelsLab. It must be aligned with the hook, imageTextOverlay, and campaign mood.",
-    campaignMood ? "imagePrompt must use today's campaign mood/direction as visual guidance and connect it directly to the generated hook." : "",
-    "imagePrompt must include: subject, environment, lighting, camera angle, mood, colors, realistic details, platform style, audience appeal, and festival/trend relevance if applicable.",
-    "Image style must be hyper realistic, viral social media style, high CTR, bright and premium, and mobile-first composition.",
-    "The image prompt must reserve clean space for the separate imageTextOverlay, but must explicitly say not to render any text inside the generated image.",
-    "imagePrompt must include: exact main subject, concrete setting, people/roles, visible product/category objects, and how seller offers/price comparison are shown.",
-    "imagePrompt must not be generic. Do not say only 'HOKO marketplace workflow'. Make it a literal scene a designer can draw.",
-    "imagePrompt must show buyer requirement, seller offers, and comparison only where relevant, as part of the scene. Use reverse auction visuals only when the hook explicitly needs them.",
-    "Avoid unreadable text, fake screenshots, platform logos, or celebrity/brand references.",
-    "Hashtags must be an array of 3 to 6 strings. Do not include markdown fences."
-  ].filter(Boolean).join(" ");
+    `Context: ${normalizeText(category?.description) || "not provided"}.`,
+    `Target audience: ${normalizeText(category?.targetAudience) || "Indian local buyers and sellers"}.`,
+    `Image style hint: ${normalizeText(category?.imageStyle) || "cinematic realistic Indian marketplace"}.`,
+    campaignMood ? `Campaign mood/direction: ${campaignMood}.` : "",
+    audienceMode && audienceMode !== "auto" ? `Audience focus: ${audienceMode}.` : "",
+    brandInstructions ? `Brand instructions: ${brandInstructions}.` : "",
+    blockedWords.length ? `Absolutely do not use these words/phrases: ${blockedWords.join(", ")}.` : "",
+    "",
+    hookInstruction,
+    "",
+    contentTypeChoice,
+    "",
+    contentStyleInstruction,
+    "",
+    emotionalInstruction,
+    "",
+    platformInstruction,
+    "",
+    ctaInstruction,
+    "",
+    antiAiInstruction,
+    "",
+    finalGoal,
+    "",
+    "OUTPUT FORMAT (return ONLY valid JSON, no markdown fences):",
+    "{",
+    '  "topic": "short category-specific pain point or buying scenario, NOT just the category name",',
+    '  "hook": "one or two punchy lines that stop scrolling — vary structure every time",',
+    '  "caption": "short mobile-friendly body text with line breaks, emotional, conversational",',
+    '  "channelCaptions": {',
+    '    "facebook": "community-oriented, relatable, local business friendly version",',
+    '    "instagram": "short punchy trendy emotional visual-first version",',
+    '    "linkedin": "founder tone, startup growth, business insight version",',
+    '    "whatsapp": "2-3 lines max, Hinglish ok, curiosity-heavy, forward-friendly"',
+    '  },',
+    '  "targetPlatforms": ["facebook", "instagram", "linkedin"] or subset based on B2B vs B2C',
+    '  "hashtags": ["3", "to", "6", "fresh", "relevant", "hashtags"],',
+    '  "imageTextOverlay": "2-5 word strong ad overlay text",',
+    '  "imagePrompt": "ultra-detailed cinematic image prompt for AI image generation"',
+    "}",
+    "",
+    "IMAGE PROMPT RULES:",
+    "Write a cinematic, realistic, emotional image prompt for AI generation.",
+    "Include: subject, emotion, environment, camera angle, lighting, mood, color tone.",
+    "Style: hyper realistic, viral social media style, Indian local business context.",
+    "Reserve clean space for text overlay but do NOT render text inside the image.",
+    "Avoid: stock photo look, generic offices, handshakes, fake screenshots, logos, HOKO word in image.",
+    useAppScreenshots ? "Can include phone mockup showing app UI symbolically (no readable text)." : "Do not require app screenshots.",
+    "",
+    "HASHTAG RULES:",
+    "3 to 6 hashtags only. Fresh every time. Mix of: category, local business, India, platform, emotional.",
+    "Example variations: #LocalBusiness #DigitalIndia #ShopLocal #SmallBizIndia #NoCommission #Hyperlocal",
+    "Never repeat the same hashtag set. Must feel unique per post."
+  ].filter(Boolean).join("\n");
 }
 
 function inferConcreteVisualScene({ mood = "", categoryName = "", hook = "" }) {
@@ -767,7 +911,8 @@ async function generateTextDraft({ category, settings, campaign = {} }) {
     channelCaptions: {
       facebook: normalizeText(parsedChannelCaptions.facebook) || fallback.channelCaptions?.facebook || "",
       instagram: normalizeText(parsedChannelCaptions.instagram) || fallback.channelCaptions?.instagram || "",
-      linkedin: normalizeText(parsedChannelCaptions.linkedin) || fallback.channelCaptions?.linkedin || ""
+      linkedin: normalizeText(parsedChannelCaptions.linkedin) || fallback.channelCaptions?.linkedin || "",
+      whatsapp: normalizeText(parsedChannelCaptions.whatsapp) || fallback.channelCaptions?.whatsapp || ""
     },
     targetPlatforms: targetPlatforms.length ? targetPlatforms : inferTargetPlatforms({ category, topic: parsed.topic || fallback.topic, hook: parsed.hook || fallback.hook }),
     hashtags,
@@ -856,7 +1001,8 @@ async function generateOpenAiTextDraft({ category, settings, campaign = {}, fall
     channelCaptions: {
       facebook: normalizeText(parsedChannelCaptions.facebook) || fallback.channelCaptions?.facebook || "",
       instagram: normalizeText(parsedChannelCaptions.instagram) || fallback.channelCaptions?.instagram || "",
-      linkedin: normalizeText(parsedChannelCaptions.linkedin) || fallback.channelCaptions?.linkedin || ""
+      linkedin: normalizeText(parsedChannelCaptions.linkedin) || fallback.channelCaptions?.linkedin || "",
+      whatsapp: normalizeText(parsedChannelCaptions.whatsapp) || fallback.channelCaptions?.whatsapp || ""
     },
     targetPlatforms: targetPlatforms.length ? targetPlatforms : inferTargetPlatforms({ category, topic: parsed.topic || fallback.topic, hook: parsed.hook || fallback.hook }),
     hashtags,
