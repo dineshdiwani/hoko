@@ -1198,8 +1198,13 @@ if (fs.existsSync(clientDistPath)) {
 
 /* -------------------- GLOBAL ERROR HANDLER -------------------- */
 app.use((err, req, res, next) => {
-  console.error("Server error:", err.stack);
-  res.status(500).json({ message: "Internal server error" });
+  const status = err.status || err.statusCode || 500;
+  console.error(`Server error [${status}]:`, err.stack || err.message || err);
+  if (res.headersSent) return next(err);
+  res.status(status).json({
+    message: err.expose ? err.message : (status === 413 ? "Request body too large. Maximum size is 200MB." : "Internal server error"),
+    error: status >= 500 ? (process.env.NODE_ENV === "development" ? err.stack : undefined) : undefined
+  });
 });
 
 /* -------------------- START SERVER -------------------- */
