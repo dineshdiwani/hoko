@@ -1003,23 +1003,28 @@ export default function AdminAiContent() {
 
     try {
       setReelPublishing(true);
-      const formData = new FormData();
-      formData.append("hook", reelHook.trim());
-      formData.append("mediaMode", reelMediaFile ? "file" : "url");
+      let videoUrl = reelMediaUrl.trim();
+
       if (reelMediaFile) {
-        formData.append("mediaFile", reelMediaFile);
-      } else {
-        formData.append("mediaUrl", reelMediaUrl.trim());
-      }
-      reelChannelIds.forEach((id) => formData.append("channelIds", id));
-      if (!publishNow && reelScheduleAt.trim()) {
-        formData.append("scheduleAt", new Date(reelScheduleAt).toISOString());
-      }
-      if (publishNow) {
-        formData.append("publishNow", "true");
+        const uploadForm = new FormData();
+        uploadForm.append("video", reelMediaFile);
+        const uploadRes = await api.post("/video-reel/upload", uploadForm);
+        videoUrl = uploadRes.data?.url;
+        if (!videoUrl) {
+          throw new Error("Failed to upload video - no URL returned");
+        }
       }
 
-      const res = await api.post("/video-reel/posts", formData);
+      const payload = {
+        hook: reelHook.trim(),
+        mediaMode: "url",
+        mediaUrl: videoUrl,
+        channelIds: reelChannelIds,
+        publishNow: publishNow ? true : undefined,
+        scheduleAt: !publishNow && reelScheduleAt.trim() ? new Date(reelScheduleAt).toISOString() : undefined
+      };
+
+      const res = await api.post("/video-reel/posts", payload);
       resetReelForm();
       await loadReelPosts();
       alert(res.data?.mode === "published" ? "Reel published successfully" : "Reel scheduled successfully");

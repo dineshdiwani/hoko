@@ -54,6 +54,24 @@ async function saveVideoUpload(file) {
   };
 }
 
+router.post(
+  "/upload",
+  adminAuth,
+  requireAdminPermission("campaigns.manage"),
+  (req, res, next) => upload.single("video")(req, res, (err) => multerErrorHandler(err, req, res, next)),
+  async (req, res) => {
+    try {
+      const mediaMeta = await saveVideoUpload(req.file || null);
+      if (!mediaMeta) {
+        return res.status(400).json({ message: "No video file uploaded" });
+      }
+      return res.json({ success: true, url: mediaMeta.publicUrl, fileName: mediaMeta.fileName });
+    } catch (err) {
+      return res.status(500).json({ message: err?.message || "Failed to upload video" });
+    }
+  }
+);
+
 router.get("/buffer/channels", adminAuth, requireAdminPermission("campaigns.read"), async (req, res) => {
   try {
     const result = await getBufferChannels(req.query?.organizationId);
@@ -83,15 +101,23 @@ router.get("/posts/:id", adminAuth, requireAdminPermission("campaigns.read"), as
   }
 });
 
+function conditionalMulter(req, res, next) {
+  const contentType = String(req.headers?.["content-type"] || "").toLowerCase();
+  if (contentType.includes("multipart/form-data")) {
+    return upload.single("mediaFile")(req, res, (err) => multerErrorHandler(err, req, res, next));
+  }
+  next();
+}
+
 router.post(
   "/posts",
   adminAuth,
   requireAdminPermission("campaigns.manage"),
-  (req, res, next) => upload.single("mediaFile")(req, res, (err) => multerErrorHandler(err, req, res, next)),
+  conditionalMulter,
   async (req, res) => {
     try {
       const hook = normalizeText(req.body?.hook || "");
-      const mediaMode = normalizeText(req.body?.mediaMode || "file").toLowerCase();
+      const mediaMode = normalizeText(req.body?.mediaMode || "url").toLowerCase();
       const mediaUrl = normalizeText(req.body?.mediaUrl || "");
       const channelIds = Array.isArray(req.body?.channelIds)
         ? req.body.channelIds.map(normalizeText).filter(Boolean)
