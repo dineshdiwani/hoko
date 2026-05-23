@@ -290,9 +290,19 @@ export default function AdminAiContent() {
   const [reelChannelIds, setReelChannelIds] = useState([]);
   const [reelScheduleAt, setReelScheduleAt] = useState("");
   const [reelPublishing, setReelPublishing] = useState(false);
+  const [publishingReelPostId, setPublishingReelPostId] = useState("");
   const [reelPosts, setReelPosts] = useState([]);
   const [reelPostsLoading, setReelPostsLoading] = useState(false);
   const reelFileInputRef = useRef(null);
+
+  const reelPublishingRef = useRef(false);
+  useEffect(() => {
+    return () => {
+      if (reelPublishingRef.current) {
+        setReelPublishing(false);
+      }
+    };
+  }, []);
 
   const activeCount = useMemo(
     () => categories.filter((item) => item.active !== false).length,
@@ -1001,14 +1011,20 @@ export default function AdminAiContent() {
       return;
     }
 
+    if (reelMediaFile && reelMediaFile.size > 50 * 1024 * 1024) {
+      alert("Video file exceeds 50MB limit. Please select a smaller file.");
+      return;
+    }
+
     try {
       setReelPublishing(true);
+      reelPublishingRef.current = true;
       let videoUrl = reelMediaUrl.trim();
 
       if (reelMediaFile) {
         const uploadForm = new FormData();
         uploadForm.append("video", reelMediaFile);
-        const uploadRes = await api.post("/video-reel/upload", uploadForm);
+        const uploadRes = await withTimeout(api.post("/video-reel/upload", uploadForm), 180000, "Video upload timed out");
         videoUrl = uploadRes.data?.url;
         if (!videoUrl) {
           throw new Error("Failed to upload video - no URL returned");
@@ -1024,13 +1040,14 @@ export default function AdminAiContent() {
         scheduleAt: !publishNow && reelScheduleAt.trim() ? new Date(reelScheduleAt).toISOString() : undefined
       };
 
-      const res = await api.post("/video-reel/posts", payload);
+      const res = await withTimeout(api.post("/video-reel/posts", payload), 120000, "Creating reel post timed out");
       resetReelForm();
       await loadReelPosts();
       alert(res.data?.mode === "published" ? "Reel published successfully" : "Reel scheduled successfully");
     } catch (err) {
       alert(err?.response?.data?.message || err.message || "Failed to create reel post");
     } finally {
+      reelPublishingRef.current = false;
       setReelPublishing(false);
     }
   }
@@ -1049,17 +1066,20 @@ export default function AdminAiContent() {
   async function publishReelPost(postId) {
     if (!postId) return;
     try {
-      await api.post(`/video-reel/posts/${postId}/publish`);
+      setPublishingReelPostId(postId);
+      await withTimeout(api.post(`/video-reel/posts/${postId}/publish`), 120000, "Publish timed out");
       await loadReelPosts();
     } catch (err) {
       alert(err?.response?.data?.message || err.message || "Failed to publish reel");
+    } finally {
+      setPublishingReelPostId("");
     }
   }
 
   async function cancelReelPost(postId) {
     if (!postId) return;
     try {
-      await api.post(`/video-reel/posts/${postId}/cancel`);
+      await withTimeout(api.post(`/video-reel/posts/${postId}/cancel`), 30000, "Cancel timed out");
       await loadReelPosts();
     } catch (err) {
       alert(err?.response?.data?.message || err.message || "Failed to cancel reel");
@@ -1070,7 +1090,7 @@ export default function AdminAiContent() {
     if (!postId) return;
     if (!window.confirm("Delete this reel post?")) return;
     try {
-      await api.delete(`/video-reel/posts/${postId}`);
+      await withTimeout(api.delete(`/video-reel/posts/${postId}`), 30000, "Delete timed out");
       await loadReelPosts();
     } catch (err) {
       alert(err?.response?.data?.message || err.message || "Failed to delete reel");
@@ -2116,7 +2136,7 @@ export default function AdminAiContent() {
                       className="block w-full text-sm"
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                      {reelMediaFile ? `Selected: ${reelMediaFile.name}` : "Max 200MB"}
+                      {reelMediaFile ? `Selected: ${reelMediaFile.name}` : "Max 50MB"}
                     </p>
                   </div>
                   <div>
@@ -2242,9 +2262,10 @@ export default function AdminAiContent() {
                         <div className="flex flex-wrap gap-2 mt-1">
                           <button
                             onClick={() => publishReelPost(post._id)}
-                            className="px-3 py-1.5 rounded border text-[11px] font-semibold"
+                            disabled={publishingReelPostId === post._id}
+                            className="px-3 py-1.5 rounded border text-[11px] font-semibold disabled:opacity-60"
                           >
-                            Publish Now
+                            {publishingReelPostId === post._id ? "Publishing..." : "Publish Now"}
                           </button>
                           {post.status === "queued" ? (
                             <button

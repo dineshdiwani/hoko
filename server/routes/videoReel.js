@@ -12,13 +12,13 @@ const router = express.Router();
 
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 200 * 1024 * 1024 }
+  limits: { fileSize: 50 * 1024 * 1024 }
 });
 
 function multerErrorHandler(err, req, res, next) {
   if (err instanceof multer.MulterError) {
     if (err.code === "LIMIT_FILE_SIZE") {
-      return res.status(413).json({ message: "Video file is too large. Maximum size is 200MB." });
+      return res.status(413).json({ message: "Video file is too large. Maximum size is 50MB." });
     }
     return res.status(400).json({ message: err.message || "File upload error" });
   }

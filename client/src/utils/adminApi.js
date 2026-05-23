@@ -10,6 +10,7 @@ const normalizedApiUrl = String(rawApiUrl).endsWith("/api")
 
 const adminApi = axios.create({
   baseURL: normalizedApiUrl,
+  timeout: 120000,
 });
 
 adminApi.interceptors.request.use((config) => {

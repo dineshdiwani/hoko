@@ -31,7 +31,7 @@ const aiGeneratedPostSchema = new mongoose.Schema(
     },
     targetPlatforms: [{
       type: String,
-      enum: ["facebook", "instagram", "linkedin"]
+      enum: ["facebook", "instagram", "linkedin", "whatsapp"]
     }],
     hashtags: [{ type: String }],
     imagePrompt: { type: String, default: "" },
