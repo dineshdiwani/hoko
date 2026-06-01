@@ -386,12 +386,16 @@ function buildFallbackDraft({ category, fixedCta, campaign = {} }) {
     `Square service-offer comparison scene: ${concreteScene}.`,
     `Realistic Indian advisory scene for ${name}: ${concreteScene}.`,
     `Service marketplace visual for ${name}: ${concreteScene}.`,
-    `Policy and offer comparison image showing ${concreteScene}.`
+    `Policy and offer comparison image showing ${concreteScene}.`,
+    `Advisor helping buyer review service options: ${concreteScene}.`,
+    `Side-by-side service comparison layout: ${concreteScene}.`
   ] : [
-    `Square social media ad scene: ${concreteScene}.`,
-    `Product-first visual for ${name}: ${concreteScene}.`,
-    `Realistic Indian procurement scene for ${name}: ${concreteScene}.`,
-    `Commercial marketplace image showing ${concreteScene}.`
+    `Square product-procurement visual: ${concreteScene}.`,
+    `Realistic Indian marketplace scene for ${name}: ${concreteScene}.`,
+    `Product showcase and supplier comparison image: ${concreteScene}.`,
+    `Commercial buying scene showing ${concreteScene}.`,
+    `Shop-floor product evaluation setup: ${concreteScene}.`,
+    `Buyer inspecting ${name} items from multiple sellers: ${concreteScene}.`
   ];
   const visualOpener = visualOpeners[hashText(`${seed}|visual`) % visualOpeners.length];
   const caption = [
@@ -414,12 +418,12 @@ function buildFallbackDraft({ category, fixedCta, campaign = {} }) {
     imagePrompt: [
       visualOpener,
       `Creative angle: ${selected.angle}.`,
-      `Reserve clean top-left or bottom-left space for this separate text overlay: "${imageTextOverlay}". Do not render the text inside the image.`,
-      mood ? `Admin direction to reflect: ${mood}.` : `Post hook to reflect: ${hook}.`,
-      "Include 2-3 seller offer cards or price tags only as supporting visual elements.",
-      `Visual style: ${normalizeText(category?.imageStyle) || "clean realistic commercial ad"}.`,
-      "No readable text, no HOKO word, no logos, no wall portraits, no framed photos."
-    ].join(" "),
+      `Reserve clean top-left or bottom-left space for separate text overlay: "${imageTextOverlay}". Do not render text inside the image.`,
+      mood ? `Scene mood: ${mood}.` : `Visual theme from hook: ${hook}.`,
+      hashText(`${seed}|offercards`) % 3 !== 0 ? "Include 1-2 simple price labels near the product if relevant." : "",
+      `Visual style: ${normalizeText(category?.imageStyle) || "realistic Indian commercial photography"}.`,
+      "No readable text, no logos, no wall portraits, no framed photos, no HOKO word in image."
+    ].filter(Boolean).join(" "),
     raw: null
   };
 }
@@ -644,11 +648,88 @@ function inferConcreteVisualScene({ mood = "", categoryName = "", hook = "" }) {
     parts.push("industrial machinery procurement scene with engineers around the equipment");
     parts.push("supplier offer cards beside the machine");
   } else {
-    parts.push(`${categoryName} procurement scene with real category-specific items visible`);
-    parts.push("buyer or professional inspecting the requirement");
+    const hookText = (hook || "").toLowerCase();
+    const moodText = (mood || "").toLowerCase();
+    const envSeed = hashText(`${mood}|${categoryName}|${hook}|env`);
+    if (/warehouse|stock|inventory|bulk|supply|godown/.test(hookText)) {
+      parts.push(`warehouse storage area with ${categoryName} products neatly stacked on industrial shelves, a buyer examining stock`);
+    } else if (/shop|store|retail|counter|walk.?in/.test(hookText)) {
+      parts.push(`local retail shop with ${categoryName} items displayed on shelves and glass counter, natural shop lighting`);
+    } else if (/urgent|emergency|immediate|quick|fast|need.*now|kal.?tak|chahiye/.test(hookText)) {
+      parts.push(`busy procurement desk with ${categoryName} items being quickly processed, a sense of urgency in the air`);
+    } else if (/compare|comparison|best.?price|rate|cheap|low.?cost|affordable|sasta/.test(hookText)) {
+      parts.push(`comparison shopping scene with ${categoryName} items from different sellers displayed side by side for evaluation`);
+    } else if (/delivery|supply|supplier|vendor|distributor|supply.*chain/.test(hookText)) {
+      parts.push(`supply yard or distribution point with ${categoryName} items being received and checked by a buyer`);
+    } else if (/quality|premium|top|best|high.?end|superior|brand/.test(hookText)) {
+      parts.push(`premium showroom or quality inspection area with ${categoryName} items on elegant display`);
+    } else if (/digital|online|app|platform|website|phone|mobile/.test(hookText)) {
+      parts.push(`modern digital commerce setup with ${categoryName} items visible alongside a smartphone showing offers`);
+    } else if (/local|neighborhood|community|nearby|desi|indian.*market/.test(hookText)) {
+      parts.push(`vibrant local Indian market area with ${categoryName} items prominently displayed at a shop front`);
+    } else if (/price|offer|deal|discount|save|bargain/.test(hookText)) {
+      parts.push(`competitive pricing display with ${categoryName} items tagged with discount labels and offer boards`);
+    } else if (/first.?time|new|beginner|start|discover|explore|try/.test(hookText)) {
+      parts.push(`welcoming shop entrance displaying ${categoryName} items, first-time buyer exploring options`);
+    } else {
+      const envOptions = [
+        `procurement desk with ${categoryName} items neatly arranged for buyer inspection`,
+        `local market shop counter displaying ${categoryName} products with clear price labels`,
+        `commercial supply store with ${categoryName} items on racks and a buyer examining the quality`,
+        `business workspace with ${categoryName} samples and requirement documents on a desk`,
+        `product showcase area with ${categoryName} items arranged professionally for buyer evaluation`,
+        `shop floor with ${categoryName} products displayed in organized sections for easy comparison`
+      ];
+      parts.push(envOptions[envSeed % envOptions.length]);
+    }
+    if (/urgent|emergency|immediate|need.*now|chahiye|kal.?tak/.test(hookText)) {
+      parts.push("a buyer urgently checking requirements on a clipboard, seller representative ready with offer details, concerned expressions");
+    } else if (/compare|comparison|best.?price|rate|cheap|sasta/.test(hookText)) {
+      parts.push("a buyer thoughtfully comparing options from two sellers, holding a document and evaluating products");
+    } else if (/negotiate|deal|bargain|discount|offer|price/.test(hookText)) {
+      parts.push("a buyer negotiating with a seller, both gesturing toward the products with engaged expressions");
+    } else if (/quality|premium|top|best|high.?end|superior|brand/.test(hookText)) {
+      parts.push("a quality inspector or discerning buyer examining the product carefully with a satisfied expression");
+    } else if (/delivery|supply|supplier|vendor|distributor/.test(hookText)) {
+      parts.push("a warehouse staff handing over products to a buyer who is checking the delivery against a list");
+    } else if (/first.?time|new|beginner|start|discover|explore|try/.test(hookText)) {
+      parts.push("a first-time buyer exploring category options with curiosity, a helpful seller guiding them");
+    } else if (/stop.*call|calling.*supplier|chase|run.*shop|juggl|wast.*time/.test(hookText)) {
+      parts.push("a relieved buyer at a shop counter who just discovered an easier way to compare suppliers, holding a phone");
+    } else {
+      const charOptions = [
+        "a buyer inspecting the product requirement with a focused, professional expression",
+        "a small business owner examining category items carefully and comparing price tags",
+        "a procurement professional reviewing product specifications with a supplier nearby",
+        "a buyer and seller discussing requirements over a product display, both engaged",
+        "a local shopkeeper showing category items to an interested buyer at the counter",
+        "an entrepreneur evaluating different supplier options for their business needs"
+      ];
+      parts.push(charOptions[hashText(`${mood}|${categoryName}|${hook}|char`) % charOptions.length]);
+    }
+    if (/urgent|emergency|immediate|fast|quick/.test(moodText)) {
+      parts.push("bright energetic lighting with a sense of speed, warm urgent tones, dynamic composition");
+    } else if (/premium|luxury|high.?end|exclusive|elite/.test(moodText)) {
+      parts.push("soft premium lighting with warm amber tones, elegant sophisticated atmosphere, subtle shadows");
+    } else if (/budget|economy|affordable|cheap|low.?cost|value/.test(moodText)) {
+      parts.push("bright practical lighting, straightforward honest visual tone, value-focused composition");
+    } else if (/festive|celebrate|festival|special.?offer|diwali|pongal|holi|dasher/.test(moodText)) {
+      parts.push("warm festive golden lighting, celebratory atmosphere with subtle traditional decorative accents");
+    } else if (/trust|secure|reliable|safe|dependable|honest/.test(moodText)) {
+      parts.push("stable well-balanced lighting, trustworthy calm atmosphere, clear visibility and open composition");
+    } else if (/modern|digital|tech|innovative|smart|future/.test(moodText)) {
+      parts.push("clean modern lighting with cool tones, contemporary forward-looking atmosphere, sleek environment");
+    } else if (/local|traditional|desi|indian|neighborhood|community/.test(moodText)) {
+      parts.push("warm natural lighting with traditional Indian market atmosphere, vibrant local color palette");
+    } else if (/seasonal|rainy|summer|winter|monsoon|spring/.test(moodText)) {
+      parts.push("atmospheric lighting matching the seasonal mood, weather-appropriate environmental tone");
+    }
   }
-  parts.push("2-3 floating seller offer cards with simple price tags near the product");
-  parts.push("clear price comparison visual, no portraits on walls, no unrelated people, no decorative framed photos");
+  const hasComparisonContext = /compare|price|rate|offer|deal|discount|bargain|compet|bid|auction/.test(text);
+  if (hasComparisonContext) {
+    parts.push("2-3 floating seller offer cards with simple price tags near the product");
+  }
+  parts.push("no portraits on walls, no unrelated people, no decorative framed photos");
   return parts.join(", ");
 }
 
@@ -662,32 +743,56 @@ function buildFinalImagePrompt({ imagePrompt = "", draft = {}, category = {}, ca
   const categoryStyle = normalizeText(category?.imageStyle);
   const concreteSubject = normalizeText(draft?.topic) || categoryName;
   const concreteScene = inferConcreteVisualScene({ mood, categoryName, hook });
+  const moodText = (mood || "").toLowerCase();
+  const hookText = (hook || "").toLowerCase();
+  let lightingDesc = "bright commercial lighting with natural shadows";
+  let colorDesc = "clean high-contrast trustworthy business palette";
+  if (/urgent|emergency|immediate|fast|quick/.test(moodText)) {
+    lightingDesc = "energetic bright lighting with dynamic shadows, urgent tempo";
+    colorDesc = "high-energy warm tones with contrast for urgency";
+  } else if (/premium|luxury|high.?end|exclusive/.test(moodText)) {
+    lightingDesc = "soft premium diffused lighting with warm amber glow";
+    colorDesc = "rich deep tones with gold and cream accents, sophisticated palette";
+  } else if (/festive|celebrate|festival|special.?offer/.test(moodText)) {
+    lightingDesc = "warm golden festive lighting with soft glow";
+    colorDesc = "vibrant celebratory colors with warm Indian festival palette";
+  } else if (/budget|economy|affordable|value/.test(moodText)) {
+    lightingDesc = "bright flat practical lighting, clear visibility";
+    colorDesc = "clean straightforward colors, no-nonsense business palette";
+  } else if (/local|traditional|desi|indian|neighborhood/.test(moodText)) {
+    lightingDesc = "warm natural daylight with traditional market ambience";
+    colorDesc = "vibrant local Indian bazaar colors, warm earthy tones";
+  } else if (/modern|digital|tech|innovative/.test(moodText)) {
+    lightingDesc = "clean cool modern lighting with crisp shadows";
+    colorDesc = "contemporary cool-toned palette with accent highlights";
+  } else if (/trust|secure|reliable|safe/.test(moodText)) {
+    lightingDesc = "stable even lighting, calm and trustworthy atmosphere";
+    colorDesc = "balanced professional blues and neutrals, reliable palette";
+  } else if (/seasonal|rainy|summer|winter|monsoon/.test(moodText)) {
+    lightingDesc = "atmospheric seasonal lighting matching the weather mood";
+    colorDesc = "mood-appropriate seasonal color palette";
+  }
+  const cameraAngle = hashText(`${mood}|${categoryName}|hook_cam`) % 4;
+  const cameraOpts = [
+    "eye-level shot optimized for mobile feed",
+    "slight three-quarter angle showing depth",
+    "slightly low angle making products look substantial",
+    "straight-on product-focused composition"
+  ];
   const sceneFocus = [
-    `Create one square 1:1 social media advertising image for this exact post topic: ${concreteSubject}.`,
-    "Agency quality bar: hyper realistic, viral local business marketing style, high CTR, bright and premium, mobile-first composition.",
-    mood ? `Admin intent to convert into a visual scene: ${mood}. Do not render abstract words like "wish"; render the concrete product, people, and offer-comparison scene.` : "",
-    `Required concrete scene: ${concreteScene}.`,
-    "Include subject, environment, lighting, camera angle, mood, colors, realistic details, platform style, audience appeal, and festival/trend relevance if applicable.",
-    "Lighting: bright premium commercial lighting with natural shadows. Camera: eye-level or slight three-quarter angle optimized for mobile feed.",
-    "Colors: clean, high-contrast, trustworthy business palette with warm Indian local-market energy.",
-    imageTextOverlay ? `Leave clean negative space for separate overlay text "${imageTextOverlay}", but do not render any readable text in the image.` : "Leave clean negative space for a short ad text overlay, but do not render any readable text in the image.",
-    `Primary visual subject: ${categoryName}. The image must clearly show real items, tools, shop/warehouse context, or service context from this category.`,
-    hook ? `Match this exact post message visually: "${hook}".` : "",
-    "Do not make a generic office, handshake, abstract app promotion, or random business meeting.",
-    "The first thing visible should be the category/product need, then the HOKO buying workflow.",
-    mood ? "When admin visual instruction names a specific product or people, show those exact objects and people prominently." : "",
-    "Show a buyer with the relevant product/category requirement, and 2-3 seller price offers as simple large visual cards or price tags only if they fit naturally.",
-    "Show comparison of prices/offers visually, but avoid small unreadable text. Use simple symbolic numbers or price tags only if readable.",
-    "If the post says 'needed soon', show urgency with practical buying context such as a shop counter, warehouse shelf, contractor site, or procurement desk.",
-    "If reverse auction is relevant, show sellers competing with downward price arrows or offer cards.",
-    audienceMode && audienceMode !== "auto" ? `Audience focus: ${audienceMode}.` : "",
-    imageStyle && imageStyle !== "auto" ? `Requested style/background: ${imageStyle}.` : "",
-    categoryStyle ? `Category style hint: ${categoryStyle}.` : "",
-    normalizeText(imagePrompt) ? `Additional visual direction: ${normalizeText(imagePrompt)}.` : "",
-    "Use Indian marketplace/business context. Make the scene practical and product-specific.",
-    "Do not include readable text, the word HOKO, fake social media UI, platform logos, brand logos, celebrity faces, wall portraits, framed photos, watermarks, pavement text, signboards, or distorted hands.",
-    "If showing an app/phone, keep UI symbolic and simple; do not invent detailed unreadable screens.",
-    "High quality, clean composition, realistic commercial illustration or polished ad visual."
+    `Square 1:1 social media ad image for: ${concreteSubject}.`,
+    `Scene: ${concreteScene}.`,
+    `Primary subject: ${categoryName} items visible prominently.`,
+    hook ? `Post message context: "${hook}".` : "",
+    `Lighting: ${lightingDesc}. Colors: ${colorDesc}.`,
+    `Camera: ${cameraOpts[cameraAngle % cameraOpts.length]}.`,
+    imageTextOverlay ? `Leave clean negative space for text overlay: "${imageTextOverlay}". No text rendered inside image.` : "Leave clean negative space for short overlay text. No rendered text in image.",
+    "Quality: hyper realistic, Indian local business context, mobile-first composition.",
+    audienceMode && audienceMode !== "auto" ? `Audience: ${audienceMode}.` : "",
+    imageStyle && imageStyle !== "auto" ? `Style: ${imageStyle}.` : "",
+    categoryStyle ? `Category style: ${categoryStyle}.` : "",
+    normalizeText(imagePrompt) ? `Additional direction: ${normalizeText(imagePrompt)}.` : "",
+    "Restrictions: no readable text, no HOKO word, no logos, no brand names, no celebrity faces, no wall portraits, no framed photos, no watermarks, no distorted hands, no fake social media UI."
   ].filter(Boolean);
   return sceneFocus.join(" ");
 }
@@ -708,22 +813,17 @@ function cleanSupportingImagePrompt(imagePrompt = "") {
     /depict this hook visually/i
   ];
   const weakTemplateHits = weakTemplatePatterns.filter((pattern) => pattern.test(prompt)).length;
-  return weakTemplateHits >= 2 ? "" : prompt;
+  return weakTemplateHits >= 3 ? "" : prompt;
 }
 
 function buildProviderImagePrompt({ imagePrompt = "", draft = {}, category = {}, campaign = {} }) {
-  const categoryName = normalizeText(category?.name || draft?.categorySnapshot?.name);
-  const hook = normalizeText(draft?.hook || draft?.caption || draft?.topic);
   const cleanAiPrompt = cleanSupportingImagePrompt(imagePrompt);
   const finalPrompt = buildFinalImagePrompt({ imagePrompt: cleanAiPrompt, draft, category, campaign })
     .replace(/\bHOKO\b/gi, "the marketplace app");
   return [
     finalPrompt,
-    hook ? `Must align with this post hook: "${hook}".` : "",
-    categoryName ? `Category context: ${categoryName}.` : "",
-    cleanAiPrompt ? `Supporting visual note: ${cleanAiPrompt}.` : "",
-    "Format: square 1:1 professional social media image.",
-    "Do not render the word HOKO. Do not render any logo, pavement text, wall text, signboard, typography, unrelated portraits, wall photos, random people, decorative text, fake logos, unreadable text, or watermark."
+    cleanAiPrompt ? `Additional guidance: ${cleanAiPrompt}.` : "",
+    "Format: square 1:1 social media image. No logos, no text, no watermarks, no wall portraits, no framed photos."
   ].filter(Boolean).join(" ");
 }
 

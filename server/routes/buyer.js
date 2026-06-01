@@ -14,6 +14,7 @@ const { claimNotificationGuard } = require("../utils/notificationGuard");
 const ChatMessage = require("../models/ChatMessage");
 const PlatformSettings = require("../models/PlatformSettings");
 const TempRequirement = require("../models/TempRequirement");
+const PendingOfferDraft = require("../models/PendingOfferDraft");
 const WhatsAppTemplateRegistry = require("../models/WhatsAppTemplateRegistry");
 const WhatsAppDeliveryLog = require("../models/WhatsAppDeliveryLog");
 const WhatsAppBuyerContact = require("../models/WhatsAppBuyerContact");
@@ -2151,6 +2152,26 @@ router.post("/profile", auth, buyerOnly, async (req, res) => {
           { userId: req.user._id },
           { $set: { userId: existingUser._id } }
         );
+        await Offer.updateMany(
+          { seller: req.user._id },
+          { $set: { seller: existingUser._id } }
+        );
+        await Notification.updateMany(
+          { to: req.user._id },
+          { $set: { to: existingUser._id } }
+        );
+        await ChatMessage.updateMany(
+          { from: req.user._id },
+          { $set: { from: existingUser._id } }
+        );
+        await ChatMessage.updateMany(
+          { to: req.user._id },
+          { $set: { to: existingUser._id } }
+        );
+        await PendingOfferDraft.updateMany(
+          { seller: req.user._id },
+          { $set: { seller: existingUser._id } }
+        );
         existingUser.mobile = req.user.mobile;
         if (existingUser.city && !existingUser.city.trim()) {
           existingUser.city = req.user.city;
@@ -2203,6 +2224,26 @@ router.post("/profile", auth, buyerOnly, async (req, res) => {
         await TempRequirement.updateMany(
           { userId: req.user._id },
           { $set: { userId: existingMobileUser._id } }
+        );
+        await Offer.updateMany(
+          { seller: req.user._id },
+          { $set: { seller: existingMobileUser._id } }
+        );
+        await Notification.updateMany(
+          { to: req.user._id },
+          { $set: { to: existingMobileUser._id } }
+        );
+        await ChatMessage.updateMany(
+          { from: req.user._id },
+          { $set: { from: existingMobileUser._id } }
+        );
+        await ChatMessage.updateMany(
+          { to: req.user._id },
+          { $set: { to: existingMobileUser._id } }
+        );
+        await PendingOfferDraft.updateMany(
+          { seller: req.user._id },
+          { $set: { seller: existingMobileUser._id } }
         );
         existingMobileUser.email = req.user.email;
         if (existingMobileUser.city && !existingMobileUser.city.trim()) {
@@ -2260,6 +2301,26 @@ router.post("/profile", auth, buyerOnly, async (req, res) => {
             await TempRequirement.updateMany(
               { userId: req.user._id },
               { $set: { userId: existingEmailUser._id } }
+            );
+            await Offer.updateMany(
+              { seller: req.user._id },
+              { $set: { seller: existingEmailUser._id } }
+            );
+            await Notification.updateMany(
+              { to: req.user._id },
+              { $set: { to: existingEmailUser._id } }
+            );
+            await ChatMessage.updateMany(
+              { from: req.user._id },
+              { $set: { from: existingEmailUser._id } }
+            );
+            await ChatMessage.updateMany(
+              { to: req.user._id },
+              { $set: { to: existingEmailUser._id } }
+            );
+            await PendingOfferDraft.updateMany(
+              { seller: req.user._id },
+              { $set: { seller: existingEmailUser._id } }
             );
             existingEmailUser.mobile = req.user.mobile || existingEmailUser.mobile;
             if (existingEmailUser.city && !existingEmailUser.city.trim()) {

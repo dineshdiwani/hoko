@@ -3,6 +3,10 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const Requirement = require("../models/Requirement");
 const TempRequirement = require("../models/TempRequirement");
+const Offer = require("../models/Offer");
+const Notification = require("../models/Notification");
+const ChatMessage = require("../models/ChatMessage");
+const PendingOfferDraft = require("../models/PendingOfferDraft");
 const router = express.Router();
 const {
   setOtp,
@@ -159,7 +163,7 @@ async function mergeSoftUserRequirements(userId, mobileE164) {
 
   let totalMerged = 0;
 
-  // Merge soft user requirements
+  // Merge soft user records
   if (softUserId) {
     const reqResult = await Requirement.updateMany(
       { buyerId: softUserId },
@@ -169,9 +173,29 @@ async function mergeSoftUserRequirements(userId, mobileE164) {
       { userId: softUserId },
       { $set: { userId: userId } }
     );
+    await Offer.updateMany(
+      { seller: softUserId },
+      { $set: { seller: userId } }
+    );
+    await Notification.updateMany(
+      { to: softUserId },
+      { $set: { to: userId } }
+    );
+    await ChatMessage.updateMany(
+      { from: softUserId },
+      { $set: { from: userId } }
+    );
+    await ChatMessage.updateMany(
+      { to: softUserId },
+      { $set: { to: userId } }
+    );
+    await PendingOfferDraft.updateMany(
+      { seller: softUserId },
+      { $set: { seller: userId } }
+    );
     await User.findByIdAndDelete(softUserId);
     totalMerged += reqResult.modifiedCount;
-    console.log(`[Soft User Merge] Merged ${reqResult.modifiedCount} requirements from soft user ${softUserId} to ${userId}`);
+    console.log(`[Soft User Merge] Merged records from soft user ${softUserId} to ${userId}`);
   }
 
   // Merge any other requirements with same mobile
@@ -643,7 +667,8 @@ router.post("/verify-otp", otpVerifyLimiter, async (req, res) => {
   }
   await user.save();
 
-  const mergeResult = await mergeSoftUserRequirements(user._id, mobile);
+  const mobileForMerge = user.mobile || mobile;
+  const mergeResult = await mergeSoftUserRequirements(user._id, mobileForMerge);
 
   const token = jwt.sign(
     { id: user._id, role: normalizedRole, tokenVersion: user.tokenVersion || 0 },
@@ -798,7 +823,7 @@ router.post("/google", async (req, res) => {
     }
 
     await user.save();
-    const mergeResult = await mergeSoftUserRequirements(user._id, mobile);
+    const mergeResult = await mergeSoftUserRequirements(user._id, user.mobile || mobile);
 
     const token = jwt.sign(
       { id: user._id, role: normalizedRole, tokenVersion: user.tokenVersion || 0 },
