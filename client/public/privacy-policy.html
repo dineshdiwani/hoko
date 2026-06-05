@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy | HOKO</title>
+  <meta name="robots" content="noindex">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; line-height: 1.7; color: #1a1a2e; background: #f8f9fa; padding: 2rem 1rem; }
+    .container { max-width: 720px; margin: 0 auto; background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); padding: 2.5rem; }
+    h1 { font-size: 1.75rem; margin-bottom: 0.25rem; color: #1a1a2e; }
+    .updated { font-size: 0.85rem; color: #6b7280; margin-bottom: 1.5rem; }
+    hr { border: none; border-top: 1px solid #e5e7eb; margin: 1.5rem 0; }
+    p { margin-bottom: 1rem; white-space: pre-wrap; }
+    .footer { margin-top: 2rem; font-size: 0.85rem; color: #9ca3af; text-align: center; }
+    .footer a { color: #6b7280; text-decoration: underline; }
+    .loading { text-align: center; padding: 3rem 0; color: #6b7280; }
+  </style>
+</head>
+<body>
+  <div class="container" id="content">
+    <div class="loading">Loading privacy policy...</div>
+  </div>
+  <script>
+    (async function() {
+      try {
+        var res = await fetch('/api/meta/options');
+        var data = await res.json();
+        var content = data.privacyPolicy && data.privacyPolicy.content ? data.privacyPolicy.content : '';
+        var date = new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' });
+        var html = '<h1>Privacy Policy</h1><p class="updated">Last updated: ' + date + '</p><hr>';
+        if (content) {
+          var paragraphs = content.split('\n\n');
+          for (var i = 0; i < paragraphs.length; i++) {
+            html += '<p>' + paragraphs[i].replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</p>';
+          }
+        } else {
+          html += '<p>No privacy policy content available.</p>';
+        }
+        html += '<hr><div class="footer"><a href="https://hokoapp.in">HOKO</a></div>';
+        document.getElementById('content').innerHTML = html;
+      } catch(e) {
+        document.getElementById('content').innerHTML = '<h1>Privacy Policy</h1><hr><p>Failed to load privacy policy. Please try again later.</p>';
+      }
+    })();
+  </script>
+</body>
+</html>
