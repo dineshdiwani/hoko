@@ -1177,6 +1177,52 @@ app.get("/.well-known/apple-app-site-association", (req, res) => {
     );
 });
 
+/* -------------------- PUBLIC LEGAL PAGES -------------------- */
+app.get("/privacy-policy", async (req, res) => {
+  try {
+    const PlatformSettings = require("./models/PlatformSettings");
+    const doc = await PlatformSettings.findOne();
+    const content = doc?.privacyPolicy?.content || "";
+    const appName = "HOKO";
+    const baseUrl = process.env.APP_URL || "https://hokoapp.in";
+    res.type("text/html").send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy | ${appName}</title>
+  <meta name="robots" content="noindex">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; line-height: 1.7; color: #1a1a2e; background: #f8f9fa; padding: 2rem 1rem; }
+    .container { max-width: 720px; margin: 0 auto; background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); padding: 2.5rem; }
+    h1 { font-size: 1.75rem; margin-bottom: 0.25rem; color: #1a1a2e; }
+    .updated { font-size: 0.85rem; color: #6b7280; margin-bottom: 1.5rem; }
+    hr { border: none; border-top: 1px solid #e5e7eb; margin: 1.5rem 0; }
+    p { margin-bottom: 1rem; white-space: pre-wrap; }
+    .footer { margin-top: 2rem; font-size: 0.85rem; color: #9ca3af; text-align: center; }
+    .footer a { color: #6b7280; text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Privacy Policy</h1>
+    <p class="updated">Last updated: ${new Date().toLocaleDateString("en-IN", { year: "numeric", month: "long", day: "numeric" })}</p>
+    <hr>
+    ${content ? content.split("\n\n").map(p => `<p>${p.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>`).join("\n") : "<p>No privacy policy content available.</p>"}
+    <hr>
+    <div class="footer">
+      <a href="${baseUrl}">${appName}</a>
+    </div>
+  </div>
+</body>
+</html>`);
+  } catch (err) {
+    console.error("[privacy-policy] Error:", err.message);
+    res.status(500).type("text/html").send("<h1>Error loading privacy policy</h1>");
+  }
+});
+
 /* -------------------- CLIENT STATIC (SPA/PWA) -------------------- */
 const clientDistPath = path.resolve(__dirname, "..", "client", "dist");
 if (fs.existsSync(clientDistPath)) {
