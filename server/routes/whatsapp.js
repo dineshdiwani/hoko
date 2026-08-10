@@ -11,8 +11,11 @@ const WhatsAppContact = require("../models/WhatsAppContact");
 const WhatsAppBuyerContact = require("../models/WhatsAppBuyerContact");
 const OptedInSeller = require("../models/OptedInSeller");
 const User = require("../models/User");
-const { sendWhatsAppMessage } = require("../utils/sendWhatsApp");
-const { sendViaGupshupTemplate } = require("../utils/sendWhatsApp");
+const {
+  isWhatsAppChatbotDisabled,
+  sendWhatsAppMessage,
+  sendViaGupshupTemplate
+} = require("../utils/sendWhatsApp");
 const { resolvePublicAppUrl } = require("../utils/publicAppUrl");
 const WhatsAppTemplateRegistry = require("../models/WhatsAppTemplateRegistry");
 const PlatformSettings = require("../models/PlatformSettings");
@@ -980,6 +983,19 @@ router.post("/webhook", async (req, res) => {
         );
       }
     }
+  }
+
+  if (isWhatsAppChatbotDisabled()) {
+    const events = extractInboundEvents(req.body);
+    if (events.length) {
+      console.log("[WA WEBHOOK] Chatbot disabled; inbound events acknowledged without processing:", events.length);
+    }
+    return res.status(200).json({
+      ok: true,
+      disabled: true,
+      received: 0,
+      deliveryUpdates: deliveryEvents.length
+    });
   }
 
   const events = extractInboundEvents(req.body);

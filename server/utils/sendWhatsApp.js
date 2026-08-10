@@ -4,6 +4,23 @@ const { withRetry } = require("./retry");
 const { scheduleOutboundLog } = require("./outboundDeliveryLog");
 const { resolvePublicAppUrl } = require("./publicAppUrl");
 
+function isWhatsAppDisabled() {
+  const explicitDisabled = String(process.env.WHATSAPP_DISABLED || "")
+    .toLowerCase()
+    .trim();
+  const provider = String(process.env.WHATSAPP_PROVIDER || "")
+    .toLowerCase()
+    .trim();
+  return ["1", "true", "yes", "on"].includes(explicitDisabled) || provider === "off";
+}
+
+function isWhatsAppChatbotDisabled() {
+  const chatbotEnabled = String(process.env.WHATSAPP_CHATBOT_ENABLED || "")
+    .toLowerCase()
+    .trim();
+  return isWhatsAppDisabled() || ["0", "false", "no", "off"].includes(chatbotEnabled);
+}
+
 function normalizeE164(value) {
   const raw = String(value || "").replace(/[^\d]/g, "");
   if (!raw) return "";
@@ -93,6 +110,9 @@ function normalizeGupshupRecipient(to) {
 }
 
 function buildGupshupHeaders() {
+  if (isWhatsAppDisabled()) {
+    throw new Error("WhatsApp sending is disabled");
+  }
   const apiKey = String(process.env.GUPSHUP_API_KEY || "").trim();
   if (!apiKey) {
     throw new Error("Missing Gupshup API configuration");
@@ -362,6 +382,10 @@ function normalizeGupshupTemplateRecord(template) {
 }
 
 async function fetchGupshupApprovedTemplates() {
+  if (isWhatsAppDisabled()) {
+    return [];
+  }
+
   const url = resolveGupshupTemplateListUrl();
   if (!url) {
     throw new Error("Missing Gupshup template configuration: set GUPSHUP_APP_ID or GUPSHUP_TEMPLATE_LIST_URL");
@@ -382,6 +406,10 @@ async function fetchGupshupApprovedTemplates() {
 }
 
 async function fetchGupshupTemplateById(templateId) {
+  if (isWhatsAppDisabled()) {
+    throw new Error("WhatsApp sending is disabled");
+  }
+
   const url = resolveGupshupTemplateByIdUrl(templateId);
   if (!url) {
     throw new Error("Missing Gupshup template configuration: set GUPSHUP_APP_ID and templateId");
@@ -442,6 +470,10 @@ function buildGupshupTemplateMessage(templateConfig, mediaUrl) {
 
 
 async function sendViaGupshupTemplate({ to, templateId, templateName, languageCode, parameters = [], buttonUrl, templateConfig = null, mediaUrl = "" }) {
+  if (isWhatsAppDisabled()) {
+    throw new Error("WhatsApp sending is disabled");
+  }
+
   const url = resolveGupshupTemplateSendUrl();
   const source = resolveGupshupSource();
   const destination = normalizeGupshupRecipient(to);
@@ -545,7 +577,7 @@ async function sendWhatsAppMessage({ to, body }) {
     return { ok: false, skipped: true, reason: "invalid_input" };
   }
 
-  if (provider === "off") {
+  if (isWhatsAppDisabled()) {
     scheduleOutboundLog({
       channel: "whatsapp",
       eventType: "generic_whatsapp",
@@ -624,6 +656,8 @@ async function sendWhatsAppMessage({ to, body }) {
 module.exports = {
   sendWhatsAppMessage,
   normalizeE164,
+  isWhatsAppDisabled,
+  isWhatsAppChatbotDisabled,
   fetchGupshupApprovedTemplates,
   fetchGupshupTemplateById,
   sendViaGupshupTemplate
